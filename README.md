@@ -14,7 +14,7 @@ From this repository, run:
 
 The script installs locked Node dependencies, builds pinned FastHenry/FasterCap/ngspice sources locally, installs pinned plotting dependencies into `.venv`, runs unit and real native integration tests, and regenerates **each example twice from geometry and original vendor files**. It prints the new `runs/proof-*/summary.json` path. Existing run directories are never overwritten or used as solver output caches.
 
-Requirements: Node ≥22, pnpm 11.25.0, Python ≥3.10, a compiler, Git and network access for source/vendor downloads. macOS uses Xcode command-line tools and Homebrew; Linux setup uses apt/sudo. The bootstrap also finds this Mac's bundled Codex Node/pnpm when they are absent from PATH. Native dependencies are installed by the setup script; their actual versions are recorded rather than falsely claimed identical across hosts. The completed proof on this Mac uses native Darwin arm64 executables, without SSH or containers. Linux CI is supplied but has not been claimed executed from local Mac proof.
+Requirements: Node ≥22, pnpm 11.25.0, Python ≥3.11, a compiler, Git and network access for source/vendor downloads. macOS uses Xcode command-line tools and Homebrew; Linux setup uses apt/sudo. The bootstrap also finds this Mac's bundled Codex Node/pnpm when they are absent from PATH. Native dependencies are installed by the setup script; their actual versions are recorded rather than falsely claimed identical across hosts. The completed proof on this Mac uses native Darwin arm64 executables, without SSH or containers. Linux CI is supplied but has not been claimed executed from local Mac proof.
 
 Individual fresh runs after setup:
 
