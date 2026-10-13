@@ -4,16 +4,23 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@tscircuit/props': file:vendor/tscircuit-props-ibis-experimental.tgz
+  '@tscircuit/ibis-to-spice': file:vendor/ibis-to-spice-0.0.1.tgz
+
 importers:
 
   .:
     dependencies:
       '@tscircuit/core':
-        specifier: 0.0.2149
-        version: 0.0.2149(345cd48a335bc23a22e20591103e1f38)
+        specifier: file:vendor/tscircuit-core-ibis-experimental.tgz
+        version: file:vendor/tscircuit-core-ibis-experimental.tgz(7f85fed19f334af44a371b52c856d151)
       '@tscircuit/ibis-to-spice':
         specifier: file:vendor/ibis-to-spice-0.0.1.tgz
         version: file:vendor/ibis-to-spice-0.0.1.tgz
+      '@tscircuit/props':
+        specifier: file:vendor/tscircuit-props-ibis-experimental.tgz
+        version: file:vendor/tscircuit-props-ibis-experimental.tgz(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       fflate:
         specifier: 0.8.2
         version: 0.8.2
@@ -358,8 +365,9 @@ packages:
       spicets: '*'
       typescript: ^5.0.0
 
-  '@tscircuit/core@0.0.2149':
-    resolution: {integrity: sha512-IhCwn1RsAznu95cLN7LbUGETyB9suDXLTVPGSRfwZAeTKI+UbYHeNYylcM8m51I2dWa9MBFrwejcrRLbmf4T/w==}
+  '@tscircuit/core@file:vendor/tscircuit-core-ibis-experimental.tgz':
+    resolution: {integrity: sha512-zGHt89KP3ElsB7UcOo6gkgpu/dIXpXPoMMnh8ndcNhsq30u+DW3c+bj+ytNjTixsWl95vEXRUhuE6v+a1ElukA==, tarball: file:vendor/tscircuit-core-ibis-experimental.tgz}
+    version: 0.0.2148
     peerDependencies:
       '@tscircuit/cableprinter': '*'
       '@tscircuit/capacity-autorouter': '*'
@@ -450,8 +458,9 @@ packages:
     resolution: {gitHosted: true, tarball: https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123}
     version: 0.0.1
 
-  '@tscircuit/props@0.0.700':
-    resolution: {integrity: sha512-Kr3MHYDgNjXZFbLsl6Ase82tabJEonz3IotNUd1A+7arFlUSsHfn8tA8XJ3PBiVsIJ925hWXQMY5ALU08lD4Xw==}
+  '@tscircuit/props@file:vendor/tscircuit-props-ibis-experimental.tgz':
+    resolution: {integrity: sha512-GHSGM3/hBxYzwkCDHHYBXUfbZbGoay/40jNAxsyEzfPk//SU/QMh8QA6+iZzT77UcwBqT6h/ekf3gjaijeF20w==, tarball: file:vendor/tscircuit-props-ibis-experimental.tgz}
+    version: 0.0.702
     peerDependencies:
       circuit-json: '*'
       react: '*'
@@ -1055,9 +1064,9 @@ snapshots:
     dependencies:
       zod: 3.25.76
 
-  '@tscircuit/capacity-autorouter@0.0.974(9946b18f61033fcb4302bb3a167d8666)':
+  '@tscircuit/capacity-autorouter@0.0.974(3dfb9899d9281070a15d21d72d134b80)':
     dependencies:
-      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(94d2705d583ebecf8620300d07ae3596)
+      '@tscircuit/pcb-trace-linter': https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(af7cee2e9ba8bcd97b99dd5da21f7036)
       fast-json-stable-stringify: 2.1.0
       object-hash: 3.0.0
       stack-svgs: 0.0.1(typescript@5.9.3)
@@ -1111,11 +1120,11 @@ snapshots:
       '@tscircuit/manifold-2d': 0.0.6
       typescript: 5.9.3
 
-  '@tscircuit/core@0.0.1974(72b78fc0132e2b30dc3464b60858634f)':
+  '@tscircuit/core@0.0.1974(a7eba38e3d88d8a4ec6b85c6a851d924)':
     dependencies:
       '@flatten-js/core': 1.6.14
       '@lume/kiwi': 0.4.4
-      '@tscircuit/capacity-autorouter': 0.0.974(9946b18f61033fcb4302bb3a167d8666)
+      '@tscircuit/capacity-autorouter': 0.0.974(3dfb9899d9281070a15d21d72d134b80)
       '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
       '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.10)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
@@ -1123,7 +1132,7 @@ snapshots:
       '@tscircuit/infgrid-ijump-astar': 0.0.35
       '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
-      '@tscircuit/props': 0.0.700(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/props': file:vendor/tscircuit-props-ibis-experimental.tgz(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
       bpc-graph: 0.0.67(typescript@5.9.3)
       calculate-cell-boundaries: 0.0.21(@types/react@19.3.0)(graphics-debug@0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.10)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
@@ -1148,21 +1157,22 @@ snapshots:
       - graphics-debug
       - react
 
-  '@tscircuit/core@0.0.2149(345cd48a335bc23a22e20591103e1f38)':
+  '@tscircuit/core@file:vendor/tscircuit-core-ibis-experimental.tgz(7f85fed19f334af44a371b52c856d151)':
     dependencies:
       '@flatten-js/core': 1.6.14
       '@lume/kiwi': 0.4.4
       '@tscircuit/cableprinter': 0.0.6
-      '@tscircuit/capacity-autorouter': 0.0.974(9946b18f61033fcb4302bb3a167d8666)
+      '@tscircuit/capacity-autorouter': 0.0.974(3dfb9899d9281070a15d21d72d134b80)
       '@tscircuit/checks': 0.0.248(@flatten-js/core@1.6.14)(@tscircuit/circuit-json-util@0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76))(@tscircuit/math-utils@0.0.38(typescript@5.9.3))(circuit-json-to-connectivity-map@0.0.33(typescript@5.9.3))(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
       '@tscircuit/circuit-json-util': 0.0.121(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(transformation-matrix@3.1.0)(zod@3.25.76)
       '@tscircuit/create-fdm-enclosure': 0.0.7(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.10)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
       '@tscircuit/footprinter': 0.0.437(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(typescript@5.9.3)
+      '@tscircuit/ibis-to-spice': file:vendor/ibis-to-spice-0.0.1.tgz
       '@tscircuit/infgrid-ijump-astar': 0.0.35
       '@tscircuit/matchpack': 0.0.100(typescript@5.9.3)
       '@tscircuit/math-utils': 0.0.38(typescript@5.9.3)
       '@tscircuit/modelprinter': 0.0.34(typescript@5.9.3)(zod@3.25.76)
-      '@tscircuit/props': 0.0.700(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
+      '@tscircuit/props': file:vendor/tscircuit-props-ibis-experimental.tgz(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
       '@tscircuit/schematic-match-adapt': 0.0.22(typescript@5.9.3)
       bpc-graph: 0.0.67(typescript@5.9.3)
       calculate-cell-boundaries: 0.0.25(@types/react@19.3.0)(graphics-debug@0.0.101(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.10)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
@@ -1266,10 +1276,10 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(94d2705d583ebecf8620300d07ae3596)':
+  '@tscircuit/pcb-trace-linter@https://codeload.github.com/tscircuit/pcb-trace-linter/tar.gz/4c035f9d40ffb03ba547a08975b5e64b20371123(af7cee2e9ba8bcd97b99dd5da21f7036)':
     dependencies:
       '@tscircuit/copper-pour-solver': 0.0.59(typescript@5.9.3)
-      '@tscircuit/core': 0.0.1974(72b78fc0132e2b30dc3464b60858634f)
+      '@tscircuit/core': 0.0.1974(a7eba38e3d88d8a4ec6b85c6a851d924)
       '@tscircuit/infer-cable-insertion-point': 0.0.4(typescript@5.9.3)
       '@tscircuit/miniflex': 0.0.4(typescript@5.9.3)
       '@tscircuit/schematic-trace-solver': 0.0.208(typescript@5.9.3)
@@ -1311,7 +1321,7 @@ snapshots:
       - typescript
       - zod
 
-  '@tscircuit/props@0.0.700(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)':
+  '@tscircuit/props@file:vendor/tscircuit-props-ibis-experimental.tgz(circuit-json@0.0.528(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)':
     dependencies:
       circuit-json: 0.0.528(format-si-unit@0.0.12(typescript@5.9.3))
       react: 19.2.4

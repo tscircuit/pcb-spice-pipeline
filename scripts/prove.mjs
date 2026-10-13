@@ -25,6 +25,10 @@ for(const name of ['straight','am3352','tsx']) {
   }
   const [a,b]=receipts,paths=['channel.cir','simulation.cir','driver.lib','receiver.lib','waveform.csv','metrics.json','inputs/circuit.json']
   for(const e of a.matrices) paths.push(`stage-${e.stage}/Zc.mat`,`stage-${e.stage}/channel.csv`)
+  if(name==='tsx') {
+    if(!a.nativeIbis?.driver?.usedNativeSourceForSimulation||!b.nativeIbis?.receiver?.usedNativeSourceForSimulation) throw new Error('TSX must use actual native emitted model source/mapping')
+    paths.push('native-ibis-assembly.json')
+  }
   const compared=paths.map(path=>({path,sha256:a.files[path],identical:a.files[path]===b.files[path]}))
   if(compared.some(c=>!c.identical)) throw new Error(`${name}: regenerated solver matrix/netlist/waveform differs; see both fresh runs`)
   summary.examples[name]={regeneratedTwice:true,byteIdentical:compared,metrics:a.metrics,receipts:[`${name}-a/receipt.json`,`${name}-b/receipt.json`]}

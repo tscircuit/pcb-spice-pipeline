@@ -3,3 +3,6 @@ packages:
 blockExoticSubdeps: false
 allowBuilds:
   esbuild: true
+overrides:
+  '@tscircuit/props': file:vendor/tscircuit-props-ibis-experimental.tgz
+  '@tscircuit/ibis-to-spice': file:vendor/ibis-to-spice-0.0.1.tgz

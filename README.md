@@ -32,7 +32,9 @@ The named npm scripts use fixed output paths and will ask you to choose a fresh 
 
 JSON entry files point to a Circuit JSON array (plain or `.json.gz`) and declare modeling inputs. The mesh-preparation object called `model.json` in the earlier work is deliberately rejected as Circuit JSON. `examples/am3352.json` uses the original gzipped Circuit JSON, with its uncompressed SHA-256 checked before extraction.
 
-TSX entry modules export a default board and `modeling`; `Circuit.renderUntilSettled()` generates source connectivity, physical ports and route centerlines. A module may instead export `circuitJson`. Source/receiver nodes are assembled separately by this pipeline, so an ideal tscircuit trace cannot short across the extracted channel.
+TSX entry modules export a default board and `modeling`; `Circuit.renderUntilSettled()` generates source connectivity, physical ports and route centerlines. The included TSX example declares native `<chip ibisModel={...}>` on both chips using the **experimental, unpublished patched core/props tarballs** pinned in `vendor/native-ibis-packages-handoff.json`. Released core 0.0.2149 alone does not support this prop. Root dependency overrides keep every nested props/converter import on the pinned packages.
+
+With `requireNativeIbis=true`, the pipeline requires exactly one native `simulation_spice_subcircuit` per selected chip, validates its returned source-port IDs against lane/supply mappings, compares its source with independent conversion of the original vendor bytes, and uses the **native emitted source and terminal mapping** in the executed extracted-channel netlist. Its receipt contains `native-ibis-assembly.json`. No ordinary `analogsimulation` is declared on this TSX board; the pipeline inserts the extracted channel before running ngspice. A module may instead export `circuitJson`. Source/receiver nodes are assembled separately, so an ideal tscircuit trace cannot short across the extracted channel.
 
 ```js
 import { loadEntry, runPipeline } from 'pcb-spice-pipeline'

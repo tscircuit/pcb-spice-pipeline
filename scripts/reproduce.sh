@@ -15,6 +15,7 @@ pnpm install --frozen-lockfile
 "$python_cmd" scripts/setup-tools.py --install-deps
 if [ ! -x .venv/bin/python3 ]; then "$python_cmd" -m venv .venv; fi
 .venv/bin/python3 -m pip install -r requirements.lock.txt
+pnpm typecheck
 pnpm test
 pnpm test:native
 pnpm prove

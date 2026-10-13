@@ -12,6 +12,7 @@ import { geometryFromCircuitJson, fastHenryDeck, fasterCapDeck } from './geometr
 import { fail, parseFastHenry, parseFasterCap, validateMatrix, loopImpedance, referenceCapacitance, multiply, transpose, sum } from './matrices.mjs'
 import { simulationSpice, channelSpice } from './spice.mjs'
 import { waveformRows, measureWaveform } from './metrics.mjs'
+import { useNativeIbis } from './native-ibis.mjs'
 const exec=promisify(execFile),repo=resolve(dirname(fileURLToPath(import.meta.url)),'..')
 export const sha256=bytes=>createHash('sha256').update(bytes).digest('hex')
 const json=(path,value)=>writeFile(path,JSON.stringify(value,null,2)+'\n')
@@ -144,7 +145,15 @@ export async function runPipeline({circuitJson,modeling,outputDir,tools,baseDir=
     if(!config) fail('ibis_mapping',`${name} configuration required`)
     for(const lane of modeling.lanes) if(!config.pins[lane.port]) fail('ibis_mapping',`${name} lacks ${lane.port}`)
   }
-  const driver=convertIbisComponentToSpice(sources[0].text,modeling.driver),receiver=convertIbisComponentToSpice(sources[1].text,modeling.receiver)
+  let driver=convertIbisComponentToSpice(sources[0].text,modeling.driver),receiver=convertIbisComponentToSpice(sources[1].text,modeling.receiver)
+  let nativeEvidence=null
+  if(modeling.requireNativeIbis) {
+    const nativePackages=JSON.parse(await readFile(join(repo,'vendor/native-ibis-packages-handoff.json')))
+    for(const [name,file] of [['core','tscircuit-core-ibis-experimental.tgz'],['props','tscircuit-props-ibis-experimental.tgz']]) if(sha256(await readFile(join(repo,'vendor',file)))!==nativePackages.packages[name].sha256) fail('native_package_hash',`${name} package differs from immutable handoff`)
+    const native=useNativeIbis(circuitJson,geometry,modeling,{driver,receiver})
+    driver=native.driver;receiver=native.receiver;nativeEvidence={...native.evidence,packages:nativePackages}
+    await json(join(out,'native-ibis-assembly.json'),nativeEvidence)
+  }
   await json(join(out,'ibis-conversion.json'),{driver:{spicePinMapping:driver.spicePinMapping,warnings:driver.warnings},receiver:{spicePinMapping:receiver.spicePinMapping,warnings:receiver.warnings},vendors:modeling.vendors})
   await writeFile(join(out,'driver.lib'),driver.source);await writeFile(join(out,'receiver.lib'),receiver.source);await writeFile(join(out,'channel.cir'),channelSpice(extracted,modeling.sections));await writeFile(join(out,'simulation.cir'),simulationSpice(modeling,extracted,driver,receiver))
   onProgress('Run actual native ngspice transient and measure generated samples')
@@ -156,7 +165,7 @@ export async function runPipeline({circuitJson,modeling,outputDir,tools,baseDir=
   await command(process.env.PCB_SPICE_PYTHON??join(repo,'.venv/bin/python3'),[join(repo,'scripts/plot.py'),out],out,'plot')
   let gitCommit=null,sourceTreeDirty=null;const sourceFiles={}
   try {gitCommit=(await exec('git',['rev-parse','HEAD'],{cwd:repo})).stdout.trim();sourceTreeDirty=Boolean((await exec('git',['status','--porcelain'],{cwd:repo})).stdout.trim());for(const path of (await exec('git',['ls-files','-z'],{cwd:repo})).stdout.split('\0').filter(Boolean)) sourceFiles[path]=sha256(await readFile(join(repo,path)))} catch {}
-  const receipt={schemaVersion:1,status:'executed',execution:{host:hostname(),platform:platform(),architecture:arch(),nativeLocalMac:platform()==='darwin',timestampUtc:new Date().toISOString(),node:process.version,gitCommit,sourceTreeDirty},sourceFiles,entryPath:entryPath??null,description:modeling.description,sourceCircuitJsonSha256:sha256(circuitBytes??JSON.stringify(circuitJson,null,2)+'\n'),converter:{commit:handoff.commit,packageSha256:handoff.packageSha256},toolEvidence,matrices:extracted.map(e=>({stage:e.stage,R:e.R,L:e.L,C:e.C,units:e.units})),metrics,limitations:[...geometry.approximations,...driver.warnings,...receiver.warnings,'TI Model_655/847 and Winbond ODT_60 are explicit demonstration IO settings, not known board firmware','This reduced channel is not full-board EM extraction or independent silicon validation'],files:await hashes(out)}
+  const receipt={schemaVersion:1,status:'executed',execution:{host:hostname(),platform:platform(),architecture:arch(),nativeLocalMac:platform()==='darwin',timestampUtc:new Date().toISOString(),node:process.version,gitCommit,sourceTreeDirty},sourceFiles,entryPath:entryPath??null,description:modeling.description,sourceCircuitJsonSha256:sha256(circuitBytes??JSON.stringify(circuitJson,null,2)+'\n'),converter:{commit:handoff.commit,packageSha256:handoff.packageSha256},nativeIbis:nativeEvidence,toolEvidence,matrices:extracted.map(e=>({stage:e.stage,R:e.R,L:e.L,C:e.C,units:e.units})),metrics,limitations:[...geometry.approximations,...driver.warnings,...receiver.warnings,'TI Model_655/847 and Winbond ODT_60 are explicit demonstration IO settings, not known board firmware','This reduced channel is not full-board EM extraction or independent silicon validation'],files:await hashes(out)}
   await json(join(out,'receipt.json'),receipt)
   return receipt
 }

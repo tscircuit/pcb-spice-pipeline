@@ -1,0 +1,32 @@
+{
+  "converterCommit": "4292a5a23ce6b33ade8abbd238685c1790845bb7",
+  "manifest": {
+    "core": {
+      "url": "https://github.com/tscircuit/core.git",
+      "commit": "b97852c69a694bc3bd962cc2d6d6fee866fe467f",
+      "patch": "core.patch"
+    },
+    "props": {
+      "url": "https://github.com/tscircuit/props.git",
+      "commit": "0d3138b7b51af5d7d134bde7a206c1fb7417495e",
+      "patch": "props.patch"
+    }
+  },
+  "experimental": true,
+  "published": false,
+  "installedNodeNativeIbisModelSmokePassed": true,
+  "packages": {
+    "core": {
+      "path": "/Users/ankan/Documents/Codex/2026-10-14/codex-threads-01a1369b-aa7d-7610-b3a3/outputs/tscircuit-core-ibis-experimental.tgz",
+      "sha256": "a52383c2f34c89d363fc63f72172a7c43a76f996cf7ea55aaf8d991425d18ebd"
+    },
+    "props": {
+      "path": "/Users/ankan/Documents/Codex/2026-10-14/codex-threads-01a1369b-aa7d-7610-b3a3/outputs/tscircuit-props-ibis-experimental.tgz",
+      "sha256": "e09384f96f8a5fa2cc7104c4fb5d45fb8677b72f8152b1bc60f7bb2b3f013dbc"
+    },
+    "converter": {
+      "path": "/Users/ankan/Documents/Codex/2026-10-14/codex-threads-01a1369b-aa7d-7610-b3a3/outputs/ibis-to-spice-0.0.1.tgz",
+      "sha256": "6da6c9aacb4c71f66ed7573d1d6be9d636dd144eabf39e44eba968d8f42feffd"
+    }
+  }
+}
