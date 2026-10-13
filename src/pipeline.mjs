@@ -128,6 +128,7 @@ export async function runPipeline({circuitJson,modeling,outputDir,tools,baseDir=
     if(capConvergence===null||capConvergence>modeling.extraction.capTolerance) fail('cap_convergence','FasterCap did not report converged automatic refinement within requested tolerance')
     if(!cap.names.every((n,i)=>n.endsWith(`_${cell.conductors[i].name}`))) fail('matrix_order',`FasterCap C conductor ordering changed: ${cap.names}`)
     const primitiveC=validateMatrix(cap.matrix,'C primitive',modeling.extraction.reciprocityTolerance),C=referenceCapacitance(primitiveC.matrix)
+    if(primitiveC.matrix.some((r,i)=>sum(r)<=0||r.some((v,j)=>i!==j&&v>0))) fail('capacitance_sign','Primitive Maxwell matrix needs nonpositive off-diagonals and positive capacitance to infinity')
     const cr=primitiveC.matrix.map(sum),v=[1.2,-.7],offset=-(cr[0]*v[0]+cr[1]*v[1])/C.denominator,full=[[v[0]+offset],[v[1]+offset],[offset]],q=multiply(primitiveC.matrix,full)
     const energy=multiply(transpose(full),q)[0][0],reducedEnergy=multiply(multiply([v],C.matrix),transpose([v]))[0][0]
     const energyResidual=Math.abs(energy-reducedEnergy)/Math.abs(energy),neutralityResidual=Math.abs(sum(q.flat()))/Math.max(...q.flat().map(Math.abs))
