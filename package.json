@@ -9,6 +9,19 @@
   },
   "packageManager": "pnpm@11.25.0",
   "exports": "./src/pipeline.mjs",
+  "files": [
+    "src",
+    "scripts/setup-tools.py",
+    "scripts/plot.py",
+    "scripts/audit-eye.mjs",
+    "requirements.lock.txt",
+    "toolchain-lock.json",
+    "vendor/ibis-to-spice-handoff.json",
+    "vendor/ibis-to-spice-0.0.1.tgz",
+    "vendor/native-ibis-packages-handoff.json",
+    "vendor/tscircuit-core-ibis-experimental.tgz",
+    "vendor/tscircuit-props-ibis-experimental.tgz"
+  ],
   "bin": {
     "pcb-spice-pipeline": "src/cli.mjs"
   },
@@ -24,16 +37,21 @@
     "setup:tools": "python3 scripts/setup-tools.py"
   },
   "dependencies": {
-    "@tscircuit/core": "file:vendor/tscircuit-core-ibis-experimental.tgz",
-    "@tscircuit/ibis-to-spice": "file:vendor/ibis-to-spice-0.0.1.tgz",
-    "@tscircuit/props": "file:vendor/tscircuit-props-ibis-experimental.tgz",
     "fflate": "0.8.2",
     "react": "19.2.4",
     "tsx": "4.23.15"
   },
   "devDependencies": {
+    "@tscircuit/core": "file:vendor/tscircuit-core-ibis-experimental.tgz",
+    "@tscircuit/ibis-to-spice": "file:vendor/ibis-to-spice-0.0.1.tgz",
+    "@tscircuit/props": "file:vendor/tscircuit-props-ibis-experimental.tgz",
     "@types/node": "22.20.5",
     "@types/react": "19.3.0",
     "typescript": "5.9.3"
+  },
+  "peerDependencies": {
+    "@tscircuit/core": "0.0.2148",
+    "@tscircuit/props": "0.0.702",
+    "@tscircuit/ibis-to-spice": "0.0.1"
   }
 }

@@ -12,9 +12,6 @@ importers:
 
   .:
     dependencies:
-      '@tscircuit/core':
-        specifier: file:vendor/tscircuit-core-ibis-experimental.tgz
-        version: file:vendor/tscircuit-core-ibis-experimental.tgz(7f85fed19f334af44a371b52c856d151)
       '@tscircuit/ibis-to-spice':
         specifier: file:vendor/ibis-to-spice-0.0.1.tgz
         version: file:vendor/ibis-to-spice-0.0.1.tgz
@@ -31,6 +28,9 @@ importers:
         specifier: 4.23.15
         version: 4.23.15
     devDependencies:
+      '@tscircuit/core':
+        specifier: file:vendor/tscircuit-core-ibis-experimental.tgz
+        version: file:vendor/tscircuit-core-ibis-experimental.tgz(7f85fed19f334af44a371b52c856d151)
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5

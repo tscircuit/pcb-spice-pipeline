@@ -2,6 +2,18 @@
 
 Executable local workflow: native tscircuit TSX → published routed PCB geometry → native FastHenry/FasterCap extraction → existing IBIS-to-SPICE converter → native ngspice → measured waveform and generated eye diagram. Runtime uses ordinary code, without an LLM.
 
+As an installed dependency in a normal tscircuit project, use the `pcb-spice-pipeline` CLI:
+
+```sh
+pnpm exec pcb-spice-pipeline --setup
+pnpm exec pcb-spice-pipeline index.circuit.tsx
+pnpm exec pcb-spice-pipeline --repeat index.circuit.tsx
+```
+
+The TSX entry exports its board normally and exports `modeling` for the explicit channel/construction inputs. TSX loading is automatic. The project supplies the exact experimental core/props/converter peer packages through ordinary dependency overrides. Setup requires Python **3.11** and builds the native toolchain under the caller's `node_modules/.cache/pcb-spice-pipeline`; generated results go to fresh `dist/simulation-*` directories. `--repeat` runs two fresh solver processes and compares their outputs. The normal board-project distribution is `am3352-ddr-eye-project`, delivered separately alongside this source repository.
+
+The remaining commands and paths below describe this implementation's **source checkout and historical verification fixtures**. Those fixtures are intentionally excluded from the installed npm package.
+
 The runnable entry is [`examples/am3352-eye.tsx`](examples/am3352-eye.tsx). It imports the **complete published AM3352 board snapshot**, annotates its actual U1/U3 chips with vendor IBIS models, and declares a native `<eyediagram>`. It preserves saved routing rather than rerunning the historical autorouter. Field extraction then reduces the selected two DQS paths to straightened stages with explicit construction assumptions.
 
 ## Run locally

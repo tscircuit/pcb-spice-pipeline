@@ -339,9 +339,9 @@ export async function auditRun(outputDir, { fixture = new URL('../examples/fixtu
 export async function compareFreshRuns(aDir, bDir) {
   const a = await readJson(join(aDir, 'receipt.json')), b = await readJson(join(bDir, 'receipt.json'))
   assert.notEqual(resolve(aDir), resolve(bDir))
-  const paths = ['channel.cir', 'simulation.cir', 'driver.lib', 'receiver.lib', 'waveform.csv', 'metrics.json', 'inputs/circuit.json', 'native-ibis-assembly.json', 'geometry.json']
+  const paths = ['channel.cir', 'simulation.cir', 'driver.lib', 'receiver.lib', 'waveform.csv', 'metrics.json', 'inputs/circuit.json', 'geometry.json']
   for (const e of a.matrices) paths.push(`stage-${e.stage}/Zc.mat`, `stage-${e.stage}/refinement/Zc.mat`, `stage-${e.stage}/channel.csv`, `stage-${e.stage}/extraction.json`)
-  for (const path of ['eyediagram.json', 'eye-data.csv', 'eye.png', 'eye.svg', 'waveform.png', 'waveform.svg']) if (a.files[path]) paths.push(path)
+  for (const path of ['native-ibis-assembly.json','project-provenance.json','eyediagram.json', 'eye-data.csv', 'eye.png', 'eye.svg', 'waveform.png', 'waveform.svg']) if (a.files[path]) paths.push(path)
   const compared = []
   for (const path of paths) {
     const ah = hash(await readFile(join(aDir, path))), bh = hash(await readFile(join(bDir, path)))

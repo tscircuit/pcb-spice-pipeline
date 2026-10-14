@@ -7,6 +7,7 @@ import { fileURLToPath,pathToFileURL } from 'node:url'
 import { hostname, platform, arch } from 'node:os'
 import { gunzipSync } from 'node:zlib'
 import { unzipSync } from 'fflate'
+import { tsImport } from 'tsx/esm/api'
 import { convertIbisComponentToSpice,seconds } from '@tscircuit/ibis-to-spice'
 import { geometryFromCircuitJson, fastHenryDeck, fasterCapDeck } from './geometry.mjs'
 import { fail, parseFastHenry, parseFasterCap, validateMatrix, loopImpedance, referenceCapacitance, multiply, transpose, sum } from './matrices.mjs'
@@ -14,6 +15,7 @@ import { simulationSpice, channelSpice } from './spice.mjs'
 import { waveformRows, measureWaveform, foldEye } from './metrics.mjs'
 import { useNativeIbis } from './native-ibis.mjs'
 import { eyeSimulation, resolveEyeDiagram } from './eyediagram.mjs'
+import { projectProvenance } from './project-provenance.mjs'
 const exec=promisify(execFile),repo=resolve(dirname(fileURLToPath(import.meta.url)),'..')
 export const sha256=bytes=>createHash('sha256').update(bytes).digest('hex')
 const json=(path,value)=>writeFile(path,JSON.stringify(value,null,2)+'\n')
@@ -55,7 +57,8 @@ async function hashes(root,relative='',excludedRootNames=[]) {
 export async function loadEntry(path) {
   const absolute=resolve(path),baseDir=dirname(absolute)
   if(/\.(tsx|ts|mjs|js)$/.test(path)) {
-    const mod=await import(pathToFileURL(absolute))
+    const importedUrls=new Set(['@tscircuit/core','@tscircuit/props','@tscircuit/ibis-to-spice','react','tsx','fflate'].map(name=>import.meta.resolve(name)))
+    const mod=await tsImport(pathToFileURL(absolute).href,{parentURL:import.meta.url,onImport:url=>importedUrls.add(url)})
     let cj=mod.circuitJson,eyeDiagrams=[]
     if(!cj) {
       const {Circuit}=await import('@tscircuit/core'),c=new Circuit()
@@ -72,16 +75,17 @@ export async function loadEntry(path) {
       if(mod.modeling.fixtureProvenance?.originalJsonSha256&&originalSourceCircuitJsonSha256!==mod.modeling.fixtureProvenance.originalJsonSha256)
         fail('geometry_hash','Original source Circuit JSON differs from pinned provenance')
     }
-    return {circuitJson:cj,modeling:mod.modeling,eyeDiagrams,baseDir,entryBytes:await readFile(absolute),entryPath:absolute,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256}
+    const project=await projectProvenance(absolute,importedUrls,circuitPath?[circuitPath]:[])
+    return {circuitJson:cj,modeling:mod.modeling,eyeDiagrams,baseDir,entryBytes:await readFile(absolute),entryPath:absolute,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256,project}
   }
   const entryBytes=await readFile(absolute),modeling=JSON.parse(entryBytes)
   if(!modeling.circuit) fail('circuit_json','JSON entry needs circuit path to array or gzip array')
   const circuitPath=resolve(baseDir,modeling.circuit),original=await readFile(circuitPath),bytes=circuitPath.endsWith('.gz')?gunzipSync(original):original
   const circuitJson=JSON.parse(bytes)
   if(modeling.fixtureProvenance?.originalJsonSha256&&sha256(bytes)!==modeling.fixtureProvenance.originalJsonSha256) fail('geometry_hash','Original source Circuit JSON differs from pinned provenance')
-  return {circuitJson,modeling,baseDir,entryBytes,entryPath:absolute,circuitBytes:bytes,originalCircuitBytes:original,circuitPath}
+  return {circuitJson,modeling,baseDir,entryBytes,entryPath:absolute,circuitBytes:bytes,originalCircuitBytes:original,circuitPath,project:await projectProvenance(absolute,[],[circuitPath])}
 }
-export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir,tools,baseDir=repo,entryBytes,entryPath,circuitBytes,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256,onProgress=()=>{}}) {
+export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir,tools,baseDir=repo,entryBytes,entryPath,circuitBytes,originalCircuitBytes,circuitPath,originalSourceCircuitJsonSha256,project,python,vendorCache=join(repo,'.cache/vendors'),onProgress=()=>{}}) {
   const out=resolve(outputDir)
   try {await stat(out);fail('output_exists',`Use a fresh output directory for regeneration: ${out}`)} catch(e) {if(e.code!=='ENOENT') throw e}
   modeling=eyeSimulation(modeling,eyeDiagrams)
@@ -99,6 +103,10 @@ export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir
   await writeFile(join(out,'inputs/circuit.json'),circuitBytes??JSON.stringify(circuitJson,null,2)+'\n')
   if(originalCircuitBytes) await writeFile(join(out,'inputs/original.circuit'+(circuitPath.endsWith('.gz')?'.json.gz':'.json')),originalCircuitBytes)
   if(entryBytes) await writeFile(join(out,'inputs/entry'+extname(entryPath)),entryBytes)
+  if(project) {
+    for(const [path,file] of Object.entries(project.files)) {const target=join(out,'inputs/project',path);await mkdir(dirname(target),{recursive:true});await writeFile(target,await readFile(file.path))}
+    await json(join(out,'project-provenance.json'),project)
+  }
   await json(join(out,'geometry.json'),geometry)
   await json(join(out,'eyediagram.json'),eye)
   const renderedBoard=renderedBoardSummary(circuitJson)
@@ -160,7 +168,7 @@ export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir
   onProgress('Load hash-locked original vendor models and call reusable converter')
   if(!Array.isArray(modeling.vendors)||modeling.vendors.length!==2) fail('ibis_mapping','Explicit driver and receiver vendor download locks required')
   const sources=[]
-  for(const lock of modeling.vendors) {const s=await vendorSource(lock,join(repo,'.cache/vendors'));sources.push(s);await writeFile(join(out,'inputs',lock.file),s.bytes);await writeFile(join(out,'inputs',`${lock.vendor.replaceAll(' ','-')}.zip`),s.archive)}
+  for(const lock of modeling.vendors) {const s=await vendorSource(lock,vendorCache);sources.push(s);await writeFile(join(out,'inputs',lock.file),s.bytes);await writeFile(join(out,'inputs',`${lock.vendor.replaceAll(' ','-')}.zip`),s.archive)}
   for(const [name,config] of [['driver',modeling.driver],['receiver',modeling.receiver]]) {
     if(!config) fail('ibis_mapping',`${name} configuration required`)
     for(const lane of modeling.lanes) {const port=lane[name==='driver'?'driverPort':'receiverPort']??lane.port;if(!config.pins[port]) fail('ibis_mapping',`${name} lacks ${port}`)}
@@ -184,12 +192,12 @@ export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir
   await writeFile(join(out,'eye-data.csv'),'window,folded_time_s,differential_v\n'+folded.samples.map(r=>r.join(',')).join('\n')+'\n')
   await json(join(out,'eye-data.json'),{name:eye.name,endpoint:eye.endpoint,polarity:eye.polarity,windows:folded.windows,pointsPerWindow:folded.pointsPerWindow,interpolation:'linear interpolation of executed adaptive ngspice samples',source:'waveform.csv',sourceSha256:sha256(await readFile(join(out,'waveform.csv')))})
   onProgress('Plot measured transient and deterministic clock eye')
-  await command(process.env.PCB_SPICE_PYTHON??join(repo,'.venv/bin/python3'),[join(repo,'scripts/plot.py'),out],out,'plot')
+  await command(python??process.env.PCB_SPICE_PYTHON??join(repo,'.venv/bin/python3'),[join(repo,'scripts/plot.py'),out],out,'plot')
   let gitCommit=null,sourceTreeDirty=null
   try {if(resolve((await exec('git',['rev-parse','--show-toplevel'],{cwd:repo})).stdout.trim())===repo) {gitCommit=(await exec('git',['rev-parse','HEAD'],{cwd:repo})).stdout.trim();sourceTreeDirty=Boolean((await exec('git',['status','--porcelain'],{cwd:repo})).stdout.trim())}} catch {}
   const sourceRoots=['.gitignore','.github','LICENSE','README.md','examples','package.json','pnpm-lock.yaml','pnpm-workspace.yaml','requirements.lock.txt','scripts','src','tests','toolchain-lock.json','tsconfig.json','vendor']
   const sourceFiles=await hashes(repo,'',(await readdir(repo)).filter(name=>!sourceRoots.includes(name)))
-  const receipt={schemaVersion:2,status:'executed',execution:{host:hostname(),platform:platform(),architecture:arch(),nativeLocalMac:platform()==='darwin',timestampUtc:new Date().toISOString(),node:process.version,gitCommit,sourceTreeDirty,solverResultCache:false},sourceFiles,entryPath:entryPath??null,description:modeling.description,sourceCircuitJsonSha256:sha256(circuitBytes??JSON.stringify(circuitJson,null,2)+'\n'),originalSourceCircuitJsonSha256:originalSourceCircuitJsonSha256??(originalCircuitBytes?sha256(circuitPath.endsWith('.gz')?gunzipSync(originalCircuitBytes):originalCircuitBytes):null),originalSourceArchiveSha256:originalCircuitBytes?sha256(originalCircuitBytes):null,fixtureProvenance:modeling.fixtureProvenance??null,sourceProvenance:modeling.sourceProvenance??null,preSolvedAssessment:modeling.sourceProvenance?.preSolvedAssessment??null,renderedBoard,converter:{commit:handoff.commit,packageSha256:handoff.packageSha256},nativeIbis:nativeEvidence,eyeDiagram:eye,toolEvidence,matrices:extracted.map(e=>({stage:e.stage,R:e.R,L:e.L,C:e.C,units:e.units})),metrics,limitations:[...geometry.approximations,...driver.warnings,...receiver.warnings,'TI Model_655/847 and Winbond ODT_60 are explicit demonstration IO settings, not known board firmware','This reduced channel is not full-board EM extraction or independent silicon validation'],files:await hashes(out)}
+  const receipt={schemaVersion:2,status:'executed',execution:{host:hostname(),platform:platform(),architecture:arch(),nativeLocalMac:platform()==='darwin',timestampUtc:new Date().toISOString(),node:process.version,gitCommit,sourceTreeDirty,solverResultCache:false},sourceFiles,project:project??null,entryPath:entryPath??null,description:modeling.description,sourceCircuitJsonSha256:sha256(circuitBytes??JSON.stringify(circuitJson,null,2)+'\n'),originalSourceCircuitJsonSha256:originalSourceCircuitJsonSha256??(originalCircuitBytes?sha256(circuitPath.endsWith('.gz')?gunzipSync(originalCircuitBytes):originalCircuitBytes):null),originalSourceArchiveSha256:originalCircuitBytes?sha256(originalCircuitBytes):null,fixtureProvenance:modeling.fixtureProvenance??null,sourceProvenance:modeling.sourceProvenance??null,preSolvedAssessment:modeling.sourceProvenance?.preSolvedAssessment??null,renderedBoard,converter:{commit:handoff.commit,packageSha256:handoff.packageSha256},nativeIbis:nativeEvidence,eyeDiagram:eye,toolEvidence,matrices:extracted.map(e=>({stage:e.stage,R:e.R,L:e.L,C:e.C,units:e.units})),metrics,limitations:[...geometry.approximations,...driver.warnings,...receiver.warnings,'TI Model_655/847 and Winbond ODT_60 are explicit demonstration IO settings, not known board firmware','This reduced channel is not full-board EM extraction or independent silicon validation'],files:await hashes(out)}
   await json(join(out,'receipt.json'),receipt)
   return receipt
 }
