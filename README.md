@@ -10,7 +10,7 @@ pnpm exec pcb-spice-pipeline index.circuit.tsx
 pnpm exec pcb-spice-pipeline --repeat index.circuit.tsx
 ```
 
-The TSX entry exports its board normally and exports `modeling` for the explicit channel/construction inputs. TSX loading is automatic. The project supplies the exact experimental core/props/converter peer packages through ordinary dependency overrides. Setup requires Python **3.11** and builds the native toolchain under the caller's `node_modules/.cache/pcb-spice-pipeline`; generated results go to fresh `dist/simulation-*` directories. `--repeat` runs two fresh solver processes and compares their outputs. The normal board-project distribution is `am3352-ddr-eye-project`, delivered separately alongside this source repository.
+The TSX entry exports its board normally and exports `modeling` for the explicit channel/construction inputs. TSX loading is automatic. The project supplies the exact experimental core/props/converter peer packages through ordinary dependency overrides. Setup requires Python **3.11** and builds the native toolchain under the caller's `node_modules/.cache/pcb-spice-pipeline`; generated results go to fresh `dist/simulation-*` directories. `--repeat` runs two fresh solver processes and compares their outputs. The normal board project is [am3352-ddr-eye](https://github.com/0hmX/am3352-ddr-eye), with its own standard TSX entrypoint and pinned dependencies.
 
 The remaining commands and paths below describe this implementation's **source checkout and historical verification fixtures**. Those fixtures are intentionally excluded from the installed npm package.
 
