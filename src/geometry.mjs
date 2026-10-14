@@ -23,7 +23,9 @@ export function validateModeling(m) {
   if(!Number.isInteger(m.extraction.refinementFilaments)||m.extraction.refinementFilaments<=m.extraction.filaments) fail('extraction','Integer refinementFilaments must exceed filaments')
   if(!Number.isInteger(m.sections)||m.sections<1||m.sections>128) fail('sections','sections must be an integer 1..128')
   if(!m.simulation) fail('simulation','Explicit timestep, duration, UI and startup exclusion required')
-  for(const key of ['stepSeconds','durationSeconds','uiSeconds','excludeSeconds']) positive(m.simulation[key],`simulation.${key}`)
+  for(const key of ['stepSeconds','durationSeconds','uiSeconds']) positive(m.simulation[key],`simulation.${key}`)
+  finite(m.simulation.excludeSeconds,'simulation.excludeSeconds')
+  if(m.simulation.excludeSeconds<0) fail('simulation','Startup exclusion must be nonnegative')
   if(m.simulation.excludeSeconds>=m.simulation.durationSeconds || m.simulation.stepSeconds>=m.simulation.uiSeconds/20) fail('simulation','Startup exclusion must be before stop; step must resolve UI by >20 samples')
 }
 function selectPort(cj,s) {

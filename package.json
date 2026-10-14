@@ -4,29 +4,36 @@
   "private": true,
   "type": "module",
   "license": "MIT",
-  "engines": {"node": ">=22"},
+  "engines": {
+    "node": ">=22"
+  },
   "packageManager": "pnpm@11.25.0",
   "exports": "./src/pipeline.mjs",
-  "bin": {"pcb-spice-pipeline": "src/cli.mjs"},
+  "bin": {
+    "pcb-spice-pipeline": "src/cli.mjs"
+  },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
-    "test:native": "node --test tests/native.integration.mjs",
+    "test:native": "node --import tsx --test tests/native.integration.mjs tests/real-board.integration.mjs",
     "prove": "node scripts/prove.mjs",
     "example": "node src/cli.mjs examples/straight.json --out runs/straight",
     "routed": "node src/cli.mjs examples/am3352.json --out runs/am3352",
     "tsx": "tsx src/cli.mjs examples/board.tsx --out runs/tsx",
+    "eye": "tsx src/cli.mjs examples/am3352-eye.tsx --out runs/am3352-eye",
     "setup:tools": "python3 scripts/setup-tools.py"
   },
   "dependencies": {
-    "@tscircuit/ibis-to-spice": "file:vendor/ibis-to-spice-0.0.1.tgz",
     "@tscircuit/core": "file:vendor/tscircuit-core-ibis-experimental.tgz",
+    "@tscircuit/ibis-to-spice": "file:vendor/ibis-to-spice-0.0.1.tgz",
     "@tscircuit/props": "file:vendor/tscircuit-props-ibis-experimental.tgz",
     "fflate": "0.8.2",
     "react": "19.2.4",
     "tsx": "4.23.15"
   },
   "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
     "typescript": "5.9.3"
   }
 }

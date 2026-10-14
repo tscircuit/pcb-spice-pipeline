@@ -2,11 +2,12 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
+import {fileURLToPath} from 'node:url'
 import {loadEntry,runPipeline} from '../src/pipeline.mjs'
 import {analyticCapacitanceCheck} from '../scripts/validate-capacitance.mjs'
 test('native solvers regenerate geometry, analytically check it and simulate distinct external pads',async()=>{
-  const root=new URL('..',import.meta.url).pathname,output=join(root,'runs',`native-test-${Date.now()}`)
-  const tools=JSON.parse(await readFile(join(root,'.cache/tools/tools.json')))
+  const root=fileURLToPath(new URL('..',import.meta.url)),output=join(root,'runs',`native-test-${Date.now()}`)
+  const tools=JSON.parse(await readFile(process.env.PCB_SPICE_TOOLS??join(root,'.cache/tools/tools.json')))
   const r=await runPipeline({...await loadEntry(join(root,'examples/straight.json')),outputDir:output,tools})
   assert.equal(r.status,'executed');assert.ok(r.metrics.receiverTransitions>=20)
   assert.ok(r.metrics.eyeHeightAtCenterV>0);assert.ok(r.metrics.propagationMedianSeconds>0)

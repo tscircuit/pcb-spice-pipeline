@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/tscircuit/bus-lanes-solver",
+  "baseCommit": "d6ca5dfc71b048a2ac24f4acb762f9c8ad83d15f",
+  "sourceSha256": "52eda0a570975565f937464d61bba21870eec0ce1f4fff868336f095f66bb00e",
+  "bundleSha256": "29dce2c4e2f35303d415eddc894be76ece6653812a6eb78631a7352c43f6b41a",
+  "declarationsSha256": "b666ab2c05ae2b52344de225756df3c38168752382fa03419b51fd757e624b20",
+  "packageVersion": "0.0.18",
+  "sourceState": "candidate; identify exact source with sourceSha256"
+}

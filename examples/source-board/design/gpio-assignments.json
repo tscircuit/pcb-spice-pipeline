@@ -1,0 +1,29 @@
+{
+  "USB1_OCn": {
+    "ball": "V17",
+    "pad": "GPMC_A11",
+    "mode": 7,
+    "gpioBank": 1,
+    "gpioLine": 27,
+    "direction": "input",
+    "activeLow": true,
+    "ioRail": "V3V3",
+    "externalPullupOhm": 10000,
+    "previousBall": "R14",
+    "source": "TI SPRS717L Table 4-2",
+    "softwareRequirement": "Configure gpio1_27 as input in board pinctrl and USB overcurrent handling; previous gpio1_20 assignment is superseded."
+  },
+  "RGB_MOSI": {
+    "ball": "B17",
+    "pad": "SPI0_D0",
+    "mode": 0,
+    "direction": "output",
+    "ioRail": "V3V3",
+    "net": "SPI0_D0",
+    "controller": "SPI0",
+    "requiredControllerProperty": "ti,pindir-d0-out-d1-in",
+    "previousBall": "B16",
+    "previousPad": "SPI0_D1",
+    "source": "TI SPRS717L Tables 4-2 and 4-53; Linux Documentation/devicetree/bindings/spi/omap-spi.yaml"
+  }
+}

@@ -14,7 +14,7 @@ export function useNativeIbis(circuitJson,geometry,modeling,independent) {
     if(Object.keys(mapping).length!==Object.keys(expected.spicePinMapping).length) fail('native_ibis',`${role}: terminal map dimension differs`)
     const resolved={}
     for(const [terminal,parentLabel] of Object.entries(expected.spicePinMapping)) {
-      const lane=modeling.lanes.findIndex(l=>l.port===parentLabel)
+      const lane=modeling.lanes.findIndex(l=>(l[role==='driver'?'driverPort':'receiverPort']??l.port)===parentLabel)
       let id
       if(lane>=0) id=ids[lane]
       else {

@@ -36,7 +36,7 @@ function instance(label,converted,signalNodes,ports) {
 export function simulationSpice(modeling,extracted,driver,receiver) {
   const s=modeling.simulation
   if(!Number.isFinite(s.supplyV)||s.supplyV<=0) fail('power','Explicit simulation.supplyV required')
-  const driverNodes=Object.fromEntries(modeling.lanes.map((l,i)=>[l.port,`drv${i}`])),receiverNodes=Object.fromEntries(modeling.lanes.map((l,i)=>[l.port,`rx${i}`]))
+  const driverNodes=Object.fromEntries(modeling.lanes.map((l,i)=>[l.driverPort??l.port,`drv${i}`])),receiverNodes=Object.fromEntries(modeling.lanes.map((l,i)=>[l.receiverPort??l.port,`rx${i}`]))
   if(new Set(Object.values(driverNodes).concat(Object.values(receiverNodes))).size!==4) fail('channel_short','Driver and receiver must have four distinct nodes')
   return ['PCB extracted channel with original vendor IBIS tables','.options reltol=1e-5 abstol=1e-12 method=gear',`VDD vdd 0 ${num(s.supplyV)}`,driver.source,receiver.source,channelSpice(extracted,modeling.sections),instance('DRIVER',driver,driverNodes,modeling.driver.power),instance('RECEIVER',receiver,receiverNodes,modeling.receiver.power),'XCHAN drv0 drv1 rx0 rx1 0 CHANNEL','.control','set wr_singlescale','set wr_vecnames',`tran ${num(s.stepSeconds)} ${num(s.durationSeconds)} 0 ${num(s.stepSeconds)}`,'let vdiff = v(rx0)-v(rx1)','let vdrive = v(drv0)-v(drv1)','wrdata waveform.dat v(drv0) v(drv1) v(rx0) v(rx1) vdiff vdrive','quit','.endc','.end',''].join('\n')
 }

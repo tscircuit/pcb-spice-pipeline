@@ -1,0 +1,5 @@
+{
+  "mainEntrypoint": "index.circuit.tsx",
+  "includeBoardFiles": ["index.circuit.tsx"],
+  "siteDefaultComponentPath": "index.circuit.tsx"
+}

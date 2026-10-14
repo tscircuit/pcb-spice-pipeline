@@ -1,5 +1,6 @@
+import { ibisModelProps } from '@tscircuit/props'
 import base from './straight.json' with {type:'json'}
-const vendorConfig = (config: typeof base.driver | typeof base.receiver, index: number) => ({
+const vendorConfig = (config: typeof base.driver | typeof base.receiver, index: number) => ibisModelProps.parse({
   ...config,
   sourceUrl: base.vendors[index].url,
   archivePath: base.vendors[index].archivePath,

@@ -8,7 +8,8 @@ if ! command -v node >/dev/null && [ -x "$bundled_dir/node/bin/node" ]; then
 fi
 export PATH="/opt/homebrew/bin:$PATH"
 command -v node >/dev/null
-command -v pnpm >/dev/null
+node -e 'if (Number(process.versions.node.split(".")[0]) < 22) throw new Error("Node.js 22 or newer is required")'
+if ! command -v pnpm >/dev/null; then npm install --global pnpm@11.25.0; fi
 python_cmd="${PCB_SPICE_BOOTSTRAP_PYTHON:-python3}"
 if command -v python3.11 >/dev/null; then python_cmd="${PCB_SPICE_BOOTSTRAP_PYTHON:-python3.11}"; fi
 pnpm install --frozen-lockfile
@@ -18,4 +19,4 @@ if [ ! -x .venv/bin/python3 ]; then "$python_cmd" -m venv .venv; fi
 pnpm typecheck
 pnpm test
 pnpm test:native
-pnpm prove
+pnpm prove "$@"

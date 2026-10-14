@@ -1,0 +1,50 @@
+{
+  "element": "eyediagram",
+  "retrieval": "circuit.selectAll(\"eyediagram\").map(eye => eye.getEyeDiagramDescriptor())",
+  "timeUnits": "seconds for numbers; s/ms/us/ns/ps strings",
+  "descriptorFields": [
+    "name",
+    "positiveSelector",
+    "negativeSelector",
+    "positiveSourcePortId",
+    "negativeSourcePortId",
+    "unitIntervalSeconds",
+    "durationSeconds",
+    "timeStepSeconds",
+    "startTimeSeconds"
+  ],
+  "nativeRendererTestsPassed": 12,
+  "propsTestsPassed": 2,
+  "coreTypecheckPassed": true,
+  "propsTypecheckPassed": true,
+  "fullOriginalBoardInflationPassedInBunAndNode": true,
+  "importedBoardAnnotation": "simIbisModels: Record<unique chip name, IbisModelProps>",
+  "runnerOwnsSimulation": true,
+  "nativeRendererAssertions": 107,
+  "existingRealVendorIbisRegressionTestsPassed": 6,
+  "propsFanoutRegressionTestsPassed": 29,
+  "independentPhysicalGeometryAuditPassed": true,
+  "physicalGeometryComparisonToleranceMillimeters": 1e-10,
+  "originalPhysicalCounts": {
+    "pcb_trace": 750,
+    "pcb_via": 835,
+    "pcb_smtpad": 1056,
+    "pcb_plated_hole": 46,
+    "pcb_hole": 8,
+    "pcb_copper_pour": 27,
+    "pcb_keepout": 1,
+    "source_manually_placed_via": 319
+  },
+  "traceCopperPourReferencesResolved": 186,
+  "danglingCopperPourReferences": 0,
+  "compatibilityRegressions": {
+    "requestedTests": 10,
+    "passed": 9,
+    "preExistingVisualSnapshotFailures": 1,
+    "baselineConfirmed": true,
+    "snapshotDifferencePercent": 0.01,
+    "primitiveDataAssertionsPassed": 33,
+    "nativeAnnotationsPreserveLegacyImports": true,
+    "unroutedImportFallbackSuppressedOnlyWhenRoutingDisabled": true
+  }
+}

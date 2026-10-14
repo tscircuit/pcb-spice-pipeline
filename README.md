@@ -1,86 +1,126 @@
-# pcb-spice-pipeline
+# pcb-spice-pipeline: real AM3352 DDR eye example
 
-Executable local workflow: tscircuit TSX or routed Circuit JSON → native FastHenry R/L and FasterCap C → referenced passive distributed SPICE channel → reusable vendor IBIS converter → native ngspice → measured transient and clock eye.
+Executable local workflow: native tscircuit TSX → published routed PCB geometry → native FastHenry/FasterCap extraction → existing IBIS-to-SPICE converter → native ngspice → measured waveform and generated eye diagram. Runtime uses ordinary code, without an LLM.
 
-This repository implements a **reduced, straightened two-signal channel**, with an explicit finite return conductor per stage. It does not extract a full board, its plane cutouts or all neighboring copper. Geometry/material choices and omissions are saved with every run. No extraction values or successful solver outputs are hard-coded.
+The runnable entry is [`examples/am3352-eye.tsx`](examples/am3352-eye.tsx). It imports the **complete published AM3352 board snapshot**, annotates its actual U1/U3 chips with vendor IBIS models, and declares a native `<eyediagram>`. It preserves saved routing rather than rerunning the historical autorouter. Field extraction then reduces the selected two DQS paths to straightened stages with explicit construction assumptions.
 
-## Regenerate and execute everything
+## Run locally
 
-From this repository, run:
+Requirements: Node.js ≥22, pnpm 11.25.0, Python ≥3.11, Git, a C/C++ compiler and network access on first setup. On macOS, install Xcode command-line tools (`xcode-select --install`) and Homebrew if absent. The setup script installs native build dependencies through Homebrew on macOS or apt on Linux. The executed proof uses native Darwin arm64 tools on this Mac; Linux CI is supplied but has not been run as part of this proof.
+
+From this folder:
 
 ```sh
 ./scripts/reproduce.sh
 ```
 
-The script installs locked Node dependencies, builds pinned FastHenry/FasterCap/ngspice sources locally, installs pinned plotting dependencies into `.venv`, runs unit and real native integration tests, and regenerates **each example twice from geometry and original vendor files**. It prints the new `runs/proof-*/summary.json` path. Existing run directories are never overwritten or used as solver output caches.
+This installs frozen Node dependencies, builds pinned native solvers, creates `.venv` with pinned plotting packages, runs checks, and executes the real TSX example **twice in fresh directories**. It prints the new `runs/proof-*/summary.json` path. No old extraction or simulator output is reused. Source/model download caches are hash checked.
 
-Requirements: Node ≥22, pnpm 11.25.0, Python ≥3.11, a compiler, Git and network access for source/vendor downloads. macOS uses Xcode command-line tools and Homebrew; Linux setup uses apt/sudo. The bootstrap also finds this Mac's bundled Codex Node/pnpm when they are absent from PATH. Native dependencies are installed by the setup script; their actual versions are recorded rather than falsely claimed identical across hosts. The completed proof on this Mac uses native Darwin arm64 executables, without SSH or containers. Linux CI is supplied but has not been claimed executed from local Mac proof.
-
-Individual fresh runs after setup:
+Exact individual setup commands, when Node/pnpm are already on PATH:
 
 ```sh
-pnpm example                         # tractable 10 mm synthetic channel
-pnpm routed                          # real routed TI → Winbond stage lengths
-pnpm tsx                             # render source TSX and extract its geometry
-pnpm test:native                     # actual native integration + analytic C check
-node src/cli.mjs examples/am3352.json --out runs/my-fresh-run
+pnpm install --frozen-lockfile
+python3.11 scripts/setup-tools.py --install-deps
+python3.11 -m venv .venv
+.venv/bin/python3 -m pip install -r requirements.lock.txt
+pnpm typecheck
+pnpm test
+pnpm test:native
 ```
 
-The named npm scripts use fixed output paths and will ask you to choose a fresh path through a diagnostic if those paths already exist. `pnpm prove` automatically chooses a fresh proof directory.
+After setup, generate one run or repeatability proof:
 
-## Inputs and API
-
-JSON entry files point to a Circuit JSON array (plain or `.json.gz`) and declare modeling inputs. The mesh-preparation object called `model.json` in the earlier work is deliberately rejected as Circuit JSON. `examples/am3352.json` uses the original gzipped Circuit JSON, with its uncompressed SHA-256 checked before extraction.
-
-TSX entry modules export a default board and `modeling`; `Circuit.renderUntilSettled()` generates source connectivity, physical ports and route centerlines. The included TSX example declares native `<chip ibisModel={...}>` on both chips using the **experimental, unpublished patched core/props tarballs** pinned in `vendor/native-ibis-packages-handoff.json`. Released core 0.0.2149 alone does not support this prop. Root dependency overrides keep every nested props/converter import on the pinned packages.
-
-With `requireNativeIbis=true`, the pipeline requires exactly one native `simulation_spice_subcircuit` per selected chip, validates its returned source-port IDs against lane/supply mappings, compares its source with independent conversion of the original vendor bytes, and uses the **native emitted source and terminal mapping** in the executed extracted-channel netlist. Its receipt contains `native-ibis-assembly.json`. No ordinary `analogsimulation` is declared on this TSX board; the pipeline inserts the extracted channel before running ngspice. A module may instead export `circuitJson`. Source/receiver nodes are assembled separately, so an ideal tscircuit trace cannot short across the extracted channel.
-
-```js
-import { loadEntry, runPipeline } from 'pcb-spice-pipeline'
-const receipt = await runPipeline({
-  ...await loadEntry('examples/am3352.json'),
-  outputDir: 'runs/api-fresh-run',
-  onProgress: console.log,
-})
+```sh
+pnpm exec tsx src/cli.mjs examples/am3352-eye.tsx --out runs/my-ddr-eye
+pnpm prove runs/my-ddr-proof
 ```
 
-The `runPipeline` API also accepts `{circuitJson, modeling, outputDir, tools}` directly. `tools` contains explicit `fasthenry`, `fastercap`, `ngspice` paths; defaults come from `.cache/tools/tools.json`, or `PCB_SPICE_TOOLS`. `PCB_SPICE_PYTHON` can override `.venv/bin/python3` for plotting.
+Both output paths must be new. `pnpm eye` uses `runs/am3352-eye`. `pnpm prove --all` also regenerates the legacy synthetic, routed JSON and small TSX examples. To audit two completed fresh runs independently:
 
-Required physical modeling inputs include Circuit JSON units (`mm`), conductivity (`S/m`), copper layer z ranges (`mm`), explicit per-stage signal separation, finite return dimensions/position, and homogeneous effective permittivity. The two lanes explicitly map source/receiver physical ports and vendor buffer ports. Ordered route layers, lengths, widths, XY endpoints and recorded hole diameter come from Circuit JSON. Via plating is an explicit assumption; the example uses 25 μm. The equivalent rectangular via preserves plated barrel metal area; omitted through-via stubs must be explicitly acknowledged. Missing inputs, stale endpoint IDs, nonfinite coordinates, unsupported branching/topology, width changes, layer discontinuities and conductor overlaps fail with useful diagnostics.
+```sh
+node scripts/audit-eye.mjs runs/my-ddr-proof/am3352-eye-a runs/my-ddr-proof/am3352-eye-b
+```
 
-## Electrical convention and verification
+A source archive runs without Git; receipts then record a null local Git commit and retain the exact runtime file hashes and upstream source/model provenance.
 
-FastHenry primitive ports are `[sig0,sig1,return]`, each oriented from source to receiver. All external port labels are checked against the generated deck. With return current `Ireturn=−I0−I1`, the loop impedance is `Aᵀ Z A`, where `A=[[1,0],[0,1],[-1,-1]]`. `R=Re(Z)` is in ohms; `L=Im(Z)/(2πf)` is in henries. Both off-diagonal resistance and signed mutual inductance are retained.
+## Native TSX syntax and actual electrical selections
 
-FasterCap uses closed **3D** box surfaces in metres; its full 3×3 matrix is in farads relative to infinity. Returned conductor labels are verified. We eliminate common voltage with total charge zero: `Cloop=Css−(C1)s(1ᵀC)s/(1ᵀC1)`. This is an isolated neutral group with voltages relative to its finite return. It is not a grounded infinite plane. The retained two-signal Maxwell C gives mutual capacitance `−C12` and shunt capacitances from the row sums, each split between pi-section endpoints.
+The real entry uses the board's original physical ball names:
 
-Each whole-stage matrix is divided into explicit uniform pi sections. R is realized by diagonal resistors and cross-current controlled voltages; L by self inductors and signed K. Symmetric positive definiteness of the full R/L matrices establishes positive dissipative/stored energy even when a mutual term is negative. No arbitrary numerical RLC floors are inserted.
+```tsx
+<board
+  circuitJson={routedBoard}
+  routingDisabled
+  schematicDisabled
+  simIbisModels={{ U1: modeling.driver, U3: modeling.receiver }}
+>
+  <eyediagram
+    name="DDR_DQS0"
+    positive=".U3 > .F3"
+    negative=".U3 > .G3"
+    unitInterval="2.5ns"
+    duration="100ns"
+    timeStep="10ps"
+    startTime="20ns"
+  />
+</board>
+```
 
-Executed gates include:
+`simIbisModels` attaches the existing native `chip.ibisModel` behavior during imported-board inflation. Named targets must exist uniquely and be chips. Imported pad geometry, ball aliases and existing routes are retained. An imported board accepts simulation-only eye children; physical replacement children are rejected. The historical original TSX is preserved under `examples/source-board/` with a download/hash manifest.
 
-- Primitive/referenced matrix reciprocity and positive Cholesky pivots before SPICE emission; symmetry averaging only follows the raw residual check.
-- DC rectangular-conductor analytic resistance and the full shared-return loop matrix, including its cross resistance.
-- FastHenry model-frequency mesh refinement, with the full referenced R/L residuals recorded and bounded. The refined matrix feeds SPICE. This tests the selected model frequency, not the entire saved spectrum.
-- FasterCap's final automatic-refinement residual, followed by neutral charge and electrostatic energy reconstruction.
-- An independent, freshly generated wide parallel-plate **2D** C check in F/m; finite-edge fringing is compared with `εw/g`. This check is never substituted for the channel's 3D extraction.
-- Executed source clock/UI consistency, distinct source/receiver pads, finite monotonic waveform samples and measurable steady transitions.
-- Byte-identical regenerated SPICE, original input snapshots, native solver matrix files and waveform/measurement outputs, using comparable freshly executed inputs.
+`<eyediagram>` validates unit-aware times and resolves its selectors after rendering. Numeric times mean seconds. The pipeline reads its public `getEyeDiagramDescriptor()`, inserts the extracted channel, and executes ngspice. Changing its duration, probes or timing changes the executed run; it does not just label a plot. The current workflow supports one differential eye per run at either the two driver pads or the two receiver pads. Cross-endpoint probes and unrelated pins fail before field extraction. No separate ordinary `<analogsimulation>` is declared.
 
-The spectrum is retained, but the distributed channel is a **constant R/L model at 100 MHz**, with static effective permittivity and no fitted dispersion. It has no dielectric loss, roughness, bend/meander coupling, neighboring nets, realistic plane impedance or board pad capacitances. Filament convergence does not establish broad-band model accuracy. The folded eye is an alternating deterministic DQS clock, with no random data or injected jitter; it is not a BER or JEDEC compliance result.
+| Role | Published component | Signal balls | Power reference balls | Selected IBIS settings |
+|---|---|---|---|---|
+| Driver | U1, TI AM3352BZCZ100 | P1 DDR_DQS0; P2 DDR_DQSN0 | E5 VDDS_DDR; A1 VSS | `am335x_zcz`, Model_655/847, typical, 1.5V, slow slew, nominal 9mA, ODT off |
+| Receiver | U3, Winbond W631GG6MB-12 | F3 DQSL; G3 DQSL# | A1 VDDQ; B1 VSSQ | `ODT_60`, typical, 60Ω input termination, pin R/L/C package |
 
-## Vendor integration and provenance
+The original vendor ZIP and `.ibs` bytes are fetched from TI/Winbond and SHA-256 checked against the existing converter locks. The parser/converter is reused unchanged through `@tscircuit/ibis-to-spice`. Native emitted model source and terminal mappings are checked against independent conversion and then used in the actual SPICE assembly. Driver and receiver pads have distinct electrical nodes, so ideal trace connectivity cannot bypass the extracted channel.
 
-The reusable MIT-licensed `@tscircuit/ibis-to-spice@0.0.1` package is installed from the local immutable tarball in `vendor/`, pinned to commit `4292a5a23ce6b33ade8abbd238685c1790845bb7` and SHA-256 `6da6c9aacb4c71f66ed7573d1d6be9d636dd144eabf39e44eba968d8f42feffd`. This pipeline calls its public API and returned terminal mappings; it does not reimplement IBIS parsing/conversion. Original TI and Winbond ZIP/IBIS bytes are downloaded and hash checked against its locks, then preserved as local run inputs. No proprietary model archive is packaged in repository source.
+The selected drive/ODT settings are demonstration choices; actual firmware configuration is unknown. The stimulus is an explicit complementary 5ns-period clock, not a DDR controller/traffic simulation. TI's coupled package is explicitly excluded; Winbond's supported uncoupled signal-pin package R/L/C is included. Supply references use real ball labels but the supply itself is an ideal 1.5V source; power-distribution impedance is not extracted.
 
-The example binds TI `am335x_zcz` P1/Model_655 and P2/Model_847 to Winbond `W631GG6MB-12` F3/G3 with ODT_60. Both use local VDD/VSS references. TI's coupled package is excluded by explicit `packageModel="none"`; Winbond uncoupled pin RLC is included. These are demonstration buffer/ODT settings, not known board firmware. V/T fixture consistency is not independent silicon validation.
+## What “pre-solved” means for this board
 
-The original routed board fixture comes from [circuit-json-to-gmsh](https://github.com/tscircuit/circuit-json-to-gmsh), commit `9c7f34b7e502b8339a6659cb268b1540867a672d`, with source [astra/am3352-sbc](https://tscircuit.com/astra/am3352-sbc#files). Its repository notice is preserved in `examples/fixtures/LICENSE`; the original JSON hash is recorded in the config. Correct physical routes are U1.P1→U3.F3 and U1.P2→U3.G3. The selected stackup is a repository modeling assumption, not manufacturing sign-off. Their meander centerlines are retained in receipts, while extraction uses stage lengths of roughly 44.80/44.92 mm plus explicitly modeled active via lengths.
+The pinned fixture is byte-identical to **astra/am3352-sbc v0.1.19**, registry release `a56db1f7-99bf-4f14-b32e-ab5431f039d0`. Its original TSX matches GitHub import commit `837245bceb6ac898fd5451507d6b2b8024095fe7`. Decompressed Circuit JSON SHA-256:
 
-## Evidence and licenses
+```text
+c9d7059fe536865784f175855e0dcc76510972319eec848c18b0ef6dcd2adb40
+```
 
-Each run preserves original inputs/hashes, solver decks/panel files, full primitive matrices, conversions and checks, SPICE, command lines, working directories, stdout/stderr, exit codes, execution host/binary hashes, tool build revisions, waveform CSV, measured metrics, PNG/SVG plots and a SHA-256 receipt. Source-build commands/logs/patches/notices remain under `.cache/tools`. FasterCap's macOS memory-query diagnostic says it continues in-core; this is retained verbatim and these tractable cases complete successfully.
+This is a saved engineering checkpoint with routed DDR paths. The original source explicitly says the board is not DDR compliant or ready for fabrication. It reports 750 native traces, 11 unconnected-port errors, 21 physically disconnected nets and 47 saved DDR paths. Strict byte-lane absolute-length checks still fail. Geometry/connectivity checks are evidence of those checks; no independent silicon measurements, DDR SI sign-off or manufacturing validation were found.
 
-The integration code is MIT; solver licenses are independent. **FastHenry's original MIT-era notice restricts internal noncommercial use and redistribution**; do not interpret its institutional name as the permissive MIT software license. The installer fetches it locally and preserves its notices. No solver source/binary is tracked, redistributed or uploaded as a CI artifact. FasterCap/Geometry/LinAlgebra notices and ngspice's component notices also remain intact. See `toolchain-lock.json` and the downloaded originals for exact notices.
+Primary source: [exact checkpoint README](https://raw.githubusercontent.com/tscircuit/am3352-sbc/837245bceb6ac898fd5451507d6b2b8024095fe7/README.md), [route provenance](https://raw.githubusercontent.com/tscircuit/am3352-sbc/837245bceb6ac898fd5451507d6b2b8024095fe7/design/ddr-route-provenance.json), [board page](https://tscircuit.com/astra/am3352-sbc). Full source/version/pin evidence is in [`examples/source-provenance.json`](examples/source-provenance.json). The imported board's regenerated diagnostics are preserved separately in each run's `rendered-board.json`; successful simulation of the selected channel does not certify the surrounding board.
 
-Nothing is published to npm or a public repository by these scripts.
+## Explicit board construction and model approximation
+
+[`examples/am3352-construction.json`](examples/am3352-construction.json) declares every selected copper z range, dielectric layer, conductivity, via plating and model omission. The source's working JLC04161H-3313 construction is nominally 1.6mm: 35µm outer copper, 15.2µm inner copper, two 0.0994mm prepregs (er4.1) and a 1.265mm core (er4.42). Its calculated copper/dielectric total is 1.5642mm. This is a selected draft construction; manufacturer approval and actual manufactured properties are unavailable.
+
+The executed extraction uses actual selected route lengths/widths and ordered top→via→inner1→via→top stages. Original meander vertices remain in `geometry.json`. The two original paths have 369/371 vertices. Their stage lengths are roughly 44.80/44.92mm plus active via lengths.
+
+**The field solver geometry is a reduced channel:** routes are straightened within each stage, uniform equivalent signal center separation is explicitly assumed to be 0.75mm, and a finite 2mm-wide/35µm-thick return bar replaces actual reference-plane geometry. The original source's nominal 0.12mm pair edge gap and varying escape/via spacing are not reproduced by this uniform profile. The full dielectric stack is documented; the channel uses homogeneous effective er2.55 on top and er4.1 on inner/via stages.
+
+FastHenry returns the full three-conductor complex impedance. Signal/return loop reduction preserves shared-return resistance and signed magnetic coupling. FasterCap returns a full 3D capacitance matrix; eliminating common voltage with total charge zero gives voltages relative to the finite return conductor. This represents an isolated neutral conductor group, not an infinite ideal ground plane. Full R/L/C matrices are divided into 12 coupled pi sections per stage.
+
+R/L are fixed at 100MHz; the saved frequency spectrum is not fitted into a broadband model. Omitted effects include actual planes/cutouts/reference stitching, neighboring copper, bend/meander coupling, via pads/antipads/stubs, dielectric loss, copper roughness, package coupling and power integrity. The eye folds an alternating deterministic DQS clock after startup. It does not include random data, injected jitter/noise, BER or JEDEC compliance testing.
+
+## Generated evidence
+
+Each run contains:
+
+- `eye.png`/`eye.svg` and `waveform.png`/`waveform.svg`.
+- `waveform.csv`: actual adaptive ngspice time samples and driver/receiver pad/differential voltages.
+- `eye-data.csv`/`eye-data.json`: folded windows interpolated from those measured samples.
+- `eyediagram.json`: executed declaration, resolved ports, polarity and SPICE nodes.
+- `geometry.json`, per-stage solver decks/panels, raw coarse/refined `Zc.mat`, FasterCap output/matrix CSV and extraction checks.
+- `driver.lib`, `receiver.lib`, `channel.cir`, `simulation.cir`, native IBIS mapping evidence.
+- Original snapshot/vendor bytes, construction/settings, command records/logs, binary hashes, upstream revisions and per-file SHA-256 receipt.
+
+Fresh repeatability compares raw refined/coarse matrices, full netlists, generated samples/eye data, metrics and plots. Independent auditing recomputes matrix reductions and eye samples directly from raw solver/waveform outputs. This demonstrates repeatability of the declared approximation; it does not establish physical accuracy against manufactured hardware.
+
+The native core/props are pinned **experimental local tarballs**, with readable source patches and test evidence under `vendor/native-patches/`. They have not been upstream merged or published. The converter tarball is the unchanged existing commit `4292a5a23ce6b33ade8abbd238685c1790845bb7`.
+
+The packaged source checks passed 12 native eye/import tests (107 assertions), six existing real-vendor IBIS regressions, and both core/props source typechecks. Nine of ten requested importer compatibility tests passed; the remaining original visual snapshot differs by 0.01% on the unchanged baseline too. Its 33 structural assertions passed. Logs are preserved in `verification/native-source-regressions/`. Consumer TSX uses strict checking with the upstream `skipLibCheck` setting for dependency declaration files.
+
+## Notices
+
+Integration code is MIT. Original board source has no explicit detected license; its attribution and separate notice are preserved. The fixture repository's MIT notice is preserved. Manufacturer model notices remain in downloaded original files. FastHenry's original notice restricts internal noncommercial use/redistribution; it is not the permissive MIT software license. Native solver source/binaries and proprietary vendor archives are downloaded locally, not packaged in the source archive. Setup preserves original solver notices. No public repository/npm publication is performed.

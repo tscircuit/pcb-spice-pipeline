@@ -1,0 +1,44 @@
+{
+  "candidate": "output/ram-seeds/pairs-2",
+  "solver": "bus_lanes",
+  "solverVersion": "0.0.11",
+  "connections": 47,
+  "differentialPairsConstrained": 3,
+  "byteBusesConstrained": 0,
+  "physicalIntegrationVerified": true,
+  "timingSignoff": false,
+  "postRouteEdits": [
+    {
+      "net": "DDR_DQS0",
+      "reason": "Replace a rounded via-entry bend with a 45-degree segment so the via land does not bypass the beginning of the tuned path.",
+      "point": {
+        "x": 4.12,
+        "y": -6.52,
+        "layer": "inner1"
+      }
+    },
+    {
+      "nets": [
+        "DDR_A1",
+        "DDR_RASn"
+      ],
+      "router": "bus_lanes 0.0.11",
+      "reason": "Reroute around two supply vias that connect RAM VCC islands",
+      "mask": 1
+    },
+    {
+      "nets": [
+        "DDR_D11"
+      ],
+      "router": "bus_lanes 0.0.11",
+      "reason": "Reroute around two supply vias that connect RAM VCC islands",
+      "mask": 0
+    }
+  ],
+  "byteTimingPassed": false,
+  "differentialPairSkewPassed": true,
+  "circuitSha256": "b17e3edb82620d8965a7a927d2a69a33cbd30d8c67f5a69dd14e9d2d15e81a53",
+  "addressClockBusConstrained": false,
+  "geometricTimingPassed": false,
+  "cacheStatus": "legacy connectivity checkpoint; fails current DDR timing constraints"
+}
