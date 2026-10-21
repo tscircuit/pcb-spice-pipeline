@@ -1,0 +1,436 @@
+[
+  {
+    "path": "README.md",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=README.md",
+    "sha256": "d7d1ba3626eb3442520a006385407d7d2b9a4269c384f006447e96095178becf",
+    "bytes": 7642,
+    "packageFileId": "ddabd31f-d1e9-492e-9adc-bd48a9fd6efd"
+  },
+  {
+    "path": "components/AO3400A.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2FAO3400A.tsx",
+    "sha256": "40e85cd1c74c39468c74040f31658494ed188a3cfbabb0680dda5e3eac1e875f",
+    "bytes": 3887,
+    "packageFileId": "e741c2cb-334a-40a4-95e1-62fd1a34ea7e"
+  },
+  {
+    "path": "components/BLM18AG601SN1D.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2FBLM18AG601SN1D.tsx",
+    "sha256": "25f685299bcc37a76f21228ca9ab1f94fe59230f255274f32af8dcff6abc8780",
+    "bytes": 2404,
+    "packageFileId": "76f65713-2d61-49c8-83e3-8ae4b464d4dd"
+  },
+  {
+    "path": "components/CH224K.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2FCH224K.tsx",
+    "sha256": "39d44570ba713a862a29aebd0b23a4c4ad5115e476391e4a6d35ee8376bcf8e6",
+    "bytes": 7804,
+    "packageFileId": "40711c4b-3073-47f1-9662-c704112d3718"
+  },
+  {
+    "path": "components/HDMI_001_19PCBTP.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2FHDMI_001_19PCBTP.tsx",
+    "sha256": "03cdb72b0a5299cd0dc5871a1787d4752bb236f20ae85368a3ad26d61e11c926",
+    "bytes": 6712,
+    "packageFileId": "b8a0195e-c9fd-4929-b8e5-77e8aa4094ae"
+  },
+  {
+    "path": "components/SN74AHCT1G125DBVR.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2FSN74AHCT1G125DBVR.tsx",
+    "sha256": "e7c333ea6bfb8a997e7f13b35b5def5c3051fb5e37a54dde667bbbb184ea7504",
+    "bytes": 3129,
+    "packageFileId": "cf74c61c-be1d-4760-aec6-3335e3154fcd"
+  },
+  {
+    "path": "components/TPD12S521DBTR.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2FTPD12S521DBTR.tsx",
+    "sha256": "f0ca134d6897eea120a6724f64d2b28c1c756ae23e0171ef8962bd548a0c0179",
+    "bytes": 9351,
+    "packageFileId": "7abff744-9ac5-48d5-bcb6-bff16f532f05"
+  },
+  {
+    "path": "components/TZ_0807Z1RGB_5V_I4_MS_5mA_.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2FTZ_0807Z1RGB_5V_I4_MS_5mA_.tsx",
+    "sha256": "628335683ab238af997a0ead15c2715c0fb5060d8191b908dd073476128e17ba",
+    "bytes": 1717,
+    "packageFileId": "98c4b9af-65e4-4f01-a90c-2d20fb8364ac"
+  },
+  {
+    "path": "components/am3352.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2Fam3352.tsx",
+    "sha256": "4e05e74118be7bee72ce421c6eaf358ee21b89218303ec934cd5a119690d5cb6",
+    "bytes": 11867,
+    "packageFileId": "422d1a3f-1d28-4614-864f-14b44f8c142a"
+  },
+  {
+    "path": "components/bulk-capacitor.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2Fbulk-capacitor.tsx",
+    "sha256": "28f071ee62647efac480203d1686dcd48dbec24d06c8c044055ff0861d68efa7",
+    "bytes": 2383,
+    "packageFileId": "7025ee1e-e596-4cd9-858d-0f00b4e21324"
+  },
+  {
+    "path": "components/ddr3.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2Fddr3.tsx",
+    "sha256": "c3d95709a210761830ebb43b9c282fe08ba98977211344b4fff5287aaf2c05e4",
+    "bytes": 22163,
+    "packageFileId": "72b080e5-933c-466f-858e-37cbdef136a9"
+  },
+  {
+    "path": "components/microsd.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2Fmicrosd.tsx",
+    "sha256": "c569f00e8d5cde1345f489db0540e248509707ba3139885f8242ec9a189de182",
+    "bytes": 4910,
+    "packageFileId": "502be651-f5d6-4560-b2ec-3d24ddbb233e"
+  },
+  {
+    "path": "components/pmic.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2Fpmic.tsx",
+    "sha256": "d3f104fb2f4a5d8dbbd18bed1419e8c338154ea8cf194cbca705c766d6cff046",
+    "bytes": 9151,
+    "packageFileId": "d501283b-3460-442c-880b-7550bae96d15"
+  },
+  {
+    "path": "components/tfp410.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2Ftfp410.tsx",
+    "sha256": "0e06850018f3ef87c99b927d8449f37110487eb5ca4d7ee52927a896a41e8c81",
+    "bytes": 3285,
+    "packageFileId": "7b75c8bc-8482-4eec-9709-bde5e07b06d3"
+  },
+  {
+    "path": "components/usb-a.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2Fusb-a.tsx",
+    "sha256": "bf91a2d7b16b75943e99ee6a4d8d17dbda25012cde18ae8a5a451ae819765a50",
+    "bytes": 919,
+    "packageFileId": "47f044b1-6c58-47ea-961f-b938e4d9c599"
+  },
+  {
+    "path": "components/usb-c.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2Fusb-c.tsx",
+    "sha256": "d1262fe5d93f96d320d039f601a52ca1fd002673c01b4ae741babb87340cfea9",
+    "bytes": 6687,
+    "packageFileId": "a8d69088-9602-456a-9eab-42fedb8e52a2"
+  },
+  {
+    "path": "components/usb-esd.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=components%2Fusb-esd.tsx",
+    "sha256": "11656e5cd547829baf902def265d82b09ca456c3a714e86571652701b0ec4a61",
+    "bytes": 3496,
+    "packageFileId": "8e78711a-2b1f-444b-aba9-25ab2199031f"
+  },
+  {
+    "path": "ddr.circuit.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=ddr.circuit.tsx",
+    "sha256": "1f72204644c891d5f2bd0cded96cd065b86c7487919f45057f7d2c0c24149898",
+    "bytes": 315,
+    "packageFileId": "c09bbd07-b5ab-491f-b39c-2595d95a9572"
+  },
+  {
+    "path": "design/PINMUX.md",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2FPINMUX.md",
+    "sha256": "36fe274d3c99b7f06048ab02965798d3586d5f0e2b7d4c3fe85555eadc489300",
+    "bytes": 862,
+    "packageFileId": "775c3e6f-db5a-4b88-9364-d5fd764a57bc"
+  },
+  {
+    "path": "design/am3352-ballmap.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fam3352-ballmap.json",
+    "sha256": "036d8969469b5fb792cded2a1d5728e7aaad8de7fe5265cc0ab0556a38252856",
+    "bytes": 6499,
+    "packageFileId": "52b4a283-0b84-4a9e-a1fc-ed4f38c6b2c9"
+  },
+  {
+    "path": "design/bus-lanes.ts",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fbus-lanes.ts",
+    "sha256": "ca85c0e1006921e9fde8b4afbbd755e8b9d7ee86b3c81756372004bf580c668b",
+    "bytes": 4145,
+    "packageFileId": "ad2be3f7-e424-4f64-881c-8a1ef6b6927d"
+  },
+  {
+    "path": "design/compact-routing-input.ts",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fcompact-routing-input.ts",
+    "sha256": "3f352f320a56849c15bda9e711478efd3079e467772e790e2d747fa78b2bddc1",
+    "bytes": 1304,
+    "packageFileId": "ff8908e7-052f-4356-b549-5f9038dffb92"
+  },
+  {
+    "path": "design/control-route-replay.ts",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fcontrol-route-replay.ts",
+    "sha256": "da3e9acfc9fc0f7936f9509de343f1337466cb6623d936edc74f8d15a16f9a90",
+    "bytes": 4513,
+    "packageFileId": "82ed9211-c933-4051-ad70-fefb70b3349e"
+  },
+  {
+    "path": "design/control-routes.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fcontrol-routes.json",
+    "sha256": "f45515910ed6673cd86e221fbe436a062b4544a1a968fef3692ca53b9fa8a965",
+    "bytes": 460076,
+    "packageFileId": "98de9231-ebfe-4ba7-85d2-f69a99e0f598"
+  },
+  {
+    "path": "design/ddr-compliance.ts",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fddr-compliance.ts",
+    "sha256": "4a8bb0a68723b8a0490cd0177f30ad9287a0c1b8f392b903a833f664c770d118",
+    "bytes": 8050,
+    "packageFileId": "4de99037-6fc4-4a20-8fb1-f67201a9ffc6"
+  },
+  {
+    "path": "design/ddr-netlist.ts",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fddr-netlist.ts",
+    "sha256": "9e7bf450aeb97f7fa4fcb75eda42546941eb9fb2c08ff0ef449d6922c70325ac",
+    "bytes": 1649,
+    "packageFileId": "00faaf65-400e-4505-a1c9-38b3db9270f1"
+  },
+  {
+    "path": "design/ddr-route-provenance.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fddr-route-provenance.json",
+    "sha256": "fb0f3a113f0c279bdf165cabcd67ee57ff6b88d233d6aa90b755831c0618f997",
+    "bytes": 1257,
+    "packageFileId": "040a1ced-09da-4d1f-b457-18f839884155"
+  },
+  {
+    "path": "design/ddr-routes.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fddr-routes.json",
+    "sha256": "21110a188e0b0772c5b9d2ea21e312b7dd4825397f6fbfaa630c5817b0c50e94",
+    "bytes": 3165780,
+    "packageFileId": "b56b8e5b-8c23-46df-9a88-ab6a149b0eb9"
+  },
+  {
+    "path": "design/ddr-rules.ts",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fddr-rules.ts",
+    "sha256": "e5ed65076215adc1417b680c431a6003f47763704dd15e4574b69e3d5bdf3b22",
+    "bytes": 1847,
+    "packageFileId": "28a93adc-138c-417c-b582-6638d67f0423"
+  },
+  {
+    "path": "design/decoupler-footprints.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fdecoupler-footprints.json",
+    "sha256": "a8290b63a52400d7f79ba2d29045f7f4974e8c6a9fab5f3495fb42bcc20c8586",
+    "bytes": 156,
+    "packageFileId": "316b94ed-3269-401c-aad2-5a2507266cf0"
+  },
+  {
+    "path": "design/decoupling-placement.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fdecoupling-placement.json",
+    "sha256": "b2c7ebb8436901e85960f96a0d5ca27e05516de7890b11a6212040a4a78aad09",
+    "bytes": 6564,
+    "packageFileId": "a72240cf-bfe4-4664-9ea3-3ae4922bcd32"
+  },
+  {
+    "path": "design/display.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fdisplay.tsx",
+    "sha256": "22e152746e08d07e2d9ce146ecf7deea6111b8809e77a1879d45fdb04a064afc",
+    "bytes": 6855,
+    "packageFileId": "8dfc7d01-56ad-4be7-89e0-0d5f305e67a0"
+  },
+  {
+    "path": "design/fabrication-stackup.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Ffabrication-stackup.json",
+    "sha256": "e59944a9dd976b0522a9bce45ca6231d9213f13ea65a53a1e076c8c3a91c79a4",
+    "bytes": 2774,
+    "packageFileId": "7b6603a8-5bfc-433a-af6f-4d12251fe2e1"
+  },
+  {
+    "path": "design/gpio-assignments.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fgpio-assignments.json",
+    "sha256": "98c25a89643262fd8bf686578ca54aad3bdaabc9c0fd92af8d84b754806f2e3c",
+    "bytes": 835,
+    "packageFileId": "c3788730-01d1-47bc-8bc8-c527f715c738"
+  },
+  {
+    "path": "design/indicators.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Findicators.tsx",
+    "sha256": "76c8569b4ce25b3f243423d840870e222d7f817e258e8803f0f38c038bdc5eda",
+    "bytes": 2784,
+    "packageFileId": "7444a5b4-cbd4-4a62-a4d8-779f0d0c00ff"
+  },
+  {
+    "path": "design/nets.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fnets.tsx",
+    "sha256": "b64cd9e9d21c9c257ee4b2d0d13e7b58f505446f7a09eb1fa8fb5bf00efed4db",
+    "bytes": 3475,
+    "packageFileId": "11130b20-f730-44ee-b034-f461df0542cd"
+  },
+  {
+    "path": "design/pd-power.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fpd-power.tsx",
+    "sha256": "9c4c05151ef769b0c177b05e2879643a08dbe34cf597c26b49fd0a12351f3739",
+    "bytes": 2591,
+    "packageFileId": "ab560326-16da-47a6-9ddc-a72242efe63e"
+  },
+  {
+    "path": "design/peripheral-router.ts",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fperipheral-router.ts",
+    "sha256": "5eb797b2df25c19c4b45645261fb4b86a4282a9226881130ba96cb072a69f1fc",
+    "bytes": 2895,
+    "packageFileId": "10e89f11-c0dc-4482-b23d-cda2e16d12af"
+  },
+  {
+    "path": "design/peripheral-routes.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fperipheral-routes.json",
+    "sha256": "27648ba02191ae87b31d2fb27a120d9af8af109a12cfd44830ba6cee85a94cec",
+    "bytes": 55896,
+    "packageFileId": "56dc8d6f-25c3-4a79-864c-b0ce8ceb92c4"
+  },
+  {
+    "path": "design/power-bridges.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fpower-bridges.json",
+    "sha256": "ffee4a200c022077bfe8ea0510bb32ca9370931ae335057216c22684c772dc8b",
+    "bytes": 884,
+    "packageFileId": "8693a719-f092-4e4c-af84-d49b916e3508"
+  },
+  {
+    "path": "design/power-escapes.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fpower-escapes.json",
+    "sha256": "f365135ee931f7b9cacc9ed900660844c91f5eb98d6fde3eae497a8452a071c8",
+    "bytes": 100685,
+    "packageFileId": "885e7867-d1c0-4995-9575-9c032de12edf"
+  },
+  {
+    "path": "design/power-escapes.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fpower-escapes.tsx",
+    "sha256": "697273da9eeb8253632055c276eeb2352e9a04d70101b6535a4c4f46f54a3e3b",
+    "bytes": 1278,
+    "packageFileId": "f679b11f-e69f-419d-b8eb-a4898e7ffbb7"
+  },
+  {
+    "path": "design/power-planes.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fpower-planes.tsx",
+    "sha256": "26481e3ac83275c50a7a522c16cb1494a7cdd9fa186839f5e5e7b80f78ed9aee",
+    "bytes": 671,
+    "packageFileId": "8f2fd2c4-71aa-4407-9b1b-8788d0738dd0"
+  },
+  {
+    "path": "design/power-pour-regions.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fpower-pour-regions.json",
+    "sha256": "9836bb83e7387aaefbb50ac9b3b00cf53e1497d60427e58cb771fd6839657850",
+    "bytes": 23616,
+    "packageFileId": "60a92b4f-45fb-4cd6-99c2-108336c74a2d"
+  },
+  {
+    "path": "design/power-route-provenance.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fpower-route-provenance.json",
+    "sha256": "f4683c613ae592d1266f00ce083ba244461137a8794ff641fb9f97032a37a478",
+    "bytes": 536,
+    "packageFileId": "6586b819-ad2e-4d79-b7da-3292f4919484"
+  },
+  {
+    "path": "design/power-via-seeds.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fpower-via-seeds.json",
+    "sha256": "86bd9d235de63ffaa2061c6febfcd5101be234a3160b8b7eab816ece9e91c9cf",
+    "bytes": 114,
+    "packageFileId": "2bbb9bc8-e585-46ed-a529-f3f73373649d"
+  },
+  {
+    "path": "design/processor-support.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fprocessor-support.tsx",
+    "sha256": "35d1f5a6dc4cdf6aac751c698ff0f0c8c760c81bbffcb9a075b70ebe66125884",
+    "bytes": 12755,
+    "packageFileId": "00c0d795-f7e8-4281-806a-b547a89fd7e0"
+  },
+  {
+    "path": "design/ram-placement.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fram-placement.json",
+    "sha256": "c428a64d82b1df6f40079318b68bf94ff945377ff42e28ffe43bb1ea1e39d994",
+    "bytes": 37,
+    "packageFileId": "0d6c217f-d1a6-4f2e-bbfe-758690f0fff8"
+  },
+  {
+    "path": "design/ram-placement.ts",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fram-placement.ts",
+    "sha256": "6d61645e7c3b6d6c751d43028b17a152e71dae6a593e4388d9cba4eb5c93f059",
+    "bytes": 438,
+    "packageFileId": "efff807f-8e07-4c17-829a-e942baf6b81d"
+  },
+  {
+    "path": "design/remaining-routes.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fremaining-routes.json",
+    "sha256": "34109fbc24ef9f7672afdf3e491a20e49b2d6d4dc09ebfcdaf4ed123c629cbfe",
+    "bytes": 403749,
+    "packageFileId": "a907046f-2bac-45fa-84d3-5d74b4a5ba68"
+  },
+  {
+    "path": "design/remaining-routes.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fremaining-routes.tsx",
+    "sha256": "6e28741379966a77bbc673a5a1f19ec1c62a09db2578515866f8af37517a22c4",
+    "bytes": 1673,
+    "packageFileId": "28688767-53fb-4ef8-abd2-2e6002dddee6"
+  },
+  {
+    "path": "design/source-net-names.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fsource-net-names.json",
+    "sha256": "58786e5734c2e03e39b35a572b17b0596f34077602802e90474df3ee98bf30fb",
+    "bytes": 1196,
+    "packageFileId": "8da03bec-9309-4099-9085-f481b962ddc4"
+  },
+  {
+    "path": "design/timing-constraints.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Ftiming-constraints.tsx",
+    "sha256": "7c767f26ea42038f93539051aa36f205ec383e2929be2fec8b0c5d0f3d88abe2",
+    "bytes": 1189,
+    "packageFileId": "62199e99-fa07-4af9-abe6-dc19c9873d8d"
+  },
+  {
+    "path": "design/usb.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fusb.tsx",
+    "sha256": "60588eb08175b51b42c965c7b6bbee211ee42b920c6ba8ab86f53f8e0c6d6dfd",
+    "bytes": 3761,
+    "packageFileId": "ce998a13-02b4-4360-a6c8-1205acd7bea3"
+  },
+  {
+    "path": "design/vendor/bus-lanes-candidate.d.ts",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fvendor%2Fbus-lanes-candidate.d.ts",
+    "sha256": "b666ab2c05ae2b52344de225756df3c38168752382fa03419b51fd757e624b20",
+    "bytes": 12002,
+    "packageFileId": "d8c3153f-76f1-4c29-9a27-0476f23865b6"
+  },
+  {
+    "path": "design/vendor/bus-lanes-candidate.js",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fvendor%2Fbus-lanes-candidate.js",
+    "sha256": "29dce2c4e2f35303d415eddc894be76ece6653812a6eb78631a7352c43f6b41a",
+    "bytes": 1524743,
+    "packageFileId": "81da4caa-0bcc-4039-a2fe-2d633b81c1c9"
+  },
+  {
+    "path": "design/vendor/bus-lanes-candidate.provenance.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=design%2Fvendor%2Fbus-lanes-candidate.provenance.json",
+    "sha256": "a6b4e60edc1f0d372a9a26ca219253685f3a330d4e631dd2c0dc29a77eacd920",
+    "bytes": 493,
+    "packageFileId": "87540a74-765b-4ae7-a407-00f83afe13ca"
+  },
+  {
+    "path": "index.circuit.tsx",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=index.circuit.tsx",
+    "sha256": "bebff61f5878b55a253ce81daec9b243de234daae5232e37ed0d7ce53b0aa524",
+    "bytes": 5732,
+    "packageFileId": "089d8313-83fc-4087-aa87-e1ca2c04abd9"
+  },
+  {
+    "path": "package-lock.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=package-lock.json",
+    "sha256": "2b8d77915174447bf060e021bbbf9192d7663ef5d819e2e9134febb0b979f807",
+    "bytes": 151008,
+    "packageFileId": "dbda7d10-7f7f-4800-8b84-7e419b83de7e"
+  },
+  {
+    "path": "package.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=package.json",
+    "sha256": "8935cb2048991ffdadedfcb846de08ad217682d016dec8776b24cf2b44802a7c",
+    "bytes": 1905,
+    "packageFileId": "ae30f7e5-7076-4771-8af2-5e3155346550"
+  },
+  {
+    "path": "tscircuit.config.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=tscircuit.config.json",
+    "sha256": "8e2885532af94e58be42f77f858bd39726b4ddda08f52c8175db05900dad4852",
+    "bytes": 141,
+    "packageFileId": "bab2c4f2-6166-454a-b46c-c118a3d0d00e"
+  },
+  {
+    "path": "tsconfig.json",
+    "url": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=tsconfig.json",
+    "sha256": "0dc45838eb4377dd6c9f8a10f2dff0ba54864500d21a38d25c2a7f6af007df35",
+    "bytes": 343,
+    "packageFileId": "774dcb86-4b3d-4a46-8c2a-88c026d8b6ad"
+  }
+]

@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "retrievedDate": "2026-10-14",
+  "board": {
+    "name": "astra/am3352-sbc",
+    "sourceUrl": "https://tscircuit.com/astra/am3352-sbc",
+    "version": "0.1.19",
+    "packageReleaseId": "a56db1f7-99bf-4f14-b32e-ab5431f039d0",
+    "githubRepository": "https://github.com/tscircuit/am3352-sbc",
+    "sourceImportCommit": "837245bceb6ac898fd5451507d6b2b8024095fe7",
+    "originalTsx": "source-board/index.circuit.tsx",
+    "originalTsxSha256": "bebff61f5878b55a253ce81daec9b243de234daae5232e37ed0d7ce53b0aa524",
+    "tsxMatchedGithubImport": true,
+    "registrySnapshotFile": "dist/index/circuit.json",
+    "registrySnapshotUrl": "https://api.tscircuit.com/package_files/get?package_release_id=a56db1f7-99bf-4f14-b32e-ab5431f039d0&file_path=dist%2Findex%2Fcircuit.json",
+    "snapshotSha256": "c9d7059fe536865784f175855e0dcc76510972319eec848c18b0ef6dcd2adb40",
+    "snapshotBytes": 13121452,
+    "matchesPinnedGzipDecompressedBytes": true,
+    "elementCounts": {
+      "source_group": 1,
+      "source_port": 1740,
+      "source_component": 221,
+      "source_net": 100,
+      "source_manually_placed_via": 319,
+      "source_board": 1,
+      "source_refdes_convention_warning": 7,
+      "source_component_internal_connection": 14,
+      "source_trace": 1207,
+      "source_bus": 19,
+      "pcb_component": 540,
+      "pcb_board": 1,
+      "pcb_smtpad": 1056,
+      "pcb_solder_paste": 1121,
+      "pcb_courtyard_rect": 198,
+      "pcb_silkscreen_rect": 6,
+      "pcb_silkscreen_circle": 9,
+      "pcb_silkscreen_text": 217,
+      "pcb_courtyard_outline": 19,
+      "pcb_silkscreen_path": 321,
+      "pcb_hole": 8,
+      "pcb_fabrication_note_path": 9,
+      "pcb_keepout": 1,
+      "pcb_plated_hole": 46,
+      "pcb_courtyard_circle": 1,
+      "pcb_via": 835,
+      "pcb_port": 1740,
+      "pcb_fabrication_note_text": 2,
+      "cad_component": 221,
+      "pcb_component_missing_courtyard_warning": 3,
+      "pcb_connector_not_in_accessible_orientation_warning": 2,
+      "pcb_debug_object": 3,
+      "pcb_trace": 750,
+      "source_missing_manufacturer_part_number_warning": 4,
+      "pcb_copper_pour": 27,
+      "pcb_port_not_connected_error": 11,
+      "source_component_pins_underspecified_warning": 8,
+      "source_no_power_pin_defined_warning": 13,
+      "source_no_ground_pin_defined_warning": 12,
+      "source_part_not_found_warning": 74,
+      "supplier_footprint_mismatch_warning": 109,
+      "source_project_metadata": 1
+    }
+  },
+  "fixture": {
+    "repository": "https://github.com/tscircuit/circuit-json-to-gmsh",
+    "commit": "9c7f34b7e502b8339a6659cb268b1540867a672d",
+    "path": "examples/am3352/mesh-validation/am3352.circuit.json.gz",
+    "localPath": "fixtures/am3352.circuit.json.gz",
+    "gzipSha256": "8ca26ba9e99d4659ddf7e26d29c24631b1c1a01235cc504a4f4941b20b77ecf3",
+    "decompressedSha256": "c9d7059fe536865784f175855e0dcc76510972319eec848c18b0ef6dcd2adb40"
+  },
+  "preSolvedAssessment": {
+    "meaning": "Published saved routing/geometry checkpoint; selected DDR routes exist. Not complete routing, DDR timing sign-off, independently validated signal integrity, fabrication sign-off, or measured silicon validation.",
+    "exactVersionReadme": "source-board/README.md",
+    "sourceRouteReceipt": "source-board/design/ddr-route-provenance.json",
+    "routingIncomplete": true,
+    "nativeTraceCount": 750,
+    "sourceReadmeUnconnectedPortErrors": 11,
+    "sourceReadmePhysicallyDisconnectedNets": 21,
+    "savedDdrPaths": 47,
+    "sourceReceiptTimingSignoff": false,
+    "sourceReceiptGeometricTimingPassed": false,
+    "strictLengthFailuresMm": {
+      "byte0": {
+        "actual": 45.4304,
+        "limit": 42.4001
+      },
+      "byte1": {
+        "actual": 40.0829,
+        "limit": 36.0003
+      }
+    },
+    "independentGeometryChecks": "Geometry/copper/reference/connectivity checks exist; gmsh saved mesh checks explicitly do not establish EM accuracy or validate a full-path S-parameter/eye simulation.",
+    "fabricatedBoardOrSiliconMeasurementEvidenceFound": false
+  },
+  "pinMappings": [
+    {
+      "net": "DDR_DQS0",
+      "source": {
+        "component": "U1",
+        "part": "AM3352BZCZ100",
+        "pin": "P1",
+        "sourcePortId": "source_port_13",
+        "vendorSignal": "DDR_DQS0",
+        "vendorSelector": "Selector_1"
+      },
+      "receiver": {
+        "component": "U3",
+        "part": "W631GG6MB-12",
+        "pin": "F3",
+        "sourcePortId": "source_port_361",
+        "vendorSignal": "DQSL",
+        "vendorSelector": "DQ"
+      },
+      "sourceTraceId": "source_trace_15"
+    },
+    {
+      "net": "DDR_DQSN0",
+      "source": {
+        "component": "U1",
+        "part": "AM3352BZCZ100",
+        "pin": "P2",
+        "sourcePortId": "source_port_31",
+        "vendorSignal": "DDR_DQSN0",
+        "vendorSelector": "Selector_6"
+      },
+      "receiver": {
+        "component": "U3",
+        "part": "W631GG6MB-12",
+        "pin": "G3",
+        "sourcePortId": "source_port_362",
+        "vendorSignal": "DQSL#",
+        "vendorSelector": "DQ"
+      },
+      "sourceTraceId": "source_trace_16"
+    }
+  ],
+  "powerMapping": {
+    "driver": {
+      "vdd": "E5",
+      "vddSignal": "VDDS_DDR",
+      "vddSourcePortId": "source_port_76",
+      "vss": "A1",
+      "vssSignal": "VSS",
+      "vssSourcePortId": "source_port_0"
+    },
+    "receiver": {
+      "vdd": "A1",
+      "vddSignal": "VDDQ",
+      "vddSourcePortId": "source_port_324",
+      "vss": "B1",
+      "vssSignal": "VSSQ",
+      "vssSourcePortId": "source_port_325"
+    },
+    "supplySimulation": "Ideal 1.5V shared supply and ideal ground, not extracted power-distribution impedance"
+  },
+  "selectedElectricalSettings": {
+    "driverModels": [
+      "Model_655",
+      "Model_847"
+    ],
+    "driverDescription": "1.5V, industrial temperature family, ODT disabled, slow slew SR01, nominal 9mA with external Rext=50ohm",
+    "receiverModel": "ODT_60",
+    "receiverDescription": "Input termination 60ohm, RZQ/4",
+    "corner": "typical",
+    "operatingConfigurationStatus": "Explicit demonstration choices; no firmware or manufactured board configuration evidence found.",
+    "vendorPinEvidence": "source-board/vendor-pin-evidence.json"
+  },
+  "construction": {
+    "knownFromSnapshot": {
+      "widthMm": 100,
+      "heightMm": 80,
+      "nominalThicknessMm": 1.6,
+      "copperLayers": 4,
+      "materialLabel": "fr4",
+      "routeCoordinatesAndWidths": "actual saved Circuit JSON",
+      "nativeViaDimensions": "actual saved Circuit JSON"
+    },
+    "selectedOriginalSourceStackup": "source-board/design/fabrication-stackup.json",
+    "stackupCode": "JLC04161H-3313",
+    "stackupStatus": "Original designer selected working stackup; dimensions calculated; copper migration and manufacturer sign-off incomplete. Not measured manufactured construction.",
+    "simulationAdditionalAssumptions": [
+      "Straightened stages from actual route lengths and widths",
+      "Explicit finite return conductor replaces actual plane shape",
+      "Homogeneous effective permittivity per stage",
+      "Assumed conductivity and via plating",
+      "Via pads and through-via stubs omitted",
+      "R/L fixed at selected 100MHz",
+      "TI coupled package excluded",
+      "Ideal supply and deterministic clock, no firmware, jitter, noise or silicon measurement"
+    ]
+  },
+  "sourceFiles": {
+    "downloadedOriginalRenderAndMetadataFiles": 62,
+    "manifest": "source-board/download-manifest.json",
+    "unmodified": true,
+    "omittedFromHistoricalSourceArchive": [
+      "dist build artifacts except pinned fixture retained separately",
+      "scripts and tests",
+      "output audit artifacts"
+    ],
+    "renderedExampleStrategy": "Inflate exact pinned real board Circuit JSON in native core and annotate its actual U1/U3 with ibisModel, then add eyediagram. Legacy historical board TSX is preserved as provenance; no rerouting implied."
+  },
+  "licenses": {
+    "originalBoardRegistry": "unset",
+    "originalGithubRepositoryLicenseDetected": false,
+    "originalBoardSourceNotice": "No explicit original board license found. Preserve original attribution; do not represent original board sources as newly MIT licensed.",
+    "circuitJsonToGmshFixtureRepository": "MIT; preserved LICENSE at source-board/geometry-evidence/LICENSE and fixtures/LICENSE",
+    "vendorIbis": "Manufacturer-supplied models with original notices; downloaded and hash verified by runtime; not relicensed by this project"
+  },
+  "geometryEvidenceFiles": [
+    {
+      "path": "source-board/geometry-evidence/LICENSE",
+      "sha256": "1d8ddb1b6231d6cc4814945445d678dc1e135ca83a69d683711e6e25e7ac7496"
+    },
+    {
+      "path": "source-board/geometry-evidence/examples/am3352/README.md",
+      "sha256": "c65bf39536e1f71448da0a28e70e969df79b42c8fd22bb052b87c92a3810e5e0"
+    },
+    {
+      "path": "source-board/geometry-evidence/examples/am3352/mesh-validation/README.md",
+      "sha256": "dea1db1fb4adf7fc61599d8500b58a0f4775bc9378c2450ceaf56876792bd58f"
+    },
+    {
+      "path": "source-board/geometry-evidence/examples/am3352/mesh-validation/stackup.json",
+      "sha256": "e59944a9dd976b0522a9bce45ca6231d9213f13ea65a53a1e076c8c3a91c79a4"
+    },
+    {
+      "path": "source-board/geometry-evidence/examples/am3352/provenance.json",
+      "sha256": "9043ec6d9f2851a5f4730fb4feaeb3f7eeda197c3deb709b3d731ec1cd9409fc"
+    }
+  ]
+}

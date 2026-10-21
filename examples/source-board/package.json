@@ -1,0 +1,47 @@
+{
+  "dependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "@tscircuit/checks": "0.0.239",
+    "@tscircuit/circuit-json-util": "0.0.119",
+    "@tscircuit/core": "0.0.2079",
+    "@tscircuit/props": "0.0.685",
+    "@types/bun": "1.4.2",
+    "@types/react": "19.3.0",
+    "bun": "1.4.2",
+    "circuit-json": "0.0.515",
+    "circuit-to-svg": "0.0.438",
+    "react": "19.2.4",
+    "three": "0.179.1",
+    "tscircuit": "0.0.2744",
+    "typescript": "5.9.3"
+  },
+  "name": "@tsci/astra.am3352-sbc",
+  "version": "0.1.19",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:ddr": "bun scripts/build.tsx",
+    "build:placement": "bun scripts/build-board.tsx --placement",
+    "build:checkpoint": "bun scripts/build-board.tsx --ddr-only",
+    "build": "bun scripts/build-board.tsx",
+    "audit:ddr": "bun scripts/audit-ddr.ts",
+    "check:ddr-signoff": "bun scripts/audit-ddr.ts --strict",
+    "typecheck": "tsc --noEmit",
+    "audit:checkpoint": "bun scripts/audit-checkpoint.ts",
+    "build:power": "bun scripts/build-board.tsx --power-only",
+    "generate:power": "python3 scripts/route-power-escapes.py",
+    "audit:power": "bun scripts/audit-power.ts",
+    "build:site": "tsci build --site",
+    "build:portable-site": "bun scripts/portable-site.ts",
+    "relocate:decouplers": "python3 scripts/relocate-decouplers.py",
+    "generate:bridges": "python3 scripts/route-power-bridges.py",
+    "audit:planes": "bun scripts/audit-power-planes.ts",
+    "route:ddr-compliant": "bun scripts/check-solver-release.ts && bun scripts/export-ddr-input.tsx && bun scripts/route-compliant-ddr.ts",
+    "test:ddr-constraints": "bun test tests/ddr-compliance.test.ts",
+    "check:solver-release": "bun scripts/check-solver-release.ts"
+  },
+  "devDependencies": {
+    "@tscircuit/bus-lanes-solver": "https://jscdn.tscircuit.com/@tscircuit/bus-lanes-solver/0.0.19.tgz",
+    "circuit-json-to-pnp-csv": "0.0.18"
+  }
+}

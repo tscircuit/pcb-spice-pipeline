@@ -1,0 +1,19 @@
+{
+  "breakouts": 373,
+  "vias": 321,
+  "additionalBranches": 113,
+  "topRegions": [
+    "DDR_1V5",
+    "V3V3"
+  ],
+  "regionGapMm": 0.3,
+  "minimumNewCopperClearanceMm": 0.1029486190145143,
+  "physicalIntegrationVerified": true,
+  "allRailDistributionComplete": false,
+  "remainingCoreCapacitor": "C_U1_F6",
+  "groundAndDdrSupplyConnected": true,
+  "referencePreservationPass": true,
+  "circuitSha256": "0a502638e067760128c88a2f2dabcd7bc864013092e148c152f7d4661cdf0878",
+  "fabricationReady": false,
+  "additionalControlBranches": 57
+}
