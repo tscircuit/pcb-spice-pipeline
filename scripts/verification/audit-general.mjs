@@ -64,9 +64,19 @@ export function auditGroundCopper(circuit, modeling, geometry) {
       assert.equal(pour.layer, original.layer, 'Ground layer preserved')
       const originalRings = [original.brep_shape.outer_ring, ...original.brep_shape.inner_rings].map(ring => ring.vertices.map(point => [point.x, point.y]))
       assert.deepEqual(polygon(pour.polygon), polygon(originalRings), 'Ground boundaries and every cutout preserved')
-      const layer = exactlyOne(modeling.stackup, layer => layer.name === pour.layer, 'Ground stackup layer')
-      close(pour.zMinMm, layer.zMinMm, 'Ground copper bottom from stackup')
-      close(pour.zMaxMm, layer.zMaxMm, 'Ground copper top from stackup')
+      const stacks = circuit.filter(record => record.type === 'pcb_stackup')
+      assert.equal(stacks.length, 1, 'One physical Circuit JSON stackup')
+      const layers = stacks[0].layers.filter(layer => layer.layer_type !== 'soldermask').slice().reverse()
+      let z = -layers[0].thickness, found = false
+      for (const layer of layers) {
+        if (layer.layer_type === 'copper' && layer.layer === pour.layer) {
+          close(pour.zMinMm, z, 'Ground copper bottom from Circuit JSON stackup')
+          close(pour.zMaxMm, z + layer.thickness, 'Ground copper top from Circuit JSON stackup')
+          found = true
+        }
+        z += layer.thickness
+      }
+      assert.ok(found, 'Ground layer appears in Circuit JSON stackup')
     }
     return { stage: cell.stage, sourceNetId: ground.source_net_id, referenceSourcePortIds: copper.referenceSourcePortIds, groundPourIds: copper.pours.map(pour => pour.pcbCopperPourId), boundariesAndCutoutsPreserved: true }
   })
@@ -125,7 +135,7 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
   assert.ok(eyes.length && experiments.length, 'Native eye and experiment declarations serialized')
   const graphs = results.filter(element => element.type === 'simulation_transient_voltage_graph')
   unique(graphs, 'simulation_transient_voltage_graph_id', 'Waveform results')
-  const { parseRecord } = await import(pathToFileURL(join(projectRoot,'packages/pcb-spice-pipeline/dist/schema.js')).href)
+  const { parseRecord } = await import(new URL('../../dist/schema.js', import.meta.url).href)
   const serializedTypes = new Set(['simulation_experiment', 'simulation_voltage_probe', 'simulation_eye_diagram', 'simulation_digital_stimulus', 'simulation_ibis_model', 'simulation_ibis_pin_state', 'simulation_transient_voltage_graph'])
   let schemaRoundTrips = 0
   for (const record of [...circuit, ...graphs].filter(record => serializedTypes.has(record.type))) {
@@ -139,7 +149,7 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
   const nodeMap = await json(join(out, 'electrical-node-map.json'))
   assert.equal(geometry.units.circuitJson, 'mm', 'Circuit JSON length units')
   assert.ok(['straightened-stages', 'routed-copper'].includes(modeling.reduction), 'Supported channel geometry is explicitly chosen')
-  assert.ok(modeling.stackup.length > 0 && modeling.extraction, 'Locked board construction and extraction inputs')
+  assert.ok(circuit.some(record => record.type === 'pcb_stackup') && modeling.extraction, 'Locked board construction and extraction inputs')
   if (modeling.reduction === 'straightened-stages') assert.ok(modeling.profiles, 'Straightened reduction declares finite return profiles')
   assert.ok(geometry.cells.every(cell => Boolean(cell.routedCopper) === (modeling.reduction === 'routed-copper')), 'Every extracted cell agrees with the declared reduction')
   const groundCopperAudit = modeling.reduction === 'routed-copper' ? auditGroundCopper(circuit, modeling, geometry) : null

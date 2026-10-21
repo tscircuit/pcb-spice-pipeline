@@ -31,7 +31,7 @@
     "test": "node --import tsx --test tests/*.test.mjs tests/*.test.ts",
     "test:native": "node --import tsx --test tests/general.integration.mjs",
     "typecheck": "tsc --noEmit && tsc -p tests/tsconfig.json",
-    "build": "node scripts/build-converter.mjs --types && tsc",
+    "build": "node scripts/build-converter.mjs && tsc",
     "prepare": "npm run build",
     "postinstall": "node scripts/build-converter.mjs"
   },
@@ -45,14 +45,14 @@
     "earcut": "3.2.4",
     "polygon-clipping": "0.15.7",
     "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/0945ad11d0bf4b48a059b60bb9764ead784d2748",
-    "esbuild": "0.27.0"
+    "esbuild": "0.27.0",
+    "typescript": "5.9.3",
+    "@types/node": "22.20.5"
   },
   "devDependencies": {
     "@tscircuit/core": "0.0.2188",
     "@tscircuit/props": "0.0.705",
-    "@types/node": "22.20.5",
-    "@types/react": "19.3.0",
-    "typescript": "5.9.3"
+    "@types/react": "19.3.0"
   },
   "peerDependencies": {
     "@tscircuit/core": ">=0.0.2188",

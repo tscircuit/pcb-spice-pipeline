@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFile } from "node:fs/promises"
+import { readFile, mkdir, writeFile } from "node:fs/promises"
 import { createHash } from "node:crypto"
 import { loadIbisSource, parseIbis, sourceHash } from "@tscircuit/ibis-to-spice"
 
@@ -39,6 +39,9 @@ for (const [name, vendor] of Object.entries(lock.models)) {
     assert.equal(component.pins[pin].signal, signal)
     assert.ok(["power", "gnd"].includes(component.pins[pin].model.toLowerCase()))
   }
+  const directory = new URL(name === 'cmos' ? '../single-ended/models/' : './models/', import.meta.url)
+  await mkdir(directory, {recursive: true})
+  await writeFile(new URL(vendor.file, directory), source)
   results.push({ name, component: vendor.component, archiveSha256: vendor.archiveSha256,
     sourceSha256: sourceHash(source), selectedPins: vendor.signalPins, status: "verified" })
 }

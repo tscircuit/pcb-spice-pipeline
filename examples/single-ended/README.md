@@ -5,10 +5,9 @@ From the project root:
 ```sh
 node examples/differential-data/verify-vendors.mjs
 pnpm exec tsc --noEmit -p examples/single-ended/tsconfig.json
-pnpm exec tsci build examples/single-ended/index.circuit.tsx --disable-parts-engine
-pnpm exec pcb-spice-pipeline examples/single-ended/index.circuit.tsx --out .tscircuit/cmos-eye
-pnpm exec pcb-spice-pipeline --repeat examples/single-ended/index.circuit.tsx --out .tscircuit/cmos-repeat
-node examples/differential-data/verify-board.mjs .tscircuit/cmos-eye/inputs/circuit.json cmos
+pnpm exec pcb-spice-pipeline examples/single-ended/index.circuit.tsx --out runs/cmos-eye
+pnpm exec pcb-spice-pipeline --repeat examples/single-ended/index.circuit.tsx --out runs/cmos-repeat
+node examples/differential-data/verify-board.mjs runs/cmos-eye/inputs/circuit.json cmos
 ```
 
 TI's [product page](https://www.ti.com/product/SN74LVC1G04) supplies the [SCEM216C IBIS archive](https://www.ti.com/lit/zip/scem216c). Hashes and expected physical pins are in `../vendor-models.lock.json`. The file forbids unauthorized redistribution, so the example fetches it locally. Component `LVC1G04_DCK` maps TX pin 4/Y using `LVC1G04_OUT_33` to RX pin 2/A using `LVC1G04_IN_33`. Pin 5 is VCC; pin 3 is GND. The explicit 3.3-V source powers both devices.

@@ -4,3 +4,4 @@ runs/
 dist/
 *.tgz
 runs-*.log
+examples/**/models/

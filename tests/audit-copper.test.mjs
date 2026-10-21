@@ -79,8 +79,9 @@ test('ground audit follows reference-net connectivity and preserves real polygon
       outer_ring: { vertices: outer.map(([x, y]) => ({ x, y })) }, inner_rings: [{ vertices: cutout.map(([x, y]) => ({ x, y })) }],
     } },
   ]
-  const modeling = { channelReference: { sourcePortId: 'driver-ground' }, stackup: [{ name: 'bottom', zMinMm: -.235, zMaxMm: -.2 }] }
-  const copper = { sourceNetId: 'ground', referenceSourcePortIds: ['driver-ground', 'receiver-ground'], pours: [{ pcbCopperPourId: 'plane', layer: 'bottom', polygon: [[...outer].reverse(), cutout], zMinMm: -.235, zMaxMm: -.2 }] }
+  const modeling = { channelReference: { sourcePortId: 'driver-ground' } }
+  circuit.push({type: 'pcb_stackup', layers: [{layer_type: 'copper', layer: 'top', thickness: .035}, {layer_type: 'dielectric', thickness: .2}, {layer_type: 'copper', layer: 'bottom', thickness: .035}]})
+  const copper = { sourceNetId: 'ground', referenceSourcePortIds: ['driver-ground', 'receiver-ground'], pours: [{ pcbCopperPourId: 'plane', layer: 'bottom', polygon: [[...outer].reverse(), cutout], zMinMm: -.035, zMaxMm: 0 }] }
   const geometry = { cells: [{ stage: 0, routedCopper: copper }] }
   assert.equal(auditGroundCopper(circuit, modeling, geometry)[0].boundariesAndCutoutsPreserved, true)
   copper.pours[0].polygon = [outer]

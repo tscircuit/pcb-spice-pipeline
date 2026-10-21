@@ -11,6 +11,9 @@ importers:
       '@tscircuit/ibis-to-spice':
         specifier: https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/0945ad11d0bf4b48a059b60bb9764ead784d2748
         version: https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/0945ad11d0bf4b48a059b60bb9764ead784d2748
+      '@types/node':
+        specifier: 22.20.5
+        version: 22.20.5
       circuit-json:
         specifier: 0.0.531
         version: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
@@ -35,6 +38,9 @@ importers:
       tsx:
         specifier: 4.23.15
         version: 4.23.15
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -45,15 +51,9 @@ importers:
       '@tscircuit/props':
         specifier: 0.0.705
         version: 0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
-      '@types/node':
-        specifier: 22.20.5
-        version: 22.20.5
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
 
 packages:
 

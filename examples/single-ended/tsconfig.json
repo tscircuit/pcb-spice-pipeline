@@ -1,5 +1,6 @@
 {
   "extends": "../../tsconfig.json",
+  "compilerOptions": {"rootDir": "../..", "noEmit": true},
   "include": [
     "index.circuit.tsx",
     "models.ts",

@@ -5,10 +5,9 @@ From the project root:
 ```sh
 node examples/differential-data/verify-vendors.mjs
 pnpm exec tsc --noEmit -p examples/differential-data/tsconfig.json
-pnpm exec tsci build examples/differential-data/index.circuit.tsx --disable-parts-engine
-pnpm exec pcb-spice-pipeline examples/differential-data/index.circuit.tsx --out .tscircuit/rs485-eye
-pnpm exec pcb-spice-pipeline --repeat examples/differential-data/index.circuit.tsx --out .tscircuit/rs485-repeat
-node examples/differential-data/verify-board.mjs .tscircuit/rs485-eye/inputs/circuit.json rs485
+pnpm exec pcb-spice-pipeline examples/differential-data/index.circuit.tsx --out runs/rs485-eye
+pnpm exec pcb-spice-pipeline --repeat examples/differential-data/index.circuit.tsx --out runs/rs485-repeat
+node examples/differential-data/verify-board.mjs runs/rs485-eye/inputs/circuit.json rs485
 ```
 
 TI's [product page](https://www.ti.com/product/SN65HVD72) supplies the [SLLM183 IBIS archive](https://www.ti.com/lit/zip/sllm183). Archive/member hashes and pin/model expectations are in `../vendor-models.lock.json`; vendor files are downloaded locally and retain TI's license. Pins 6/7 are A/B, pin 8 is VCC and pin 5 is GND. The source uses the real `a_b_p`/`a_b_n` I/O tables, with explicit transmitter output state and receiver input state. The 4 us unit interval respects the [datasheet's 250 kbps rating](https://www.ti.com/lit/ds/symlink/sn65hvd72.pdf). Both legs receive the same declared bit sequence; B is inverted exactly once by its stimulus.

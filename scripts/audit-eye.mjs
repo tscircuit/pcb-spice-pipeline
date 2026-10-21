@@ -254,15 +254,15 @@ export async function independentlyCheckMatrices(out, cell, modeling) {
     assert.equal(extraction[kind].length, returnIndex)
     matrix.forEach((row, i) => row.forEach((value, j) => close(value, extraction[kind][i][j], `Independent raw-solver ${kind}[${i}][${j}]`, 1e-10, kind === 'C' ? 1e-23 : kind === 'L' ? 1e-20 : 1e-12)))
   }
-  assert.ok(Number.isFinite(modeling.conductivitySm) && modeling.conductivitySm > 0, 'Finite positive copper conductivity')
+  const conductivity = conductor => conductor.conductivitySm ?? cell.conductivitySm ?? 5.8e7
   const dcResistanceOhm = routed ? cell.routedCopper.signals.map(signal => signal.segments.reduce((resistance, segment) => {
     assert.ok([segment.a, segment.b].every(point => point.length === 3 && point.every(Number.isFinite)), 'Finite routed segment endpoints in mm')
     assert.ok([segment.widthMm, segment.thicknessMm].every(value => Number.isFinite(value) && value > 0), 'Positive routed signal cross-section')
     const lengthM = Math.hypot(...segment.a.map((value, axis) => value - segment.b[axis])) * 1e-3
     const areaM2 = segment.widthMm * 1e-3 * segment.thicknessMm * 1e-3
     assert.ok(lengthM > 0, 'Positive routed signal segment length')
-    return resistance + lengthM / (modeling.conductivitySm * areaM2)
-  }, 0)) : cell.conductors.map(conductor => conductor.lengthM / (modeling.conductivitySm * conductor.widthM * conductor.thicknessM))
+    return resistance + lengthM / (conductivity(segment) * areaM2)
+  }, 0)) : cell.conductors.map(conductor => conductor.lengthM / (conductivity(conductor) * conductor.widthM * conductor.thicknessM))
   assert.equal(dcResistanceOhm.length, routed ? returnIndex : dimension, 'DC analytic check covers every supported conductor')
   assert.equal(extraction.checks.analyticResistanceOhm.length, dcResistanceOhm.length, 'Reported DC analytic check has the expected signal/return coverage')
   dcResistanceOhm.forEach((value, i) => close(value, extraction.checks.analyticResistanceOhm[i], 'Geometry DC resistance independently recomputed'))

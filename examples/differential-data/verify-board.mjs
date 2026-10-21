@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { readFile } from "node:fs/promises"
-import { transmittedBits } from "../../packages/pcb-spice-pipeline/dist/stimulus.js"
+import { transmittedBits } from "../../dist/stimulus.js"
 
 const [file, scenario] = process.argv.slice(2)
 assert.ok(file && ["rs485", "cmos"].includes(scenario), "Usage: node verify-board.mjs CIRCUIT_JSON rs485|cmos")
@@ -17,7 +17,7 @@ const settings = {
     signalPins: { TX: { "4": "Y" }, RX: { "2": "A" } } },
 }[scenario]
 const modelPath = `models/${vendor.file}`
-const sourceBytes = await readFile(new URL(`../../${modelPath}`, import.meta.url))
+const sourceBytes = await readFile(new URL(`./${modelPath}`, import.meta.url))
 assert.equal(createHash("sha256").update(sourceBytes).digest("hex"), vendor.sha256, "Prepared IBIS source checksum")
 const list = type => cj.filter(x => x.type === type)
 const one = (type, predicate) => { const found = list(type).filter(predicate); assert.equal(found.length, 1, type); return found[0] }

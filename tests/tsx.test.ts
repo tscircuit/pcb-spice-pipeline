@@ -239,3 +239,31 @@ test('selected saved pin names containing CSS punctuation map structurally witho
   if (ibis.type !== 'simulation_ibis_model') return
   assert.equal(ibis.ibis_pin_name_to_source_port_id['1'], pin.source_port_id)
 })
+
+test('imported board serializes generated native stackup against the original board ID', async () => {
+  const source = new Circuit(); source.add(tree()); await source.renderUntilSettled()
+  const original = source.getCircuitJson().filter(record => !record.type.startsWith('simulation_'))
+  const savedBoard = original.find(record => record.type === 'pcb_board')!
+  if (savedBoard.type !== 'pcb_board') throw Error('fixture')
+  savedBoard.pcb_board_id = 'saved-board'
+  const circuit = new Circuit()
+  circuit.add(h(ImportedBoard, {circuitJson: original, stackupPreset: 'JLC04161H-3313'}, ...declarations()))
+  await circuit.renderUntilSettled()
+  // Inject the same native record core's preset renderer emits. This package's
+  // baseline published core predates stackupPreset, so it cannot emit it itself.
+  const native = circuit.getCircuitJson(), nativeBoard = native.find(record => record.type === 'pcb_board')!
+  if (nativeBoard.type !== 'pcb_board') throw Error('fixture')
+  const getCircuitJson = circuit.getCircuitJson.bind(circuit)
+  circuit.getCircuitJson = () => [...getCircuitJson(), {type: 'pcb_stackup', pcb_stackup_id: 'generated-stackup',
+    pcb_board_id: nativeBoard.pcb_board_id, layers: [
+      {layer_type: 'copper', layer: 'top', thickness: .035},
+      {layer_type: 'dielectric', thickness: .2, relative_permittivity: 4.1},
+      {layer_type: 'copper', layer: 'bottom', thickness: .035},
+    ]}]
+  const records = serializeSimulation(circuit), stackup = records.find(record => record.type === 'pcb_stackup')!
+  assert.equal(stackup.type, 'pcb_stackup')
+  if (stackup.type !== 'pcb_stackup') throw Error('fixture')
+  assert.equal(stackup.pcb_board_id, 'saved-board')
+  assert.equal(records.filter(record => record.type === 'pcb_stackup').length, 1)
+  assert.ok(!original.some(record => record.type === 'pcb_stackup'), 'saved source remains immutable')
+})

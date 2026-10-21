@@ -1,6 +1,6 @@
 // The pinned upstream GitHub package currently ships source without a prepare
 // script. Build that installed dependency locally; never copy a vendored tarball.
-import { access, mkdir, realpath, readdir } from 'node:fs/promises'
+import { access, mkdir, realpath, readdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { createRequire } from 'node:module'
@@ -17,9 +17,17 @@ if (!await exists(entry)) {
   await mkdir(dirname(entry), { recursive: true })
   for (const name of ['index', 'cli']) await build({ entryPoints: [join(root, `lib/${name}.ts`)], outfile: join(root, `dist/${name}.js`), bundle: true, platform: 'node', format: 'esm', target: 'node22', packages: 'external' })
 }
-if (process.argv.includes('--types')) {
+if (!await exists(join(root, 'dist/general.d.ts'))) {
   execFileSync(process.execPath, [require.resolve('typescript/bin/tsc'), ...(await readdir(join(root, 'lib'))).filter(name => name.endsWith('.ts')).map(name => join(root, 'lib', name)),
     '--declaration', '--emitDeclarationOnly', '--outDir', join(root, 'dist'),
     '--target', 'ES2022', '--module', 'ESNext', '--moduleResolution', 'Bundler',
     '--strict', '--skipLibCheck', '--types', 'node'], { stdio: 'inherit' })
+}
+
+// Generated declarations also work for NodeNext consumers.
+for (const name of (await readdir(join(root, 'dist'))).filter(name => name.endsWith('.d.ts'))) {
+  const path = join(root, 'dist', name), original = await readFile(path, 'utf8')
+  const portable = original.replace(/(from\s+["'])(\.\.?\/[^"']+)(["'])/g, (all, before, specifier, after) =>
+    /\.[cm]?js$/.test(specifier) ? all : `${before}${specifier}.js${after}`)
+  if (portable !== original) await writeFile(path, portable)
 }
