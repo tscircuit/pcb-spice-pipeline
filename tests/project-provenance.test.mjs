@@ -1,3 +1,4 @@
+import {fileURLToPath} from 'node:url'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {mkdtemp,writeFile,rm} from 'node:fs/promises'
@@ -24,5 +25,18 @@ test('plain Node loads TSX and fingerprints the actual imported project data',as
     const second=await loadEntry(entry)
     assert.equal(second.circuitJson[0].name,'second','Changed imported bytes must be used, not a cached board')
     assert.equal(second.project.files['board.json'].sha256,sha256(b))
+  } finally {await rm(root,{recursive:true,force:true})}
+})
+
+test('TSX transformation follows the entry project config when caller cwd is elsewhere',async()=>{
+  const root=await mkdtemp(fileURLToPath(new URL('./jsx-project-',import.meta.url)))
+  try {
+    await writeFile(join(root,'package.json'),'{"name":"jsx-input-proof","type":"module"}\n')
+    await writeFile(join(root,'tsconfig.json'),'{"compilerOptions":{"jsx":"react-jsx","module":"ESNext"},"include":["index.circuit.tsx"]}\n')
+    const entry=join(root,'index.circuit.tsx')
+    await writeFile(entry,"const evaluated = <div />\nexport const circuitJson = []\nexport const modeling = {}\nexport default () => evaluated\n")
+    const result=await loadEntry(entry)
+    assert.deepEqual(result.circuitJson,[])
+    assert.ok(result.project.files['tsconfig.json'])
   } finally {await rm(root,{recursive:true,force:true})}
 })

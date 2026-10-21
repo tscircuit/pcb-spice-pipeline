@@ -1,8 +1,10 @@
 packages:
   - .
-blockExoticSubdeps: false
 allowBuilds:
   esbuild: true
-overrides:
-  '@tscircuit/props': file:vendor/tscircuit-props-ibis-experimental.tgz
-  '@tscircuit/ibis-to-spice': file:vendor/ibis-to-spice-0.0.1.tgz
+  pcb-spice-pipeline: true
+blockExoticSubdeps: false
+minimumReleaseAgeExclude:
+  - '@tscircuit/core@0.0.2188'
+  - '@tscircuit/props@0.0.705'
+  - circuit-json@0.0.531

@@ -1,8 +1,9 @@
 import {spawn} from 'node:child_process'
 import {mkdir,readFile,writeFile} from 'node:fs/promises'
 import {dirname,join,resolve} from 'node:path'
-import {fileURLToPath} from 'node:url'
-import {compareFreshRuns} from '../scripts/audit-eye.mjs'
+import {fileURLToPath,pathToFileURL} from 'node:url'
+import {packageRoot} from './runtime.mjs'
+const {compareFreshRuns}=await import(pathToFileURL(join(packageRoot,'scripts/audit-eye.mjs')).href)
 
 async function freshRun(entry,out,proofRoot) {
   const executable=process.execPath,args=[fileURLToPath(new URL('./cli.mjs',import.meta.url)),entry,'--out',out]
@@ -28,7 +29,7 @@ export async function repeatEntry(entry,output) {
   const receipts=[]
   for(const path of [a,b]) receipts.push(JSON.parse(await readFile(join(path,'receipt.json'))))
   if(receipts.some(receipt=>receipt.execution.solverResultCache!==false)) throw new Error('Fresh solver cache policy missing')
-  const summary={status:'passed',entry:resolve(entry),solverResultsReused:false,commands,comparison,metrics:receipts[0].metrics}
+  const summary={status:'passed',entry:resolve(entry),solverResultsReused:false,commands,comparison,metrics:receipts[0].metrics,experiments:receipts[0].experiments?.map(run=>({simulationExperimentId:run.simulationExperimentId,name:run.name,solverInvocations:run.solverInvocations,waveformSamples:run.waveformSamples,eyes:run.eyes.map(eye=>({simulationEyeDiagramId:eye.simulationEyeDiagramId,simulationVoltageProbeId:eye.simulationVoltageProbeId,windows:eye.windows,timeOriginSeconds:eye.timeOriginSeconds}))}))}
   await writeFile(join(out,'repeatability.json'),JSON.stringify(summary,null,2)+'\n')
   return summary
 }
