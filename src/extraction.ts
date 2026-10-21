@@ -34,7 +34,7 @@ function checkNativeRun(run: {stdout: string; stderr: string}, directory: string
   const skipped=solver==='fastercap'&&lines.find(line=>/\bdegenerate\s+(?:quadrilateral|triangular|triangle)\s+panel\b|\bskipping\s+the\s+panel\b/i.test(line))
   if(skipped) fail('native_geometry',`${name}: ${skipped.trim()}; requested copper panels were omitted; see ${directory}/${solver}.stdout.log and ${solver}.stderr.log`)
   const failure=lines.find(line=>solver==='fasthenry'
-    ? /\b(?:error|fatal|failed|failure|severe warning|internal warning|nonphysical overlap)\b/i.test(line)&&!/^\s*(?:Error tolerance:|Not an error:)/i.test(line)
+    ? /\b(?:error|fatal|failed|failure|severe warning|internal warning|nonphysical overlap)\b|\bHuh\?|\buh oh, segs don.t seem parallel\b/i.test(line)&&!/^\s*(?:Error tolerance:|Not an error:)/i.test(line)
     : /^\s*(?:(?:error|fatal)\b|(?:severe|internal)\s+(?:warning|error)\b)|\b(?:failed|failure)\b/i.test(line))
   if(failure) fail('native_solver',`${name}: ${failure.trim()}; see ${directory}/${solver}.stdout.log and ${solver}.stderr.log`)
 }

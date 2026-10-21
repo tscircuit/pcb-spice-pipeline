@@ -11,6 +11,8 @@ test('FastHenry exit 0 cannot hide failed GMRES or numerical errors in either ru
   for(const phase of ['coarse','refinement']) for(const diagnostic of [
     {stream:'stdout',message:'Warning: Convergence not reached. Stopping iteration...',code:'native_convergence'},
     {stream:'stderr',message:'Internal error in dist_betw_fils: D1D1 too small!',code:'native_solver'},
+    {stream:'stderr',message:'Huh?  filament not expected length',code:'native_solver'},
+    {stream:'stdout',message:"uh oh, segs don't seem parallel 2.76752e-12",code:'native_solver'},
   ]) await t.test(`${phase}: ${diagnostic.code}`,async t=>{
     const directory=await mkdtemp(join(tmpdir(),'pcb-spice-fh-failure-'))
     t.after(()=>rm(directory,{recursive:true,force:true}))
