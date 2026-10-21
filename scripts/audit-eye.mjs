@@ -272,8 +272,12 @@ export async function independentlyCheckMatrices(out, cell, modeling) {
   return { stage: cell.stage, signalConductors: returnIndex, modelFrequencyHz: frequency, capacitanceScaleToFarads, R, L, C, independentDcResistanceOhm: dcResistanceOhm, groundDcResistanceCheck }
 }
 
-export async function auditRun(outputDir, { fixture = new URL('../examples/fixtures/am3352.circuit.json.gz', import.meta.url), sourceRoot = null } = {}) {
+export async function auditRun(outputDir, { fixture = null, sourceRoot = null } = {}) {
   const out = resolve(outputDir), receipt = await readJson(join(out, 'receipt.json'))
+  if (receipt.schemaVersion >= 3) {
+    const {auditRun: auditGeneralRun} = await import('./verification/audit-general.mjs')
+    return auditGeneralRun(receipt.project?.root ?? process.cwd(), out)
+  }
   assert.equal(receipt.status, 'executed')
   assert.equal(receipt.execution.solverResultCache, false, 'Fresh executed solver results')
   assert.equal(receipt.execution.host, hostname(), 'Run executed on current local host')
@@ -290,7 +294,8 @@ export async function auditRun(outputDir, { fixture = new URL('../examples/fixtu
   assert.equal(hash(circuitBytes), receipt.sourceCircuitJsonSha256, 'Executed circuit bytes match receipt')
   const circuit = JSON.parse(circuitBytes), modeling = await readJson(join(out, 'inputs/modeling.json'))
   const geometry = await readJson(join(out, 'geometry.json'))
-  const original = gunzipSync(await readFile(fixture)), originalCircuit = JSON.parse(original)
+  const originalBytes = await readFile(fixture ?? join(out, 'inputs', `original.circuit.json${modeling.circuit?.endsWith('.gz') ? '.gz' : ''}`))
+  const original = originalBytes[0] === 0x1f && originalBytes[1] === 0x8b ? gunzipSync(originalBytes) : originalBytes, originalCircuit = JSON.parse(original)
   assert.equal(hash(original), modeling.fixtureProvenance.originalJsonSha256, 'Pinned original board bytes')
   const boardGeometryAudit = independentlyCheckBoardGeometry(originalCircuit, circuit)
   const routedShapes = cj => cj.filter(e => e.type === 'pcb_trace').map(e => hash(JSON.stringify(physicalRoute(e.route)))).sort()

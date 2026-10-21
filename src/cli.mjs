@@ -38,14 +38,14 @@ try {
     }
     if(compare) {
       if(repeat||!probeName||!positional.length) throw new Error(usage)
-      const outputDir=resolve(output??`dist/comparison-${Date.now()}`)
+      const outputDir=resolve(output??`runs/comparison-${Date.now()}`)
       await compareRuns({directories:positional,outputDir,probeName})
       console.log(`Interactive comparison: ${resolve(outputDir,'results.html')}`)
       if(open) await openResults(resolve(outputDir,'results.html'))
       process.exit(0)
     }
     if(positional.length!==1||probeName) throw new Error(usage)
-    const entry=positional[0],out=resolve(output??`dist/simulation-${Date.now()}`)
+    const entry=positional[0],out=resolve(output??`runs/simulation-${Date.now()}`)
     if(repeat) {await runtimePaths();await repeatEntry(entry,out);console.log(`Repeatability passed: ${resolve(out,'repeatability.json')}`)}
     else {const runtime=await runtimePaths();const receipt=await runPipeline({...await loadEntry(entry),...runtime,outputDir:out,onProgress:console.log});console.log(JSON.stringify({results:resolve(out,'results.html'),receipt:resolve(out,'receipt.json'),metrics:receipt.metrics,experiments:receipt.experiments?.map(run=>({name:run.name,solverInvocations:run.solverInvocations,eyes:run.eyes.map(eye=>({name:eye.name,windows:eye.windows,directory:eye.directory}))}))},null,2));if(open) await openResults(resolve(out,'results.html'))}
   }
