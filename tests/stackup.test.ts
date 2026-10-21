@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import type { CircuitJson } from 'circuit-json'
-import { stackupFromCircuitJson, missingStackupMessage } from '../src/stackup.js'
+import { stackupFromCircuitJson } from '../src/stackup.js'
 import { geometryFromCircuitJson, fastHenryDeck } from '../src/geometry.js'
 
 const fixture = (): CircuitJson => [
@@ -27,7 +27,9 @@ test('JLC04161H-3313 reproduces board-construction copper and dielectric ranges 
 })
 
 test('missing Circuit JSON stackup fails early with the board template instruction', () => {
-  assert.throws(() => geometryFromCircuitJson([], {} as never), {message: missingStackupMessage})
+  assert.throws(() => geometryFromCircuitJson(fixture().slice(0, 1), {} as never), {
+    message: 'Board pcb_board_0 has no pcb_stackup. Set fabricatorPreset (e.g. "jlcpcb_standard") on <board>/<ImportedBoard> so the JLC stackup template is resolved into Circuit JSON.',
+  })
 })
 
 test('conductivity defaults to annealed copper, preserves explicit per-layer values and reaches the solver', () => {
@@ -51,4 +53,11 @@ test('stackup must reference the actual board and match its copper count', () =>
   stackup.pcb_board_id = 'pcb_board_0'
   stackup.layers = stackup.layers.filter(layer => layer.layer_type !== 'copper' || !layer.layer.startsWith('inner'))
   assert.throws(() => stackupFromCircuitJson(circuit), /match pcb_board.num_layers/)
+})
+
+test('side-file board construction is rejected instead of competing with Circuit JSON', () => {
+  const circuit = JSON.parse(readFileSync(new URL('./fixtures/straight.circuit.json', import.meta.url), 'utf8'))
+  const modeling = JSON.parse(readFileSync(new URL('./fixtures/straight.modeling.json', import.meta.url), 'utf8'))
+  for (const key of ['stackup', 'conductivitySm', 'copperLayers'])
+    assert.throws(() => geometryFromCircuitJson(circuit, {...modeling, [key]: []}), new RegExp(`Remove modeling\\.${key}`))
 })

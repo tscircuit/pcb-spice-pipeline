@@ -174,14 +174,13 @@ export function serializeSimulation(circuit: RootCircuit): CircuitJson {
   }
   const nativeStackups = nativeRecords.filter(record => record.type === 'pcb_stackup')
   const physical = structuredClone(records)
-  if (nativeStackups.length) {
+  if (nativeStackups.length && !records.some(record => record.type === 'pcb_stackup')) {
     const savedBoard = records.find(record => record.type === 'pcb_board')!
     const nativeBoard = nativeRecords.find(record => record.type === 'pcb_board')!
     if (nativeStackups.length !== 1 || nativeStackups[0].pcb_board_id !== nativeBoard.pcb_board_id)
       fail('tsx_board', 'ImportedBoard stackup must reference its native PCB board')
     // Core may allocate new board IDs while inflating the preview. Bind the
     // generated stackup back to the saved board that simulation actually uses.
-    for (let i = physical.length - 1; i >= 0; i--) if (physical[i].type === 'pcb_stackup') physical.splice(i, 1)
     physical.push({...nativeStackups[0], pcb_board_id: String(savedBoard.pcb_board_id), subcircuit_id: savedBoard.subcircuit_id})
   }
   return [...physical, ...simulations] as CircuitJson

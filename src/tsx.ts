@@ -2,6 +2,7 @@ import type { Board, Group } from '@tscircuit/core'
 import { createElement, Fragment, useLayoutEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 
+import type { BoardProps } from '@tscircuit/props'
 export type { IbisModelDefinition } from '@tscircuit/props'
 export interface SavedRecord { type: string; [key: string]: unknown }
 export const importedBoardRecords = Symbol.for('pcb-spice-pipeline.imported-board.v2')
@@ -16,8 +17,13 @@ export function savedRecords(circuitJson: readonly unknown[]): SavedRecord[] {
   })
 }
 
+export interface ImportedBoardProps extends Pick<BoardProps, 'fabricatorPreset' | 'material'> {
+  circuitJson: readonly unknown[]
+  children?: ReactNode
+}
+
 /** Preserves a routed board while core renders native simulation declarations. */
-export function ImportedBoard({ circuitJson, children, stackupPreset }: { circuitJson: readonly unknown[]; children?: ReactNode; stackupPreset?: "JLC04161H-3313" }) {
+export function ImportedBoard({ circuitJson, children, fabricatorPreset, material }: ImportedBoardProps) {
   const boardRef = useRef<ImportedBoardInstance | null>(null)
   const declarationsRef = useRef<Group | null>(null)
   const records = savedRecords(circuitJson)
@@ -61,7 +67,7 @@ export function ImportedBoard({ circuitJson, children, stackupPreset }: { circui
     return () => { instance.remove(group) }
   }, [circuitJson, children])
   return createElement(Fragment, null,
-    createElement('board', { ref: boardRef, ...(stackupPreset ? { stackupPreset } : {}), width: board.width, height: board.height, thickness: board.thickness,
+    createElement('board', { ref: boardRef, fabricatorPreset, material: material ?? board.material, width: board.width, height: board.height, thickness: board.thickness,
       layers: board.num_layers, routingDisabled: true, schematicDisabled: true, placementDrcChecksDisabled: true,
       circuitJson: preview }),
     createElement('group', { ref: declarationsRef, name: '__simulation_declarations' }, children))

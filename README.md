@@ -13,37 +13,48 @@ npx pcb-spice-pipeline --repeat index.circuit.tsx --out runs/repeated
 npx pcb-spice-pipeline --compare runs/quiet runs/switching --probe DQ0_RX --out runs/comparison
 ```
 
+For pnpm 11, allow the pinned GitHub converter dependency and the package build script in the consumer's `pnpm-workspace.yaml` before installation:
+
+```yaml
+blockExoticSubdeps: false
+allowBuilds:
+  pcb-spice-pipeline@git+https://github.com/tscircuit/pcb-spice-pipeline.git: true
+  esbuild: true
+```
+
+For local tarballs, enable the exact `pcb-spice-pipeline@file:...` entry emitted by pnpm instead.
+
 Native solvers are downloaded and built separately using `toolchain-lock.json`. `--setup --install-deps` installs system prerequisites. Use `--tools-dir /tmp/pcb-spice-tools` and `PCB_SPICE_TOOLS=/tmp/pcb-spice-tools/tools.json` when the project path contains spaces: upstream wxWidgets makefiles do not support those build paths. `PCB_SPICE_CACHE` chooses the per-project cache. No solver results are reused.
 
-The package uses published `@tscircuit/core` 0.0.2188, `@tscircuit/props` 0.0.705 and `circuit-json` 0.0.531. Their merged native IBIS declarations are exercised by the TSX tests. The converter is pinned to the [upstream ibis-to-spice GitHub source](https://github.com/tscircuit/ibis-to-spice/tree/0945ad11d0bf4b48a059b60bb9764ead784d2748), since its scoped npm package is not published. `postinstall` compiles that dependency's missing distribution from its installed source; no experimental core/props or converter tarballs are vendored.
+Committed dependencies use released `@tscircuit/core` 0.0.2188, `@tscircuit/props` 0.0.705 and `circuit-json` 0.0.531. Core #4826 is required to generate stackups from `fabricatorPreset`; its tarball passed local integration checks, but pkg.pr.new publication is currently blocked by a service 404. Pin the verified preview in devDependencies and consumer overrides when available, then replace it with a released core version before merging. Saved Circuit JSON stackups work with the published baseline. Their merged native IBIS declarations are exercised by the TSX tests. The converter is pinned to the [upstream ibis-to-spice GitHub source](https://github.com/tscircuit/ibis-to-spice/tree/0945ad11d0bf4b48a059b60bb9764ead784d2748), since its scoped npm package is not published. `postinstall` compiles that dependency's missing distribution from its installed source; no local package tarballs are vendored.
 
 ## Circuit JSON stackup
 
-Physical construction comes exclusively from the Circuit JSON `pcb_stackup` and its referenced `pcb_board`. With a core version supporting board presets (see [core #4826](https://github.com/tscircuit/core/pull/4826) and [props #950](https://github.com/tscircuit/props/pull/950)):
+Physical construction comes exclusively from the Circuit JSON `pcb_stackup` and its referenced `pcb_board`. With a core version supporting board presets (see [core #4826](https://github.com/tscircuit/core/pull/4826)):
 
 ```tsx
 import { ImportedBoard } from 'pcb-spice-pipeline/tsx'
 
 // For an ordinary board:
-<board layers={4} thickness="1.6mm" stackupPreset="JLC04161H-3313">{/* ... */}</board>
+<board layers={4} thickness="1.6mm" fabricatorPreset="jlcpcb_standard" material="fr4">{/* ... */}</board>
 
 // For an existing routed board:
-<ImportedBoard circuitJson={routedBoard} stackupPreset="JLC04161H-3313">
+<ImportedBoard circuitJson={routedBoard} fabricatorPreset="jlcpcb_standard" material="fr4">
   {/* ibismodel, analog.transientsimulation, analog.digitalstimulus,
       voltageprobe and analog.eyediagram declarations */}
 </ImportedBoard>
 ```
 
-The published IBIS baseline above predates presets; use the core/props PR preview versions until those changes are released. ImportedBoard forwards the preset and retains the resulting stackup, remapped to the original saved board ID. Existing saved stackup records also work.
+Use the existing `fabricatorPreset` values `jlcpcb_economy`, `jlcpcb_standard`, `jlcpcb_economy_20260912` or `jlcpcb_standard_20260912`, together with board `layers`, `thickness` and `material` (`fr4`, `fr1` or `flex`). For example, standard / 4 layers / 1.6 mm / fr4 resolves JLC04161H-3313. ImportedBoard forwards `fabricatorPreset` and `material`, reads layers/thickness from the saved board, and remaps the generated stackup to its saved board ID. An existing saved `pcb_stackup` takes precedence and is preserved. A preset must resolve the requested construction to produce a stackup.
 
 Layer thicknesses are ordered top to bottom. Copper z is in mm, positive up, with zero at the upper face of bottom copper; soldermask does not shift this frame. JLC04161H-3313 yields bottom −0.035…0, inner2 0.0994…0.1146, inner1 1.3796…1.3948, top 1.4942…1.5292. The values come from [the sourced fabrication stackup](https://raw.githubusercontent.com/tscircuit/am3352-sbc/837245bceb6ac898fd5451507d6b2b8024095fe7/design/fabrication-stackup.json).
 
 Each copper layer's conductivity is used in its FastHenry primitives and DC-resistance checks; omitted conductivity defaults to 5.8e7 S/m. Via and artificial return-strip conductivity use that default. Dielectric z ranges and relative permittivities are retained in `geometry.json`. The native decks use a homogeneous dielectric approximation: routed-copper defaults to the thickness-weighted mean of all dielectric εr values and requires all values to be known. `modeling.relativePermittivity` can explicitly override that approximation. Straightened-stage profiles retain their explicitly assumed effective εr (including the historical strip model). Neither reduction solves layered dielectric interfaces, dielectric loss or roughness.
 
-Remove `modeling.stackup`, `modeling.conductivitySm` and board-construction `copperLayers`; they are no longer used as physical inputs. Missing Circuit JSON construction fails before extraction with:
+Remove `modeling.stackup`, `modeling.conductivitySm` and board-construction `copperLayers`; these obsolete side-file construction fields are rejected. Missing Circuit JSON construction fails before extraction with:
 
 ```text
-No pcb_stackup in Circuit JSON. Set a JLC stackup template on the board, e.g. <board stackupPreset="JLC04161H-3313">.
+Board pcb_board_0 has no pcb_stackup. Set fabricatorPreset (e.g. "jlcpcb_standard") on <board>/<ImportedBoard> so the JLC stackup template is resolved into Circuit JSON.
 ```
 
 ## Modeling and simulation

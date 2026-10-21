@@ -90,6 +90,8 @@ export function selectPort(cj: CircuitJson,s: PortSelector | undefined): SourceP
 export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geometry {
   if(!Array.isArray(cj)) fail('circuit_json','Expected a Circuit JSON element array, not a mesh-preparation object')
   const stackup = stackupFromCircuitJson(cj)
+  for (const key of ['stackup', 'conductivitySm', 'copperLayers']) if (key in modeling)
+    fail('modeling_input', `Remove modeling.${key}; physical construction comes from Circuit JSON pcb_stackup`)
   const m: ResolvedModeling = {...modeling, stackup: stackup.copperLayers, conductivitySm: defaultCopperConductivitySm,
     relativePermittivity: modeling.relativePermittivity ?? stackup.relativePermittivity, viaPlatingMm: modeling.viaPlatingMm ?? stackup.viaPlatingMm}
   validateModeling(m)

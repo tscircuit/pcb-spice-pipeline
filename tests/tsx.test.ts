@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { createElement as h } from 'react'
 import { Circuit, analog } from '@tscircuit/core'
 import type { IbisModelDefinition } from '@tscircuit/props'
@@ -240,30 +241,51 @@ test('selected saved pin names containing CSS punctuation map structurally witho
   assert.equal(ibis.ibis_pin_name_to_source_port_id['1'], pin.source_port_id)
 })
 
-test('imported board serializes generated native stackup against the original board ID', async () => {
+test('ImportedBoard forwards fabricatorPreset/material and binds emitted construction to the saved board', async () => {
   const source = new Circuit(); source.add(tree()); await source.renderUntilSettled()
   const original = source.getCircuitJson().filter(record => !record.type.startsWith('simulation_'))
   const savedBoard = original.find(record => record.type === 'pcb_board')!
   if (savedBoard.type !== 'pcb_board') throw Error('fixture')
   savedBoard.pcb_board_id = 'saved-board'
+  savedBoard.num_layers = 4
+  savedBoard.thickness = 1.6
   const circuit = new Circuit()
-  circuit.add(h(ImportedBoard, {circuitJson: original, stackupPreset: 'JLC04161H-3313'}, ...declarations()))
+  circuit.add(h(ImportedBoard, {circuitJson: original, fabricatorPreset: 'jlcpcb_standard', material: 'fr4'}, ...declarations()))
   await circuit.renderUntilSettled()
-  // Inject the same native record core's preset renderer emits. This package's
-  // baseline published core predates stackupPreset, so it cannot emit it itself.
-  const native = circuit.getCircuitJson(), nativeBoard = native.find(record => record.type === 'pcb_board')!
-  if (nativeBoard.type !== 'pcb_board') throw Error('fixture')
-  const getCircuitJson = circuit.getCircuitJson.bind(circuit)
-  circuit.getCircuitJson = () => [...getCircuitJson(), {type: 'pcb_stackup', pcb_stackup_id: 'generated-stackup',
-    pcb_board_id: nativeBoard.pcb_board_id, layers: [
-      {layer_type: 'copper', layer: 'top', thickness: .035},
-      {layer_type: 'dielectric', thickness: .2, relative_permittivity: 4.1},
-      {layer_type: 'copper', layer: 'bottom', thickness: .035},
-    ]}]
+  const board = circuit.children.find(child => child.componentName === 'Board')!
+  assert.equal(board._parsedProps.fabricatorPreset, 'jlcpcb_standard')
+  assert.equal(board._parsedProps.material, 'fr4')
+  // Isolate serialization from core's unreleased stackup generator. The scratch
+  // consumer also exercises actual generation against the sibling core tarball.
+  const native = circuit.getCircuitJson(), construction = JSON.parse(readFileSync(new URL('./fixtures/jlc-stackup.json', import.meta.url), 'utf8'))
+  circuit.getCircuitJson = () => [...native.filter(record => record.type !== 'pcb_stackup'),
+    {...construction, pcb_board_id: native.find(record => record.type === 'pcb_board')!.pcb_board_id}]
   const records = serializeSimulation(circuit), stackup = records.find(record => record.type === 'pcb_stackup')!
-  assert.equal(stackup.type, 'pcb_stackup')
+  assert.equal(stackup?.type, 'pcb_stackup')
   if (stackup.type !== 'pcb_stackup') throw Error('fixture')
   assert.equal(stackup.pcb_board_id, 'saved-board')
+  assert.deepEqual(stackup.layers.filter(layer => layer.layer_type === 'copper').map(layer => layer.layer), ['top', 'inner1', 'inner2', 'bottom'])
+  assert.equal(stackup.layers.find(layer => layer.layer_type === 'dielectric')?.relative_permittivity, 4.1)
   assert.equal(records.filter(record => record.type === 'pcb_stackup').length, 1)
   assert.ok(!original.some(record => record.type === 'pcb_stackup'), 'saved source remains immutable')
+})
+
+test('ImportedBoard preserves an existing saved stackup even when a fabricatorPreset is supplied', async () => {
+  const source = new Circuit(); source.add(tree()); await source.renderUntilSettled()
+  const original = source.getCircuitJson().filter(record => !record.type.startsWith('simulation_'))
+  const savedBoard = original.find(record => record.type === 'pcb_board')!
+  if (savedBoard.type !== 'pcb_board') throw Error('fixture')
+  const savedStackup = {type: 'pcb_stackup' as const, pcb_stackup_id: 'saved-stackup', pcb_board_id: savedBoard.pcb_board_id,
+    plated_hole_copper_thickness: .02, layers: [
+      {layer_type: 'copper' as const, layer: 'top' as const, thickness: .07, electrical_conductivity_s_per_m: 3e7},
+      {layer_type: 'dielectric' as const, thickness: .2, relative_permittivity: 3.5},
+      {layer_type: 'copper' as const, layer: 'bottom' as const, thickness: .035},
+    ]}
+  original.push(savedStackup)
+  const before = structuredClone(original), circuit = new Circuit()
+  circuit.add(h(ImportedBoard, {circuitJson: original, fabricatorPreset: 'jlcpcb_standard', material: 'flex'}, ...declarations()))
+  await circuit.renderUntilSettled()
+  assert.equal(circuit.children.find(child => child.componentName === 'Board')!._parsedProps.material, 'flex')
+  assert.deepEqual(serializeSimulation(circuit).filter(record => record.type === 'pcb_stackup'), [savedStackup])
+  assert.deepEqual(original, before)
 })
