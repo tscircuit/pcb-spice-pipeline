@@ -5,3 +5,4 @@ dist/
 *.tgz
 runs-*.log
 examples/**/models/
+models/
