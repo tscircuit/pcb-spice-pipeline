@@ -1,1 +1,24 @@
-{"compilerOptions":{"jsx":"react-jsx","module":"NodeNext","moduleResolution":"NodeNext","target":"ES2022","esModuleInterop":true,"resolveJsonModule":true,"types":["node","@tscircuit/core"],"strict":true,"skipLibCheck":true},"include":["examples/*.tsx"]}
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2023",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "types": [
+      "node"
+    ],
+    "strict": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true
+  },
+  "include": [
+    "src/**/*.mjs",
+    "src/**/*.ts"
+  ]
+}

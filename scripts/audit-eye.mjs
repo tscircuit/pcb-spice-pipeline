@@ -189,39 +189,95 @@ export function independentlyCheckBoardGeometry(original, circuit) {
   return { inventory, manualViasPreserved: manualVias(circuit), references: nativeReferences, coordinateComparisonResolutionMm: 1e-10 }
 }
 
-async function independentlyCheckMatrices(out, cell, modeling) {
-  const stage = join(out, `stage-${cell.stage}`), extraction = await readJson(join(stage, 'extraction.json'))
-  const raw = await readFile(join(stage, 'refinement/Zc.mat'), 'utf8')
-  const marker = raw.match(/Impedance matrix for frequency\s*=\s*(\S+)\s+3\s+x\s+3\s*\n/)
-  assert.ok(marker, 'Raw refined FastHenry 3x3 matrix')
-  const frequency = Number(marker[1])
-  close(frequency, modeling.extraction.modelHz, 'Actually solved model frequency')
-  const complex = raw.slice(marker.index + marker[0].length).trim().split(/\r?\n/).slice(0, 3).map(line => line.trim().split(/\s+/).map(token => Number(token.replace(/j$/, ''))))
-  assert.ok(complex.every(row => row.length === 6 && row.every(Number.isFinite)))
-  const primitiveR = complex.map(row => [row[0], row[2], row[4]])
-  const primitiveL = complex.map(row => [row[1], row[3], row[5]].map(z => z / (2 * Math.PI * frequency)))
-  const loop = primitive => [0, 1].map(i => [0, 1].map(j => primitive[i][j] - primitive[i][2] - primitive[2][j] + primitive[2][2]))
-  const symmetric = matrix => matrix.map((row, i) => row.map((v, j) => (v + matrix[j][i]) / 2))
-  const R = symmetric(loop(primitiveR)), L = symmetric(loop(primitiveL))
-  const capText = await readFile(join(stage, 'fastercap.stdout.log'), 'utf8')
-  const capMarker = [...capText.matchAll(/Capacitance matrix is:\s*\nDimension\s+3\s+x\s+3\s*\n/g)].at(-1)
-  assert.ok(capMarker, 'Raw converged FasterCap 3x3 matrix')
-  const capLines = capText.slice(capMarker.index + capMarker[0].length).trim().split(/\r?\n/).slice(0, 3).map(line => line.trim().split(/\s+/))
-  assert.ok(capLines.every((row, i) => row[0].endsWith(`_${cell.conductors[i].name}`)), 'Actual capacitance conductor order')
-  const primitiveC = symmetric(capLines.map(row => row.slice(1).map(Number)))
-  const rowSums = primitiveC.map(row => row.reduce((a, b) => a + b, 0)), total = rowSums.reduce((a, b) => a + b, 0)
-  const C = [0, 1].map(i => [0, 1].map(j => primitiveC[i][j] - rowSums[i] * rowSums[j] / total))
-  for (const [kind, matrix] of Object.entries({ R, L, C })) {
-    assert.ok(matrix[0][0] > 0 && matrix[1][1] > 0 && matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0] > 0, `${kind} has positive energy/loss`)
-    matrix.forEach((row, i) => row.forEach((v, j) => close(v, extraction[kind][i][j], `Independent ${kind}[${i}][${j}] raw-solver conversion`, 1e-10, kind === 'C' ? 1e-23 : kind === 'L' ? 1e-20 : 1e-12)))
+const symmetric = matrix => matrix.map((row, i) => row.map((value, j) => (value + matrix[j][i]) / 2))
+function positiveEnergy(matrix, name) {
+  const factors = matrix.map(row => row.map(() => 0))
+  for (let i = 0; i < matrix.length; i++) for (let j = 0; j <= i; j++) {
+    let residual = matrix[i][j]
+    for (let k = 0; k < j; k++) residual -= factors[i][k] * factors[j][k]
+    if (i === j) {
+      assert.ok(Number.isFinite(residual) && residual > 0, `${name}: positive energy/loss pivot`)
+      factors[i][j] = Math.sqrt(residual)
+    } else factors[i][j] = residual / factors[j][j]
   }
-  const dcR = cell.conductors.map(c => c.lengthM / (modeling.conductivitySm * c.widthM * c.thicknessM))
-  dcR.forEach((r, i) => close(r, extraction.checks.analyticResistanceOhm[i], 'Independent DC geometry resistance'))
-  return { stage: cell.stage, modelFrequencyHz: frequency, R, L, C, independentDcResistanceOhm: dcR }
 }
 
-export async function auditRun(outputDir, { fixture = new URL('../examples/fixtures/am3352.circuit.json.gz', import.meta.url), sourceRoot = null } = {}) {
+export async function independentlyCheckMatrices(out, cell, modeling) {
+  const routed = modeling.reduction === 'routed-copper' || Boolean(cell.routedCopper)
+  const capacitanceScaleToFarads = routed ? 1e-3 : 1
+  const stage = join(out, `stage-${cell.stage}`)
+  const extraction = await readJson(join(stage, 'extraction.json'))
+  const list = await readFile(join(stage, 'channel.lst'), 'utf8')
+  assert.match(list.split(/\r?\n/)[0], routed ? /\bmillimetres\b/ : /\bmetres\b/, 'Captured FasterCap deck declares the independently expected coordinate units')
+  if (routed) for (const conductor of cell.conductors) {
+    const panel = await readFile(join(stage, `${conductor.name}.txt`), 'utf8')
+    assert.match(panel.split(/\r?\n/)[0], /\bmillimetres\b/, 'Actual routed FasterCap panels use mm')
+  }
+  const raw = await readFile(join(stage, 'refinement/Zc.mat'), 'utf8')
+  const marker = raw.match(/Impedance matrix for frequency\s*=\s*(\S+)\s+(\d+)\s+x\s+(\d+)\s*\n/)
+  assert.ok(marker, 'Raw refined FastHenry matrix')
+  const frequency = Number(marker[1]), dimension = Number(marker[2])
+  assert.equal(Number(marker[3]), dimension)
+  assert.equal(dimension, cell.conductors.length, 'Raw solver conductor count agrees with generated geometry')
+  assert.ok([2, 3, 4].includes(dimension), 'Backend contains one to three signals plus a return')
+  close(frequency, modeling.extraction.modelHz, 'Executed field-solver frequency')
+  const complex = raw.slice(marker.index + marker[0].length).trim().split(/\r?\n/).slice(0, dimension)
+    .map(line => line.trim().split(/\s+/).map(token => Number(token.replace(/j$/, ''))))
+  assert.ok(complex.length === dimension && complex.every(row => row.length === 2 * dimension && row.every(Number.isFinite)))
+  const primitiveR = complex.map(row => Array.from({ length: dimension }, (_, i) => row[2 * i]))
+  const primitiveL = complex.map(row => Array.from({ length: dimension }, (_, i) => row[2 * i + 1] / (2 * Math.PI * frequency)))
+  const returnIndex = dimension - 1
+  const loops = primitive => Array.from({ length: returnIndex }, (_, i) => Array.from({ length: returnIndex }, (_, j) =>
+    primitive[i][j] - primitive[i][returnIndex] - primitive[returnIndex][j] + primitive[returnIndex][returnIndex]))
+  const R = symmetric(loops(primitiveR)), L = symmetric(loops(primitiveL))
+
+  const capText = await readFile(join(stage, 'fastercap.stdout.log'), 'utf8')
+  const capMarker = [...capText.matchAll(/Capacitance matrix is:\s*\nDimension\s+(\d+)\s+x\s+(\d+)\s*\n/g)].at(-1)
+  assert.ok(capMarker, 'Final raw FasterCap capacitance matrix')
+  assert.equal(Number(capMarker[1]), dimension)
+  assert.equal(Number(capMarker[2]), dimension)
+  const capLines = capText.slice(capMarker.index + capMarker[0].length).trim().split(/\r?\n/).slice(0, dimension).map(line => line.trim().split(/\s+/))
+  assert.ok(capLines.every((row, i) => row[0].endsWith(`_${cell.conductors[i].name}`)), 'Actual capacitance conductor ordering')
+  assert.ok(capLines.every(row => row.length === dimension + 1 && row.slice(1).every(value => Number.isFinite(Number(value)))), 'Finite raw capacitance matrix')
+  // Routed-copper panels use numeric mm to avoid FasterCap's absolute area
+  // thresholds. Electrostatic C scales with length; the legacy panels use m.
+  // Derive the conversion from the captured input/geometry, not result metadata.
+  const primitiveC = symmetric(capLines.map(row => row.slice(1).map(value => Number(value) * capacitanceScaleToFarads)))
+  assert.equal(extraction.conversions.capacitanceScaleToFarads, capacitanceScaleToFarads, 'Reported capacitance scale agrees with input geometry')
+  assert.equal(extraction.conversions.capacitanceSolverCoordinateUnits, routed ? 'mm' : 'm', 'Reported capacitance units agree with captured panels')
+  const rowSums = primitiveC.map(row => row.reduce((sum, value) => sum + value, 0))
+  const total = rowSums.reduce((sum, value) => sum + value, 0)
+  assert.ok(total > 0, 'Finite reference-reduction capacitance')
+  const C = Array.from({ length: returnIndex }, (_, i) => Array.from({ length: returnIndex }, (_, j) => primitiveC[i][j] - rowSums[i] * rowSums[j] / total))
+  for (const [kind, matrix] of Object.entries({ R, L, C })) {
+    positiveEnergy(matrix, kind)
+    assert.equal(extraction[kind].length, returnIndex)
+    matrix.forEach((row, i) => row.forEach((value, j) => close(value, extraction[kind][i][j], `Independent raw-solver ${kind}[${i}][${j}]`, 1e-10, kind === 'C' ? 1e-23 : kind === 'L' ? 1e-20 : 1e-12)))
+  }
+  const conductivity = conductor => conductor.conductivitySm ?? cell.conductivitySm ?? 5.8e7
+  const dcResistanceOhm = routed ? cell.routedCopper.signals.map(signal => signal.segments.reduce((resistance, segment) => {
+    assert.ok([segment.a, segment.b].every(point => point.length === 3 && point.every(Number.isFinite)), 'Finite routed segment endpoints in mm')
+    assert.ok([segment.widthMm, segment.thicknessMm].every(value => Number.isFinite(value) && value > 0), 'Positive routed signal cross-section')
+    const lengthM = Math.hypot(...segment.a.map((value, axis) => value - segment.b[axis])) * 1e-3
+    const areaM2 = segment.widthMm * 1e-3 * segment.thicknessMm * 1e-3
+    assert.ok(lengthM > 0, 'Positive routed signal segment length')
+    return resistance + lengthM / (conductivity(segment) * areaM2)
+  }, 0)) : cell.conductors.map(conductor => conductor.lengthM / (conductivity(conductor) * conductor.widthM * conductor.thicknessM))
+  assert.equal(dcResistanceOhm.length, routed ? returnIndex : dimension, 'DC analytic check covers every supported conductor')
+  assert.equal(extraction.checks.analyticResistanceOhm.length, dcResistanceOhm.length, 'Reported DC analytic check has the expected signal/return coverage')
+  dcResistanceOhm.forEach((value, i) => close(value, extraction.checks.analyticResistanceOhm[i], 'Geometry DC resistance independently recomputed'))
+  const groundDcResistanceCheck = routed
+    ? { status: 'not-applicable', reason: 'A polygon ground plane has no uniform-bar length/width; l/(sigma*w*t) applies only to each routed signal segment. Ground-plane accuracy requires mesh refinement.' }
+    : { status: 'checked', resistanceOhm: dcResistanceOhm[returnIndex] }
+  return { stage: cell.stage, signalConductors: returnIndex, modelFrequencyHz: frequency, capacitanceScaleToFarads, R, L, C, independentDcResistanceOhm: dcResistanceOhm, groundDcResistanceCheck }
+}
+
+export async function auditRun(outputDir, { fixture = null, sourceRoot = null } = {}) {
   const out = resolve(outputDir), receipt = await readJson(join(out, 'receipt.json'))
+  if (receipt.schemaVersion >= 3) {
+    const {auditRun: auditGeneralRun} = await import('./verification/audit-general.mjs')
+    return auditGeneralRun(receipt.project?.root ?? process.cwd(), out)
+  }
   assert.equal(receipt.status, 'executed')
   assert.equal(receipt.execution.solverResultCache, false, 'Fresh executed solver results')
   assert.equal(receipt.execution.host, hostname(), 'Run executed on current local host')
@@ -238,7 +294,8 @@ export async function auditRun(outputDir, { fixture = new URL('../examples/fixtu
   assert.equal(hash(circuitBytes), receipt.sourceCircuitJsonSha256, 'Executed circuit bytes match receipt')
   const circuit = JSON.parse(circuitBytes), modeling = await readJson(join(out, 'inputs/modeling.json'))
   const geometry = await readJson(join(out, 'geometry.json'))
-  const original = gunzipSync(await readFile(fixture)), originalCircuit = JSON.parse(original)
+  const originalBytes = await readFile(fixture ?? join(out, 'inputs', `original.circuit.json${modeling.circuit?.endsWith('.gz') ? '.gz' : ''}`))
+  const original = originalBytes[0] === 0x1f && originalBytes[1] === 0x8b ? gunzipSync(originalBytes) : originalBytes, originalCircuit = JSON.parse(original)
   assert.equal(hash(original), modeling.fixtureProvenance.originalJsonSha256, 'Pinned original board bytes')
   const boardGeometryAudit = independentlyCheckBoardGeometry(originalCircuit, circuit)
   const routedShapes = cj => cj.filter(e => e.type === 'pcb_trace').map(e => hash(JSON.stringify(physicalRoute(e.route)))).sort()
@@ -339,9 +396,13 @@ export async function auditRun(outputDir, { fixture = new URL('../examples/fixtu
 export async function compareFreshRuns(aDir, bDir) {
   const a = await readJson(join(aDir, 'receipt.json')), b = await readJson(join(bDir, 'receipt.json'))
   assert.notEqual(resolve(aDir), resolve(bDir))
-  const paths = ['channel.cir', 'simulation.cir', 'driver.lib', 'receiver.lib', 'waveform.csv', 'metrics.json', 'inputs/circuit.json', 'geometry.json']
+  assert.deepEqual(a.sourceFiles,b.sourceFiles,'Both fresh runs execute identical package source/config bytes')
+  if(a.schemaVersion===3) assert.deepEqual(a.converter.files,b.converter.files,'Both runs use identical compiled converter bytes')
+  const paths = a.schemaVersion===3
+    ? Object.keys(a.files).filter(path=>/\.(?:cir|lib|csv|png|svg)$/.test(path)||/^(?:inputs\/circuit|geometry|vendor-sources|electrical-node-map|converter-runtime|circuit-results)\.json$/.test(path)||/(?:extraction|experiment|waveform|eyes|eye-data|native-ibis-assembly)\.json$/.test(path)).sort()
+    : ['channel.cir', 'simulation.cir', 'driver.lib', 'receiver.lib', 'waveform.csv', 'metrics.json', 'inputs/circuit.json', 'geometry.json']
   for (const e of a.matrices) paths.push(`stage-${e.stage}/Zc.mat`, `stage-${e.stage}/refinement/Zc.mat`, `stage-${e.stage}/channel.csv`, `stage-${e.stage}/extraction.json`)
-  for (const path of ['native-ibis-assembly.json','project-provenance.json','eyediagram.json', 'eye-data.csv', 'eye.png', 'eye.svg', 'waveform.png', 'waveform.svg']) if (a.files[path]) paths.push(path)
+  for (const path of ['native-ibis-assembly.json','project-provenance.json','eyediagram.json', 'eye-data.csv', 'eye.png', 'eye.svg', 'waveform.png', 'waveform.svg']) if (a.files[path]&&!paths.includes(path)) paths.push(path)
   const compared = []
   for (const path of paths) {
     const ah = hash(await readFile(join(aDir, path))), bh = hash(await readFile(join(bDir, path)))

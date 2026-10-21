@@ -1,57 +1,61 @@
 {
   "name": "pcb-spice-pipeline",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "license": "MIT",
   "engines": {
     "node": ">=22"
   },
   "packageManager": "pnpm@11.25.0",
-  "exports": "./src/pipeline.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./tsx": {
+      "types": "./dist/tsx.d.ts",
+      "import": "./dist/tsx.js"
+    }
+  },
   "files": [
+    "dist",
     "src",
-    "scripts/setup-tools.py",
-    "scripts/plot.py",
-    "scripts/audit-eye.mjs",
-    "requirements.lock.txt",
-    "toolchain-lock.json",
-    "vendor/ibis-to-spice-handoff.json",
-    "vendor/ibis-to-spice-0.0.1.tgz",
-    "vendor/native-ibis-packages-handoff.json",
-    "vendor/tscircuit-core-ibis-experimental.tgz",
-    "vendor/tscircuit-props-ibis-experimental.tgz"
+    "tsconfig.json",
+    "scripts",
+    "toolchain-lock.json"
   ],
   "bin": {
-    "pcb-spice-pipeline": "src/cli.mjs"
+    "pcb-spice-pipeline": "dist/cli.mjs"
   },
   "scripts": {
-    "test": "node --test tests/*.test.mjs",
-    "typecheck": "tsc --noEmit",
-    "test:native": "node --import tsx --test tests/native.integration.mjs tests/real-board.integration.mjs",
-    "prove": "node scripts/prove.mjs",
-    "example": "node src/cli.mjs examples/straight.json --out runs/straight",
-    "routed": "node src/cli.mjs examples/am3352.json --out runs/am3352",
-    "tsx": "tsx src/cli.mjs examples/board.tsx --out runs/tsx",
-    "eye": "tsx src/cli.mjs examples/am3352-eye.tsx --out runs/am3352-eye",
-    "setup:tools": "python3 scripts/setup-tools.py"
+    "test": "node --import tsx --test tests/*.test.mjs tests/*.test.ts",
+    "test:native": "node --import tsx --test tests/general.integration.mjs",
+    "typecheck": "tsc --noEmit && tsc -p tests/tsconfig.json",
+    "build": "node scripts/build-converter.mjs && tsc",
+    "prepare": "npm run build",
+    "postinstall": "node scripts/build-converter.mjs"
   },
   "dependencies": {
     "fflate": "0.8.2",
     "react": "19.2.4",
-    "tsx": "4.23.15"
+    "tsx": "4.23.15",
+    "circuit-json": "0.0.531",
+    "tar": "7.5.22",
+    "zod": "3.25.76",
+    "earcut": "3.2.4",
+    "polygon-clipping": "0.15.7",
+    "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/0945ad11d0bf4b48a059b60bb9764ead784d2748",
+    "esbuild": "0.27.0",
+    "typescript": "5.9.3",
+    "@types/node": "22.20.5"
   },
   "devDependencies": {
-    "@tscircuit/core": "file:vendor/tscircuit-core-ibis-experimental.tgz",
-    "@tscircuit/ibis-to-spice": "file:vendor/ibis-to-spice-0.0.1.tgz",
-    "@tscircuit/props": "file:vendor/tscircuit-props-ibis-experimental.tgz",
-    "@types/node": "22.20.5",
-    "@types/react": "19.3.0",
-    "typescript": "5.9.3"
+    "@tscircuit/core": "0.0.2188",
+    "@tscircuit/props": "0.0.705",
+    "@types/react": "19.3.0"
   },
   "peerDependencies": {
-    "@tscircuit/core": "0.0.2148",
-    "@tscircuit/props": "0.0.702",
-    "@tscircuit/ibis-to-spice": "0.0.1"
+    "@tscircuit/core": ">=0.0.2188",
+    "@tscircuit/props": ">=0.0.705"
   }
 }
