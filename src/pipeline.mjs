@@ -70,7 +70,7 @@ export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir
   try {await stat(out);fail('output_exists',`Use a fresh output directory for regeneration: ${out}`)} catch(e) {if(e.code!=='ENOENT') throw e}
   modeling=eyeSimulation(modeling,eyeDiagrams)
   const geometry=geometryFromCircuitJson(circuitJson,modeling),eye=resolveEyeDiagram(geometry,modeling,eyeDiagrams)
-  const handoff={package:'@tscircuit/ibis-to-spice',source:'same repository workspace; see project dependency and package source hashes'}
+  const handoff={package:'@tscircuit/ibis-to-spice',source:'upstream GitHub dependency; see project dependency and package source hashes'}
   for(const lane of modeling.lanes) {
     const output=modeling.driver?.pins?.[lane.driverPort??lane.port],input=modeling.receiver?.pins?.[lane.receiverPort??lane.port]
     if(output?.mode!=='output'||input?.mode!=='input'||output.stimulus?.type!=='clock') fail('ibis_mapping',`${lane.port}: explicit output clock driver and input receiver required`)
@@ -106,7 +106,7 @@ export async function runPipeline({circuitJson,modeling,eyeDiagrams=[],outputDir
   let driver=convertIbisComponentToSpice(sources[0].text,modeling.driver),receiver=convertIbisComponentToSpice(sources[1].text,modeling.receiver)
   let nativeEvidence=null
   if(modeling.requireNativeIbis) {
-    const nativePackages={source:'same repository workspace; see project dependency hashes'}
+    const nativePackages={source:'published packages; see project dependency hashes'}
     const native=useNativeIbis(circuitJson,geometry,modeling,{driver,receiver})
     driver=native.driver;receiver=native.receiver;nativeEvidence={...native.evidence,packages:nativePackages}
     await json(join(out,'native-ibis-assembly.json'),nativeEvidence)

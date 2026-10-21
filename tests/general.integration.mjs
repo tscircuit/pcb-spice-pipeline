@@ -10,7 +10,6 @@ import {parseRecord} from '../src/schema.js'
 import {loadEntry,runPipeline} from '../src/pipeline.mjs'
 import {runtimePaths} from '../src/runtime.mjs'
 import {channelSpice} from '../src/spice.js'
-import {interpolate} from '../scripts/verification/independent-helpers.mjs'
 
 const root=fileURLToPath(new URL('../',import.meta.url)),output=join(root,'runs',`native-general-test-${Date.now()}`)
 const readJson=async path=>JSON.parse(await readFile(path,'utf8'))
@@ -53,7 +52,7 @@ test('native three-signal channel obeys the complete R + j*w*L impedance matrix 
   for(let i=0;i<3;i++) for(let part=0;part<2;part++) assert.ok(Math.abs(values[7+2*i+part]+supplyCurrent[i][part])<1e-8,'all Maxwell shunts and mutual capacitors survive')
 })
 
-test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and eyes through the shared pipeline',async()=>{
+test('actual vendor differential and single-ended TSX generate waveforms and eyes through the shared pipeline',async()=>{
   await mkdir(output,{recursive:true})
   const runtime=await runtimePaths({projectDir:root})
   for(const name of ['differential-data','single-ended']) {
@@ -61,7 +60,7 @@ test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and 
     assert.ok(input.circuitJson.some(e=>e.type==='simulation_digital_stimulus'&&/(00|11)/.test(e.transmission_pattern.bits)),'source contains repeated arbitrary data bits')
     const receipt=await runPipeline({...input,...runtime,outputDir:dir})
     assert.equal(receipt.schemaVersion,3);assert.equal(receipt.execution.solverResultCache,false)
-    assert.equal(receipt.experiments.length,name==='ddr-dq'?2:1)
+    assert.equal(receipt.experiments.length,1)
     for(const file of ['trace-map','probe-map','test-plan','results-summary','eye-summary']) {
       const path=`csv/${file}.csv`,bytes=await readFile(join(dir,path))
       assert.equal(createHash('sha256').update(bytes).digest('hex'),receipt.files[path],'report CSVs are included in the completed native receipt')
@@ -80,35 +79,6 @@ test('actual vendor DDR DQ, non-DDR and single-ended TSX generate waveforms and 
     const assembly=await readJson(join(dir,experiment.directory,'native-ibis-assembly.json'))
     for(const model of assembly) assert.equal(model.metadata.tableExtrapolation,'hold-endpoint-current','the numerical table boundary policy is recorded')
     const wave=(await readFile(join(dir,experiment.directory,'waveform.csv'),'utf8')).trim().split(/\r?\n/).slice(1).map(line=>line.split(',').map(Number))
-    if(name==='ddr-dq'&&experiment.name==='DDR_SWITCHING') {
-      const stimulus=input.circuitJson.find(record=>record.type==='simulation_digital_stimulus'&&record.name==='DQ0_SWITCHING')
-      const columns=Object.fromEntries(experiment.probes.map(probe=>[probe.name,probe.column]))
-      const eye=experiment.eyes.find(eye=>eye.name==='DQ0_receive_eye_SWITCHING')
-      const times=wave.map(row=>row[0]),voltages=wave.map(row=>row[columns.DQ0_RX]),samples=new Map()
-      const ui=stimulus.bit_duration_ms/1000,epoch=stimulus.start_time_ms/1000
-      const threshold=(input.circuitJson.find(record=>record.type==='simulation_voltage_source')?.voltage??input.modeling.supplies[0].voltageV)/2
-      for(let i=1;i<wave.length;i++) {
-        const a=wave[i-1],b=wave[i],x=a[columns.DDR_RX],y=b[columns.DDR_RX]
-        if((x<0)===(y<0)) continue
-        const time=a[0]-x*(b[0]-a[0])/(y-x)
-        if(time<eye.startTimeSeconds||time>=eye.endTimeSeconds) continue
-        const index=Math.floor((time-epoch)/ui),voltage=interpolate(times,voltages,time),bit=Number(voltage>threshold)
-        assert.equal(bit,Number(stimulus.transmission_pattern.bits[index%stimulus.transmission_pattern.bits.length]),'received DQ matches transmitted data at actual DQS crossing')
-        assert.ok(Math.abs(voltage-threshold)>.05,'DQ sample is clear of the explicit analysis threshold')
-        if(samples.size) assert.equal(index,[...samples.keys()].at(-1)+1,'one DQS sample per consecutive DQ bit')
-        samples.set(index,bit)
-      }
-      const expected=['000','001','010','011','100','101','110','111']
-      const received=[...samples.values()],histories=[...new Set(received.slice(2).map((_,i)=>received.slice(i,i+3).join('')))].sort()
-      assert.deepEqual(histories,expected,'all eight histories occur in actual received bits')
-      const folded=await readJson(join(dir,experiment.directory,eye.directory,'eye-data.json'))
-      const eyeHistories=[...new Set(folded.boundaryIndices.map(boundary=>[boundary-1,boundary,boundary+1].map(index=>{
-        assert.ok(samples.has(index),'eye history uses an actual DQS-sampled received bit')
-        return samples.get(index)
-      }).join('')))].sort()
-      assert.deepEqual(eyeHistories,expected,'the ordinary library eye contains all eight received histories')
-      await writeFile(join(output,'ddr-dq-coverage.json'),JSON.stringify({receivedBits:samples.size,receivedHistories:histories,eyeHistories,eyeWindows:eye.windows},null,2)+'\n')
-    }
     if(name==='single-ended') {
       const stimulus=input.circuitJson.find(record=>record.type==='simulation_digital_stimulus')
       assert.equal(stimulus.initial_state,0);assert.equal(stimulus.inverted,false)

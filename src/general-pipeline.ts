@@ -129,7 +129,7 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
   const roots=['dist','LICENSE','package.json','scripts','src','tests','toolchain-lock.json','tsconfig.json']
   const sourceExclusions=(await readdir(packageRoot)).filter(name=>!roots.includes(name))
   const sourceFiles=await hashes(packageRoot,'',sourceExclusions)
-  if(typeof converter.convertIbisModelToSpice!=='function') fail('converter_version','Install/build the same-repository general IBIS converter')
+  if(typeof converter.convertIbisModelToSpice!=='function') fail('converter_version','Install the pinned upstream general IBIS converter')
   const geometry=geometryFromCircuitJson(circuitJson,modeling),declarations=generalDeclarations(circuitJson,geometry,modeling)
   const electrical=electricalSources(circuitJson,modeling,declarations.nodes)
   for(const plan of declarations.plans) {safeId(plan.simulationExperimentId);for(const eye of plan.eyes) safeId(eye.simulationEyeDiagramId)}
