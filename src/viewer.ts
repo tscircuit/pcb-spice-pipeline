@@ -1,9 +1,15 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { viewerClient } from './viewer-client.js'
+import ts from 'typescript'
+
 import { html as escapeHtml, reportContext, reportFiles, reportSections, type ReportData, type ReportChange } from './report.js'
 import type { CircuitJson } from './schema.js'
 import type { Geometry, Modeling } from './geometry.js'
+
+// Emit the packaged source directly: tsx/esbuild can inject closure helpers
+// into Function.toString(), which leaves offline reports with broken controls.
+const browserClient = readFile(new URL('../src/viewer-client.ts', import.meta.url), 'utf8').then(source =>
+  ts.transpileModule(source.replace(/^export function /m, 'function '), {compilerOptions: {target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext}}).outputText)
 
 export interface ViewerRun {
   name: string; directory: string
@@ -54,6 +60,6 @@ button,select,input,.download{font:inherit;border:1px solid #d4dce6;border-radiu
 <section class="panel" id="explore" role="tabpanel" aria-labelledby="tab-explore" aria-label="Interactive simulation results" hidden><div class="toolbar"><label>Experiment<select id="run"></select></label><label>Probe<select id="probe"></select></label><label class="check"><input id="overlay" type="checkbox">Overlay runs</label><span class="grow"></span><button id="waveform-button" aria-pressed="true">Waveform</button><button id="eye-button" aria-pressed="false">Eye</button></div><div class="title" id="selection"></div><div class="binding" id="binding"></div><div id="legend"></div><label id="eye-field" hidden>Eye<select id="eye"></select></label><canvas id="plot" role="img" aria-label="Voltage plot: scroll to zoom, drag to pan, double click to reset"></canvas><div id="cursor" aria-live="off"></div><footer><label>Start (ns)<input id="start" type="number" step="any"></label><label>End (ns)<input id="end" type="number" step="any"></label><button id="reset">Reset</button><span class="grow"></span><span id="sample-count"></span><a id="csv" href="#" class="download" download>Download CSV</a></footer><p class="hint">Scroll to zoom · drag to pan · double-click to reset.</p></section>
 <section class="panel" id="downloads" role="tabpanel" aria-labelledby="tab-downloads" hidden>${sections.downloads}</section>
 <section class="panel" id="assumptions" role="tabpanel" aria-labelledby="tab-assumptions" hidden><p>${escapeHtml(data.context?.description ?? '')}</p>${sections.settings}<details open><summary>Assumptions</summary><pre id="limitations">${escapeHtml(data.limitations.join('\n'))}</pre></details><p class="hint">${data.runs.some(run=>run.eyes.some(eye=>eye.ddrAssessment))?'Configured DDR limits, evidence and unevaluated checks appear in Results; no DDR compliance claim.':'Observed values only; no pass/fail thresholds or compliance assessment.'} Waveform CSVs retain every solver sample. Eye CSVs use linear interpolation. Plot display envelopes preserve extrema.</p></section>
-</main><noscript><style>[role=tabpanel][hidden]{display:block!important}</style></noscript><script type="application/json" id="simulation-data">${payload}</script><script>(${viewerClient.toString()})();</script></body></html>`)
+</main><noscript><style>[role=tabpanel][hidden]{display:block!important}</style></noscript><script type="application/json" id="simulation-data">${payload}</script><script>(${await browserClient})();</script></body></html>`)
   return path
 }
