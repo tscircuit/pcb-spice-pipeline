@@ -14,6 +14,7 @@ import {electricalSources,generalSimulationSpice,validateProbeScope} from './gen
 import {channelSpice} from './spice.js'
 import {extractChannel} from './extraction.js'
 import {probeWaveformRows,foldProbeEye} from './metrics.mjs'
+import {resolveDdrAssessments,assessDdr} from './ddr.js'
 import {command,json,sha256,hashes} from './io.mjs'
 import {fail} from './matrices.mjs'
 import {downloadIbisAsset,type AssetFetchOptions} from './asset-download.js'
@@ -131,6 +132,7 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
   const sourceFiles=await hashes(packageRoot,'',sourceExclusions)
   if(typeof converter.convertIbisModelToSpice!=='function') fail('converter_version','Install the pinned upstream general IBIS converter')
   const geometry=geometryFromCircuitJson(circuitJson,modeling),declarations=generalDeclarations(circuitJson,geometry,modeling)
+  const ddrAssessments=resolveDdrAssessments(declarations.plans,geometry,modeling.ddrAssessments)
   const electrical=electricalSources(circuitJson,modeling,declarations.nodes)
   for(const plan of declarations.plans) {safeId(plan.simulationExperimentId);for(const eye of plan.eyes) safeId(eye.simulationEyeDiagramId)}
   // Validate every source, buffer state and observation before spending solver work.
@@ -210,10 +212,13 @@ export async function runGeneralPipeline({circuitJson,modeling,outputDir,tools,b
     await json(join(dir,'waveform.json'),{simulationExperimentId:plan.simulationExperimentId,probes:plan.probes,samples:rows.length,timestamps:'actual adaptive solver times in seconds',source:'waveform.dat',sourceSha256:sha256(await readFile(join(dir,'waveform.dat')))})
     const eyes=[]
     for(const eye of plan.eyes) {
-      const relativeEye=join('eyes',eye.simulationEyeDiagramId),eyeDir=join(dir,relativeEye),folded=foldProbeEye(rows,eye)
+      const assessment=ddrAssessments.find(a=>a.eye===eye),ddrAssessment=assessment?assessDdr(rows,assessment):undefined
+      const alignment=ddrAssessment?'received-differential-dqs':'stimulus-clock'
+      const relativeEye=join('eyes',eye.simulationEyeDiagramId),eyeDir=join(dir,relativeEye),folded=foldProbeEye(rows,
+        ddrAssessment?{...eye,captureTimesSeconds:ddrAssessment.captureTimesSeconds}:eye)
       await mkdir(eyeDir,{recursive:true})
       await writeFile(join(eyeDir,'eye-data.csv'),'window,folded_time_s,time_s,voltage_v\n'+folded.samples.map((row: number[])=>row.join(',')).join('\n')+'\n')
-      const descriptor={...eye,directory:relativeEye,windows:folded.windows,pointsPerWindow:folded.pointsPerWindow,windowOriginsSeconds:folded.windowOriginsSeconds,boundaryIndices:folded.boundaryIndices,interpolation:'linear interpolation of actual adaptive solver timestamps',windowDefinition:'b_k=timeOrigin+k*UI; [b_k-UI/2,b_k+3*UI/2]; complete windows only',source:'../../waveform.csv',sourceSha256:sha256(await readFile(join(dir,'waveform.csv'))),metrics:folded.metrics}
+      const descriptor={...eye,alignment,ddrAssessment,directory:relativeEye,windows:folded.windows,pointsPerWindow:folded.pointsPerWindow,windowOriginsSeconds:folded.windowOriginsSeconds,boundaryIndices:folded.boundaryIndices,interpolation:'linear interpolation of actual adaptive solver timestamps',windowDefinition:ddrAssessment?'[received DQS crossing + sampleOffset - UI, received DQS crossing + sampleOffset + UI]; capture at center; complete windows only':'b_k=timeOrigin+k*UI; [b_k-UI/2,b_k+3*UI/2]; complete windows only',source:'../../waveform.csv',sourceSha256:sha256(await readFile(join(dir,'waveform.csv'))),metrics:folded.metrics}
       await json(join(eyeDir,'eye-data.json'),descriptor);eyes.push(descriptor)
     }
     await json(join(dir,'eyes.json'),eyes)

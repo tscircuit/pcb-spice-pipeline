@@ -3,6 +3,7 @@ packages:
 allowBuilds:
   esbuild: true
   pcb-spice-pipeline: true
+  '@tscircuit/ibis-to-spice@git+https://github.com/tscircuit/ibis-to-spice.git': true
 blockExoticSubdeps: false
 minimumReleaseAgeExclude:
   - '@tscircuit/core@0.0.2188'

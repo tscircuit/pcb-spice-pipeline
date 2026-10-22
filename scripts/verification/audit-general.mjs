@@ -8,6 +8,7 @@ import { sha256, json, close, inventory, parseCsv, strictTimes, interpolate, com
 import { auditMatrices } from './audit-matrices.mjs'
 import { auditIbis } from './audit-ibis.mjs'
 import { auditStartup } from './audit-startup.mjs'
+import { receivedDqsWindows } from './audit-ddr.mjs'
 
 function unique(elements, key, label) {
   const ids = elements.map(element => element[key])
@@ -282,11 +283,13 @@ export async function auditRun(projectRoot, directory, { verifyLiveSources = tru
       if (declaredEye.end_time_ms !== undefined) close(declaredEye.end_time_ms / 1000, eye.endTimeSeconds, 'Eye gate end normalization')
       const probe = probeValues.get(eye.simulationVoltageProbeId)
       assert.ok(probe, 'Eye uses a recorded probe from this experiment')
-      const windows = completeWindows({ unitInterval: eye.unitIntervalSeconds, timeOrigin: eye.timeOriginSeconds, startTime: eye.startTimeSeconds, endTime: eye.endTimeSeconds, timestamps: times })
+      const windows = eye.alignment === 'received-differential-dqs' ? receivedDqsWindows(csv.rows, run.probes, eye, modeling.ddrAssessments ?? [])
+        : completeWindows({ unitInterval: eye.unitIntervalSeconds, timeOrigin: eye.timeOriginSeconds, startTime: eye.startTimeSeconds, endTime: eye.endTimeSeconds, timestamps: times })
       assert.equal(eye.windows, windows.length)
       assert.equal(eye.windowOriginsSeconds.length, windows.length)
-      eye.windowOriginsSeconds.forEach((time, i) => close(time, windows[i].start, 'Window derives from declared origin, not measured transition'))
-      const folded = parseCsv(await readFile(join(experimentDir, eye.directory, 'eye-data.csv'), 'utf8'))
+      eye.windowOriginsSeconds.forEach((time, i) => close(time, windows[i].start, 'Window derives from its explicit stimulus or received-DQS alignment'))
+      const eyeCsv = await readFile(join(experimentDir, eye.directory, 'eye-data.csv'), 'utf8')
+      const folded = windows.length ? parseCsv(eyeCsv) : { headers: eyeCsv.trim().split(','), rows: [] }
       assert.deepEqual(folded.headers, ['window', 'folded_time_s', 'time_s', 'voltage_v'])
       assert.ok(Number.isInteger(eye.pointsPerWindow) && eye.pointsPerWindow >= 2)
       assert.equal(folded.rows.length, windows.length * eye.pointsPerWindow)

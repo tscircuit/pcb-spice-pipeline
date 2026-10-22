@@ -19,6 +19,7 @@ For pnpm 11, allow the pinned GitHub converter dependency and the package build 
 blockExoticSubdeps: false
 allowBuilds:
   pcb-spice-pipeline@git+https://github.com/tscircuit/pcb-spice-pipeline.git: true
+  '@tscircuit/ibis-to-spice@git+https://github.com/tscircuit/ibis-to-spice.git': true
   esbuild: true
 ```
 
@@ -26,7 +27,7 @@ For local tarballs, enable the exact `pcb-spice-pipeline@file:...` entry emitted
 
 Native solvers are downloaded and built separately using `toolchain-lock.json`. `--setup --install-deps` installs system prerequisites. Use `--tools-dir /tmp/pcb-spice-tools` and `PCB_SPICE_TOOLS=/tmp/pcb-spice-tools/tools.json` when the project path contains spaces: upstream wxWidgets makefiles do not support those build paths. `PCB_SPICE_CACHE` chooses the per-project cache. No solver results are reused.
 
-Committed dependencies use released `@tscircuit/core` 0.0.2188, `@tscircuit/props` 0.0.705 and `circuit-json` 0.0.531. Core #4826 is required to generate stackups from `fabricatorPreset`; its tarball passed local integration checks, but pkg.pr.new publication is currently blocked by a service 404. Pin the verified preview in devDependencies and consumer overrides when available, then replace it with a released core version before merging. Saved Circuit JSON stackups work with the published baseline. Their merged native IBIS declarations are exercised by the TSX tests. The converter is pinned to the [upstream ibis-to-spice GitHub source](https://github.com/tscircuit/ibis-to-spice/tree/0945ad11d0bf4b48a059b60bb9764ead784d2748), since its scoped npm package is not published. `postinstall` compiles that dependency's missing distribution from its installed source; no local package tarballs are vendored.
+Committed development dependencies retain the released core baseline; saved Circuit JSON stackups work with it. Generating construction from `fabricatorPreset` requires [merged core #4826](https://github.com/tscircuit/core/pull/4826). Consumers must select a verified build containing that merge until an npm release includes it, together with its compatible props version. The converter is pinned to its [package preparation repair](https://github.com/tscircuit/ibis-to-spice/pull/1). Its own `prepare` builds JavaScript and bundled NodeNext declarations; the pipeline no longer modifies an installed dependency during postinstall. Git/codeload source pins run preparation, whereas the GitHub API tarball URL does not.
 
 ## Circuit JSON stackup
 
@@ -60,6 +61,10 @@ Board pcb_board_0 has no pcb_stackup. Set fabricatorPreset (e.g. "jlcpcb_standar
 ## Modeling and simulation
 
 Export a default TSX board (or a `circuitJson` array) plus `modeling`. Native declarations select vendor components, per-pin output/input states, arbitrary bit streams, probes and gated eye measurements. Circuit JSON times use milliseconds. Vendor IBIS assets resolve relative to the entry project or via their declared URL, with optional expected SHA-256 hashes.
+
+`modeling.ddrAssessments` optionally binds an existing ground-referenced DQ probe/eye to a differential received DQS probe. Each entry supplies `name`, `dataProbe`, `strobeProbe`, `direction`, `sampleOffsetSeconds`, `vrefV`, `thresholds` (`vilAcV`, `vilDcV`, `vihDcV`, `vihAcV`), `setupSeconds`, `holdSeconds`, `minimumStrobeDifferentialV`, and `maximumStrobeIntervalErrorSeconds`. Optional `experimentNames` selects experiments; otherwise all are assessed. Voltages are relative to the DQ probe ground and times are seconds.
+
+Received DQS crossings center complete two-UI DQ windows. AC setup/DC hold margins use recorded adaptive samples and linear interpolation. Quiet or ambiguous strobes and incomplete captures remain `not-evaluated`; the report exposes limits, per-edge timing and CSVs. Limits without characterization are `illustrative`. Optional characterization identifies source, receiver, speed grade, conditions, derating and `referencePlane: "receiver-pad"`; this evidence is user-supplied. No timing defaults or DDR compliance claims are inferred. The original stimulus-clock folds remain available when no assessment is configured. Public types and standalone analysis helpers are exported from the package.
 
 `modeling` selects one to three physical lanes, explicit source/receiver ports, extraction settings and a reduction:
 

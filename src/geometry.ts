@@ -3,6 +3,7 @@ import type { CircuitJson } from './schema.js'
 import { fail } from './matrices.mjs'
 import { routedCopperGeometry, copperFastHenryDeck, copperFasterCapDeck } from './copper.js'
 import type { RoutedCopper } from './copper.js'
+import type { DdrAssessmentConfig } from './ddr.js'
 
 export type PortSelector = { sourcePortId: string; component?: never; port?: never } | { sourcePortId?: never; component: string; port: string }
 export interface ExtractionSettings {
@@ -12,6 +13,7 @@ export interface ExtractionSettings {
   groundMeshMm?: number
 }
 export interface Modeling {
+  ddrAssessments?: DdrAssessmentConfig[]
   reduction: 'straightened-stages' | 'routed-copper'; sections: number
   relativePermittivity?: number
   groundReturn?: PortSelector

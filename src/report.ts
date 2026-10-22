@@ -2,6 +2,7 @@ import type { CircuitJson, SimulationIbisPinState } from './schema.js'
 import type { Geometry, Modeling } from './geometry.js'
 import { selectPort } from './geometry.js'
 import type { SimulationPlan } from './declarations.js'
+import type { DdrAssessment } from './ddr.js'
 
 export type ReportTest = Pick<SimulationPlan, 'startTimeSeconds' | 'durationSeconds' | 'maxStepSeconds' | 'stimuli' | 'states' | 'models'>
 export interface ReportContext {
@@ -27,6 +28,7 @@ export interface ReportEye {
   name: string; simulationVoltageProbeId?: string; unitIntervalSeconds: number
   startTimeSeconds?: number; endTimeSeconds?: number; timeOriginSeconds?: number
   windows?: number; windowOriginsSeconds?: number[]; csv?: string
+  alignment?: string; ddrAssessment?: DdrAssessment
   metrics?: { voltageRangeV: number[] }
 }
 export interface ReportRun {
@@ -115,7 +117,7 @@ export function reportContext(circuit: CircuitJson, geometry: Geometry, modeling
 }
 
 export function reportFiles(data: ReportData): ReportFile[] {
-  const files: ReportFile[] = [], summaries: unknown[][] = [], probes: unknown[][] = [], tests: unknown[][] = [], eyes: unknown[][] = []
+  const files: ReportFile[] = [], summaries: unknown[][] = [], probes: unknown[][] = [], tests: unknown[][] = [], eyes: unknown[][] = [], assessments: unknown[][] = []
   const add = (path: string, label: string, description: string, content: string) => files.push({ path: 'csv/' + path, label, description, content })
   data.runs.forEach((run, i) => {
     const prefix = `${String(i + 1).padStart(2, '0')}-${run.name.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').slice(0, 64) || 'experiment'}`
@@ -135,6 +137,15 @@ export function reportFiles(data: ReportData): ReportFile[] {
         eye.startTimeSeconds, eye.endTimeSeconds, eye.unitIntervalSeconds, eye.timeOriginSeconds, eye.windows ?? eye.windowOriginsSeconds?.length,
         eye.metrics?.voltageRangeV[0], eye.metrics?.voltageRangeV[1]])
       if (eye.csv !== undefined) add(`${prefix}-eye-${index + 1}.csv`, `${run.name} · ${eye.name}`, 'Complete folded eye samples, linearly interpolated from recorded waveforms; both original and folded time in seconds.', eye.csv)
+      const ddr = eye.ddrAssessment
+      if (ddr) {
+        assessments.push([run.name, ddr.name, ddr.status, ddr.checks.status, ddr.compliance.status, ddr.strobe.status,
+          ddr.checks.captures, ddr.checks.violations, ddr.checks.unevaluated, ddr.reasons.join('; '), JSON.stringify(ddr.config)])
+        add(`${prefix}-ddr-${index + 1}.csv`, `${run.name} · ${ddr.name} timing checks`, 'Every observed received DQS edge; interpolated AC setup and DC hold margins. Blank values are not evaluated. No DDR compliance claim.',
+          csv([['strobe_s', 'capture_s', 'rising', 'dq_v', 'level', 'status', 'ac_setup_s', 'dc_hold_s', 'setup_margin_s', 'hold_margin_s', 'dc_margin_v', 'setup_lower_bound', 'hold_lower_bound', 'reason'],
+            ...ddr.captures.map(c => [c.strobeTimeSeconds, c.sampleTimeSeconds, c.rising, c.voltageV, c.level, c.status, c.setupSeconds, c.holdSeconds,
+              c.setupMarginSeconds, c.holdMarginSeconds, c.dcMarginV, c.setupIsLowerBound, c.holdIsLowerBound, c.reason])]))
+      }
     })
   })
   const overview: ReportFile[] = []
@@ -150,6 +161,8 @@ export function reportFiles(data: ReportData): ReportFile[] {
     [['order', 'experiment', 'drives', 'bits', 'repeat', 'inverted', 'initial_state_before_inversion', 'unit_interval_s', 'stimulus_start_s', 'recording_start_s', 'simulation_end_s', 'maximum_step_s'], ...tests])
   if (eyes.length) summary('eye-summary.csv', 'Eye measurement summary', 'Declared measurement gates, folding origins and finite observed voltage ranges. No eye opening or compliance estimate.',
     [['experiment', 'eye', 'probe', 'gate_start_s', 'gate_end_s', 'unit_interval_s', 'origin_s', 'complete_windows', 'minimum_v', 'maximum_v'], ...eyes])
+  if (assessments.length) summary('ddr-summary.csv', 'Configured DDR checks', 'Illustrative unless complete characterization evidence is supplied. Compliance is always not evaluated. Configuration includes every explicit limit and its evidence.',
+    [['experiment', 'assessment', 'status', 'configured_checks', 'compliance', 'strobe', 'captures', 'violations', 'unevaluated', 'reason', 'config_json'], ...assessments])
   if (data.changes?.length) summary('comparison.csv', 'Quiet versus switching measurements', 'Switching minus quiet; extrema of piecewise-linear recorded data, with RMS integrated over the stated gate.',
     [['probe', 'quiet', 'switching', 'gate_start_s', 'gate_end_s', 'peak_absolute_difference_v', 'time_rms_difference_v'],
       ...data.changes.map(c => [data.comparisonProbeName, c.quiet, c.active, c.startSeconds, c.endSeconds, c.peakAbsoluteV, c.timeRmsV])])
@@ -183,6 +196,27 @@ function bufferState(state: SimulationIbisPinState): string[] {
   return ['input','—']
 }
 
+function ddrFindings(eyes: ReportEye[]): string {
+  return eyes.flatMap(eye => eye.ddrAssessment ? [eye.ddrAssessment] : []).map(d => {
+    const c = d.config, t = c.thresholds
+    const minimum = (key: 'setupMarginSeconds' | 'holdMarginSeconds') => {
+      const values = d.captures.flatMap(c => c[key] === undefined ? [] : [c[key]!])
+      return values.length ? number(Math.min(...values), 'ps', 1e12) : 'Not evaluated'
+    }
+    return `<h3>${html(d.name)} · ${html(d.status)}</h3><p>DDR compliance: ${html(d.compliance.status)}. ${html(d.compliance.reason)}</p>
+      ${d.reasons.map(reason => `<p>${html(reason)}</p>`).join('')}
+      ${table(['Received reference', 'Configured checks', 'Violations / captures', 'Min AC setup margin', 'Min DC hold margin'], [[d.strobeProbe, d.checks.status, `${d.checks.violations} / ${d.checks.captures} (${d.checks.unevaluated} unevaluated)`, minimum('setupMarginSeconds'), minimum('holdMarginSeconds')]])}
+      <details open><summary>Explicit receiver limits and assumptions</summary>${table(['Limit', 'Value'], [
+        ['Direction / sample offset', `${c.direction}; ${number(c.sampleOffsetSeconds, 'ps', 1e12)} after received DQS crossing`],
+        ['VREF', number(c.vrefV, 'V')], ['VIL(AC) / VIL(DC)', `${number(t.vilAcV, 'V')} / ${number(t.vilDcV, 'V')}`],
+        ['VIH(DC) / VIH(AC)', `${number(t.vihDcV, 'V')} / ${number(t.vihAcV, 'V')}`],
+        ['Required setup / hold', `${number(c.setupSeconds, 'ps', 1e12)} / ${number(c.holdSeconds, 'ps', 1e12)}`],
+        ['DQS magnitude / interval tolerance', `${number(c.minimumStrobeDifferentialV, 'V')} / ${number(c.maximumStrobeIntervalErrorSeconds, 'ps', 1e12)}`],
+        ['Characterization evidence', c.characterization ? Object.entries(c.characterization).map(([key, value]) => `${key}: ${value}`).join('; ') : 'Absent; illustrative limits only'],
+      ])}<p>${d.limitations.map(html).join('<br>')}</p></details>`
+  }).join('')
+}
+
 export function reportSections(data: ReportData, files: ReportFile[]) {
   const context = data.context, observed = new Set(data.runs.flatMap(run => run.probes.filter(p => p.name === data.comparisonProbeName).map(p => p.signalSourceId)))
   const traces = context ? `<div class="board-layout">${routeDrawing(context)}<aside class="trace-inspector"><h2>Selected network</h2>${context.lanes.map((lane, i) => `<div class="trace-row"><h3><span style="color:${['#2563eb', '#e96535', '#159c80'][i % 3]}">●</span> ${html(lane.name)} <small>${data.changes?.length && observed.size ? observed.has(lane.to) ? 'Victim' : 'Neighbor' : ''}</small></h3><div class="pin-pair">${html(label(context, lane.from))} → ${html(label(context, lane.to))}</div><dl><dt>Path length</dt><dd>${number(lane.lengthMm, 'mm')}</dd><dt>Wire width</dt><dd>${lane.widthsMm.map(v => number(v, 'mm')).join(' / ')}</dd><dt>Vias</dt><dd>${lane.vias}</dd></dl><div class="hint">${html(lane.layers.join(' → '))}</div></div>`).join('')}<details><summary>Trace IDs</summary>${table(['Trace', 'Source / PCB ID'], context.lanes.map(lane => [lane.name, `${lane.sourceTraceId} / ${lane.pcbTraceId}`]))}</details></aside></div>` : '<p>Trace geometry unavailable.</p>'
@@ -198,9 +232,9 @@ export function reportSections(data: ReportData, files: ReportFile[]) {
   }))}${run.eyes.length ? table(['Eye / probe', 'Gate', 'UI / origin', 'Windows', 'Voltage range'], run.eyes.map(eye => [
     `${eye.name} / ${run.probes.find(p => p.simulationVoltageProbeId === eye.simulationVoltageProbeId)?.name ?? 'recorded probe'}`,
     `${number(eye.startTimeSeconds, 'ns', 1e9)} to ${number(eye.endTimeSeconds, 'ns', 1e9)}`,
-    `${number(eye.unitIntervalSeconds, 'ns', 1e9)} / ${number(eye.timeOriginSeconds, 'ns', 1e9)}`,
+    `${number(eye.unitIntervalSeconds, 'ns', 1e9)} / ${eye.alignment === 'received-differential-dqs' ? 'Received DQS; capture at center' : number(eye.timeOriginSeconds, 'ns', 1e9)}`,
     eye.windows ?? eye.windowOriginsSeconds?.length ?? 'Not recorded', eye.metrics ? eye.metrics.voltageRangeV.map(v => number(v, 'V')).join(' to ') : 'Not recorded',
-  ])) : ''}</article>`).join('')
+  ])) : ''}${ddrFindings(run.eyes)}</article>`).join('')
   const changes = data.changes?.length ? `<div class="comparison-summary"><h2>Neighbor switching · ${html(data.comparisonProbeName ?? 'Selected probe')}</h2>${table(['Switching − quiet', 'Gate', 'Peak absolute ΔV', 'Time RMS ΔV'], data.changes.map(c => [
     `${c.active} − ${c.quiet}`, `${number(c.startSeconds, 'ns', 1e9)} to ${number(c.endSeconds, 'ns', 1e9)}`, number(c.peakAbsoluteV, 'mV', 1000), number(c.timeRmsV, 'mV', 1000),
   ]))}</div>` : ''
