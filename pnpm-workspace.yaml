@@ -1,9 +1,0 @@
-packages:
-  - .
-allowBuilds:
-  esbuild: true
-blockExoticSubdeps: false
-minimumReleaseAgeExclude:
-  - '@tscircuit/core@0.0.2188'
-  - '@tscircuit/props@0.0.705'
-  - circuit-json@0.0.531

@@ -1,8 +1,0 @@
-node_modules/
-.cache/
-runs/
-dist/
-*.tgz
-runs-*.log
-examples/**/models/
-models/
