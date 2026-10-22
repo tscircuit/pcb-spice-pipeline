@@ -18,6 +18,7 @@
     }
   },
   "files": [
+    "cli.mjs",
     "dist",
     "src",
     "tsconfig.json",
@@ -25,15 +26,14 @@
     "toolchain-lock.json"
   ],
   "bin": {
-    "pcb-spice-pipeline": "dist/cli.mjs"
+    "pcb-spice-pipeline": "cli.mjs"
   },
   "scripts": {
     "test": "node --import tsx --test tests/*.test.mjs tests/*.test.ts",
     "test:native": "node --import tsx --test tests/general.integration.mjs",
     "typecheck": "tsc --noEmit && tsc -p tests/tsconfig.json",
-    "build": "node scripts/build-converter.mjs && tsc",
-    "prepare": "npm run build",
-    "postinstall": "node scripts/build-converter.mjs"
+    "build": "tsc",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "fflate": "0.8.2",
@@ -44,15 +44,14 @@
     "zod": "3.25.76",
     "earcut": "3.2.4",
     "polygon-clipping": "0.15.7",
-    "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/0945ad11d0bf4b48a059b60bb9764ead784d2748",
-    "esbuild": "0.27.0",
+    "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317",
     "typescript": "5.9.3",
-    "@types/node": "22.20.5"
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0"
   },
   "devDependencies": {
     "@tscircuit/core": "0.0.2188",
-    "@tscircuit/props": "0.0.705",
-    "@types/react": "19.3.0"
+    "@tscircuit/props": "0.0.705"
   },
   "peerDependencies": {
     "@tscircuit/core": ">=0.0.2188",

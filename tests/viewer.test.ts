@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import {runInNewContext} from 'node:vm'
 import {mkdtemp,readFile,rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
@@ -19,6 +20,11 @@ test('portable results retain raw adaptive samples and escape embedded names',as
   const serialized=html.match(/id="simulation-data">([\s\S]*?)<\/script>/)![1]
   assert.deepEqual(JSON.parse(serialized),data,'full sample timestamps and values are preserved')
   assert.doesNotMatch(html,/<script[^>]+src=|https?:\/\//,'viewer needs no network resources')
+  const script=html.match(/<script>([\s\S]*?)<\/script>/)![1], reachedControls=new Error('controls reached')
+  assert.throws(()=>runInNewContext(script,{document:{getElementById:(id:string)=>{
+    if(id==='simulation-data')return {textContent:serialized}
+    throw reachedControls
+  }}}),error=>error===reachedControls,'offline code reaches its controls without transpiler closure helpers')
 })
 
 test('report maps physical traces and probes, exports every recorded sample and preserves eye CSV bytes',async t=>{

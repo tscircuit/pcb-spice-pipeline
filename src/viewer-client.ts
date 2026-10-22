@@ -1,6 +1,6 @@
 // Serialized as a standalone function so results.html works offline, including file://.
 export function viewerClient() {
-  type Eye = { name: string; simulationVoltageProbeId: string; unitIntervalSeconds: number; windowOriginsSeconds: number[]; metrics?: unknown }
+  type Eye = { name: string; simulationVoltageProbeId: string; unitIntervalSeconds: number; windowOriginsSeconds: number[]; metrics?: unknown; alignment?: string; ddrAssessment?: { status: string } }
   type Probe = { name: string; simulationVoltageProbeId: string; column: number; signalSourceId?: string; referenceSourceId?: string | null; signalLabel?: string; referenceLabel?: string }
   type Run = { name: string; rows: number[][]; probes: Probe[]; eyes: Eye[] }
   const data = JSON.parse(document.getElementById('simulation-data')!.textContent!) as { runs: Run[]; limitations: string[]; comparisonProbeName?: string;
@@ -109,6 +109,12 @@ export function viewerClient() {
     curves.forEach(({ run, probe }, i) => { const item = document.createElement('span'); item.textContent = `${run.name} · ${probe.name}`; item.style.color = colors[i % colors.length]; $('legend').append(item) })
     $('selection').textContent = `${selectedRun().name} / ${selectedProbe().name}`
     $('binding').textContent = `Measured voltage = ${selectedProbe().signalLabel ?? selectedProbe().signalSourceId ?? 'recorded signal'} − ${selectedProbe().referenceLabel ?? selectedProbe().referenceSourceId ?? 'channel ground'}`
+    if (mode === 'eye') {
+      const eye = selectedEye()
+      $('binding').textContent += eye.alignment === 'received-differential-dqs'
+        ? ` · Received DQS alignment; capture at ${format(eye.unitIntervalSeconds * 1e9)} ns · ${eye.windowOriginsSeconds.length} complete windows · ${eye.ddrAssessment?.status ?? 'not-evaluated'} · DDR compliance not evaluated`
+        : ' · Declared stimulus clock alignment'
+    }
     $('sample-count').textContent = curves.map(({ run }) => run.rows.length.toLocaleString()).join(' + ') + ' actual samples'
     $('waveform-button').setAttribute('aria-pressed', String(mode === 'waveform')); $('eye-button').setAttribute('aria-pressed', String(mode === 'eye'))
     $('eye-field').hidden = mode !== 'eye'

@@ -1,7 +1,7 @@
 import {command,vendorSource,hashes,json,sha256} from './io.mjs'
 import {extractChannel} from './extraction.js'
 import {runGeneralPipeline,nativeToolEvidence} from './general-pipeline.js'
-import { readFile, writeFile, mkdir, readdir, stat } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, readdir, stat, realpath } from 'node:fs/promises'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { resolve, dirname, join, extname } from 'node:path'
@@ -34,7 +34,7 @@ export async function loadEntry(path) {
     let tsconfig,search=baseDir
     while(true) {
       const candidate=join(search,'tsconfig.json')
-      try {await stat(candidate);tsconfig=candidate;importedUrls.add(pathToFileURL(candidate).href);break} catch(error) {if(error.code!=='ENOENT') throw error}
+      try {tsconfig=await realpath(candidate);importedUrls.add(pathToFileURL(candidate).href);break} catch(error) {if(error.code!=='ENOENT') throw error}
       const parent=dirname(search);if(parent===search) break;search=parent
     }
     const mod=await tsImport(pathToFileURL(absolute).href,{parentURL:import.meta.url,tsconfig,onImport:url=>importedUrls.add(url)})
