@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {mkdtemp,readFile,rm} from 'node:fs/promises'
 import {join} from 'node:path'
 import {tmpdir} from 'node:os'
-import {command} from '../src/io.mjs'
+import {command} from '../src/legacy/io.mjs'
 
 test('native command timeout rejects invalid limits and records actual termination',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'pcb-spice-timeout-'))

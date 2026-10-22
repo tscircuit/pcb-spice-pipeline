@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {useNativeIbis} from '../src/native-ibis.mjs'
+import {useNativeIbis} from '../src/legacy/native-ibis.mjs'
 test('silently stripped native ibisModel and swapped terminal source-port IDs fail closed',()=>{
   const cj=[],geometry={mappings:[{from:'d0',to:'r0'},{from:'d1',to:'r1'}]},modeling={lanes:[{port:'DQS'},{port:'DQSn'}]}
   const independent={driver:{source:'driver',spicePinMapping:{PAD0:'DQS',PAD1:'DQSn'}},receiver:{source:'receiver',spicePinMapping:{PAD0:'DQS',PAD1:'DQSn'}}}

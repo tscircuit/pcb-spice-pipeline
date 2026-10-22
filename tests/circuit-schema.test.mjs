@@ -1,18 +1,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {access,mkdtemp,readFile,rm} from 'node:fs/promises'
-import {join} from 'node:path'
-import {tmpdir} from 'node:os'
+import {readFile} from 'node:fs/promises'
 import {validateCircuitRecords} from '../src/circuit-schema.mjs'
-import {runGeneralPipeline} from '../src/general-pipeline.js'
+import {runPipeline} from '../src/general-pipeline.js'
 
 test('malformed physical record fails registered validation before output or solvers',async()=>{
-  const root=await mkdtemp(join(tmpdir(),'circuit-schema-preflight-')),output=join(root,'fresh')
-  try {
-    const circuitJson=[{type:'pcb_plated_hole',pcb_plated_hole_id:'bad-hole'}]
-    await assert.rejects(runGeneralPipeline({circuitJson,modeling:{},outputDir:output}),error=>error.code==='circuit_schema'&&/^circuit_schema: pcb_plated_hole bad-hole: /.test(error.message)&&error.message.length<300)
-    await assert.rejects(access(output),{code:'ENOENT'})
-  } finally {await rm(root,{recursive:true,force:true})}
+  const circuitJson=[{type:'pcb_plated_hole',pcb_plated_hole_id:'bad-hole'}]
+  await assert.rejects(runPipeline({circuitJson,modeling:{},ibisSources:{},runSolver:async()=>assert.fail('invalid circuit must fail preflight')}),
+    error=>error.code==='circuit_schema'&&/^circuit_schema: pcb_plated_hole bad-hole: /.test(error.message)&&error.message.length<300)
 })
 
 test('registered valid records are checked without rewriting source values',()=>{

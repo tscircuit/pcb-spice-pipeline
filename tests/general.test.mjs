@@ -1,35 +1,16 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {readFile,writeFile,mkdir,mkdtemp,rm,stat} from 'node:fs/promises'
-import {tmpdir} from 'node:os'
-import {join} from 'node:path'
 import {geometryFromCircuitJson,fastHenryDeck,fasterCapDeck,selectPort} from '../src/geometry.js'
 import {generalDeclarations,circuitNodes,modelRunDefinition} from '../src/declarations.js'
 import {foldProbeEye,probeWaveformRows} from '../src/metrics.mjs'
 import {loopImpedance,referenceCapacitance} from '../src/matrices.mjs'
 import {generalSimulationSpice,electricalSources,validateProbeScope} from '../src/general-spice.js'
-import {runGeneralPipeline} from '../src/general-pipeline.js'
-import {sha256} from '../src/io.mjs'
+import {runPipeline} from '../src/general-pipeline.js'
+import {sha256} from '../src/hash.js'
+import {inMemoryInput} from './fixtures/in-memory.mjs'
 import {transmittedBits} from '../src/stimulus.js'
 
-const read=async path=>JSON.parse(await readFile(new URL(path,import.meta.url),'utf8'))
-const circuit=await read('./fixtures/straight.circuit.json'),physical=await read('./fixtures/straight.modeling.json')
-const fixture=()=>{
-  const cj=structuredClone(circuit),m={...structuredClone(physical),channelReference:{sourcePortId:'g0'},supplies:[{positive:{sourcePortId:'v0'},negative:{sourcePortId:'g0'},voltageV:3.3}]}
-  cj.push(...['u0','u1'].map((id,i)=>({type:'source_component',source_component_id:id,name:i?'RX':'TX',source_group_id:'board-group'})),{type:'source_port',source_port_id:'g0',source_component_id:'u0',name:'GND'},{type:'source_port',source_port_id:'v0',source_component_id:'u0',name:'VDD'})
-  cj.push({type:'source_group',source_group_id:'board-group',subcircuit_id:'board',is_subcircuit:true})
-  for(const [index,ids] of [['p0','p1'],['p2','p3']].entries()) cj.push({type:'simulation_ibis_model',simulation_ibis_model_id:`model-${index}`,source_component_id:`u${index}`,ibis_model_asset:{project_relative_path:'models/test.ibs',url:'./models/test.ibs',mimetype:'text/plain'},ibis_component_name:'test',ibis_pin_name_to_source_port_id:Object.fromEntries(ids.map((id,i)=>[String(i+1),id])),model_value_corner:'typical',include_package_parasitics:false})
-  cj.push({type:'simulation_experiment',simulation_experiment_id:'run',subcircuit_id:'board',name:'data',experiment_type:'spice_transient_analysis',spice_engine:'pcb_spice',end_time_ms:.01,start_time_ms:0,time_per_step:.000001})
-  for(const [i,id] of ['p0','p1','p2','p3'].entries()) {
-    const state={type:'simulation_ibis_pin_state',simulation_experiment_id:'run',source_port_id:id,is_output:i<2}
-    if(state.is_output) state.is_output_enabled=true
-    cj.push(state)
-  }
-  for(const [i,id] of ['p0','p1'].entries()) cj.push({type:'simulation_digital_stimulus',simulation_experiment_id:'run',source_port_id:id,name:`stimulus${i}`,bit_duration_ms:.001,start_time_ms:0,initial_state:0,inverted:Boolean(i),transmission_pattern:{transmission_type:'bits',bits:'001110100',repeat:true}})
-  cj.push({type:'simulation_voltage_probe',simulation_voltage_probe_id:'diff',subcircuit_id:'board',name:'diff',signal_input_source_port_id:'p2',reference_input_source_port_id:'p3'},{type:'simulation_voltage_probe',simulation_voltage_probe_id:'single',subcircuit_id:'board',name:'single',signal_input_source_port_id:'p2'})
-  for(const [i,probe] of ['diff','single'].entries()) cj.push({type:'simulation_eye_diagram',simulation_eye_diagram_id:`eye-${i}`,simulation_experiment_id:'run',simulation_voltage_probe_id:probe,name:probe,unit_interval_ms:.001,time_origin_ms:.00025,start_time_ms:0,end_time_ms:.01})
-  return {cj,m,g:geometryFromCircuitJson(cj,m)}
-}
+import {circuit,physical,fixture} from './fixtures/general.mjs'
 
 test('one signal extraction retains its explicit return and correct 2x2 reduction',()=>{
   const m={...physical,lanes:[physical.lanes[0]]},geometry=geometryFromCircuitJson(circuit,m)
@@ -211,37 +192,16 @@ test('canonical IBIS model and boolean pin states translate only at the converte
   assert.equal(model.source,undefined,'the external declaration has no converter-specific source union')
 })
 
-test('pipeline verifies optional expected IBIS asset hashes before conversion, output or native tools',async t=>{
-  const root=await mkdtemp(join(tmpdir(),'pipeline-asset-lock-'))
-  t.after(()=>rm(root,{recursive:true,force:true}))
-  const {cj,m}=fixture()
-  for(const component of cj.filter(record=>record.type==='source_component')) component.ftype='simple_chip'
-  for(const state of cj.filter(record=>record.type==='simulation_ibis_pin_state')) {
-    state.is_output=false
-    delete state.is_output_enabled
-  }
-  for(const [pin,name] of [['rx-vdd','VDD'],['rx-gnd','GND']]) cj.push({type:'source_port',source_port_id:pin,source_component_id:'u1',name})
-  cj.push({type:'source_trace',source_trace_id:'vdd',connected_source_port_ids:['v0','rx-vdd'],connected_source_net_ids:[]},
-    {type:'source_trace',source_trace_id:'gnd',connected_source_port_ids:['g0','rx-gnd'],connected_source_net_ids:[]})
-  const models=cj.filter(record=>record.type==='simulation_ibis_model')
-  models[0].ibis_pin_name_to_source_port_id['3']='v0';models[0].ibis_pin_name_to_source_port_id['4']='g0'
-  models[1].ibis_pin_name_to_source_port_id['3']='rx-vdd';models[1].ibis_pin_name_to_source_port_id['4']='rx-gnd'
-  const circuitJson=cj.filter(record=>record.type!=='simulation_digital_stimulus')
-  const bytes=Buffer.from('[IBIS Ver] 4.2\r\n[Component] test\r\n[Pin] signal_name model_name\r\n1 D1 IN\r\n2 D2 IN\r\n3 VDD POWER\r\n4 VSS GND\r\n[Model] IN\r\nModel_type Input\r\nC_comp 1p 1p 1p\r\n[Voltage Range] 3.3 3.3 3.3\r\n[Power Clamp]\r\n-10 -0.1 -0.1 -0.1\r\n10 0.1 0.1 0.1\r\n[Gnd Clamp]\r\n-10 -0.2 -0.2 -0.2\r\n10 0.2 0.2 0.2\r\n[End]\r\n')
-  const path='models/test.ibs',file=join(root,path)
-  await mkdir(join(root,'models'));await writeFile(file,bytes)
-  const run=async(name,modeling,pattern)=>{
-    const outputDir=join(root,name)
-    await assert.rejects(runGeneralPipeline({circuitJson,modeling,baseDir:root,outputDir}),pattern)
-    await assert.rejects(stat(outputDir),{code:'ENOENT'},'preflight never creates simulation output')
-  }
-  const locked={...m,ibisModelAssetSha256:{[path]:sha256(bytes).toUpperCase()}}
-  await run('match',locked,/native_runtime/)
-  await run('optional',m,/native_runtime/)
-  await writeFile(file,Buffer.concat([bytes,Buffer.from('| changed valid model comment\r\n')]))
-  await run('mutated',locked,/vendor_hash.*test\.ibs.*bytes differ/)
+test('pipeline verifies optional expected IBIS asset hashes before invoking any solver',async()=>{
+  const input=inMemoryInput(),path='models/test.ibs'
+  const sentinel=new Error('solver reached'),runSolver=async()=>{throw sentinel}
+  const locked={...input.modeling,ibisModelAssetSha256:{[path]:sha256(input.ibisSources[path]).toUpperCase()}}
+  await assert.rejects(runPipeline({...input,modeling:locked,runSolver}),error=>error===sentinel)
+  await assert.rejects(runPipeline({...input,runSolver}),error=>error===sentinel)
+  const ibisSources={[path]:Buffer.concat([input.ibisSources[path],Buffer.from('| changed valid model comment\r\n')])}
+  await assert.rejects(runPipeline({...input,modeling:locked,ibisSources,runSolver}),/vendor_hash.*bytes differ/)
   for(const ibisModelAssetSha256 of [{},{[path]:'bad-hash'},null,[]])
-    await run('missing-or-invalid', {...m,ibisModelAssetSha256}, /vendor_hash.*(?:expected|must map)/)
+    await assert.rejects(runPipeline({...input,modeling:{...input.modeling,ibisModelAssetSha256},runSolver}),/vendor_hash.*(?:expected|must map)/)
 })
 
 test('bits normalization enforces the schema limit before reading array entries',()=>{

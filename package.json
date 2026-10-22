@@ -1,5 +1,5 @@
 {
-  "name": "pcb-spice-pipeline",
+  "name": "@tscircuit/pcb-spice-pipeline",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
@@ -15,46 +15,62 @@
     "./tsx": {
       "types": "./dist/tsx.d.ts",
       "import": "./dist/tsx.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
     }
   },
   "files": [
-    "cli.mjs",
     "dist",
-    "src",
-    "tsconfig.json",
-    "scripts",
-    "toolchain-lock.json"
+    "README.md",
+    "LICENSE"
   ],
-  "bin": {
-    "pcb-spice-pipeline": "cli.mjs"
-  },
   "scripts": {
     "test": "node --import tsx --test tests/*.test.mjs tests/*.test.ts",
-    "test:native": "node --import tsx --test tests/general.integration.mjs",
+    "test:native": "npm run build && node --import tsx --test tests/general.integration.mjs",
     "typecheck": "tsc --noEmit && tsc -p tests/tsconfig.json",
-    "build": "tsc",
-    "prepare": "npm run build"
+    "build": "node scripts/build-client.mjs --clean && tsc && node scripts/bundle.mjs",
+    "prepack": "npm run build",
+    "pretest": "npm run build",
+    "pretypecheck": "node scripts/build-client.mjs",
+    "test:package": "node --import tsx scripts/test-package.mjs"
   },
   "dependencies": {
-    "fflate": "0.8.2",
-    "react": "19.2.4",
-    "tsx": "4.23.15",
     "circuit-json": "0.0.531",
-    "tar": "7.5.22",
     "zod": "3.25.76",
     "earcut": "3.2.4",
     "polygon-clipping": "0.15.7",
     "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317",
-    "typescript": "5.9.3",
-    "@types/node": "22.20.5",
-    "@types/react": "19.3.0"
+    "@noble/hashes": "1.8.0",
+    "format-si-unit": "0.0.12"
   },
   "devDependencies": {
     "@tscircuit/core": "0.0.2188",
-    "@tscircuit/props": "0.0.705"
+    "@tscircuit/props": "0.0.705",
+    "react": "19.2.4",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "esbuild": "0.28.2"
   },
   "peerDependencies": {
     "@tscircuit/core": ">=0.0.2188",
-    "@tscircuit/props": ">=0.0.705"
+    "@tscircuit/props": ">=0.0.705",
+    "react": "^19.0.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "peerDependenciesMeta": {
+    "@tscircuit/core": {
+      "optional": true
+    },
+    "@tscircuit/props": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
   }
 }
