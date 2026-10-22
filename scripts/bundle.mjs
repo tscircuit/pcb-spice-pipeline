@@ -1,4 +1,5 @@
 import {build} from 'esbuild'
+import {rm} from 'node:fs/promises'
 
 // The converter's umbrella entry also exports an archive loader. Bundle and
 // tree-shake its browser graph so importing our pure entry never initializes
@@ -8,3 +9,5 @@ await build({entryPoints:['src/index.ts'],outfile:'dist/index.js',bundle:true,
   mainFields:['module','main'],define:{process:'undefined'},
   external:['circuit-json','zod','earcut'],
 })
+// Historical audit helpers are source-only and are not part of the library.
+await rm('dist/legacy',{recursive:true,force:true})

@@ -67,7 +67,8 @@ export async function runPipeline({circuitJson,modeling,ibisSources,runSolver,on
   jsonFile(files,'vendor-sources.json',loaded.map(source=>source.evidence))
   const extracted=await extractChannel(geometry,modeling,files,runSolver,onProgress)
   files['channel.cir']=channelSpice(extracted,modeling.sections)
-  const results: CircuitJson=[...circuitJson],experiments=[]
+  const pcbExperimentIds=new Set(declarations.plans.map(plan=>plan.simulationExperimentId))
+  const results: CircuitJson=circuitJson.filter(record=>record.type!=='simulation_transient_voltage_graph'||!pcbExperimentIds.has(record.simulation_experiment_id)),experiments=[]
   for(const [index,plan] of declarations.plans.entries()) {
     const relative=`experiments/${plan.simulationExperimentId}`,dir=relative
     const solverFiles: FileMap=Object.create(null)
@@ -79,12 +80,15 @@ export async function runPipeline({circuitJson,modeling,ibisSources,runSolver,on
     jsonFile(files,dir+'/native-ibis-assembly.json',assembly)
     jsonFile(files,dir+'/experiment.json',plan)
     solverFiles['simulation.cir']=generalSimulationSpice(plan,geometry,modeling,extracted,models,declarations.nodes,electrical)
-    onProgress(`Execute ONE native ngspice transient for ${plan.name} (${plan.probes.length} probes, ${plan.eyes.length} eyes)`)
+    onProgress(`Simulate ${plan.name} (${plan.probes.length} probes, ${plan.eyes.length} eyes)`)
     const solve=await executeSolver(runSolver,files,dir,{solver:'ngspice',files:solverFiles,args:['-n','-b','simulation.cir'],outputFiles:['waveform.dat']})
-    const diagnostic=(solve.stdout+'\n'+solve.stderr).split(/\r?\n/).find(line=>/\b(?:error|fatal|aborted|singular matrix|timestep too small|failed)\b/i.test(line))
+    // ngspice can recover a singular operating point through gmin/source stepping.
+    // Accept those warnings only when a complete finite transient follows.
+    const diagnostic=(solve.stdout+'\n'+solve.stderr).split(/\r?\n/).find(line=>/\b(?:error|fatal|aborted|timestep too small)\b/i.test(line))
     if(diagnostic) fail('native_solver',`${plan.name}: ${diagnostic.trim()}`)
     const waveformText=solve.files['waveform.dat']
     const rows: number[][]=probeWaveformRows(waveformText,plan.probes)
+    if(rows[0][0]>plan.startTimeSeconds+Math.max(plan.maxStepSeconds,plan.durationSeconds*1e-8)) fail('simulation_start',`${plan.name}: solver output omits the beginning of the declared recording`)
     if(Math.abs(rows[rows.length-1][0]-plan.durationSeconds)>plan.durationSeconds*1e-8) fail('simulation_duration',`${plan.name}: native solver did not complete the declared duration`)
     files[dir+'/waveform.csv']='time_s,'+plan.probes.map(probe=>probe.simulationVoltageProbeId+'_v').join(',')+'\n'+rows.map(row=>row.join(',')).join('\n')+'\n'
     jsonFile(files,dir+'/waveform.json',{simulationExperimentId:plan.simulationExperimentId,probes:plan.probes,samples:rows.length,timestamps:'actual adaptive solver times in seconds',source:'waveform.dat',sourceSha256:sha256(waveformText)})
@@ -102,7 +106,6 @@ export async function runPipeline({circuitJson,modeling,ibisSources,runSolver,on
     for(const probe of plan.probes) results.push(parseRecord({type:'simulation_transient_voltage_graph',simulation_transient_voltage_graph_id:`simulation_transient_voltage_graph_${plan.simulationExperimentId}_${probe.column}`,simulation_experiment_id:plan.simulationExperimentId,simulation_voltage_probe_id:probe.simulationVoltageProbeId,timestamps_ms:rows.map(row=>row[0]*1000),voltage_levels:rows.map(row=>row[probe.column]),time_per_step:plan.maxStepSeconds*1000,start_time_ms:rows[0][0]*1000,end_time_ms:rows[rows.length-1][0]*1000,name:probe.name}))
     experiments.push({plan,waveform:{timeUnit:'s' as const,voltageUnit:'V' as const,rows},simulationExperimentId:plan.simulationExperimentId,name:plan.name,directory:relative,durationSeconds:plan.durationSeconds,startTimeSeconds:plan.startTimeSeconds,maxStepSeconds:plan.maxStepSeconds,probes:plan.probes,eyes,solverInvocations:1,waveformSamples:rows.length,assembly,assemblyFile:relative+'/native-ibis-assembly.json'})
   }
-  const pcbExperimentIds=new Set(declarations.plans.map(plan=>plan.simulationExperimentId))
   for(const graph of results.filter(record=>record.type==='simulation_transient_voltage_graph')) if(pcbExperimentIds.has(graph.simulation_experiment_id)&&!graph.simulation_voltage_probe_id) fail('result_schema','Installed Circuit JSON schema discarded the result probe ID')
   jsonFile(files,'circuit-results.json',results)
   const limitations=[...geometry.approximations,...compiled.flatMap(models=>models.flatMap(model=>model.warnings??[])),

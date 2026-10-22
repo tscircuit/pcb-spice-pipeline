@@ -9,7 +9,7 @@ export interface SolverRequest {
   args: string[]
   outputFiles: string[]
 }
-export interface SolverResult { stdout: string; stderr: string; files: FileMap }
+export interface SolverResult { stdout: string; stderr: string; files: FileMap; exitCode?: number }
 /** Reject on an unsuccessful exit. The pipeline also validates diagnostics and outputs. */
 export type RunSolver = (request: SolverRequest) => Promise<SolverResult>
 
@@ -22,6 +22,8 @@ export async function executeSolver(runSolver: RunSolver, artifacts: FileMap, di
   const result = await runSolver({ ...request, files: { ...supplied }, args: [...request.args], outputFiles: [...request.outputFiles] })
   if (!result || typeof result.stdout !== 'string' || typeof result.stderr !== 'string' || !result.files || typeof result.files !== 'object')
     fail('solver_result', `${request.solver}: expected stdout, stderr and files`)
+  if (result.exitCode !== undefined && result.exitCode !== 0)
+    fail('native_solver', `${request.solver}: exited ${result.exitCode}\n${result.stdout}\n${result.stderr}`)
   for (const file of request.outputFiles) if (!Object.hasOwn(result.files, file) || typeof result.files[file] !== 'string')
     fail('native_output', `${request.solver}: missing ${file}`)
   for (const [path, body] of Object.entries({ ...supplied, ...result.files })) {

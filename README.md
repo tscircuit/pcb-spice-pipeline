@@ -37,15 +37,16 @@ type SolverResult = {
   stdout: string
   stderr: string
   files: Record<string, string>
+  exitCode?: number // omit when the callback rejects unsuccessful exits
 }
 ```
 
-Each request has an independent working directory. FastHenry gets coarse and refined extraction requests; FasterCap gets its automatic-refinement request; each experiment gets one ngspice transient shared by all its probes and eyes. The callback must reject unsuccessful process exits. The library additionally checks stdout/stderr diagnostics, required outputs, conductor ordering, finite matrices, reciprocity, passivity, mesh convergence, analytic DC resistance, capacitance scaling and finite-return energy/charge reconstruction. Transients must contain finite, increasing timestamps and complete the declared duration. No approximate solver or cached result replaces native physics.
+Each request has an independent working directory. FastHenry gets coarse and refined extraction requests; FasterCap gets its automatic-refinement request; each experiment gets one ngspice transient shared by all its probes and eyes. The callback must reject unsuccessful process exits or return their nonzero `exitCode`. The library additionally checks stdout/stderr diagnostics, required outputs, conductor ordering, finite matrices, reciprocity, passivity, mesh convergence, analytic DC resistance, capacitance scaling and finite-return energy/charge reconstruction. Transients must contain finite, increasing timestamps and cover the declared recording. Recovered ngspice operating-point warnings are accepted only when the transient completes. No approximate solver or cached result replaces native physics.
 
 `PipelineResult` exposes:
 
 - `circuitJson`: original input records, preserved without schema normalization.
-- `simulationResultCircuitJson`: those physical records and existing declarations/results followed by registered transient graphs bound to probe IDs; Circuit JSON timestamps use milliseconds.
+- `simulationResultCircuitJson`: input records with fresh transient graphs bound to probe IDs; reruns replace graphs for the executed experiments and preserve unrelated results. Circuit JSON timestamps use milliseconds.
 - `geometry` and `matrices`: full extracted geometry, R/L/C in ohms/H/F, primitive matrices, checks and unit conversions.
 - `experiments`: plan, probes, converter assembly, `waveform: { timeUnit: 's', voltageUnit: 'V', rows }`, and eyes with folded sample rows, metrics and optional DDR assessments. Waveform columns are bound by each probe's `column`; eye rows are `[window, folded_time_s, time_s, voltage_v]`.
 - `modeling`, `limitations` and `files`: modeling inputs, explicit scope limits, and in-memory input decks, raw solver outputs/logs, JSON and CSV artifacts.
