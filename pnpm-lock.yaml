@@ -9,11 +9,14 @@ importers:
   .:
     dependencies:
       '@tscircuit/ibis-to-spice':
-        specifier: github:tscircuit/ibis-to-spice#7f56552686b1d7256badecf19d7870c8c74004e2
-        version: https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/7f56552686b1d7256badecf19d7870c8c74004e2
+        specifier: github:tscircuit/ibis-to-spice#64ecef899ee691b8a883fc2f85a793b1f4f4c4cc
+        version: https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/64ecef899ee691b8a883fc2f85a793b1f4f4c4cc
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
       circuit-json:
         specifier: 0.0.531
         version: 0.0.531(format-si-unit@0.0.12(typescript@5.9.3))
@@ -48,9 +51,6 @@ importers:
       '@tscircuit/props':
         specifier: 0.0.705
         version: 0.0.705(circuit-json@0.0.531(format-si-unit@0.0.12(typescript@5.9.3)))(react@19.2.4)(zod@3.25.76)
-      '@types/react':
-        specifier: 19.3.0
-        version: 19.3.0
 
 packages:
 
@@ -424,8 +424,8 @@ packages:
     peerDependencies:
       circuit-json: '*'
 
-  '@tscircuit/ibis-to-spice@https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/7f56552686b1d7256badecf19d7870c8c74004e2':
-    resolution: {gitHosted: true, integrity: sha512-ZOVqPuW80yb98ulweY/8rKNDbQQIRr81ND3Mm9EqlkSIIzYEHz3LIH9wSYj7uvwy7TKPu4rqRvmV4+bvnUUUpw==, tarball: https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/7f56552686b1d7256badecf19d7870c8c74004e2}
+  '@tscircuit/ibis-to-spice@https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/64ecef899ee691b8a883fc2f85a793b1f4f4c4cc':
+    resolution: {gitHosted: true, integrity: sha512-HtD7ag3J1Q/14p+l5rJGxUJR/Uq3K2p8UdVzZ/sEqd8A388t7O9tHvAmt89WMB43PMUjH6bIG7q0NPBPuww3fA==, tarball: https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/64ecef899ee691b8a883fc2f85a793b1f4f4c4cc}
     version: 0.0.2
     hasBin: true
 
@@ -1286,7 +1286,7 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@tscircuit/ibis-to-spice@https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/7f56552686b1d7256badecf19d7870c8c74004e2':
+  '@tscircuit/ibis-to-spice@https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/64ecef899ee691b8a883fc2f85a793b1f4f4c4cc':
     dependencies:
       '@noble/hashes': 1.8.0
       fflate: 0.8.2
