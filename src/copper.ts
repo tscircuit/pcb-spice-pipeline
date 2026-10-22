@@ -1,5 +1,6 @@
 import earcut, { refine } from 'earcut'
 import clipping from 'polygon-clipping'
+import { qualityMesh, qualityMeshSettings, qualitySidePanels, type QualityMeshOptions } from './quality-mesh.js'
 import { fail } from './matrices.mjs'
 import { selectPort } from './geometry.js'
 import type { CircuitJson } from './schema.js'
@@ -330,7 +331,8 @@ function cleanPolygons(polygons: Polygon[]): Polygon[] {
   return result
 }
 
-function surfacePanels(solids: Solid[], name: string): string {
+export function surfacePanels(solids: Solid[], name: string, quality?: QualityMeshOptions): string {
+  const settings = quality && qualityMeshSettings(quality)
   const levels = [...new Set(solids.flatMap(s => [s.zMinMm, s.zMaxMm]))].sort((a, b) => a - b), rows = ['* Closed union of actual copper polygons; millimetres; physical capacitance = raw matrix * 0.001']
   const polygon = (p: Polygon) => p.map(closed)
   const slabs = levels.slice(1).map((high, i) => {
@@ -338,13 +340,24 @@ function surfacePanels(solids: Solid[], name: string): string {
     return active.length ? cleanPolygons(clipping.union(polygon(active[0].polygon), ...active.slice(1).map(s => polygon(s.polygon)))) : []
   })
   const emit = (kind: 'T' | 'Q', pts: XYZ[]) => rows.push(`${kind} ${name} ${pts.flat().join(' ')}`)
+  const remainingQuality = () => {
+    const maxPanels = settings!.maxPanels - rows.length + 1
+    if (maxPanels <= 0) throw new Error('quality_mesh: Panel budget exceeded')
+    return { ...settings!, maxPanels }
+  }
   const face = (polys: Polygon[], zz: number, up: boolean) => {
     for (const p of cleanPolygons(polys)) {
-      const rings = p.map(r => r.slice(0, -1)), points = rings.flat(), starts: number[] = []
+      const rings = p.map(r => r.slice(0, -1)), starts: number[] = []
+      let points = rings.flat()
       let count = rings[0].length
       for (const r of rings.slice(1)) { starts.push(count); count += r.length }
-      const flat = points.flat(), indices = earcut(flat, starts)
-      refine(indices, flat)
+      let indices: number[]
+      if (settings) ({ points, indices } = qualityMesh(rings, remainingQuality()))
+      else {
+        const flat = points.flat()
+        indices = earcut(flat, starts)
+        refine(indices, flat)
+      }
       const polygonArea = Math.abs(area(rings[0])) - rings.slice(1).reduce((s, r) => s + Math.abs(area(r)), 0)
       let trianglesArea = 0
       for (let i = 0; i < indices.length; i += 3) {
@@ -363,18 +376,20 @@ function surfacePanels(solids: Solid[], name: string): string {
     face(next.length ? clipping.difference(slab, next) : slab, levels[i + 1], true)
     for (const p of slab) for (const ring of p) for (let j = 1; j < ring.length; j++) {
       const a = ring[j - 1], b = ring[j]
-      emit('Q', [[a[0], a[1], levels[i]], [b[0], b[1], levels[i]], [b[0], b[1], levels[i + 1]], [a[0], a[1], levels[i + 1]]])
+      if (settings) for (const triangle of qualitySidePanels(a,b,levels[i],levels[i+1],remainingQuality())) emit('T',triangle)
+      else emit('Q', [[a[0], a[1], levels[i]], [b[0], b[1], levels[i]], [b[0], b[1], levels[i + 1]], [a[0], a[1], levels[i + 1]]])
     }
   }
   return rows.join('\n') + '\n'
 }
 
-export function copperFasterCapDeck(cell: GeometryCell): Record<string, string> {
+/** Opt-in cap + side panelization. Keep undefined until native convergence validation. */
+export function copperFasterCapDeck(cell: GeometryCell, quality?: QualityMeshOptions): Record<string, string> {
   const copper = cell.routedCopper!, files: Record<string, string> = {}, list = ['* Actual routed copper in millimetres; physical capacitance = raw matrix * 0.001; homogeneous dielectric']
   const solids = [...copper.signals.map(pathSolids), [...copper.pours, ...copper.connections.flatMap(pathSolids)]]
   solids.forEach((pieces, i) => {
     const name = i === copper.signals.length ? 'return' : `sig${i}`
-    files[`${name}.txt`] = surfacePanels(pieces, name)
+    files[`${name}.txt`] = surfacePanels(pieces, name, quality)
     list.push(`C ${name}.txt ${cell.relativePermittivity} 0 0 0`)
   })
   files['channel.lst'] = list.join('\n') + '\n'
