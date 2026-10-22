@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@tscircuit/ibis-to-spice':
-        specifier: github:tscircuit/ibis-to-spice#64ecef899ee691b8a883fc2f85a793b1f4f4c4cc
-        version: https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/64ecef899ee691b8a883fc2f85a793b1f4f4c4cc
+        specifier: https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317
+        version: https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5
@@ -424,8 +424,8 @@ packages:
     peerDependencies:
       circuit-json: '*'
 
-  '@tscircuit/ibis-to-spice@https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/64ecef899ee691b8a883fc2f85a793b1f4f4c4cc':
-    resolution: {gitHosted: true, integrity: sha512-HtD7ag3J1Q/14p+l5rJGxUJR/Uq3K2p8UdVzZ/sEqd8A388t7O9tHvAmt89WMB43PMUjH6bIG7q0NPBPuww3fA==, tarball: https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/64ecef899ee691b8a883fc2f85a793b1f4f4c4cc}
+  '@tscircuit/ibis-to-spice@https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317':
+    resolution: {integrity: sha512-X8zufqDdqeYwlD7eSW4v/hnbBlUEiePh+4y8IDyx02pjgvooD7jDwEnEQ6HOqcemnfn1nvvhM6RFGrxcr8Jelg==, tarball: https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317}
     version: 0.0.2
     hasBin: true
 
@@ -1286,7 +1286,7 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@tscircuit/ibis-to-spice@https://codeload.github.com/tscircuit/ibis-to-spice/tar.gz/64ecef899ee691b8a883fc2f85a793b1f4f4c4cc':
+  '@tscircuit/ibis-to-spice@https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317':
     dependencies:
       '@noble/hashes': 1.8.0
       fflate: 0.8.2

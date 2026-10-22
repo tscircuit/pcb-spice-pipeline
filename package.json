@@ -44,7 +44,7 @@
     "zod": "3.25.76",
     "earcut": "3.2.4",
     "polygon-clipping": "0.15.7",
-    "@tscircuit/ibis-to-spice": "github:tscircuit/ibis-to-spice#64ecef899ee691b8a883fc2f85a793b1f4f4c4cc",
+    "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317",
     "typescript": "5.9.3",
     "@types/node": "22.20.5",
     "@types/react": "19.3.0"
