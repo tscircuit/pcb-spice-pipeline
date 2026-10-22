@@ -1,0 +1,89 @@
+Third-party notices for the pinned Spade WASM cap mesher.
+The package bridge is MIT licensed (LICENSE-MIT).
+For dual MIT/Apache-2.0 dependencies, this distribution selects MIT.
+This list includes build-time dependencies from Cargo.lock.
+
+allocator-api2-0.2.21: MIT
+https://github.com/zakarumych/allocator-api2
+licenses/allocator-api2-0.2.21-LICENSE-MIT
+
+autocfg-1.5.1: MIT
+https://github.com/cuviper/autocfg
+licenses/autocfg-1.5.1-LICENSE-MIT
+
+bumpalo-3.20.3: MIT
+https://github.com/fitzgen/bumpalo
+licenses/bumpalo-3.20.3-LICENSE-MIT
+
+cfg-if-1.0.5: MIT
+https://github.com/rust-lang/cfg-if
+licenses/cfg-if-1.0.5-LICENSE-MIT
+
+equivalent-1.0.3: MIT
+https://github.com/indexmap-rs/equivalent
+licenses/equivalent-1.0.3-LICENSE-MIT
+
+foldhash-0.2.0: Zlib
+https://github.com/orlp/foldhash
+licenses/foldhash-0.2.0-LICENSE
+
+hashbrown-0.16.1: MIT
+https://github.com/rust-lang/hashbrown
+licenses/hashbrown-0.16.1-LICENSE-MIT
+
+num-traits-0.2.19: MIT
+https://github.com/rust-num/num-traits
+licenses/num-traits-0.2.19-LICENSE-MIT
+
+once_cell-1.21.4: MIT
+https://github.com/matklad/once_cell
+licenses/once_cell-1.21.4-LICENSE-MIT
+
+proc-macro2-1.0.107: MIT
+https://github.com/dtolnay/proc-macro2
+licenses/proc-macro2-1.0.107-LICENSE-MIT
+
+quote-1.0.47: MIT
+https://github.com/dtolnay/quote
+licenses/quote-1.0.47-LICENSE-MIT
+
+robust-1.2.0: MIT
+https://github.com/georust/robust
+licenses/robust-1.2.0-LICENSE-MIT
+
+rustversion-1.0.23: MIT
+https://github.com/dtolnay/rustversion
+licenses/rustversion-1.0.23-LICENSE-MIT
+
+smallvec-1.16.3: MIT
+https://github.com/servo/rust-smallvec
+licenses/smallvec-1.16.3-LICENSE-MIT
+
+spade-2.15.1: MIT
+https://github.com/Stoeoef/spade
+licenses/spade-2.15.1-LICENSE-MIT
+
+syn-3.0.9: MIT
+https://github.com/dtolnay/syn
+licenses/syn-3.0.9-LICENSE-MIT
+
+unicode-ident-1.0.27: MIT AND Unicode-3.0
+https://github.com/dtolnay/unicode-ident
+licenses/unicode-ident-1.0.27-LICENSE-MIT
+licenses/unicode-ident-1.0.27-LICENSE-UNICODE
+
+wasm-bindgen-0.2.129: MIT
+https://github.com/wasm-bindgen/wasm-bindgen
+licenses/wasm-bindgen-0.2.129-LICENSE-MIT
+
+wasm-bindgen-macro-0.2.129: MIT
+https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/macro
+licenses/wasm-bindgen-macro-0.2.129-LICENSE-MIT
+
+wasm-bindgen-macro-support-0.2.129: MIT
+https://github.com/wasm-bindgen/wasm-bindgen/tree/main/crates/macro-support
+licenses/wasm-bindgen-macro-support-0.2.129-LICENSE-MIT
+
+wasm-bindgen-shared-0.2.129: MIT
+https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/shared
+licenses/wasm-bindgen-shared-0.2.129-LICENSE-MIT
