@@ -1,4 +1,4 @@
-import {fail} from './matrices.mjs'
+import {fail} from '../matrices.mjs'
 export function useNativeIbis(circuitJson,geometry,modeling,independent) {
   const errors=circuitJson.filter(e=>e.type==='source_invalid_component_property_error'&&e.property_name==='ibisModel')
   if(errors.length) fail('native_ibis',errors.map(e=>e.message).join('; '))

@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { assertComparable, compareRuns, comparisonIdentity, comparisonPairs, stimulusActivity, waveformDifference,
-  type ComparisonInput } from '../src/comparison.js'
+  type ComparisonInput } from '../src/legacy/comparison.js'
 
 const fixture = (): ComparisonInput => {
   const references = { pullup: 'vdd', pulldown: 'gnd', powerClamp: 'vdd', groundClamp: 'gnd' }
@@ -169,7 +169,7 @@ test('unsafe traffic indices fail promptly instead of stalling the loop', () => 
     transmission_pattern: { transmission_type: 'bits', bits: '01', repeat: true } }
   const result = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', `
     import assert from 'node:assert/strict'
-    import { stimulusActivity } from ${JSON.stringify(new URL('../src/comparison.ts', import.meta.url).href)}
+    import { stimulusActivity } from ${JSON.stringify(new URL('../src/legacy/comparison.ts', import.meta.url).href)}
     assert.throws(() => stimulusActivity(${JSON.stringify(stimulus)}, 1, 2), /comparison_traffic.*safe/)
   `], { timeout: 5000, encoding: 'utf8' })
   assert.ifError(result.error)

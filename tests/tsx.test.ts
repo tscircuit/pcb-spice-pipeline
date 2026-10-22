@@ -5,7 +5,7 @@ import { createElement as h } from 'react'
 import { Circuit, analog } from '@tscircuit/core'
 import type { IbisModelDefinition } from '@tscircuit/props'
 import { ImportedBoard } from '../src/tsx.js'
-import { serializeSimulation } from '../src/tsx-render.js'
+import { serializeSimulation } from '../src/tsx.js'
 import { parseRecord } from '../src/schema.js'
 import { validateCircuitRecords } from '../src/circuit-schema.mjs'
 

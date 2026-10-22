@@ -1,44 +1,27 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
-import ts from 'typescript'
+import {browserClient} from './viewer-client.generated.js'
+import {html as escapeHtml,reportContext,reportFiles,reportSections,type ReportData} from './report.js'
+import type {PipelineResult} from './general-pipeline.js'
+import type {FileMap} from './solver.js'
 
-import { html as escapeHtml, reportContext, reportFiles, reportSections, type ReportData, type ReportChange } from './report.js'
-import type { CircuitJson } from './schema.js'
-import type { Geometry, Modeling } from './geometry.js'
-
-// Emit the packaged source directly: tsx/esbuild can inject closure helpers
-// into Function.toString(), which leaves offline reports with broken controls.
-const browserClient = readFile(new URL('../src/viewer-client.ts', import.meta.url), 'utf8').then(source =>
-  ts.transpileModule(source.replace(/^export function /m, 'function '), {compilerOptions: {target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext}}).outputText)
-
-export interface ViewerRun {
-  name: string; directory: string
-  probes: { name: string; simulationVoltageProbeId: string; column: number }[]
-  eyes: { name: string; simulationVoltageProbeId: string; unitIntervalSeconds: number; windowOriginsSeconds?: number[]; directory?: string }[]
+/** Returns a self-contained HTML report and CSVs without reading or writing files. */
+export function generateReport(result: PipelineResult): FileMap {
+  return generateReportData({context:reportContext(result.circuitJson,result.geometry,result.modeling),
+    limitations:result.limitations,runs:result.experiments.map(run=>({
+      name:run.name,rows:run.waveform.rows,probes:run.probes,test:run.plan,
+      eyes:run.eyes.map(({samples,...eye})=>({...eye,csv:result.files[`${run.directory}/${eye.directory}/eye-data.csv`]})),
+    }))})
 }
-export async function writeViewer(root: string, runs: ViewerRun[], limitations: string[], changes?: ReportChange[]) {
-  const load = async (path: string) => JSON.parse(await readFile(join(root, path), 'utf8'))
-  const data = { runs: await Promise.all(runs.map(async run => ({ ...run,
-    test: await load(join(run.directory, 'experiment.json')),
-    eyes: await Promise.all(run.eyes.map(async eye => ({ ...eye,
-      csv: eye.directory ? await readFile(join(root, run.directory, eye.directory, 'eye-data.csv'), 'utf8') : undefined,
-    }))),
-    rows: (await readFile(join(root, run.directory, 'waveform.csv'), 'utf8')).trim().split(/\r?\n/).slice(1).map(line => line.split(',').map(Number)),
-  }))), limitations, changes, context: reportContext(await load('inputs/circuit.json') as CircuitJson,
-    await load('geometry.json') as Geometry, await load('inputs/modeling.json') as Modeling) }
-  return writeViewerData(join(root, 'results.html'), data)
-}
-export async function writeViewerData(path: string, data: ReportData, title = 'Signal integrity report') {
+
+export function generateReportData(data: ReportData, title = 'Signal integrity report'): FileMap {
   const files = reportFiles(data), sections = reportSections(data, files)
-  await mkdir(join(dirname(path), 'csv'), { recursive: true })
-  for (const file of files) await writeFile(join(dirname(path), file.path), file.content)
+  const output: FileMap=Object.fromEntries(files.map(file=>[file.path,file.content]))
   const { context, ...viewerData } = data
   const payload = JSON.stringify({ ...viewerData, runs: data.runs.map(({ test, ...run }) => ({ ...run,
     probes: run.probes.map(probe => context ? { ...probe, signalLabel: context.ports[probe.signalSourceId ?? ''] ?? probe.signalSourceId,
       referenceLabel: probe.referenceSourceId ? context.ports[probe.referenceSourceId] ?? probe.referenceSourceId : 'Channel ground' } : probe),
     eyes: run.eyes.map(({ csv, ...eye }) => eye),
   })) }).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')
-  await writeFile(path, `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(title)}</title>
+  output['results.html']=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapeHtml(title)}</title>
 <style>
 [hidden]{display:none!important}*{box-sizing:border-box}body{margin:0;color:#202b38;background:#fff;font:13px system-ui,-apple-system,sans-serif;line-height:1.5}main{max-width:1480px;margin:auto;padding:0 28px}h1{font-size:18px;letter-spacing:-.025em;margin:0;font-weight:650}h2{font-size:14px;margin:0 0 10px;font-weight:650}h3{font-size:13px;margin:0 0 6px}p{margin:8px 0;color:#697586}a{color:#245eb5;text-decoration:none}a:hover{text-decoration:underline}
 .app-header{display:flex;align-items:center;gap:18px;padding:20px 0 12px}.app-mark{font-size:11px;color:#6c7989;border-right:1px solid #dce2e9;padding-right:18px}.status{margin-left:auto;font-size:12px;color:#2a7155}#summary{font-size:12px;color:#6c7989;margin-bottom:16px}
@@ -60,6 +43,6 @@ button,select,input,.download{font:inherit;border:1px solid #d4dce6;border-radiu
 <section class="panel" id="explore" role="tabpanel" aria-labelledby="tab-explore" aria-label="Interactive simulation results" hidden><div class="toolbar"><label>Experiment<select id="run"></select></label><label>Probe<select id="probe"></select></label><label class="check"><input id="overlay" type="checkbox">Overlay runs</label><span class="grow"></span><button id="waveform-button" aria-pressed="true">Waveform</button><button id="eye-button" aria-pressed="false">Eye</button></div><div class="title" id="selection"></div><div class="binding" id="binding"></div><div id="legend"></div><label id="eye-field" hidden>Eye<select id="eye"></select></label><canvas id="plot" role="img" aria-label="Voltage plot: scroll to zoom, drag to pan, double click to reset"></canvas><div id="cursor" aria-live="off"></div><footer><label>Start (ns)<input id="start" type="number" step="any"></label><label>End (ns)<input id="end" type="number" step="any"></label><button id="reset">Reset</button><span class="grow"></span><span id="sample-count"></span><a id="csv" href="#" class="download" download>Download CSV</a></footer><p class="hint">Scroll to zoom · drag to pan · double-click to reset.</p></section>
 <section class="panel" id="downloads" role="tabpanel" aria-labelledby="tab-downloads" hidden>${sections.downloads}</section>
 <section class="panel" id="assumptions" role="tabpanel" aria-labelledby="tab-assumptions" hidden><p>${escapeHtml(data.context?.description ?? '')}</p>${sections.settings}<details open><summary>Assumptions</summary><pre id="limitations">${escapeHtml(data.limitations.join('\n'))}</pre></details><p class="hint">${data.runs.some(run=>run.eyes.some(eye=>eye.ddrAssessment))?'Configured DDR limits, evidence and unevaluated checks appear in Results; no DDR compliance claim.':'Observed values only; no pass/fail thresholds or compliance assessment.'} Waveform CSVs retain every solver sample. Eye CSVs use linear interpolation. Plot display envelopes preserve extrema.</p></section>
-</main><noscript><style>[role=tabpanel][hidden]{display:block!important}</style></noscript><script type="application/json" id="simulation-data">${payload}</script><script>(${await browserClient})();</script></body></html>`)
-  return path
+</main><noscript><style>[role=tabpanel][hidden]{display:block!important}</style></noscript><script type="application/json" id="simulation-data">${payload}</script><script>(${browserClient})();</script></body></html>`
+  return output
 }

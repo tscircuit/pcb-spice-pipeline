@@ -3,6 +3,7 @@ import { createElement, Fragment, useLayoutEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 
 import type { BoardProps } from '@tscircuit/props'
+export { serializeSimulation } from './tsx-render.js'
 export type { IbisModelDefinition } from '@tscircuit/props'
 export interface SavedRecord { type: string; [key: string]: unknown }
 export const importedBoardRecords = Symbol.for('pcb-spice-pipeline.imported-board.v2')

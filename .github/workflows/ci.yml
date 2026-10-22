@@ -1,9 +1,9 @@
-name: Native extraction and simulation
+name: In-memory library
 on: [push, pull_request, workflow_dispatch]
 jobs:
-  native:
+  library:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -12,5 +12,8 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 11.25.0
-      - run: ./scripts/reproduce.sh
-      # No solver-source/binary or copyrighted vendor-archive artifact upload.
+      - uses: oven-sh/setup-bun@v2
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm test:package

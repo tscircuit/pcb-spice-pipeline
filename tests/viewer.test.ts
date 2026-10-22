@@ -1,10 +1,15 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {runInNewContext} from 'node:vm'
-import {mkdtemp,readFile,rm} from 'node:fs/promises'
+import {mkdtemp,readFile,rm,mkdir,writeFile} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
-import {join} from 'node:path'
-import {writeViewerData} from '../src/viewer.js'
+import {join,dirname} from 'node:path'
+import {generateReportData} from '../src/viewer.js'
+async function writeViewerData(path:string,data:ReportData,title?:string) {
+  for(const [file,body] of Object.entries(generateReportData(data,title))) {
+    const target=join(dirname(path),file);await mkdir(dirname(target),{recursive:true});await writeFile(target,body)
+  }
+}
 import type {ReportData} from '../src/report.js'
 import {reportContext} from '../src/report.js'
 import {geometryFromCircuitJson,type Modeling} from '../src/geometry.js'

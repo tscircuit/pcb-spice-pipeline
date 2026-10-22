@@ -2,7 +2,6 @@ packages:
   - .
 allowBuilds:
   esbuild: true
-  pcb-spice-pipeline: true
 blockExoticSubdeps: false
 minimumReleaseAgeExclude:
   - '@tscircuit/core@0.0.2188'

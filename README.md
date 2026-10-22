@@ -1,101 +1,125 @@
-# pcb-spice-pipeline
+# @tscircuit/pcb-spice-pipeline
 
-Extract coupled PCB interconnects with FastHenry/FasterCap, simulate original IBIS pad models with ngspice, and generate portable HTML waveforms, eye diagrams, CSVs and provenance receipts.
+Circuit JSON in, structured signal-integrity results out. The root entry is a deterministic library: it never reads files, downloads models, discovers tools, runs processes, inspects the environment, or writes reports. All solver execution is supplied explicitly by the caller.
 
-Requires Node 22+. The standalone package builds `dist`, provides the `pcb-spice-pipeline` executable, and exports its API and `pcb-spice-pipeline/tsx` (`ImportedBoard`). Git dependencies build through `prepare`; published npm tarballs include the build. Install scripts must be enabled.
+```ts
+import { runPipeline, generateReport } from '@tscircuit/pcb-spice-pipeline'
+import type { RunSolver } from '@tscircuit/pcb-spice-pipeline'
 
-```sh
-npm install github:tscircuit/pcb-spice-pipeline#feat/latest-pipeline-pcb-stackup
-npx pcb-spice-pipeline --setup
-npx pcb-spice-pipeline --check-tools
-npx pcb-spice-pipeline index.circuit.tsx --out runs/first
-npx pcb-spice-pipeline --repeat index.circuit.tsx --out runs/repeated
-npx pcb-spice-pipeline --compare runs/quiet runs/switching --probe DQ0_RX --out runs/comparison
+const runSolver: RunSolver = async request => {
+  // Execute the requested solver locally, in a worker, or through your service.
+  // Reject on an unsuccessful exit and return the exact output text.
+  return yourSolverService(request)
+}
+
+const result = await runPipeline({
+  circuitJson,
+  modeling,
+  ibisSources: { 'models/driver.ibs': driverIbisBytes },
+  runSolver,
+  onProgress: message => showProgress(message),
+})
+const reportFiles = generateReport(result) // { 'results.html': '...', 'csv/...': '...' }
 ```
 
-For Bun, allow the pipeline's own build in the consuming project's `package.json`:
+`ibisSources` is `Record<string, Uint8Array | string>`, keyed by each `ibis_model_asset.project_relative_path`. Callers prepare models and extract archives before calling the library. Asset URLs are metadata and never trigger downloads. Strings are encoded as UTF-8; byte inputs preserve BOM and CRLF. Optional `modeling.ibisModelAssetSha256` must contain an expected SHA-256 for every used asset when supplied.
 
-```json
-{
-  "trustedDependencies": ["pcb-spice-pipeline"]
+The solver callback receives:
+
+```ts
+type SolverRequest = {
+  solver: 'fasthenry' | 'fastercap' | 'ngspice'
+  files: Record<string, string> // relative filenames and complete input contents
+  args: string[]
+  outputFiles: string[]        // requested output filenames
+}
+type SolverResult = {
+  stdout: string
+  stderr: string
+  files: Record<string, string>
+  exitCode?: number // omit when the callback rejects unsuccessful exits
 }
 ```
 
-For pnpm 11, allow the pinned GitHub dependency and the pipeline build in the consumer's `pnpm-workspace.yaml` before installation:
+Each request has an independent working directory. FastHenry gets coarse and refined extraction requests; FasterCap gets its automatic-refinement request; each experiment gets one ngspice transient shared by all its probes and eyes. The callback must reject unsuccessful process exits or return their nonzero `exitCode`. The library additionally checks stdout/stderr diagnostics, required outputs, conductor ordering, finite matrices, reciprocity, passivity, mesh convergence, analytic DC resistance, capacitance scaling and finite-return energy/charge reconstruction. Transients must contain finite, increasing timestamps and cover the declared recording. Recovered ngspice operating-point warnings are accepted only when the transient completes. No approximate solver or cached result replaces native physics.
 
-```yaml
-blockExoticSubdeps: false
-allowBuilds:
-  pcb-spice-pipeline@git+https://github.com/tscircuit/pcb-spice-pipeline.git: true
-  esbuild: true
+`PipelineResult` exposes:
+
+- `circuitJson`: original input records, preserved without schema normalization.
+- `simulationResultCircuitJson`: input records with fresh transient graphs bound to probe IDs; reruns replace graphs for the executed experiments and preserve unrelated results. Circuit JSON timestamps use milliseconds.
+- `geometry` and `matrices`: full extracted geometry, R/L/C in ohms/H/F, primitive matrices, checks and unit conversions.
+- `experiments`: plan, probes, converter assembly, `waveform: { timeUnit: 's', voltageUnit: 'V', rows }`, and eyes with folded sample rows, metrics and optional DDR assessments. Waveform columns are bound by each probe's `column`; eye rows are `[window, folded_time_s, time_s, voltage_v]`.
+- `modeling`, `limitations` and `files`: modeling inputs, explicit scope limits, and in-memory input decks, raw solver outputs/logs, JSON and CSV artifacts.
+
+`generateReport(result)` synchronously returns HTML and CSV strings. The self-contained HTML keeps the full adaptive waveform samples and interactive controls, and uses no network assets. Its browser client is bundled at build time. Neither report generation nor package import reads the source tree.
+
+## Explicit Node adapter
+
+Node 22+ applications can opt into filesystem access and native execution:
+
+```ts
+import { runPipeline } from '@tscircuit/pcb-spice-pipeline'
+import {
+  createNativeSolver, loadIbisSources, writePipelineOutput,
+} from '@tscircuit/pcb-spice-pipeline/node'
+
+const ibisSources = await loadIbisSources({ circuitJson, baseDir: projectDirectory })
+const runSolver = createNativeSolver({
+  tools: { fasthenry: '/tools/fasthenry', fastercap: '/tools/FasterCap', ngspice: '/tools/ngspice' },
+  timeoutMs: 900_000,
+})
+const result = await runPipeline({ circuitJson, modeling, ibisSources, runSolver })
+await writePipelineOutput({ result, outputDir: 'runs/example' })
 ```
 
-For local tarballs, enable the exact `pcb-spice-pipeline@file:...` entry emitted by pnpm instead.
+Tools default to `fasthenry`, `FasterCap` and `ngspice` on PATH. The adapter executes only requests you pass it, in temporary directories cleaned up on success or failure. It captures stdout/stderr and requested outputs, rejects unsuccessful exits/timeouts, and does no setup, downloads or build-receipt enforcement. `loadIbisSources` loads local files only and rejects traversal and symlinks outside `baseDir`. `writePipelineOutput` writes the supplied artifacts plus `generateReport(result)`; existing files with the same names are overwritten.
 
-Native solvers are downloaded and built separately using `toolchain-lock.json`. `--setup --install-deps` installs system prerequisites. Setup uses `~/.cache/pcb-spice-pipeline/tools` so projects with spaces in their paths can share native tools. For a custom installation, pass `--tools-dir /path/without/spaces` and set `PCB_SPICE_TOOLS=/path/without/spaces/tools.json`; upstream wxWidgets makefiles require build paths without spaces. `PCB_SPICE_CACHE` chooses the per-project vendor cache. No solver results are reused.
+The previous standalone CLI, entry loader, automatic model downloads, setup command and duplicate legacy pipeline have been removed. CLI integrations should render Circuit JSON with their normal renderer and explicitly supply the adapter. Historical receipt comparison/native-IBIS helpers remain internal under `src/legacy`; the independent audit scripts read historical receipt formats and are not a current library API.
 
-Committed development dependencies retain the released core baseline; saved Circuit JSON stackups work with it. Generating construction from `fabricatorPreset` requires [merged core #4826](https://github.com/tscircuit/core/pull/4826). Consumers must select a verified build containing that merge until an npm release includes it, together with its compatible props version. The converter is pinned to a [prepared archive of a Git snapshot](https://github.com/tscircuit/ibis-to-spice/pull/1) containing its JavaScript and bundled NodeNext declarations. Its package test verifies that these artifacts match a clean source build. This avoids Bun running dependency preparation concurrently with the pipeline's build. The GitHub API archive URL installs the committed artifacts without converter lifecycle scripts. No converter build approval, sibling mutation or downstream builder is needed.
+## TSX bridge
 
-## Circuit JSON stackup
-
-Physical construction comes exclusively from the Circuit JSON `pcb_stackup` and its referenced `pcb_board`. With a core version supporting board presets (see [core #4826](https://github.com/tscircuit/core/pull/4826)):
+The root import does not load React or the core renderer. `/tsx` exports both supported bridge functions:
 
 ```tsx
-import { ImportedBoard } from 'pcb-spice-pipeline/tsx'
+import { ImportedBoard, serializeSimulation } from '@tscircuit/pcb-spice-pipeline/tsx'
 
-// For an ordinary board:
-<board layers={4} thickness="1.6mm" fabricatorPreset="jlcpcb_standard" material="fr4">{/* ... */}</board>
-
-// For an existing routed board:
-<ImportedBoard circuitJson={routedBoard} fabricatorPreset="jlcpcb_standard" material="fr4">
-  {/* ibismodel, analog.transientsimulation, analog.digitalstimulus,
-      voltageprobe and analog.eyediagram declarations */}
-</ImportedBoard>
+circuit.add(<ImportedBoard circuitJson={savedBoard} fabricatorPreset="jlcpcb_standard">
+  {/* Native IBIS models, experiments, stimuli, probes and eyes */}
+</ImportedBoard>)
+await circuit.renderUntilSettled()
+const circuitJson = serializeSimulation(circuit)
 ```
 
-Use the existing `fabricatorPreset` values `jlcpcb_economy`, `jlcpcb_standard`, `jlcpcb_economy_20260912` or `jlcpcb_standard_20260912`, together with board `layers`, `thickness` and `material` (`fr4`, `fr1` or `flex`). For example, standard / 4 layers / 1.6 mm / fr4 resolves JLC04161H-3313. ImportedBoard forwards `fabricatorPreset` and `material`, reads layers/thickness from the saved board, and remaps the generated stackup to its saved board ID. An existing saved `pcb_stackup` takes precedence and is preserved. A preset must resolve the requested construction to produce a stackup.
+React, `@tscircuit/core` and `@tscircuit/props` are optional peers required by this integration, with development dependencies for bridge tests. Serialization preserves exact saved physical records and IDs, remaps native declarations to them, and rejects ambiguous bindings or added physical children. Saved construction is retained. Generating a stackup from a fabricator preset requires a core build containing merged [core #4826](https://github.com/tscircuit/core/pull/4826); a saved Circuit JSON stackup works with the committed core baseline.
 
-Layer thicknesses are ordered top to bottom. Copper z is in mm, positive up, with zero at the upper face of bottom copper; soldermask does not shift this frame. JLC04161H-3313 yields bottom −0.035…0, inner2 0.0994…0.1146, inner1 1.3796…1.3948, top 1.4942…1.5292. The values come from [the sourced fabrication stackup](https://raw.githubusercontent.com/tscircuit/am3352-sbc/837245bceb6ac898fd5451507d6b2b8024095fe7/design/fabrication-stackup.json).
+## Modeling and limits
 
-Each copper layer's conductivity is used in its FastHenry primitives and DC-resistance checks; omitted conductivity defaults to 5.8e7 S/m. Via and artificial return-strip conductivity use that default. Dielectric z ranges and relative permittivities are retained in `geometry.json`. The native decks use a homogeneous dielectric approximation: routed-copper defaults to the thickness-weighted mean of all dielectric εr values and requires all values to be known. `modeling.relativePermittivity` can explicitly override that approximation. Straightened-stage profiles retain their explicitly assumed effective εr (including the historical strip model). Neither reduction solves layered dielectric interfaces, dielectric loss or roughness.
+Modeling selects physical lanes, construction, extraction tolerances, explicit source rails and passives. Circuit JSON owns IBIS models, pin states, digital traffic, PCB-engine experiments, probes and eyes. Routed copper derives heights, dielectric thickness/permittivity and conductivity from the saved `pcb_stackup`. Straightened-stage modeling remains an explicit reduction with documented approximations.
 
-Remove `modeling.stackup`, `modeling.conductivitySm` and board-construction `copperLayers`; these obsolete side-file construction fields are rejected. Missing Circuit JSON construction fails before extraction with:
+`modeling.ddrAssessments` optionally binds a ground-referenced DQ probe/eye to a differential received DQS probe. Each configuration supplies its direction, sample offset, Vref, AC/DC thresholds, setup/hold times, minimum strobe amplitude and maximum interval error. Received DQS crossings center complete two-UI windows. Assessments retain configured limits, per-edge margins and unevaluated checks; uncharacterized limits are illustrative. Finite simulated observations do not establish DDR compliance, BER or hardware accuracy.
 
-```text
-Board pcb_board_0 has no pcb_stackup. Set fabricatorPreset (e.g. "jlcpcb_standard") on <board>/<ImportedBoard> so the JLC stackup template is resolved into Circuit JSON.
-```
+The historical saved AM3352 routed DDR case remains a separate FastHenry numerical failure. Successful synthetic strip/matrix tests do not resolve it. Existing locally prepared native tools may include historical source patches; this library makes no claim of unmodified physics provenance.
 
-## Modeling and simulation
-
-Export a default TSX board (or a `circuitJson` array) plus `modeling`. Native declarations select vendor components, per-pin output/input states, arbitrary bit streams, probes and gated eye measurements. Circuit JSON times use milliseconds. Vendor IBIS assets resolve relative to the entry project or via their declared URL, with optional expected SHA-256 hashes.
-
-`modeling.ddrAssessments` optionally binds an existing ground-referenced DQ probe/eye to a differential received DQS probe. Each entry supplies `name`, `dataProbe`, `strobeProbe`, `direction`, `sampleOffsetSeconds`, `vrefV`, `thresholds` (`vilAcV`, `vilDcV`, `vihDcV`, `vihAcV`), `setupSeconds`, `holdSeconds`, `minimumStrobeDifferentialV`, and `maximumStrobeIntervalErrorSeconds`. Optional `experimentNames` selects experiments; otherwise all are assessed. Voltages are relative to the DQ probe ground and times are seconds.
-
-Received DQS crossings center complete two-UI DQ windows. AC setup/DC hold margins use recorded adaptive samples and linear interpolation. Quiet or ambiguous strobes and incomplete captures remain `not-evaluated`; the report exposes limits, per-edge timing and CSVs. Limits without characterization are `illustrative`. Optional characterization identifies source, receiver, speed grade, conditions, derating and `referencePlane: "receiver-pad"`; this evidence is user-supplied. No timing defaults or DDR compliance claims are inferred. The original stimulus-clock folds remain available when no assessment is configured. Public types and standalone analysis helpers are exported from the package.
-
-`modeling` selects one to three physical lanes, explicit source/receiver ports, extraction settings and a reduction:
-
-- `straightened-stages`: preserves routed stage lengths, widths and layer/via transitions. Profiles declare assumed signal spacing, finite artificial return-strip dimensions/position and effective permittivity. This is the historical AM3352 strip model.
-- `routed-copper`: preserves original XY traces and extracts the connected `is_ground` net's actual BREP pours/cutouts plus driver/receiver ground leads. Requires `channelReference`, `extraction.groundMeshMm`, and an unambiguous receiver reference (or `groundReturn`).
-
-The saved AM3352 routed-copper example currently hits a pre-existing FastHenry 3.0.1 numerical failure. The former in-repo pipeline and this stackup pipeline emit identical geometry (including all 16,388 segments, three ground-pour meshes, layer heights and thicknesses); the only deck difference is explicit default conductivity. No zero-length segments or swapped inner layers were found. Two 10.469 µm rounded-route edges, 100 µm wide and 1.7175 mm apart on inner1, suffice to trigger `Huh?  filament not expected length` in the solver's `1e-13` relative projected-length check. This is floating-point conditioning, not a zero-length node or a ground-plane z mismatch. Reproduce with the already installed binary:
+## Build and distribution
 
 ```sh
-mkdir -p /tmp/pcbsim/fh-short-bars
-cp tests/fixtures/fasthenry-short-bars.inp /tmp/pcbsim/fh-short-bars/channel.inp
-(cd /tmp/pcbsim/fh-short-bars && /tmp/pcbsim/tools/fasthenry-build/bin/fasthenry -p seg channel.inp)
-```
-
-Removing explicit width directions, rounding coordinates, translating to a local frame and trial 1 µm route simplification did not yield a clean full-network solve. A translated binary-grid trial also emitted `uh oh, segs don't seem parallel`; those diagnostics now reject even an exit-zero run. The raw geometry is preserved. Resolving this requires a numerically stable native mutual-inductance implementation or a separately validated route approximation; the pinned tools have not been rebuilt or bypassed. No routed DDR eye result is claimed. Historical straightened-stage strip results describe a different model.
-
-Via plating may come from `pcb_stackup.plated_hole_copper_thickness` or explicit `modeling.viaPlatingMm`; `viaEquivalentWidthMm` and `omitThroughViaStubs` document the reduction. Supply and passive component scope remain explicit. Full mutual R/L/C terms survive in the SPICE network. Each experiment runs one native process for all probes/eyes; eyes fold recorded adaptive samples with complete windows only.
-
-The [single-ended](examples/single-ended/index.circuit.tsx) and [differential](examples/differential-data/index.circuit.tsx) examples are current standalone fixtures. Their two-layer Circuit JSON stackups are explicit synthetic test assumptions. Fetch the exact vendor asset named in `examples/vendor-models.lock.json` into the project root's `models/` folder before running (this repository's root for these examples). The former Oct-14 examples, copied source-board tree, vendored packages, Python setup/plotting and stale saved verification outputs were removed because they depended on the obsolete experimental package/API. The saved AM3352 board remains a geometry regression fixture; its full DDR example is maintained in [am3352-ddr-eye](https://github.com/0hmX/am3352-ddr-eye).
-
-```sh
-pnpm install
+pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm test
-pnpm build
-pnpm test:native
+pnpm test:package
+npm pack
 ```
+
+Packages have scoped ESM `main`, `types` and exports pointing to compiled `dist`. `npm pack` runs the explicit build and includes compiled JavaScript/declarations, README and license. Prepared tarballs install with lifecycle scripts disabled and require no TypeScript source runtime. There is no `prepare`, `install` or `postinstall` script and no install-time solver action. Until publication, consumers should pin an immutable prepared tarball/archive; a Git source checkout must be built and packed explicitly. No npm publication is performed by these scripts.
+
+The build bundles the pure entry with browser dependency resolution, pruning unused converter archive/worker support and fixing polygon-clipping's limits to its upstream browser defaults rather than consulting the host environment.
+
+`pnpm test:package` checks an isolated npm install with no optional peers, root and `/node` imports, a complete in-memory run in Node and Bun when available, guarded host access, and NodeNext declarations. `BUN=/path/to/bun` selects Bun explicitly. Unit fixtures use canned solver responses to test orchestration; native regressions use real processes:
+
+```sh
+PCB_SPICE_FASTHENRY=/tools/fasthenry \
+PCB_SPICE_FASTERCAP=/tools/FasterCap \
+PCB_SPICE_NGSPICE=/tools/ngspice pnpm test:native
+```
+
+The native suite executes the full R + jωL/Maxwell-C regression and a complete real extraction/refinement/transient. Set `PCB_SPICE_TEST_MODEL_DIR` to a project root containing the exact `models/` files from `examples/vendor-models.lock.json` to additionally exercise the vendor examples. The suite never downloads those assets or builds native tools.
