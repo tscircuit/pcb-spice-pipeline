@@ -1,7 +1,7 @@
 import {fileURLToPath} from 'node:url'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {mkdtemp,writeFile,rm} from 'node:fs/promises'
+import {mkdtemp,writeFile,rm,symlink} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {loadEntry,sha256} from '../src/pipeline.mjs'
@@ -29,8 +29,9 @@ test('plain Node loads TSX and fingerprints the actual imported project data',as
 })
 
 test('TSX transformation follows the entry project config when caller cwd is elsewhere',async()=>{
-  const root=await mkdtemp(fileURLToPath(new URL('./jsx-project-',import.meta.url)))
+  const root=await mkdtemp(join(tmpdir(),'pcb-spice-jsx-input-'))
   try {
+    await symlink(fileURLToPath(new URL('../node_modules',import.meta.url)),join(root,'node_modules'),'junction')
     await writeFile(join(root,'package.json'),'{"name":"jsx-input-proof","type":"module"}\n')
     await writeFile(join(root,'tsconfig.json'),'{"compilerOptions":{"jsx":"react-jsx","module":"ESNext"},"include":["index.circuit.tsx"]}\n')
     const entry=join(root,'index.circuit.tsx')
