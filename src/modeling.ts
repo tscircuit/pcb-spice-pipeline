@@ -27,26 +27,24 @@ const channelSchema = z.object({
   via_equivalent_width_mm: positive.optional(), omit_through_via_stubs: z.boolean().optional(),
   straightened_stage_profiles: z.record(profile).optional(),
 }).superRefine((channel, ctx) => {
-  const e = channel.extraction
+  const extraction = channel.extraction
   const issue = (path: string[], message: string) => ctx.addIssue({ code: 'custom', path, message })
-  if (e.minimum_frequency_hz > e.model_frequency_hz || e.model_frequency_hz > e.maximum_frequency_hz)
+  if (extraction.minimum_frequency_hz > extraction.model_frequency_hz || extraction.model_frequency_hz > extraction.maximum_frequency_hz)
     issue(['extraction'], 'Require minimum_frequency_hz <= model_frequency_hz <= maximum_frequency_hz')
-  if (e.refinement_filaments <= e.filaments)
+  if (extraction.refinement_filaments <= extraction.filaments)
     issue(['extraction', 'refinement_filaments'], 'Must exceed filaments')
   if (new Set(channel.lanes.map(lane => lane.name)).size !== channel.lanes.length)
     issue(['lanes'], 'Lane names must be distinct')
-  if (channel.reduction === 'routed-copper' && e.ground_mesh_size_mm === undefined)
+  if (channel.reduction === 'routed-copper' && extraction.ground_mesh_size_mm === undefined)
     issue(['extraction', 'ground_mesh_size_mm'], 'Required for routed-copper')
   if (channel.reduction === 'straightened-stages' && !Object.keys(channel.straightened_stage_profiles ?? {}).length)
     issue(['straightened_stage_profiles'], 'Profiles required for straightened-stages')
 })
 
-// Ignore object key order, while retaining lane/matrix array order.
 const canonical = (value: unknown): string => JSON.stringify(value, (_, item) =>
   item && typeof item === 'object' && !Array.isArray(item)
     ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item)
 
-/** Read raw channel declarations, independently of the installed Circuit JSON schema. */
 export function modelingFromCircuitJson(circuitJson: CircuitJson): PipelineModeling {
   if (!Array.isArray(circuitJson)) fail('pcb_spice_channel', 'Expected a Circuit JSON record array')
   const experiments = circuitJson.filter(record => record.type === 'simulation_experiment').filter(record =>
@@ -64,26 +62,26 @@ export function modelingFromCircuitJson(circuitJson: CircuitJson): PipelineModel
   })
   if (channels.some(channel => canonical(channel) !== canonical(channels[0])))
     fail('pcb_spice_channel', 'All pcb_spice transient experiments must declare deep-equal pcb_spice_channel values for shared extraction')
-  const c = channels[0], e = c.extraction
+  const channel = channels[0], extraction = channel.extraction
   const modeling: PipelineModeling = {
-    reduction: c.reduction, sections: c.sections,
-    lanes: c.lanes.map(lane => ({ port: lane.name, from: { sourcePortId: lane.driver_source_port_id }, to: { sourcePortId: lane.receiver_source_port_id } })),
-    channelReference: { sourcePortId: c.reference_source_port_id },
-    extraction: { minimumHz: e.minimum_frequency_hz, maximumHz: e.maximum_frequency_hz, modelHz: e.model_frequency_hz,
-      filaments: e.filaments, refinementFilaments: e.refinement_filaments, convergenceTolerance: e.convergence_tolerance,
-      capTolerance: e.capacitance_tolerance, reciprocityTolerance: e.reciprocity_tolerance,
-      dcResistanceTolerance: e.dc_resistance_tolerance, maxPanelLengthMm: e.max_panel_length_mm },
+    reduction: channel.reduction, sections: channel.sections,
+    lanes: channel.lanes.map(lane => ({ port: lane.name, from: { sourcePortId: lane.driver_source_port_id }, to: { sourcePortId: lane.receiver_source_port_id } })),
+    channelReference: { sourcePortId: channel.reference_source_port_id },
+    extraction: { minimumHz: extraction.minimum_frequency_hz, maximumHz: extraction.maximum_frequency_hz, modelHz: extraction.model_frequency_hz,
+      filaments: extraction.filaments, refinementFilaments: extraction.refinement_filaments, convergenceTolerance: extraction.convergence_tolerance,
+      capTolerance: extraction.capacitance_tolerance, reciprocityTolerance: extraction.reciprocity_tolerance,
+      dcResistanceTolerance: extraction.dc_resistance_tolerance, maxPanelLengthMm: extraction.max_panel_length_mm },
   }
-  if (e.ground_mesh_size_mm !== undefined) modeling.extraction.groundMeshMm = e.ground_mesh_size_mm
-  if (c.passive_source_component_ids !== undefined) modeling.passiveComponents = c.passive_source_component_ids.map(sourceComponentId => ({ sourceComponentId }))
-  if (c.relative_permittivity !== undefined) modeling.relativePermittivity = c.relative_permittivity
-  if (c.via_plating_thickness_mm !== undefined) modeling.viaPlatingMm = c.via_plating_thickness_mm
-  if (c.via_equivalent_width_mm !== undefined) modeling.viaEquivalentWidthMm = c.via_equivalent_width_mm
-  if (c.omit_through_via_stubs !== undefined) modeling.omitThroughViaStubs = c.omit_through_via_stubs
-  if (c.straightened_stage_profiles !== undefined) modeling.profiles = Object.fromEntries(Object.entries(c.straightened_stage_profiles).map(([name, p]) => [name, {
-    spacingMm: p.spacing_mm, relativePermittivity: p.relative_permittivity,
-    return: { widthMm: p.return.width_mm, thicknessMm: p.return.thickness_mm, lengthFactor: p.return.length_factor,
-      centerYMm: p.return.center_y_mm, centerZMm: p.return.center_z_mm },
+  if (extraction.ground_mesh_size_mm !== undefined) modeling.extraction.groundMeshMm = extraction.ground_mesh_size_mm
+  if (channel.passive_source_component_ids !== undefined) modeling.passiveComponents = channel.passive_source_component_ids.map(sourceComponentId => ({ sourceComponentId }))
+  if (channel.relative_permittivity !== undefined) modeling.relativePermittivity = channel.relative_permittivity
+  if (channel.via_plating_thickness_mm !== undefined) modeling.viaPlatingMm = channel.via_plating_thickness_mm
+  if (channel.via_equivalent_width_mm !== undefined) modeling.viaEquivalentWidthMm = channel.via_equivalent_width_mm
+  if (channel.omit_through_via_stubs !== undefined) modeling.omitThroughViaStubs = channel.omit_through_via_stubs
+  if (channel.straightened_stage_profiles !== undefined) modeling.profiles = Object.fromEntries(Object.entries(channel.straightened_stage_profiles).map(([name, stageProfile]) => [name, {
+    spacingMm: stageProfile.spacing_mm, relativePermittivity: stageProfile.relative_permittivity,
+    return: { widthMm: stageProfile.return.width_mm, thicknessMm: stageProfile.return.thickness_mm, lengthFactor: stageProfile.return.length_factor,
+      centerYMm: stageProfile.return.center_y_mm, centerZMm: stageProfile.return.center_z_mm },
   }]))
   for (const record of circuitJson.filter(record => record.type === 'simulation_ibis_model')) {
     const hash = Reflect.get(record.ibis_model_asset, 'sha256')

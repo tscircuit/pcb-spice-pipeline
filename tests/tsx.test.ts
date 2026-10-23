@@ -298,29 +298,27 @@ test('ImportedBoard voltage sources use native terminal connections and emit onl
       if (typeof Reflect.get(renamed, key) === 'string') Reflect.set(renamed, key, `saved_${Reflect.get(renamed, key)}`)
     return renamed
   })
-  for (const [positive, negative] of [['pin1', 'pin2']]) {
-    const circuit = new Circuit()
-    circuit.add(h(ImportedBoard, { circuitJson: original }, ...declarations(),
-      h('voltagesource', { name: 'VDDQ', voltage: '1.5V', connections: { [positive]: '.U1 > .VCC', [negative]: '.U1 > .GND' } })))
-    await circuit.renderUntilSettled()
-    const native = circuit.getCircuitJson()
-    const nativeComponent = native.find(record => record.type === 'source_component' && record.name === 'U1')!
-    const nativePort = native.find(record => record.type === 'source_port' && record.name === 'VCC')!
-    circuit.getCircuitJson = () => native.map(record => record.type === 'simulation_experiment' ? { ...record,
-      pcb_spice_channel: { passive_source_component_ids: [Reflect.get(nativeComponent, 'source_component_id')],
-        selected_source_port_ids: [Reflect.get(nativePort, 'source_port_id')] } } : record)
-    const records = serializeSimulation(circuit)
-    assert.deepEqual(records.filter(record => !record.type.startsWith('simulation_')), original)
-    const supply = records.find(record => record.type === 'simulation_voltage_source')!
-    if (supply.type !== 'simulation_voltage_source' || supply.is_dc_source) throw Error('fixture')
-    assert.equal(supply.voltage, 1.5)
-    for (const [field, name] of [['terminal1_source_port_id', 'VCC'], ['terminal2_source_port_id', 'GND']])
-      assert.equal(Reflect.get(supply, field), Reflect.get(original.find(record => record.type === 'source_port' && record.name === name)!, 'source_port_id'))
-    const channel = Reflect.get(records.find(record => record.type === 'simulation_experiment')!, 'pcb_spice_channel')
-    assert.deepEqual(channel.passive_source_component_ids, [original.find(record => record.type === 'source_component')!.source_component_id])
-    assert.deepEqual(channel.selected_source_port_ids, [Reflect.get(original.find(record => record.type === 'source_port' && record.name === 'VCC')!, 'source_port_id')])
-    assert.doesNotThrow(() => validateCircuitRecords(records))
-  }
+  const circuit = new Circuit()
+  circuit.add(h(ImportedBoard, { circuitJson: original }, ...declarations(),
+    h('voltagesource', { name: 'VDDQ', voltage: '1.5V', connections: { pin1: '.U1 > .VCC', pin2: '.U1 > .GND' } })))
+  await circuit.renderUntilSettled()
+  const native = circuit.getCircuitJson()
+  const nativeComponent = native.find(record => record.type === 'source_component' && record.name === 'U1')!
+  const nativePort = native.find(record => record.type === 'source_port' && record.name === 'VCC')!
+  circuit.getCircuitJson = () => native.map(record => record.type === 'simulation_experiment' ? { ...record,
+    pcb_spice_channel: { passive_source_component_ids: [Reflect.get(nativeComponent, 'source_component_id')],
+      selected_source_port_ids: [Reflect.get(nativePort, 'source_port_id')] } } : record)
+  const records = serializeSimulation(circuit)
+  assert.deepEqual(records.filter(record => !record.type.startsWith('simulation_')), original)
+  const supply = records.find(record => record.type === 'simulation_voltage_source')!
+  if (supply.type !== 'simulation_voltage_source' || supply.is_dc_source) throw Error('fixture')
+  assert.equal(supply.voltage, 1.5)
+  for (const [field, name] of [['terminal1_source_port_id', 'VCC'], ['terminal2_source_port_id', 'GND']])
+    assert.equal(Reflect.get(supply, field), Reflect.get(original.find(record => record.type === 'source_port' && record.name === name)!, 'source_port_id'))
+  const channel = Reflect.get(records.find(record => record.type === 'simulation_experiment')!, 'pcb_spice_channel')
+  assert.deepEqual(channel.passive_source_component_ids, [original.find(record => record.type === 'source_component')!.source_component_id])
+  assert.deepEqual(channel.selected_source_port_ids, [Reflect.get(original.find(record => record.type === 'source_port' && record.name === 'VCC')!, 'source_port_id')])
+  assert.doesNotThrow(() => validateCircuitRecords(records))
 })
 
 test('ImportedBoard rejects unconnected or ambiguous voltage-source terminals', async () => {

@@ -99,14 +99,12 @@ test('runPipeline derives modeling, uses serialized supplies, and explicit model
   const expected = { ...expectedStraight }; delete expected.passiveComponents
   assert.deepEqual(result.modeling, expected)
   assert.match(result.files['experiments/run/simulation.cir'], /VPHYSICAL0/)
-  // The explicit override bypasses channel parsing and channel disagreement.
   input.circuitJson.find(record => record.type === 'simulation_experiment').pcb_spice_channel = { invalid: true }
   const explicit = { ...modeling }; delete explicit.supplies
   const override = await runPipeline({ ...input, modeling: explicit, runSolver: fixtureSolver })
   assert.deepEqual(override.modeling, explicit)
   await assert.rejects(runPipeline({ ...rest, runSolver: fixtureSolver }), /pcb_spice_channel/)
 })
-
 
 test('derived modeling verifies hashes only where declared, retaining explicit hash-map requirements', async () => {
   const { modeling, ...input } = inMemoryInput()

@@ -85,8 +85,6 @@ export function serializeSimulation(circuit: RootCircuit): CircuitJson {
       fail('tsx_reference', `Ambiguous saved board pin ${port.name}`)
     portIds.set(nativePort.source_port_id, String(port.source_port_id))
   }
-  // VoltageSource's connections prop creates native source_trace children. Its
-  // own ports/components are preview scaffolding, never physical saved records.
   const supplyPorts = board.getDescendants().filter((instance): instance is Port =>
     instance.componentName === 'Port' && instance.parent?.componentName === 'VoltageSource')
   const supplyBindings = supplyPorts.map(port => {
