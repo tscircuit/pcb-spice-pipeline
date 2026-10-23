@@ -1,6 +1,8 @@
+import {eyeDensity, eyeSampling} from './eye-density.js'
+
 // Serialized as a standalone function so results.html works offline, including file://.
 export function viewerClient() {
-  type Eye = { name: string; simulationVoltageProbeId: string; unitIntervalSeconds: number; windowOriginsSeconds: number[]; metrics?: unknown; alignment?: string; ddrAssessment?: { status: string } }
+  type Eye = { name: string; simulationVoltageProbeId: string; unitIntervalSeconds: number; windowOriginsSeconds?: number[]; startTimeSeconds?: number; endTimeSeconds?: number; alignment?: string; ddrAssessment?: { status: string } }
   type Probe = { name: string; simulationVoltageProbeId: string; column: number; signalSourceId?: string; referenceSourceId?: string | null; signalLabel?: string; referenceLabel?: string }
   type Run = { name: string; rows: number[][]; probes: Probe[]; eyes: Eye[] }
   const data = JSON.parse(document.getElementById('simulation-data')!.textContent!) as { runs: Run[]; limitations: string[]; comparisonProbeName?: string;
@@ -8,6 +10,7 @@ export function viewerClient() {
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T
   const runSelect = $<HTMLSelectElement>('run'), probeSelect = $<HTMLSelectElement>('probe'), eyeSelect = $<HTMLSelectElement>('eye')
   const overlay = $<HTMLInputElement>('overlay'), canvas = $<HTMLCanvasElement>('plot'), ctx = canvas.getContext('2d')!
+  const eyeStyle = $<HTMLSelectElement>('eye-style')
   const colors = ['#2563eb', '#e96535', '#159c80', '#a855d0']
   let mode = 'waveform', xMin = 0, xMax = 1, fullMin = 0, fullMax = 1, drag: { x: number; min: number; max: number } | null = null
   let width = 1, height = 1, plotWidth = 1, plotHeight = 1, yMin = 0, yMax = 1
@@ -57,17 +60,31 @@ export function viewerClient() {
     canvas.width = width * devicePixelRatio; canvas.height = height * devicePixelRatio
     ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0)
     plotWidth = width - pad.left - pad.right; plotHeight = height - pad.top - pad.bottom
+    if (plotWidth < 1 || plotHeight < 1) return
     ctx.clearRect(0, 0, width, height)
     const curves = series()
+    const eyeCurves = mode === 'eye' ? curves.flatMap(({run, probe}) => {
+      const eye = run.eyes.find(e => e.simulationVoltageProbeId === probe.simulationVoltageProbeId && e.name === selectedEye().name)
+        ?? run.eyes.find(e => e.simulationVoltageProbeId === probe.simulationVoltageProbeId)
+      return eye?.unitIntervalSeconds === selectedEye().unitIntervalSeconds ? [{run, probe, eye, sampling: eyeSampling(run.rows, eye)}] : []
+    }) : []
+    const density = mode === 'eye' && eyeStyle.value === 'density'
     yMin = Infinity; yMax = -Infinity
-    for (const { run, probe } of curves) for (const row of run.rows) { yMin = Math.min(yMin, row[probe.column]); yMax = Math.max(yMax, row[probe.column]) }
+    for (const { run, probe } of curves) {
+      const eye = eyeCurves.find(item => item.run === run)?.eye
+      for (const row of run.rows) if (mode !== 'eye' || (eye && row[0] >= (eye.startTimeSeconds ?? -Infinity) && row[0] <= (eye.endTimeSeconds ?? Infinity))) {
+        yMin = Math.min(yMin, row[probe.column]); yMax = Math.max(yMax, row[probe.column])
+      }
+    }
+    if (!Number.isFinite(yMin)) { yMin = 0; yMax = 1 }
     const margin = Math.max((yMax - yMin) * .08, .02); yMin -= margin; yMax += margin
     const sx = (x: number) => pad.left + (x - xMin) / (xMax - xMin) * plotWidth
     const sy = (y: number) => pad.top + (yMax - y) / (yMax - yMin) * plotHeight
     ctx.font = '12px system-ui'; ctx.lineWidth = 1
+    if (density) { ctx.fillStyle = '#080b12'; ctx.fillRect(pad.left, pad.top, plotWidth, plotHeight) }
     for (let i = 0; i <= 5; i++) {
       const x = pad.left + i / 5 * plotWidth, y = pad.top + i / 5 * plotHeight
-      ctx.strokeStyle = '#e8edf2'; ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, height - pad.bottom); ctx.moveTo(pad.left, y); ctx.lineTo(width - pad.right, y); ctx.stroke()
+      ctx.strokeStyle = density ? '#252b37' : '#e8edf2'; ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, height - pad.bottom); ctx.moveTo(pad.left, y); ctx.lineTo(width - pad.right, y); ctx.stroke()
       ctx.fillStyle = '#65758a'; ctx.textAlign = 'center'; ctx.fillText(format((xMin + i / 5 * (xMax - xMin)) * 1e9), x, height - 22)
       ctx.textAlign = 'right'; ctx.fillText(format(yMax - i / 5 * (yMax - yMin)), pad.left - 10, y + 4)
     }
@@ -94,25 +111,45 @@ export function viewerClient() {
       }
       flush(); ctx.stroke()
     }
-    curves.forEach(({ run, probe }, i) => {
-      ctx.strokeStyle = colors[i % colors.length]; ctx.lineWidth = mode === 'eye' ? .8 : 1.6; ctx.globalAlpha = mode === 'eye' ? .2 : 1
-      if (mode === 'waveform') drawRows(run.rows, probe.column, xMin, xMax, 0)
-      else {
-        const eye = run.eyes.find(e => e.simulationVoltageProbeId === probe.simulationVoltageProbeId && e.name === selectedEye().name)
-          ?? run.eyes.find(e => e.simulationVoltageProbeId === probe.simulationVoltageProbeId)
-        if (eye && eye.unitIntervalSeconds === selectedEye().unitIntervalSeconds)
-          for (const origin of eye.windowOriginsSeconds) drawRows(run.rows, probe.column, origin + xMin, origin + xMax, origin)
+    let peak = 0
+    if (density) {
+      const w = Math.min(1024, Math.ceil(plotWidth)), h = Math.min(512, Math.ceil(plotHeight)), counts = new Uint32Array(w * h)
+      for (const {run, probe, eye} of eyeCurves) {
+        const histogram = eyeDensity(run.rows, probe.column, eye, {width:w, height:h, xMin, xMax, yMin, yMax})
+        for (let i = 0; i < counts.length; i++) counts[i] += histogram.counts[i]
       }
+      for (const count of counts) peak = Math.max(peak, count)
+      const surface = document.createElement('canvas'); surface.width = w; surface.height = h
+      const context = surface.getContext('2d')!, image = context.createImageData(w, h)
+      const palette = [[55,20,110],[30,90,230],[0,210,220],[70,225,50],[255,225,15],[255,40,10]]
+      for (let i = 0; i < counts.length; i++) if (counts[i]) {
+        const position = Math.log1p(counts[i]) / Math.log1p(peak) * (palette.length - 1)
+        const stop = Math.min(palette.length - 2, Math.floor(position)), mix = position - stop
+        for (let c = 0; c < 3; c++) image.data[i * 4 + c] = palette[stop][c] * (1 - mix) + palette[stop + 1][c] * mix
+        image.data[i * 4 + 3] = 255
+      }
+      context.putImageData(image, 0, 0); ctx.imageSmoothingEnabled = false
+      ctx.drawImage(surface, pad.left, pad.top, plotWidth, plotHeight)
+    } else if (mode === 'waveform') curves.forEach(({run, probe}, i) => {
+      ctx.strokeStyle = colors[i % colors.length]; ctx.lineWidth = 1.6; drawRows(run.rows, probe.column, xMin, xMax, 0)
+    })
+    else eyeCurves.forEach(({run, probe, sampling}, i) => {
+      ctx.strokeStyle = colors[i % colors.length]; ctx.lineWidth = .8; ctx.globalAlpha = .2
+      for (const origin of sampling.windowOriginsSeconds) drawRows(run.rows, probe.column, origin + xMin, origin + xMax, origin)
     })
     ctx.restore(); ctx.globalAlpha = 1
     $('legend').replaceChildren()
-    curves.forEach(({ run, probe }, i) => { const item = document.createElement('span'); item.textContent = `${run.name} · ${probe.name}`; item.style.color = colors[i % colors.length]; $('legend').append(item) })
+    curves.forEach(({ run, probe }, i) => { const item = document.createElement('span'); item.textContent = `${run.name} · ${probe.name}`; item.style.color = density ? '#65758a' : colors[i % colors.length]; $('legend').append(item) })
+    $('density-scale').hidden = !density
+    $('density-scale').textContent = `${eyeCurves.length > 1 ? 'Pooled density · ' : ''}Purple → blue → cyan → green → yellow → red · peak ${peak} hits/bin · logarithmic color scale`
+    $('sampling').hidden = mode !== 'eye'
+    $('sampling').textContent = eyeCurves.map(({run, sampling:s}) => `${run.name}: ${s.actualSamplesInGate.toLocaleString()} recorded samples in gate · ${s.completeWindows ?? 'unrecorded'} complete two-UI windows · minimum ${s.minimumSamplesPerWindow ?? 'unrecorded'} actual samples/window · largest gap ${format(s.maxGapSeconds * 1e12)} ps (${format(s.maxGapUi)} UI)${s.gateFullyRecorded ? '' : ' · recording does not cover the full gate'}${s.rejectedWindows ? ` · ${s.rejectedWindows} incomplete windows excluded` : ''}`).join('\n')
     $('selection').textContent = `${selectedRun().name} / ${selectedProbe().name}`
     $('binding').textContent = `Measured voltage = ${selectedProbe().signalLabel ?? selectedProbe().signalSourceId ?? 'recorded signal'} − ${selectedProbe().referenceLabel ?? selectedProbe().referenceSourceId ?? 'channel ground'}`
     if (mode === 'eye') {
       const eye = selectedEye()
       $('binding').textContent += eye.alignment === 'received-differential-dqs'
-        ? ` · Received DQS alignment; capture at ${format(eye.unitIntervalSeconds * 1e9)} ns · ${eye.windowOriginsSeconds.length} complete windows · ${eye.ddrAssessment?.status ?? 'not-evaluated'} · DDR compliance not evaluated`
+        ? ` · Received DQS alignment; capture at ${format(eye.unitIntervalSeconds * 1e9)} ns · ${eye.ddrAssessment?.status ?? 'not-evaluated'} · DDR compliance not evaluated`
         : ' · Declared stimulus clock alignment'
     }
     $('sample-count').textContent = curves.map(({ run }) => run.rows.length.toLocaleString()).join(' + ') + ' actual samples'
@@ -137,6 +174,7 @@ export function viewerClient() {
     }
   })
   runSelect.onchange = updateProbes; probeSelect.onchange = updateEyes; eyeSelect.onchange = reset; overlay.onchange = reset
+  eyeStyle.onchange = draw
   $('waveform-button').onclick = () => { mode = 'waveform'; reset() }
   $('eye-button').onclick = () => { if (eyeSelect.options.length) { mode = 'eye'; reset() } }
   $('reset').onclick = reset; canvas.ondblclick = reset

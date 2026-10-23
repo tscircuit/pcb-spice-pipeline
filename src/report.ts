@@ -3,6 +3,7 @@ import type { Geometry, Modeling } from './geometry.js'
 import { selectPort } from './geometry.js'
 import type { SimulationPlan } from './declarations.js'
 import type { DdrAssessment } from './ddr.js'
+import { eyeSampling } from './eye-density.js'
 
 export type ReportTest = Pick<SimulationPlan, 'startTimeSeconds' | 'durationSeconds' | 'maxStepSeconds' | 'stimuli' | 'states' | 'models'>
 export interface ReportContext {
@@ -133,9 +134,12 @@ export function reportFiles(data: ReportData): ReportFile[] {
       stimulus.transmission_pattern.bits, stimulus.transmission_pattern.repeat, Boolean(stimulus.inverted), stimulus.initial_state,
       stimulus.bit_duration_ms / 1000, stimulus.start_time_ms / 1000, run.test!.startTimeSeconds, run.test!.durationSeconds, run.test!.maxStepSeconds])
     run.eyes.forEach((eye, index) => {
+      const sampling = eyeSampling(run.rows, eye)
       eyes.push([run.name, eye.name, run.probes.find(p => p.simulationVoltageProbeId === eye.simulationVoltageProbeId)?.name,
-        eye.startTimeSeconds, eye.endTimeSeconds, eye.unitIntervalSeconds, eye.timeOriginSeconds, eye.windows ?? eye.windowOriginsSeconds?.length,
-        eye.metrics?.voltageRangeV[0], eye.metrics?.voltageRangeV[1]])
+        eye.startTimeSeconds, eye.endTimeSeconds, eye.unitIntervalSeconds, eye.timeOriginSeconds, sampling.completeWindows,
+        eye.metrics?.voltageRangeV[0], eye.metrics?.voltageRangeV[1], sampling.actualSamples, sampling.actualSamplesInGate,
+        sampling.minimumSamplesPerWindow, sampling.medianSamplesPerWindow, sampling.maxGapSeconds, sampling.maxGapUi,
+        sampling.rejectedWindows, sampling.gateFullyRecorded])
       if (eye.csv !== undefined) add(`${prefix}-eye-${index + 1}.csv`, `${run.name} · ${eye.name}`, 'Complete folded eye samples, linearly interpolated from recorded waveforms; both original and folded time in seconds.', eye.csv)
       const ddr = eye.ddrAssessment
       if (ddr) {
@@ -159,8 +163,8 @@ export function reportFiles(data: ReportData): ReportFile[] {
       ...data.context.lanes.map(lane => [lane.name, label(data.context, lane.from), label(data.context, lane.to), lane.sourceTraceId, lane.pcbTraceId, lane.lengthMm, lane.widthsMm.join(' / '), lane.layers.join(' > '), lane.vias])])
   if (tests.length) summary('test-plan.csv', 'Experiment and stimulus plan', 'Declared bits before optional inversion; one row per driven signal. Timing units are seconds.',
     [['order', 'experiment', 'drives', 'bits', 'repeat', 'inverted', 'initial_state_before_inversion', 'unit_interval_s', 'stimulus_start_s', 'recording_start_s', 'simulation_end_s', 'maximum_step_s'], ...tests])
-  if (eyes.length) summary('eye-summary.csv', 'Eye measurement summary', 'Declared measurement gates, folding origins and finite observed voltage ranges. No eye opening or compliance estimate.',
-    [['experiment', 'eye', 'probe', 'gate_start_s', 'gate_end_s', 'unit_interval_s', 'origin_s', 'complete_windows', 'minimum_v', 'maximum_v'], ...eyes])
+  if (eyes.length) summary('eye-summary.csv', 'Eye measurement summary', 'Recorded solver samples, complete two-UI windows and largest timestamp gap; overlapping windows reuse samples. Blank window counts mean origins were not recorded. Counts do not establish convergence or BER.',
+    [['experiment', 'eye', 'probe', 'gate_start_s', 'gate_end_s', 'unit_interval_s', 'origin_s', 'complete_windows', 'minimum_v', 'maximum_v', 'actual_samples', 'actual_samples_in_gate', 'minimum_samples_per_window', 'median_samples_per_window', 'maximum_gap_s', 'maximum_gap_ui', 'excluded_incomplete_windows', 'gate_fully_recorded'], ...eyes])
   if (assessments.length) summary('ddr-summary.csv', 'Configured DDR checks', 'Illustrative unless complete characterization evidence is supplied. Compliance is always not evaluated. Configuration includes every explicit limit and its evidence.',
     [['experiment', 'assessment', 'status', 'configured_checks', 'compliance', 'strobe', 'captures', 'violations', 'unevaluated', 'reason', 'config_json'], ...assessments])
   if (data.changes?.length) summary('comparison.csv', 'Quiet versus switching measurements', 'Switching minus quiet; extrema of piecewise-linear recorded data, with RMS integrated over the stated gate.',
@@ -233,8 +237,12 @@ export function reportSections(data: ReportData, files: ReportFile[]) {
     `${eye.name} / ${run.probes.find(p => p.simulationVoltageProbeId === eye.simulationVoltageProbeId)?.name ?? 'recorded probe'}`,
     `${number(eye.startTimeSeconds, 'ns', 1e9)} to ${number(eye.endTimeSeconds, 'ns', 1e9)}`,
     `${number(eye.unitIntervalSeconds, 'ns', 1e9)} / ${eye.alignment === 'received-differential-dqs' ? 'Received DQS; capture at center' : number(eye.timeOriginSeconds, 'ns', 1e9)}`,
-    eye.windows ?? eye.windowOriginsSeconds?.length ?? 'Not recorded', eye.metrics ? eye.metrics.voltageRangeV.map(v => number(v, 'V')).join(' to ') : 'Not recorded',
-  ])) : ''}${ddrFindings(run.eyes)}</article>`).join('')
+    eyeSampling(run.rows, eye).completeWindows ?? 'Origins not recorded', eye.metrics ? eye.metrics.voltageRangeV.map(v => number(v, 'V')).join(' to ') : 'Not recorded',
+  ])) : ''}${run.eyes.length ? table(['Eye sampling', 'Recorded samples in gate', 'Complete two-UI windows', 'Minimum actual samples/window', 'Largest recorded gap'], run.eyes.map(eye => {
+    const s = eyeSampling(run.rows, eye)
+    return [eye.name, s.actualSamplesInGate, s.completeWindows ?? 'Origins not recorded', s.minimumSamplesPerWindow ?? 'Not recorded',
+      `${number(s.maxGapSeconds, 'ps', 1e12)} (${number(s.maxGapUi, 'UI')})${s.gateFullyRecorded ? '' : '; gate incomplete'}${s.rejectedWindows ? `; ${s.rejectedWindows} windows excluded` : ''}`]
+  })) : ''}${ddrFindings(run.eyes)}</article>`).join('')
   const changes = data.changes?.length ? `<div class="comparison-summary"><h2>Neighbor switching · ${html(data.comparisonProbeName ?? 'Selected probe')}</h2>${table(['Switching − quiet', 'Gate', 'Peak absolute ΔV', 'Time RMS ΔV'], data.changes.map(c => [
     `${c.active} − ${c.quiet}`, `${number(c.startSeconds, 'ns', 1e9)} to ${number(c.endSeconds, 'ns', 1e9)}`, number(c.peakAbsoluteV, 'mV', 1000), number(c.timeRmsV, 'mV', 1000),
   ]))}</div>` : ''

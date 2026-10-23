@@ -53,6 +53,10 @@ Each request has an independent working directory. FastHenry gets coarse and ref
 
 `generateReport(result)` synchronously returns HTML and CSV strings. The self-contained HTML keeps the full adaptive waveform samples and interactive controls, and uses no network assets. Its browser client is bundled at build time. Neither report generation nor package import reads the source tree.
 
+The Eye view defaults to color density, with a Traces option for individual overlays. Each complete two-UI trace contributes at most one hit per time/voltage bin, so adaptive sample concentration does not bias the colors. Overlaid runs pool their hits and are labeled accordingly. The logarithmic colors show observed occupancy; they do not estimate BER or add noise/jitter.
+
+The plot, Results table and `eye-summary.csv` report actual samples in the eye gate, verified complete windows and the largest recorded timestamp gap. `eyeSampling(rows, eye)` exposes the same counts; `eyeDensity(rows, column, eye, {width, height, yMin, yMax})` returns trace-hit bins for custom renderers. Display interpolation never adds solver samples. Counts alone do not establish timestep convergence or statistical coverage.
+
 ## Explicit Node adapter
 
 Node 22+ applications can opt into filesystem access and native execution:
