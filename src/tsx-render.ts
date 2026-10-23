@@ -18,11 +18,11 @@ export function serializeSimulation(circuit: RootCircuit): CircuitJson {
     fail('tsx_board', 'One imported PCB per local simulation entry is supported')
   const board = imported[0], records = board[importedBoardRecords]!
   const declarations = board[importedBoardDeclarations]
-  const allowed = new Set(['Group', 'IbisModel', 'AnalogTransientSimulation', 'AnalogDigitalStimulus', 'VoltageProbe', 'AnalogEyeDiagram'])
-  const physicalChild = declarations?.getDescendants().find(instance => !allowed.has(instance.componentName))
+  const allowed = new Set(['Group', 'IbisModel', 'AnalogTransientSimulation', 'AnalogDigitalStimulus', 'VoltageProbe', 'AnalogEyeDiagram', 'VoltageSource'])
+  const physicalChild = declarations?.getDescendants().find(instance => !allowed.has(instance.componentName) && !(instance.parent?.componentName === 'VoltageSource' && ['Port', 'Trace'].includes(instance.componentName)))
   if (physicalChild) fail('tsx_board', `ImportedBoard children must be native simulation declarations; found ${physicalChild.componentName} ${physicalChild.name}`)
   const sourceComponents = records.filter(record => record.type === 'source_component')
-  const nativeComponents = board.getDescendants().filter(component => component.source_component_id && component.componentName !== 'Port')
+  const nativeComponents = board.getDescendants().filter(component => component.source_component_id && component.componentName !== 'Port' && component.componentName !== 'VoltageSource')
   if (nativeComponents.length !== sourceComponents.length)
     fail('tsx_board', 'An ImportedBoard cannot be mixed with additional physical TSX elements; edit the saved board instead')
   type NativeSourceComponentId = NonNullable<NormalComponent['source_component_id']>
@@ -85,6 +85,20 @@ export function serializeSimulation(circuit: RootCircuit): CircuitJson {
       fail('tsx_reference', `Ambiguous saved board pin ${port.name}`)
     portIds.set(nativePort.source_port_id, String(port.source_port_id))
   }
+  // VoltageSource's connections prop creates native source_trace children. Its
+  // own ports/components are preview scaffolding, never physical saved records.
+  const supplyPorts = board.getDescendants().filter((instance): instance is Port =>
+    instance.componentName === 'Port' && instance.parent?.componentName === 'VoltageSource')
+  const supplyBindings = supplyPorts.map(port => {
+    const id = port.source_port_id
+    const traces = nativeRecords.filter(record => record.type === 'source_trace' && id && record.connected_source_port_ids?.includes(id))
+    const peers = [...new Set(traces.flatMap(trace => trace.type === 'source_trace' ? trace.connected_source_port_ids ?? [] : []).filter(peer => peer !== id))]
+    const saved = peers.map(peer => portIds.get(peer))
+    if (!id || !saved.length || saved.some(peer => !peer) || new Set(saved).size !== 1)
+      fail('tsx_supply', `${port.parent?.name}.${port.name}: voltage source terminal must connect to exactly one saved source_port; unconnected or ambiguous terminal`)
+    return [id, saved[0]!] as const
+  })
+  for (const [id, saved] of supplyBindings) portIds.set(id, saved)
   const originalPort = (id: unknown): SavedRecord => {
     const port = records.find(record => record.type === 'source_port' && record.source_port_id === id)
     if (!port) fail('tsx_reference', `Simulation references an unknown saved physical pin: ${id}`)
@@ -135,7 +149,7 @@ export function serializeSimulation(circuit: RootCircuit): CircuitJson {
     return String(net.source_net_id)
   }
   const remap = (value: unknown, field = ''): unknown => {
-    if (Array.isArray(value)) return value.map(item => remap(item, field))
+    if (Array.isArray(value)) return value.map(item => remap(item, /_source_(component|port)_ids$/.test(field) ? field.slice(0, -1) : field))
     if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => {
       let context = key
       if (field === 'ibis_pin_name_to_source_port_id') context = 'source_port_id'
@@ -144,7 +158,7 @@ export function serializeSimulation(circuit: RootCircuit): CircuitJson {
     if (typeof value !== 'string') return value
     if (field === 'source_net_id' || field.endsWith('_source_net_id')) return mapNet(value)
     let map: Map<NativePhysicalId, string> | undefined
-    if (field === 'source_component_id') map = componentIds
+    if (field === 'source_component_id' || field.endsWith('_source_component_id')) map = componentIds
     if (field === 'source_port_id' || field.endsWith('_source_port_id')) map = portIds
     if (!map) return value
     const id = map.get(value)

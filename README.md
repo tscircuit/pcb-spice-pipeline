@@ -14,7 +14,7 @@ const runSolver: RunSolver = async request => {
 
 const result = await runPipeline({
   circuitJson,
-  modeling,
+  modeling, // optional: overrides simulation_experiment.pcb_spice_channel
   ibisSources: { 'models/driver.ibs': driverIbisBytes },
   runSolver,
   onProgress: message => showProgress(message),
@@ -22,7 +22,7 @@ const result = await runPipeline({
 const reportFiles = generateReport(result) // { 'results.html': '...', 'csv/...': '...' }
 ```
 
-`ibisSources` is `Record<string, Uint8Array | string>`, keyed by each `ibis_model_asset.project_relative_path`. Callers prepare models and extract archives before calling the library. Asset URLs are metadata and never trigger downloads. Strings are encoded as UTF-8; byte inputs preserve BOM and CRLF. Optional `modeling.ibisModelAssetSha256` must contain an expected SHA-256 for every used asset when supplied.
+`ibisSources` is `Record<string, Uint8Array | string>`, keyed by each `ibis_model_asset.project_relative_path`. Callers prepare models and extract archives before calling the library. Asset URLs are metadata and never trigger downloads. Strings are encoded as UTF-8; byte inputs preserve BOM and CRLF. Optional explicit `modeling.ibisModelAssetSha256` must contain an expected SHA-256 for every used asset when supplied. With derived modeling, only assets declaring `ibis_model_asset.sha256` are hash-locked.
 
 The solver callback receives:
 
@@ -85,14 +85,18 @@ import { ImportedBoard, serializeSimulation } from '@tscircuit/pcb-spice-pipelin
 
 circuit.add(<ImportedBoard circuitJson={savedBoard} fabricatorPreset="jlcpcb_standard">
   {/* Native IBIS models, experiments, stimuli, probes and eyes */}
+  <voltagesource name="VDDQ" voltage="1.5V"
+    connections={{ terminal1: '.U1 > .E5', terminal2: '.U1 > .A1' }} />
 </ImportedBoard>)
 await circuit.renderUntilSettled()
 const circuitJson = serializeSimulation(circuit)
 ```
 
-React, `@tscircuit/core` and `@tscircuit/props` are optional peers required by this integration, with development dependencies for bridge tests. Serialization preserves exact saved physical records and IDs, remaps native declarations to them, and rejects ambiguous bindings or added physical children. Saved construction is retained. Generating a stackup from a fabricator preset requires a core build containing merged [core #4826](https://github.com/tscircuit/core/pull/4826); a saved Circuit JSON stackup works with the committed core baseline.
+React, `@tscircuit/core` and `@tscircuit/props` are optional peers required by this integration, with development dependencies for bridge tests. Serialization preserves exact saved physical records and IDs, remaps native declarations to them, and rejects ambiguous bindings or added physical children. Voltage sources are simulation-only supplies: their native connection traces bind each terminal to exactly one saved pin, and their temporary physical records are discarded. `pin1`/`pin2` are terminal aliases. Unconnected or ambiguous terminals fail serialization. Saved construction is retained. Generating a stackup from a fabricator preset requires a core build containing merged [core #4826](https://github.com/tscircuit/core/pull/4826); a saved Circuit JSON stackup works with the committed core baseline.
 
 ## Modeling and limits
+
+`modelingFromCircuitJson(circuitJson): PipelineModeling` reads raw `pcb_spice_channel` declarations from PCB-engine transient experiments. `runPipeline({ circuitJson, ibisSources, runSolver, modeling?, onProgress? })` derives modeling when omitted; an explicit `modeling` always wins, including over conflicting circuit declarations. All derived experiments must declare the same channel. Lanes, reference, passives, stage profiles and extraction settings come from the channel; optional IBIS asset SHA-256 hashes are preserved.
 
 Modeling selects physical lanes, construction, extraction tolerances, explicit source rails and passives. Circuit JSON owns IBIS models, pin states, digital traffic, PCB-engine experiments, probes and eyes. Routed copper derives heights, dielectric thickness/permittivity and conductivity from the saved `pcb_stackup`. Straightened-stage modeling remains an explicit reduction with documented approximations.
 

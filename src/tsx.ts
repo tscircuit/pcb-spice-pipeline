@@ -1,5 +1,5 @@
 import type { Board, Group } from '@tscircuit/core'
-import { createElement, Fragment, useLayoutEffect, useRef } from 'react'
+import { Children, cloneElement, createElement, Fragment, isValidElement, useLayoutEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 
 import type { BoardProps } from '@tscircuit/props'
@@ -21,6 +21,23 @@ export function savedRecords(circuitJson: readonly unknown[]): SavedRecord[] {
 export interface ImportedBoardProps extends Pick<BoardProps, 'fabricatorPreset' | 'material'> {
   circuitJson: readonly unknown[]
   children?: ReactNode
+}
+
+// Older props releases accept pin1/pin2 in connections even though core's
+// voltage-source ports are named terminal1/terminal2. Normalize at this bridge.
+function simulationChildren(children: ReactNode): ReactNode {
+  return Children.map(children, child => {
+    if (!isValidElement<{ connections?: Record<string, unknown>; children?: ReactNode }>(child)) return child
+    const props = { ...child.props }
+    if (child.type === 'voltagesource' && props.connections) {
+      props.connections = Object.fromEntries(Object.entries(props.connections).map(([pin, target]) =>
+        [pin === 'terminal1' ? 'pin1' : pin === 'terminal2' ? 'pin2' : pin, target]))
+      if (Object.keys(props.connections).length !== Object.keys(child.props.connections!).length)
+        throw new Error('ImportedBoard voltage source has conflicting terminal and pin connection aliases')
+    }
+    if (props.children !== undefined) props.children = simulationChildren(props.children)
+    return cloneElement(child, props)
+  })
 }
 
 /** Preserves a routed board while core renders native simulation declarations. */
@@ -71,5 +88,5 @@ export function ImportedBoard({ circuitJson, children, fabricatorPreset, materia
     createElement('board', { ref: boardRef, fabricatorPreset, material: material ?? board.material, width: board.width, height: board.height, thickness: board.thickness,
       layers: board.num_layers, routingDisabled: true, schematicDisabled: true, placementDrcChecksDisabled: true,
       circuitJson: preview }),
-    createElement('group', { ref: declarationsRef, name: '__simulation_declarations' }, children))
+    createElement('group', { ref: declarationsRef, name: '__simulation_declarations' }, simulationChildren(children)))
 }

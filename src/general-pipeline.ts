@@ -1,3 +1,4 @@
+import {modelingFromCircuitJson} from './modeling.js'
 import * as converter from '@tscircuit/ibis-to-spice'
 import type {CircuitJson} from './schema.js'
 import {parseRecord} from './schema.js'
@@ -17,7 +18,7 @@ import {validateCircuitRecords} from './circuit-schema.mjs'
 export type PipelineModeling = Modeling & { ibisModelAssetSha256?: Record<string,string> }
 export interface PipelineOptions {
   circuitJson: CircuitJson
-  modeling: PipelineModeling
+  modeling?: PipelineModeling
   ibisSources: IbisSources
   runSolver: RunSolver
   onProgress?: (message: string) => void
@@ -29,6 +30,8 @@ const safeId=(id: string): string=>{
 
 /** Deterministic orchestration. All external execution belongs to the supplied callback. */
 export async function runPipeline({circuitJson,modeling,ibisSources,runSolver,onProgress=()=>{}}: PipelineOptions) {
+  const explicitModeling = modeling !== undefined
+  modeling ??= modelingFromCircuitJson(circuitJson)
   validateCircuitRecords(circuitJson)
   if(typeof converter.convertIbisModelToSpice!=='function') fail('converter_version','Install the pinned upstream general IBIS converter')
   const geometry=geometryFromCircuitJson(circuitJson,modeling),declarations=generalDeclarations(circuitJson,geometry,modeling)
@@ -44,7 +47,7 @@ export async function runPipeline({circuitJson,modeling,ibisSources,runSolver,on
     let expected: string | undefined
     if(expectedHashes!==undefined) {
       expected=expectedHashes[path]
-      if(typeof expected!=='string'||!/^[a-f0-9]{64}$/i.test(expected)) fail('vendor_hash',`${path}: modeling.ibisModelAssetSha256 requires an expected 64-digit SHA-256 hash for each used IBIS asset`)
+      if((explicitModeling||expected!==undefined)&&(typeof expected!=='string'||!/^[a-f0-9]{64}$/i.test(expected))) fail('vendor_hash',`${path}: modeling.ibisModelAssetSha256 requires an expected 64-digit SHA-256 hash for each used IBIS asset`)
     }
     const source=loadModelSource(model,ibisSources)
     if(expected!==undefined&&source.evidence.sourceSha256!==expected.toLowerCase()) fail('vendor_hash',`${path}: IBIS asset bytes differ from modeling.ibisModelAssetSha256`)
