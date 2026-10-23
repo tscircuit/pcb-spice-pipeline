@@ -1,3 +1,4 @@
+export { modelingFromCircuitJson } from './modeling.js'
 export { runPipeline } from './general-pipeline.js'
 export type { PipelineOptions, PipelineModeling, PipelineResult } from './general-pipeline.js'
 export type { Solver, SolverRequest, SolverResult, RunSolver, FileMap } from './solver.js'
