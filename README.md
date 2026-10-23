@@ -86,7 +86,7 @@ import { ImportedBoard, serializeSimulation } from '@tscircuit/pcb-spice-pipelin
 circuit.add(<ImportedBoard circuitJson={savedBoard} fabricatorPreset="jlcpcb_standard">
   {/* Native IBIS models, experiments, stimuli, probes and eyes */}
   <voltagesource name="VDDQ" voltage="1.5V"
-    connections={{ terminal1: '.U1 > .E5', terminal2: '.U1 > .A1' }} />
+    connections={{ pin1: '.U1 > .E5', pin2: '.U1 > .A1' }} />
 </ImportedBoard>)
 await circuit.renderUntilSettled()
 const circuitJson = serializeSimulation(circuit)

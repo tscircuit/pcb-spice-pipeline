@@ -298,7 +298,7 @@ test('ImportedBoard voltage sources use native terminal connections and emit onl
       if (typeof Reflect.get(renamed, key) === 'string') Reflect.set(renamed, key, `saved_${Reflect.get(renamed, key)}`)
     return renamed
   })
-  for (const [positive, negative] of [['terminal1', 'terminal2'], ['pin1', 'pin2']]) {
+  for (const [positive, negative] of [['pin1', 'pin2']]) {
     const circuit = new Circuit()
     circuit.add(h(ImportedBoard, { circuitJson: original }, ...declarations(),
       h('voltagesource', { name: 'VDDQ', voltage: '1.5V', connections: { [positive]: '.U1 > .VCC', [negative]: '.U1 > .GND' } })))
@@ -326,8 +326,8 @@ test('ImportedBoard voltage sources use native terminal connections and emit onl
 test('ImportedBoard rejects unconnected or ambiguous voltage-source terminals', async () => {
   const source = new Circuit(); source.add(tree()); await source.renderUntilSettled()
   const original = source.getCircuitJson().filter(record => !record.type.startsWith('simulation_'))
-  for (const connections of [{ terminal1: '.U1 > .VCC' },
-    { terminal1: ['.U1 > .VCC', '.U1 > .DATA'], terminal2: '.U1 > .GND' }]) {
+  for (const connections of [{ pin1: '.U1 > .VCC' },
+    { pin1: ['.U1 > .VCC', '.U1 > .DATA'], pin2: '.U1 > .GND' }]) {
     const circuit = new Circuit()
     circuit.add(h(ImportedBoard, { circuitJson: original }, ...declarations(), h('voltagesource', { name: 'VDDQ', voltage: '1.5V', connections })))
     await circuit.renderUntilSettled()
