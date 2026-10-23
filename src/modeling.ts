@@ -83,14 +83,5 @@ export function modelingFromCircuitJson(circuitJson: CircuitJson): PipelineModel
     return: { widthMm: stageProfile.return.width_mm, thicknessMm: stageProfile.return.thickness_mm, lengthFactor: stageProfile.return.length_factor,
       centerYMm: stageProfile.return.center_y_mm, centerZMm: stageProfile.return.center_z_mm },
   }]))
-  for (const record of circuitJson.filter(record => record.type === 'simulation_ibis_model')) {
-    const hash = Reflect.get(record.ibis_model_asset, 'sha256')
-    if (hash === undefined) continue
-    const path = record.ibis_model_asset.project_relative_path
-    if (typeof hash !== 'string' || !/^[a-f0-9]{64}$/i.test(hash)) fail('vendor_hash', `${path}: ibis_model_asset.sha256 must be a 64-digit SHA-256 hash`)
-    const hashes = modeling.ibisModelAssetSha256 ??= {}
-    if (hashes[path] && hashes[path] !== hash.toLowerCase()) fail('vendor_hash', `${path}: conflicting ibis_model_asset.sha256 hashes`)
-    hashes[path] = hash.toLowerCase()
-  }
   return modeling
 }

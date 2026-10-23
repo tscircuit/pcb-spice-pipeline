@@ -30,7 +30,6 @@ const safeId=(id: string): string=>{
 
 /** Deterministic orchestration. All external execution belongs to the supplied callback. */
 export async function runPipeline({circuitJson,modeling,ibisSources,runSolver,onProgress=()=>{}}: PipelineOptions) {
-  const explicitModeling = modeling !== undefined
   modeling ??= modelingFromCircuitJson(circuitJson)
   validateCircuitRecords(circuitJson)
   if(typeof converter.convertIbisModelToSpice!=='function') fail('converter_version','Install the pinned upstream general IBIS converter')
@@ -47,7 +46,7 @@ export async function runPipeline({circuitJson,modeling,ibisSources,runSolver,on
     let expected: string | undefined
     if(expectedHashes!==undefined) {
       expected=expectedHashes[path]
-      if((explicitModeling||expected!==undefined)&&(typeof expected!=='string'||!/^[a-f0-9]{64}$/i.test(expected))) fail('vendor_hash',`${path}: modeling.ibisModelAssetSha256 requires an expected 64-digit SHA-256 hash for each used IBIS asset`)
+      if(typeof expected!=='string'||!/^[a-f0-9]{64}$/i.test(expected)) fail('vendor_hash',`${path}: modeling.ibisModelAssetSha256 requires an expected 64-digit SHA-256 hash for each used IBIS asset`)
     }
     const source=loadModelSource(model,ibisSources)
     if(expected!==undefined&&source.evidence.sourceSha256!==expected.toLowerCase()) fail('vendor_hash',`${path}: IBIS asset bytes differ from modeling.ibisModelAssetSha256`)

@@ -2,7 +2,6 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { modelingFromCircuitJson, runPipeline } from '../src/index.js'
 import { validateCircuitRecords } from '../src/circuit-schema.mjs'
-import { sha256 } from '../src/hash.js'
 import { inMemoryInput, fixtureSolver } from './fixtures/in-memory.mjs'
 
 const extraction = {
@@ -60,11 +59,8 @@ test('raw routed-copper channel equals handwritten modeling and survives old rec
   const expected = structuredClone(expectedBase); delete expected.relativePermittivity; delete expected.viaPlatingMm
   assert.deepEqual(modelingFromCircuitJson([experiment(fallback)]), expected, 'stackup defaults are left to geometry')
 })
-test('straightened profiles, passive IDs and case-insensitive IBIS hashes map to handwritten modeling', () => {
-  const hash = 'AB'.repeat(32)
-  const cj = [experiment(straightChannel()), { type: 'simulation_ibis_model',
-    ibis_model_asset: { project_relative_path: 'models/test.ibs', sha256: hash } }]
-  assert.deepEqual(modelingFromCircuitJson(cj), { ...expectedStraight, ibisModelAssetSha256: { 'models/test.ibs': hash.toLowerCase() } })
+test('straightened profiles and passive IDs map to handwritten modeling', () => {
+  assert.deepEqual(modelingFromCircuitJson([experiment(straightChannel())]), expectedStraight)
 })
 test('shared extraction ignores object key order and rejects different or absent channels', () => {
   const c = channel()
@@ -104,25 +100,4 @@ test('runPipeline derives modeling, uses serialized supplies, and explicit model
   const override = await runPipeline({ ...input, modeling: explicit, runSolver: fixtureSolver })
   assert.deepEqual(override.modeling, explicit)
   await assert.rejects(runPipeline({ ...rest, runSolver: fixtureSolver }), /pcb_spice_channel/)
-})
-
-test('derived modeling verifies hashes only where declared, retaining explicit hash-map requirements', async () => {
-  const { modeling, ...input } = inMemoryInput()
-  const c = straightChannel(); delete c.passive_source_component_ids
-  input.circuitJson.find(record => record.type === 'simulation_experiment').pcb_spice_channel = c
-  input.circuitJson.push({ type: 'simulation_voltage_source', simulation_voltage_source_id: 'vdd',
-    is_dc_source: false, terminal1_source_port_id: 'v0', terminal2_source_port_id: 'g0', voltage: 3.3 })
-  const models = input.circuitJson.filter(record => record.type === 'simulation_ibis_model')
-  models[0].ibis_model_asset.sha256 = sha256(input.ibisSources['models/test.ibs']).toUpperCase()
-  models[1].ibis_model_asset.project_relative_path = 'models/other.ibs'
-  input.ibisSources['models/other.ibs'] = input.ibisSources['models/test.ibs']
-  await runPipeline({ ...input, runSolver: fixtureSolver })
-  models[0].ibis_model_asset.sha256 = '0'.repeat(64)
-  await assert.rejects(runPipeline({ ...input, runSolver: fixtureSolver }), /vendor_hash.*bytes differ/)
-  models[0].ibis_model_asset.sha256 = 'bad'
-  assert.throws(() => modelingFromCircuitJson(input.circuitJson), /vendor_hash.*64-digit/)
-  models[0].ibis_model_asset.sha256 = 'A'.repeat(64)
-  models[1].ibis_model_asset.project_relative_path = 'models/test.ibs'
-  models[1].ibis_model_asset.sha256 = 'B'.repeat(64)
-  assert.throws(() => modelingFromCircuitJson(input.circuitJson), /vendor_hash.*conflicting/)
 })
