@@ -10,3 +10,5 @@ export type { DdrAssessmentConfig, DdrAssessment, DdrCapture, ResolvedDdrAssessm
 export type { CircuitJson } from './schema.js'
 export { stackupFromCircuitJson } from './stackup.js'
 export { transmittedBits } from './stimulus.js'
+export { eyeDensity, eyeSampling } from './eye-density.js'
+export type { EyeWindowSpec, EyeDensityOptions } from './eye-density.js'
