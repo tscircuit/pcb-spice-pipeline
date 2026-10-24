@@ -72,7 +72,11 @@ export function viewerClient() {
     yMin = Infinity; yMax = -Infinity
     for (const { run, probe } of curves) {
       const eye = eyeCurves.find(item => item.run === run)?.eye
-      for (const row of run.rows) if (mode !== 'eye' || (eye && row[0] >= (eye.startTimeSeconds ?? -Infinity) && row[0] <= (eye.endTimeSeconds ?? Infinity))) {
+      if (mode === 'eye' && !eye) continue
+      const first = eye ? Math.max(0, nearestIndex(run.rows, eye.startTimeSeconds ?? run.rows[0][0]) - 1) : 0
+      const last = eye ? nearestIndex(run.rows, eye.endTimeSeconds ?? run.rows.at(-1)![0]) : run.rows.length - 1
+      for (let i = first; i <= last; i++) {
+        const row = run.rows[i]
         yMin = Math.min(yMin, row[probe.column]); yMax = Math.max(yMax, row[probe.column])
       }
     }
