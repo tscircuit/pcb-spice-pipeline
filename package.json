@@ -40,7 +40,7 @@
     "circuit-json": "0.0.534",
     "zod": "3.25.76",
     "earcut": "3.2.4",
-    "polygon-clipping": "0.15.7",
+    "clipper2-ts": "2.0.1-18",
     "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317",
     "@noble/hashes": "1.8.0",
     "format-si-unit": "0.0.12"

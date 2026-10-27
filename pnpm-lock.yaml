@@ -17,15 +17,15 @@ importers:
       circuit-json:
         specifier: 0.0.534
         version: 0.0.534(format-si-unit@0.0.12(typescript@5.9.3))
+      clipper2-ts:
+        specifier: 2.0.1-18
+        version: 2.0.1-18
       earcut:
         specifier: 3.2.4
         version: 3.2.4
       format-si-unit:
         specifier: 0.0.12
         version: 0.0.12(typescript@5.9.3)
-      polygon-clipping:
-        specifier: 0.15.7
-        version: 0.15.7
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -660,6 +660,10 @@ packages:
       circuit-json-to-connectivity-map: '*'
       schematic-symbols: '*'
 
+  clipper2-ts@2.0.1-18:
+    resolution: {integrity: sha512-WuRO1ZHzyYTVHY78r4wVWVydvQ+1lx9qZ+DeZa/8zhvrxIgCVzElJ6lwSMGtUUKFPefhvfJsHZ5C9RNkgisCOQ==}
+    engines: {node: '>=14.0.0'}
+
   color-convert@2.0.1:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
     engines: {node: '>=7.0.0'}
@@ -932,9 +936,6 @@ packages:
     resolution: {integrity: sha512-OBatVyC/N7SCW/FaDHrSd+vn0o5cS855TOmYi4OkdWUMSJCET/xip//ch8xGUvtr3i44X9LVyWwQlRMTN3pwSA==}
     engines: {node: '>=10'}
 
-  polygon-clipping@0.15.7:
-    resolution: {integrity: sha512-nhfdr83ECBg6xtqOAJab1tbksbBAOMUltN60bU+llHVOL0e5Onm1WpAXXWXVB39L8AJFssoIhEVuy/S90MmotA==}
-
   poppygl@0.0.37:
     resolution: {integrity: sha512-AwDXLVV1JLPpetfF+qdB9q3T3lInkYH8RG0YDjljSaZ8BstFk2/xOOpJ0FA6KVg0BPq10VA98aVxMkiUKIuciQ==}
     peerDependencies:
@@ -1000,9 +1001,6 @@ packages:
     resolution: {integrity: sha512-U7XpAktpbSgHTRSNRrjKSrjYkZKuhUukfoBlXWXUExCAqhzh1TU3BDRAfJmarcl5voKS+pbKU9MvyLWKZ4UEEg==}
     engines: {node: '>= 0.8.0'}
 
-  robust-predicates@3.0.3:
-    resolution: {integrity: sha512-NS3levdsRIUOmiJ8FZWCP7LG3QpJyrs/TE0Zpf1yvZu8cAJJ6QMW92H1c7kWpdIHo8RvmLxN/o2JXTKHp74lUA==}
-
   safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
 
@@ -1029,10 +1027,6 @@ packages:
     resolution: {integrity: sha512-iktSN1BteKEpou3158v25fxGJsNZ4MFeBVV0bZFZ5UZ5NnqusVxVQ1ZrPnCO+2FCmTIBqTD66n0GKMxF6+N/xg==}
     peerDependencies:
       typescript: ^5
-
-  splaytree@3.2.3:
-    resolution: {integrity: sha512-7OXrNWzy6CK+r7Ch9OLPBDTKfB6XlWHjX4P0RU5B3IgFuWPeYN0XtRtlexGRjgbQxpfaUve6jTAwBGWuGntz/w==}
-    engines: {node: '>=18.20 || >=20'}
 
   stack-svgs@0.0.1:
     resolution: {integrity: sha512-qcqBlwd5DZdXB+jEc+JUoh3o5zVYfjLrrgtwn7GCvjnoEGaXMPjWQnRotkDNh+uhpXVO7ssNln/JbNnLtIFNQw==}
@@ -1726,6 +1720,8 @@ snapshots:
       - supports-color
       - typescript
 
+  clipper2-ts@2.0.1-18: {}
+
   color-convert@2.0.1:
     dependencies:
       color-name: 1.1.4
@@ -2011,11 +2007,6 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.29.10
 
-  polygon-clipping@0.15.7:
-    dependencies:
-      robust-predicates: 3.0.3
-      splaytree: 3.2.3
-
   poppygl@0.0.37(typescript@5.9.3):
     dependencies:
       earcut: 3.2.4
@@ -2083,8 +2074,6 @@ snapshots:
 
   rename-keys@1.2.0: {}
 
-  robust-predicates@3.0.3: {}
-
   safe-buffer@5.2.1: {}
 
   scheduler@0.23.2:
@@ -2108,8 +2097,6 @@ snapshots:
   spicey@0.0.14(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
-
-  splaytree@3.2.3: {}
 
   stack-svgs@0.0.1(typescript@5.9.3):
     dependencies:

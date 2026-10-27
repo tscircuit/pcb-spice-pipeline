@@ -1,7 +1,7 @@
 import earcut, { refine } from 'earcut'
-import clipping from 'polygon-clipping'
+import { Clipper64, PolyTree64, ClipType, FillRule, type PolyPath64 } from 'clipper2-ts'
 import { fail } from './matrices.mjs'
-import { selectPort } from './geometry.js'
+import { selectPort, resolveRouteVias } from './geometry.js'
 import type { CircuitJson } from './schema.js'
 import type { ExtractionSettings, Geometry, GeometryCell, LaneMapping, ResolvedModeling } from './geometry.js'
 
@@ -80,8 +80,7 @@ function routePath(route: LaneMapping['originalRoute'], m: ResolvedModeling): Pa
     const a = route[i - 1], b = route[i]
     if (b.route_type === 'via') {
       if (a.route_type !== 'wire' || Math.hypot(b.x - a.x, b.y - a.y) > 1e-5 || a.layer !== b.from_layer || b.from_layer === b.to_layer) fail('via_geometry', 'Via must follow a co-located wire and continue its layer')
-      if (b.hole_diameter !== undefined && b.via_hole_diameter !== undefined && b.hole_diameter !== b.via_hole_diameter) fail('via_geometry', 'Conflicting current and legacy via hole diameters')
-      const hole = b.hole_diameter ?? b.via_hole_diameter, plating = m.viaPlatingMm!, width = m.viaEquivalentWidthMm!
+      const hole = b.hole_diameter, plating = m.viaPlatingMm!, width = m.viaEquivalentWidthMm!
       if (![hole, plating, width].every(value => typeof value === 'number' && finite(value) && value > 0)) fail('via_geometry', 'Positive finite via hole, plating and equivalent width required')
       if (!m.omitThroughViaStubs) fail('via_stub', 'Select omitThroughViaStubs for routed vias')
       segments.push({ a: [b.x, b.y, z(m, b.from_layer)], b: [b.x, b.y, z(m, b.to_layer)], widthMm: width,
@@ -113,7 +112,7 @@ function groundConnection(circuit: CircuitJson, m: ResolvedModeling, portId: str
   const traceIds = new Set(circuit.filter(e => e.type === 'source_trace').filter(e => e.connected_source_port_ids.includes(portId) && e.connected_source_net_ids?.some(id => netIds.has(id))).map(e => e.type === 'source_trace' ? e.source_trace_id : ''))
   const traces = circuit.filter(e => e.type === 'pcb_trace').filter(e => traceIds.has(e.source_trace_id ?? ''))
   if (traces.length !== 1) fail('ground_connection', `${portId}: require one routed ground lead to a reference via/pour`)
-  let route = traces[0].route as LaneMapping['originalRoute']
+  let route = resolveRouteVias(circuit, traces[0])
   if (!Array.isArray(route) || route.length < 2) fail('ground_connection', `${portId}: reference lead requires a complete physical route`)
   if (Math.hypot(route[0].x - port.x, route[0].y - port.y) > 1e-5) route = [...route].reverse().map(p => p.route_type === 'via' ? { ...p, from_layer: p.to_layer, to_layer: p.from_layer } : p)
   if (Math.hypot(route[0].x - port.x, route[0].y - port.y) > 1e-5) fail('ground_connection', `${portId}: reference route does not start at its physical pad`)
@@ -182,7 +181,7 @@ export function routedCopperGeometry(circuit: CircuitJson, m: ResolvedModeling, 
     units: { circuitJson: 'mm', geometry: 'm', conductivity: 'S/m' }, approximations: [
       'Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup',
       'FastHenry ground polygons discretized into an adaptive rectangular conductor mesh; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; finite reference contact areas resolved locally; ground mesh and filaments refined together',
-      'FasterCap uses closed polygon solids, preserving pour cutouts; ground islands on the same electrical net treated as equipotential',
+      'FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential',
       'Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted',
       'Via rectangular equivalent preserves plated barrel metal area; pads and unused through-via stubs omitted; wire joins rounded',
       'Homogeneous explicit effective permittivity; other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted',
@@ -304,6 +303,29 @@ function pathSolids(path: Path): Solid[] {
 // by floating-point roundoff. This 10-picometre tolerance is below the saved
 // board's nanometre coordinate precision; raw source polygons stay unchanged.
 const copperEpsilonMm=1e-8
+// Boolean geometry uses a local 1e-12 mm integer grid. Keep the source
+// route unchanged and retain holes/islands through the clipping hierarchy.
+function copperBoolean(subject: Polygon[], clip?: Polygon[]): Polygon[] {
+  const scale=1e12, engine=new Clipper64(), tree=new PolyTree64(), result: Polygon[]=[]
+  const paths=(polygons: Polygon[])=>polygons.flatMap(p=>p.map((ring,i)=>{
+    const oriented=area(ring)*(i?-1:1)>0?ring:[...ring].reverse()
+    return oriented.map(([x,y])=>{
+      const point={x:Math.round(x*scale),y:Math.round(y*scale)}
+      if(!Number.isSafeInteger(point.x)||!Number.isSafeInteger(point.y)) fail('copper_surface','Copper coordinates exceed the integer clipping range')
+      return point
+    })
+  }))
+  engine.addSubject(paths(subject))
+  if(clip) engine.addClip(paths(clip))
+  if(!engine.execute(clip?ClipType.Difference:ClipType.Union,FillRule.NonZero,tree)) fail('copper_surface','Copper polygon clipping failed')
+  const ring=(node: PolyPath64)=>closed(node.polygon!.map(p=>[p.x/scale,p.y/scale] as Point))
+  const visit=(node: PolyPath64)=>{
+    if(node.polygon&&!node.isHole) result.push([ring(node),...Array.from({length:node.count},(_,i)=>ring(node.child(i)))])
+    for(let i=0;i<node.count;i++) visit(node.child(i))
+  }
+  visit(tree)
+  return cleanPolygons(result)
+}
 function cleanPolygons(polygons: Polygon[]): Polygon[] {
   const result: Polygon[]=[]
   for(const polygon of polygons) {
@@ -332,10 +354,9 @@ function cleanPolygons(polygons: Polygon[]): Polygon[] {
 
 function surfacePanels(solids: Solid[], name: string): string {
   const levels = [...new Set(solids.flatMap(s => [s.zMinMm, s.zMaxMm]))].sort((a, b) => a - b), rows = ['* Closed union of actual copper polygons; millimetres; physical capacitance = raw matrix * 0.001']
-  const polygon = (p: Polygon) => p.map(closed)
   const slabs = levels.slice(1).map((high, i) => {
     const low = levels[i], active = solids.filter(s => s.zMinMm < high - 1e-10 && s.zMaxMm > low + 1e-10)
-    return active.length ? cleanPolygons(clipping.union(polygon(active[0].polygon), ...active.slice(1).map(s => polygon(s.polygon)))) : []
+    return active.length ? copperBoolean(active.map(s=>s.polygon)) : []
   })
   const emit = (kind: 'T' | 'Q', pts: XYZ[]) => rows.push(`${kind} ${name} ${pts.flat().join(' ')}`)
   const face = (polys: Polygon[], zz: number, up: boolean) => {
@@ -359,8 +380,8 @@ function surfacePanels(solids: Solid[], name: string): string {
   for (let i = 0; i < slabs.length; i++) {
     const slab = slabs[i], previous = slabs[i - 1] ?? [], next = slabs[i + 1] ?? []
     if (!slab.length) continue
-    face(previous.length ? clipping.difference(slab, previous) : slab, levels[i], false)
-    face(next.length ? clipping.difference(slab, next) : slab, levels[i + 1], true)
+    face(previous.length ? copperBoolean(slab, previous) : slab, levels[i], false)
+    face(next.length ? copperBoolean(slab, next) : slab, levels[i + 1], true)
     for (const p of slab) for (const ring of p) for (let j = 1; j < ring.length; j++) {
       const a = ring[j - 1], b = ring[j]
       emit('Q', [[a[0], a[1], levels[i]], [b[0], b[1], levels[i]], [b[0], b[1], levels[i + 1]], [a[0], a[1], levels[i + 1]]])
