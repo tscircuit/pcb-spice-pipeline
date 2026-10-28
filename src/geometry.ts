@@ -39,7 +39,26 @@ export interface RouteStage {
 }
 type SourcePort = Extract<CircuitJson[number], { type: 'source_port' }>
 type RoutePoint = Extract<CircuitJson[number], { type: 'pcb_trace' }>['route'][number]
-type RoutedPoint = Exclude<RoutePoint, { route_type: 'through_pad' }> & { via_hole_diameter?: number }
+type RoutedPoint = Exclude<RoutePoint, { route_type: 'through_pad' }>
+
+/** Native pcbPath keeps via dimensions on the associated physical record. */
+export function resolveRouteVias(circuit: CircuitJson, trace: Extract<CircuitJson[number], {type:'pcb_trace'}>): RoutedPoint[] {
+  return trace.route.map(point => {
+    if(point.route_type==='through_pad') fail('route_type','Only wire/via routed primitives supported')
+    if(point.route_type!=='via') return point
+    const matches=circuit.filter(e=>e.type==='pcb_via').filter(via=>
+      (via.pcb_trace_id===undefined||via.pcb_trace_id===trace.pcb_trace_id)&&
+      (via.source_trace_id===undefined||via.source_trace_id===trace.source_trace_id)&&
+      via.subcircuit_id===trace.subcircuit_id&&
+      Math.hypot(via.x-point.x,via.y-point.y)<1e-5&&
+      via.layers.includes(point.from_layer)&&via.layers.includes(point.to_layer))
+    if(matches.length>1) fail('via_geometry',`${trace.pcb_trace_id}: ambiguous native via at ${point.x},${point.y}`)
+    const holes=[point.hole_diameter,matches[0]?.hole_diameter].filter((v): v is number=>v!==undefined)
+    if(!holes.length||holes.some(v=>!Number.isFinite(v)||v<=0||v!==holes[0]))
+      fail('via_geometry',`${trace.pcb_trace_id}: missing, invalid or conflicting via hole diameters at ${point.x},${point.y}`)
+    return {...point,hole_diameter:holes[0]}
+  })
+}
 export interface LaneMapping {
   port: string; sourceTraceId: string; pcbTraceId: string; from: string; to: string
   pcbPorts: string[]; stages: RouteStage[]; originalRoute: RoutedPoint[]
@@ -112,7 +131,7 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
     selectedTraces.add(src.source_trace_id)
     const traces=cj.filter(e=>e.type==='pcb_trace').filter(e=>e.source_trace_id===src.source_trace_id)
     if(traces.length!==1) fail('route_selection',`${lane.port}: expected one complete PCB route, got ${traces.length}`)
-    const original=traces[0].route
+    const original=resolveRouteVias(cj,traces[0])
     if(!Array.isArray(original)||original.length<2) fail('empty_route',`${lane.port}: at least two routed vertices required`)
     let route: RoutedPoint[]=original.map((p,i)=>{
       if(p.route_type!=='wire'&&p.route_type!=='via') fail('route_type','Only wire/via routed primitives supported')
@@ -149,8 +168,7 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
         const la=layer(b.from_layer),lb=layer(b.to_layer)
         const plating=positive(m.viaPlatingMm,'viaPlatingMm (not recorded in ordinary Circuit JSON)'),width=positive(m.viaEquivalentWidthMm,'viaEquivalentWidthMm')
         if(!m.omitThroughViaStubs) fail('via_stub','This reduction requires explicit omitThroughViaStubs=true')
-        if(b.hole_diameter!==undefined&&b.via_hole_diameter!==undefined&&b.hole_diameter!==b.via_hole_diameter) fail('via_geometry','Conflicting current and legacy via hole diameter fields')
-        const hole=positive(b.hole_diameter??b.via_hole_diameter,'via_hole_diameter / hole_diameter')
+        const hole=positive(b.hole_diameter,'hole_diameter')
         const area=Math.PI*((hole/2+plating)**2-(hole/2)**2)
         const length=Math.abs((la.zMinMm+la.zMaxMm-lb.zMinMm-lb.zMaxMm)/2)
         positive(length,'via active length')

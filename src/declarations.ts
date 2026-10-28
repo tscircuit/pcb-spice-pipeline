@@ -69,15 +69,40 @@ export function circuitNodes(circuit: CircuitJson,geometry: Geometry,modeling: M
   const union=(ids: string[])=>{for(const id of ids) add(id);for(const id of ids.slice(1)) parents.set(find(id),find(ids[0]))}
   for(const element of circuit) {if(element.type==='source_port') add(element.source_port_id);if(element.type==='source_net') add(element.source_net_id)}
   const channelTraces=new Set(geometry.mappings.map(mapping=>mapping.sourceTraceId))
-  for(const trace of circuit.filter(e=>e.type==='source_trace')) {
+  const traces=circuit.filter(e=>e.type==='source_trace'),nets=circuit.filter(e=>e.type==='source_net')
+  // A two-terminal channel can have redundant one-port-to-net declarations
+  // from component connections at both ends. Cut only that unambiguous case.
+  const splitNets=new Set<string>()
+  const bindings=(port: string)=>new Set(traces.filter(t=>!channelTraces.has(t.source_trace_id)&&
+    t.connected_source_port_ids.length===1&&t.connected_source_port_ids[0]===port)
+    .flatMap(t=>t.connected_source_net_ids??[]))
+  for(const mapping of geometry.mappings) {
+    const from=bindings(mapping.from),to=bindings(mapping.to)
+    for(const id of from) if(to.has(id)) {
+      if(nets.some(net=>net.source_net_id===id&&net.is_ground)) fail('channel_short',`${mapping.port}: channel is bound to ground`)
+      const attached=traces.filter(t=>t.connected_source_net_ids?.includes(id))
+      if(attached.some(t=>t.connected_source_net_ids!.length!==1)) fail('channel_net',`${mapping.port}: shared channel net has additional net bindings; select explicit endpoints`)
+      const members=attached.flatMap(t=>t.connected_source_port_ids)
+      if(members.some(id=>id!==mapping.from&&id!==mapping.to))
+        fail('channel_fanout',`${mapping.port}: shared channel net has additional ports; bind loads to an explicit endpoint`)
+      splitNets.add(id)
+    }
+  }
+  for(const trace of traces) {
     if(channelTraces.has(trace.source_trace_id)) continue
-    union([...(trace.connected_source_port_ids??[]),...(trace.connected_source_net_ids??[])])
+    // Keep all explicit port-to-port paths, including genuine ideal bypasses.
+    union([...(trace.connected_source_port_ids??[]),...(trace.connected_source_net_ids??[]).filter(id=>!splitNets.has(id))])
   }
   const ground=selectPort(circuit,modeling.channelReference).source_port_id,groundRoot=find(ground),names=new Map([[groundRoot,'0']])
-  const node=(id: string): string=>{const root=find(id),name=names.get(root)??`n${names.size}`;names.set(root,name);return name}
-  for(const id of parents.keys()) node(id)
-  for(const mapping of geometry.mappings) if(node(mapping.from)===node(mapping.to)) fail('channel_short',`${mapping.port}: extracted endpoints are shorted by another ideal source trace`)
-  return {node,groundSourcePortId:ground,mapping:Object.fromEntries([...parents.keys()].map(id=>[id,node(id)]))}
+  const node=(id: string): string=>{
+    if(splitNets.has(id)) fail('channel_net',`${id}: extracted channel spans distinct endpoint nodes; select a physical port instead of the net`)
+    const root=find(id),name=names.get(root)??`n${names.size}`;names.set(root,name);return name
+  }
+  const ids=[...parents.keys()].filter(id=>!splitNets.has(id))
+  for(const id of ids) node(id)
+  const endpoints=geometry.mappings.flatMap(mapping=>[node(mapping.from),node(mapping.to)])
+  if(endpoints.includes('0')||new Set(endpoints).size!==endpoints.length) fail('channel_short','Extracted endpoints are shorted by another ideal source trace or reference')
+  return {node,groundSourcePortId:ground,mapping:Object.fromEntries(ids.map(id=>[id,node(id)]))}
 }
 
 export function generalDeclarations(circuit: CircuitJson,geometry: Geometry,modeling: Modeling) {
