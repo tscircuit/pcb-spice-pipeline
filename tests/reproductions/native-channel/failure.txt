@@ -1,8 +1,0 @@
-1 / Native via dimensions
-modeling_input: via_hole_diameter / hole_diameter must be a positive number
-
-2 / Net binding bypass
-channel_short: DQ: extracted endpoints are shorted by another ideal source trace
-
-3 / Copper union precision
-Unable to find segment #2 [0.9395330089406705, -16.185773002059324] -> [0.9543238289406705, -16.200563822059326] in SweepLine tree.

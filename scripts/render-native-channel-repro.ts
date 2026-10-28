@@ -6,11 +6,11 @@ import { circuitNodes } from '../src/declarations.js'
 const directory = new URL('../tests/reproductions/native-channel/', import.meta.url)
 const cases = [
   { title: '1 / Native via dimensions', options: { vias: true }, lines: ['Look at the two highlighted via-in-pad transitions.', 'The native pcb_via records contain 0.2 mm holes.', 'The trace via vertices omit dimensions.'] },
-  { title: '2 / Net binding bypass', options: { netBindings: true }, lines: ['The solid copper trace is the selected channel.', 'Dashed links show both pins bound to net.DQ.', 'These ordinary labels short the extracted model.'] },
-  { title: '3 / Copper union precision', options: { points: curvedPoints }, lines: ['Zoom: the short diagonal joins the long segment.', 'Only 3 native path points; width = 0.1 mm.', 'The union fails before the first solver request.'] },
+  { title: '2 / Net binding bypass', options: { netBindings: true }, lines: ['The solid copper trace is the selected channel.', 'Dashed links show both pins bound to net.DQ.', 'The extracted model needs distinct endpoints.'] },
+  { title: '3 / Copper union precision', options: { points: curvedPoints }, lines: ['Zoom: the short diagonal joins the long segment.', 'Only 3 native path points; width = 0.1 mm.', 'Copper slabs must join at this bend.'] },
 ]
 const escape = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="510" viewBox="0 0 1260 510"><rect width="1260" height="510" fill="#0b1422"/><g font-family="sans-serif" fill="#eef4ff"><text x="24" y="36" font-size="22">Native TSX channel reproductions — before the fix</text>'
+let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="510" viewBox="0 0 1260 510"><rect width="1260" height="510" fill="#0b1422"/><g font-family="sans-serif" fill="#eef4ff"><text x="24" y="36" font-size="22">Native TSX channel preparation</text>'
 const logs: string[] = []
 for (const [i, item] of cases.entries()) {
   const circuit = await nativeChannel(item.options)
@@ -37,10 +37,9 @@ for (const [i, item] of cases.entries()) {
   if (i === 1) svg += `<path d="M ${px(route[0].x)} 206 V 145 H ${px(route.at(-1)!.x)} V 206" fill="none" stroke="#ff6e75" stroke-width="2" stroke-dasharray="6 4"/><text x="168" y="139" font-size="14" fill="#ffa3a8">net.DQ</text>`
   if (i < 2) svg += '<text x="31" y="250" font-size="14">TX.DQ</text><text x="311" y="250" font-size="14">RX.DQ</text>'
   item.lines.forEach((line, j) => { svg += `<text x="18" y="${349 + j * 22}" font-size="14">${escape(line)}</text>` })
-  svg += `<text x="18" y="440" font-size="15" fill="#ffa3a8">${escape(failure.includes('SweepLine') ? 'Unable to find segment in SweepLine tree' : failure.split(':')[0])}</text><text x="18" y="465" font-size="12" fill="#a7b9cf">Trace coordinates rendered from native Circuit output</text></g>`
+  svg += `<text x="18" y="440" font-size="15" fill="${failure === 'Prepared successfully' ? '#7de7af' : '#ffa3a8'}">${escape(failure.includes('SweepLine') ? 'Unable to find segment in SweepLine tree' : failure.split(':')[0])}</text><text x="18" y="465" font-size="12" fill="#a7b9cf">Trace coordinates rendered from native Circuit output</text></g>`
 }
 svg += '</g></svg>\n'
 await mkdir(directory, { recursive: true })
 await writeFile(new URL('before.svg', directory), svg)
-await writeFile(new URL('failure.txt', directory), logs.join('\n'))
 console.log(logs.join('\n'))
