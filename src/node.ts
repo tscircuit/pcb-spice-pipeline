@@ -40,8 +40,11 @@ export function createNativeSolver({tools={},timeoutMs=900000}: NativeSolverOpti
         run=await exec(tools[request.solver]??(request.solver==='fastercap'?'FasterCap':request.solver),request.args,
           {cwd:directory,timeout:timeoutMs,maxBuffer:64*1024*1024,env:{...process.env,OMP_NUM_THREADS:'1'}})
       } catch(error) {
-        const detail=error as Error & {stdout?: string;stderr?: string}
-        fail('native_solver',`${request.solver}: ${detail.message}\n${detail.stdout??''}\n${detail.stderr??''}`)
+        const detail=error as Error & {code?: string|number|null;killed?: boolean;signal?: string;stdout?: string;stderr?: string}
+        // execFile's timeout kills with SIGTERM and no exit code. External
+        // signals are not marked killed; maxBuffer errors have a string code.
+        const timedOut=detail.killed&&detail.signal==='SIGTERM'&&detail.code===null
+        fail(timedOut?'native_timeout':'native_solver',`${request.solver}: ${timedOut?`exceeded ${timeoutMs} ms process timeout; ${detail.message}`:detail.message}\n${detail.stdout??''}\n${detail.stderr??''}`)
       }
       const files: Record<string,string>=Object.create(null)
       const root=await realpath(directory)
