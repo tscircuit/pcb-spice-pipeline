@@ -39,7 +39,7 @@ export function NativeChannel({ vias = false, netBindings = false, short = false
     {short && <trace from=".TX > .DQ" to=".RX > .DQ" />}
     {(['TX', 'RX'] as const).map((name, i) => <React.Fragment key={`ground-${name}`}>
       <via name={`GND_${name}`} pcbX={points[i ? points.length - 1 : 0][0] + .4}
-        pcbY={points[i ? points.length - 1 : 0][1] - 1} fromLayer="top" toLayer="bottom"
+        pcbY={points[i ? points.length - 1 : 0][1] - 1} layers={['top', 'inner1', 'inner2', 'bottom']}
         holeDiameter={.2} outerDiameter={.4} connectsTo="net.GND" />
       <trace from={`.${name} > .GND`} to={`.GND_${name} > .top`}
         connectsTo={[`.${name} > .GND`, `.GND_${name} > .top`, 'net.GND']}
