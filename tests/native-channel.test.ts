@@ -17,6 +17,7 @@ test('native pcbPath resolves via dimensions from pcb_via', async () => {
 test('native via does not substitute an unrelated co-located via', async () => {
   const circuit = await nativeChannel({ vias: true })
   const trace = circuit.find(e => e.type === 'pcb_trace' && e.route.some(p => p.route_type === 'via'))!
+  if (trace.type !== 'pcb_trace') throw new Error('expected trace')
   const via = circuit.find(e => e.type === 'pcb_via' && e.pcb_trace_id === trace.pcb_trace_id)!
   if (via.type !== 'pcb_via') throw new Error('expected via')
   via.pcb_trace_id = undefined
@@ -27,6 +28,7 @@ test('native via does not substitute an unrelated co-located via', async () => {
 test('inline hole does not hide an associated physical via with incompatible layers', async () => {
   const circuit = await nativeChannel({ vias: true })
   const trace = circuit.find(e => e.type === 'pcb_trace' && e.route.some(p => p.route_type === 'via'))!
+  if (trace.type !== 'pcb_trace') throw new Error('expected trace')
   const point = trace.route.find(p => p.route_type === 'via')!
   const via = circuit.find(e => e.type === 'pcb_via' && e.pcb_trace_id === trace.pcb_trace_id)!
   if (point.route_type !== 'via' || via.type !== 'pcb_via') throw new Error('expected vias')
