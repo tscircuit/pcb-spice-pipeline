@@ -37,23 +37,24 @@
     "test:package": "node --import tsx scripts/test-package.mjs"
   },
   "dependencies": {
-    "circuit-json": "0.0.534",
-    "zod": "3.25.76",
-    "earcut": "3.2.4",
-    "clipper2-ts": "2.0.1-18",
-    "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317",
     "@noble/hashes": "1.8.0",
-    "format-si-unit": "0.0.12"
+    "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317",
+    "circuit-json": "0.0.534",
+    "clipper2-ts": "2.0.1-18",
+    "earcut": "3.2.4",
+    "format-si-unit": "0.0.12",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@tscircuit/core": "0.0.2217",
     "@tscircuit/props": "0.0.712",
-    "react": "19.2.4",
-    "tsx": "4.23.15",
-    "typescript": "5.9.3",
     "@types/node": "22.20.5",
     "@types/react": "19.3.0",
-    "esbuild": "0.28.2"
+    "circuit-to-svg": "0.0.454",
+    "esbuild": "0.28.2",
+    "react": "19.2.4",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "@tscircuit/core": ">=0.0.2188",
