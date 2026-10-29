@@ -96,6 +96,38 @@ function routePath(route: LaneMapping['originalRoute'], m: ResolvedModeling): Pa
   return { segments, terminals: [segments[0].a, segments.at(-1)!.b] }
 }
 
+type Via = Extract<CircuitJson[number], { type: 'pcb_via' }>
+
+// A full barrel disk inside the pour avoids claiming a connection across a
+// cutout or an edge that only intersects the drilled void.
+function barrelInside(p: Point, radius: number, polygon: Polygon): boolean {
+  if (!contains(p, polygon)) return false
+  return polygon.every(ring => ring.every((a, i) => {
+    const b = ring[(i + 1) % ring.length], dx = b[0] - a[0], dy = b[1] - a[1]
+    const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy)))
+    return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy) > radius
+  }))
+}
+
+function viaSpans(via: Via, from: string, to: string, m: ResolvedModeling): boolean {
+  const indices = via.layers.map(name => m.stackup.findIndex(l => l.name === name))
+  const start = m.stackup.findIndex(l => l.name === from), end = m.stackup.findIndex(l => l.name === to)
+  if (indices.length < 2 || indices.some(i => i < 0) || start < 0 || end < 0 || start === end) return false
+  const lo = Math.min(...indices), hi = Math.max(...indices)
+  if (via.from_layer !== undefined || via.to_layer !== undefined) {
+    const a = m.stackup.findIndex(l => l.name === via.from_layer), b = m.stackup.findIndex(l => l.name === via.to_layer)
+    if (Math.min(a, b) !== lo || Math.max(a, b) !== hi) return false
+  }
+  return start >= lo && start <= hi && end >= lo && end <= hi
+}
+
+function validateReferenceVia(via: Via, m: ResolvedModeling, portId: string): number {
+  const plating = m.viaPlatingMm!
+  if (![via.x, via.y, via.outer_diameter, via.hole_diameter, plating].every(finite) || via.hole_diameter <= 0 || plating <= 0 || via.outer_diameter <= via.hole_diameter || via.hole_diameter + 2 * plating > via.outer_diameter + 1e-10)
+    fail('via_geometry', `${portId}: reference via needs a valid plated barrel and copper diameter`)
+  return via.hole_diameter / 2 + plating
+}
+
 /** Physical reference leads terminate on the selected pour, including their actual via. */
 function groundConnection(circuit: CircuitJson, m: ResolvedModeling, portId: string, netIds: Set<string>, pours: RoutedCopper['pours']): Path {
   const ports = circuit.filter(e => e.type === 'pcb_port').filter(e => e.source_port_id === portId)
@@ -108,6 +140,38 @@ function groundConnection(circuit: CircuitJson, m: ResolvedModeling, portId: str
     const pad=pads[0], radius=pad.shape==='circle'?pad.radius:Math.min(Number(Reflect.get(pad,'width')),Number(Reflect.get(pad,'height')))/2
     if(!Number.isFinite(radius)||radius<=0) fail('ground_connection',`${portId}: reference pad requires a finite contact area`)
     return { segments: [], terminals: [start, start], contactRadiusMm:radius }
+  }
+  // A directly connected native via may be associated through its source trace,
+  // not source_net_id. Require both that association and physical pad contact.
+  const pads = circuit.filter(e => e.type === 'pcb_smtpad').filter(e => e.pcb_port_id === port.pcb_port_id && e.layer === port.layers[0])
+  const connected = connectedSourceIds(circuit, portId)
+  const directVias = circuit.filter(e => e.type === 'pcb_via').filter(via => {
+    if (via.subcircuit_id !== port.subcircuit_id || (via.source_net_id && !netIds.has(via.source_net_id))) return false
+    const trace = circuit.find(e => e.type === 'source_trace' && e.source_trace_id === via.source_trace_id)
+    const traceMatches = trace && trace.type === 'source_trace' && [...trace.connected_source_port_ids, ...(trace.connected_source_net_ids ?? [])].some(id => connected.has(id))
+    if (via.source_trace_id && !traceMatches) return false
+    return !!(via.source_net_id && netIds.has(via.source_net_id)) || !!traceMatches
+  }).filter(via => pads.some(pad => {
+    if (pad.shape !== 'circle' && pad.shape !== 'rect') return false
+    const radius = pad.shape === 'circle' ? pad.radius : Math.min(pad.width, pad.height) / 2
+    return Number.isFinite(radius) && radius > 0 && Math.hypot(pad.x - port.x, pad.y - port.y) < 1e-5 &&
+      Number.isFinite(via.outer_diameter) && via.outer_diameter > 0 && Math.hypot(via.x - pad.x, via.y - pad.y) + via.outer_diameter / 2 <= radius + 1e-10
+  }))
+  if (directVias.length) {
+    if (pads.length !== 1 || directVias.length !== 1) fail('ground_connection', `${portId}: ambiguous reference pad/via contact`)
+    const via = directVias[0], barrelRadius = validateReferenceVia(via, m, portId)
+    const targets = pours.filter(p => viaSpans(via, port.layers[0], p.layer, m) && barrelInside([via.x, via.y], barrelRadius, p.polygon))
+    if (targets.length !== 1) fail('ground_connection', `${portId}: reference via must connect unambiguously to actual ground copper`)
+    const pad = pads[0]
+    if (pad.shape !== 'circle' && pad.shape !== 'rect') fail('ground_connection', `${portId}: unsupported reference pad`)
+    const padRadius = pad.shape === 'circle' ? pad.radius : Math.min(pad.width, pad.height) / 2
+    const width = Math.min(m.viaEquivalentWidthMm!, 2 * (padRadius - Math.hypot(via.x - pad.x, via.y - pad.y)))
+    const route: LaneMapping['originalRoute'] = [
+      { route_type: 'wire', x: port.x, y: port.y, layer: port.layers[0], width },
+      { route_type: 'wire', x: via.x, y: via.y, layer: port.layers[0], width },
+      { route_type: 'via', x: via.x, y: via.y, from_layer: port.layers[0], to_layer: targets[0].layer as typeof port.layers[0], hole_diameter: via.hole_diameter },
+    ]
+    return { ...routePath(route, m), contactRadiusMm: via.outer_diameter / 2 }
   }
   const traceIds = new Set(circuit.filter(e => e.type === 'source_trace').filter(e => e.connected_source_port_ids.includes(portId) && e.connected_source_net_ids?.some(id => netIds.has(id))).map(e => e.type === 'source_trace' ? e.source_trace_id : ''))
   const traces = circuit.filter(e => e.type === 'pcb_trace').filter(e => traceIds.has(e.source_trace_id ?? ''))
@@ -124,10 +188,11 @@ function groundConnection(circuit: CircuitJson, m: ResolvedModeling, portId: str
   if (end.route_type !== 'wire') fail('ground_connection', `${portId}: ground lead must end on a wire layer`)
   if (!pours.some(p => p.layer === end.layer && contains([end.x, end.y], p.polygon))) {
     const vias = circuit.filter(e => e.type === 'pcb_via').filter(e => e.source_net_id && netIds.has(e.source_net_id) && e.layers.includes(end.layer) && Math.hypot(e.x - end.x, e.y - end.y) < 1e-5)
-    const targets = vias.flatMap(via => pours.filter(p => via.layers.some(name=>name===p.layer) && contains([via.x, via.y], p.polygon)).map(p => ({ via, pour: p })))
+    const targets = vias.flatMap(via => pours.filter(p => viaSpans(via, end.layer, p.layer, m) && contains([via.x, via.y], p.polygon)).map(p => ({ via, pour: p })))
     if (targets.length !== 1) fail('ground_connection', `${portId}: reference via must connect unambiguously to actual ground copper`)
     const { via, pour } = targets[0]
-    if (!finite(via.outer_diameter) || !finite(via.hole_diameter) || via.hole_diameter <= 0 || via.outer_diameter <= via.hole_diameter) fail('via_geometry', `${portId}: reference via needs a positive hole and larger finite copper diameter`)
+    const barrelRadius = validateReferenceVia(via, m, portId)
+    if (!barrelInside([via.x, via.y], barrelRadius, pour.polygon)) fail('ground_connection', `${portId}: reference barrel misses ground copper`)
     contactRadiusMm = via.outer_diameter/2
     if (!m.omitThroughViaStubs) fail('via_stub', 'Select omitThroughViaStubs for the reference lead')
     route = [...route, { route_type: 'via', x: end.x, y: end.y, from_layer: end.layer, to_layer: pour.layer as typeof end.layer, hole_diameter: via.hole_diameter }]
@@ -183,7 +248,7 @@ export function routedCopperGeometry(circuit: CircuitJson, m: ResolvedModeling, 
       'FastHenry ground polygons discretized into an adaptive rectangular conductor mesh; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; finite reference contact areas resolved locally; ground mesh and filaments refined together',
       'FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential',
       'Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted',
-      'Via rectangular equivalent preserves plated barrel metal area; pads and unused through-via stubs omitted; wire joins rounded',
+      'Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded',
       'Homogeneous explicit effective permittivity; other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted',
       'Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted',
     ] }
