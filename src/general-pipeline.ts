@@ -6,7 +6,7 @@ import {geometryFromCircuitJson,type Modeling} from './geometry.js'
 import {generalDeclarations,modelRunDefinition} from './declarations.js'
 import {electricalSources,generalSimulationSpice,validateProbeScope} from './general-spice.js'
 import {channelSpice} from './spice.js'
-import {extractChannel} from './extraction.js'
+import {extractChannel,type ExtractionOptions} from './extraction.js'
 import {probeWaveformRows,foldProbeEye} from './metrics.mjs'
 import {resolveDdrAssessments,assessDdr} from './ddr.js'
 import {sha256} from './hash.js'
@@ -16,7 +16,7 @@ import {executeSolver,jsonFile,type FileMap,type RunSolver} from './solver.js'
 import {validateCircuitRecords} from './circuit-schema.mjs'
 
 export type PipelineModeling = Modeling & { ibisModelAssetSha256?: Record<string,string> }
-export interface PipelineOptions {
+export interface PipelineOptions extends ExtractionOptions {
   circuitJson: CircuitJson
   modeling?: PipelineModeling
   ibisSources: IbisSources
@@ -29,7 +29,7 @@ const safeId=(id: string): string=>{
 }
 
 /** Deterministic orchestration. All external execution belongs to the supplied callback. */
-export async function runPipeline({circuitJson,modeling,ibisSources,runSolver,onProgress=()=>{}}: PipelineOptions) {
+export async function runPipeline({circuitJson,modeling,ibisSources,runSolver,onProgress=()=>{},fastHenryConvergenceRetry}: PipelineOptions) {
   modeling ??= modelingFromCircuitJson(circuitJson)
   validateCircuitRecords(circuitJson)
   if(typeof converter.convertIbisModelToSpice!=='function') fail('converter_version','Install the pinned upstream general IBIS converter')
@@ -67,7 +67,7 @@ export async function runPipeline({circuitJson,modeling,ibisSources,runSolver,on
   jsonFile(files,'geometry.json',geometry)
   jsonFile(files,'electrical-node-map.json',{nodes:declarations.nodes.mapping,channelReferenceSourcePortId:declarations.nodes.groundSourcePortId,scope:electrical.scope})
   jsonFile(files,'vendor-sources.json',loaded.map(source=>source.evidence))
-  const extracted=await extractChannel(geometry,modeling,files,runSolver,onProgress)
+  const extracted=await extractChannel(geometry,modeling,files,runSolver,onProgress,{fastHenryConvergenceRetry})
   files['channel.cir']=channelSpice(extracted,modeling.sections)
   const pcbExperimentIds=new Set(declarations.plans.map(plan=>plan.simulationExperimentId))
   const results: CircuitJson=circuitJson.filter(record=>record.type!=='simulation_transient_voltage_graph'||!pcbExperimentIds.has(record.simulation_experiment_id)),experiments=[]

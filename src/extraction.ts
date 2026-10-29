@@ -1,7 +1,7 @@
 import {fastHenryDeck,fasterCapDeck} from './geometry.js'
 import {copperCapacitanceScaleToFarads} from './copper.js'
 import {fail,parseFastHenry,parseFasterCap,validateMatrix,loopImpedance,referenceCapacitance,multiply,transpose,sum} from './matrices.mjs'
-import {executeSolver, jsonFile, type RunSolver, type FileMap} from './solver.js'
+import {executeSolver, jsonFile, type RunSolver, type FileMap, type SolverRequest} from './solver.js'
 import type {Geometry, GeometryCell, Modeling} from './geometry.js'
 
 type Matrix = number[][]
@@ -20,6 +20,11 @@ export interface RefinementCheck {
   L: number
 }
 
+/** An explicitly requested retry changes only the FastHenry preconditioner. */
+export interface ExtractionOptions { fastHenryConvergenceRetry?: 'cube' }
+
+const fastHenryFailure = (line: string) => /\b(?:error|fatal|failed|failure|severe warning|internal warning|nonphysical overlap)\b|\bHuh\?|\buh oh, segs don.t seem parallel\b/i.test(line) && !/^\s*(?:Error tolerance:|Not an error:)/i.test(line)
+
 function checkNativeRun(run: {stdout: string; stderr: string}, directory: string, solver: 'fasthenry'|'fastercap'): void {
   let output=`${run.stdout}\n${run.stderr}`
   // This platform notice only disables FasterCap's optional out-of-core mode.
@@ -31,7 +36,7 @@ function checkNativeRun(run: {stdout: string; stderr: string}, directory: string
   const skipped=solver==='fastercap'&&lines.find(line=>/\bdegenerate\s+(?:quadrilateral|triangular|triangle)\s+panel\b|\bskipping\s+the\s+panel\b/i.test(line))
   if(skipped) fail('native_geometry',`${name}: ${skipped.trim()}; requested copper panels were omitted; see ${directory}/${solver}.stdout.log and ${solver}.stderr.log`)
   const failure=lines.find(line=>solver==='fasthenry'
-    ? /\b(?:error|fatal|failed|failure|severe warning|internal warning|nonphysical overlap)\b|\bHuh\?|\buh oh, segs don.t seem parallel\b/i.test(line)&&!/^\s*(?:Error tolerance:|Not an error:)/i.test(line)
+    ? fastHenryFailure(line)
     : /^\s*(?:(?:error|fatal)\b|(?:severe|internal)\s+(?:warning|error)\b)|\b(?:failed|failure)\b/i.test(line))
   if(failure) fail('native_solver',`${name}: ${failure.trim()}; see ${directory}/${solver}.stdout.log and ${solver}.stderr.log`)
 }
@@ -54,7 +59,30 @@ function impedanceSamples(text: string, cell: GeometryCell): ImpedanceSample[] {
   return samples
 }
 
-export async function extractChannel(geometry: Geometry, modeling: Modeling, files: FileMap, runSolver: RunSolver, onProgress: (message: string) => void = () => {}) {
+export async function extractChannel(geometry: Geometry, modeling: Modeling, files: FileMap, runSolver: RunSolver, onProgress: (message: string) => void = () => {}, options: ExtractionOptions = {}) {
+  if(options.fastHenryConvergenceRetry !== undefined && options.fastHenryConvergenceRetry !== 'cube') fail('solver_options','fastHenryConvergenceRetry must be cube')
+  const runHenry = async (directory: string, request: SolverRequest) => {
+    const first = await executeSolver(runSolver, files, directory, request)
+    try { checkNativeRun(first, directory, 'fasthenry'); return first }
+    catch(error) {
+      const lines = `${first.stdout}\n${first.stderr}`.split(/\r?\n/)
+      const mayRetry = options.fastHenryConvergenceRetry === 'cube' && request.args[0] === '-p' && request.args[1] === 'seg'
+        && (error as {code?: string}).code === 'native_convergence'
+        && lines.some(line => /\bWarning:\s*Convergence not reached\.\s*Stopping iteration\.\.\./i.test(line))
+        && !lines.some(fastHenryFailure)
+      if(!mayRetry) throw error
+      // Keep the failed attempt and its input separate; canonical files below
+      // describe the selected cube run rather than falsely reporting seg.
+      for(const path of [...Object.keys(request.files), ...request.outputFiles, 'fasthenry.stdout.log', 'fasthenry.stderr.log', 'fasthenry.request.json'])
+        files[`${directory}/segment-attempt/${path}`] = files[`${directory}/${path}`]
+      const retry = {...request, args: ['-p', 'cube', ...request.args.slice(2)]}
+      onProgress(`FastHenry segment preconditioner did not converge in ${directory}; retrying with cube`)
+      const selected = await executeSolver(runSolver, files, directory, retry)
+      checkNativeRun(selected, directory, 'fasthenry')
+      jsonFile(files, `${directory}/fasthenry.retry.json`, {firstAttempt: 'segment-attempt', selectedPreconditioner: 'cube', reason: 'segment convergence not reached'})
+      return selected
+    }
+  }
   const extracted=[]
   for(const cell of geometry.cells) {
     onProgress(`Extract stage ${cell.stage} (${cell.profile}) with actual native FastHenry and FasterCap`)
@@ -63,16 +91,14 @@ export async function extractChannel(geometry: Geometry, modeling: Modeling, fil
     const fc=fasterCapDeck(cell,modeling.extraction)
 
     const henryArgs=cell.routedCopper?['-p','seg','channel.inp']:['channel.inp']
-    const coarseRun=await executeSolver(runSolver,files,dir,{solver:'fasthenry',args:henryArgs,files:coarseFiles,outputFiles:['Zc.mat']})
-    checkNativeRun(coarseRun,dir,'fasthenry')
+    const coarseRun=await runHenry(dir,{solver:'fasthenry',args:henryArgs,files:coarseFiles,outputFiles:['Zc.mat']})
     const ztext=coarseRun.files['Zc.mat']
     const spectrum=impedanceSamples(ztext,cell)
     const lowest=spectrum.reduce((a,b)=>a.frequencyHz<b.frequencyHz?a:b),coarse=spectrum.find(s=>Math.abs(s.frequencyHz/modeling.extraction.modelHz-1)<1e-8)
     if(!coarse) fail('model_frequency','modelHz must be one executed FastHenry sample frequency')
     const refinement=dir+'/refinement'
     const refinedDeck=fastHenryDeck(cell,{...modeling.extraction,minimumHz:modeling.extraction.modelHz,maximumHz:modeling.extraction.modelHz,filaments:modeling.extraction.refinementFilaments,groundMeshMm:modeling.extraction.groundMeshMm===undefined?undefined:modeling.extraction.groundMeshMm/2})
-    const refinedRun=await executeSolver(runSolver,files,refinement,{solver:'fasthenry',args:henryArgs,files:{'channel.inp':refinedDeck},outputFiles:['Zc.mat']})
-    checkNativeRun(refinedRun,refinement,'fasthenry')
+    const refinedRun=await runHenry(refinement,{solver:'fasthenry',args:henryArgs,files:{'channel.inp':refinedDeck},outputFiles:['Zc.mat']})
     const refined=impedanceSamples(refinedRun.files['Zc.mat'],cell)
     if(refined.length!==1 || Math.abs(refined[0].frequencyHz/modeling.extraction.modelHz-1)>1e-8) fail('model_frequency','FastHenry refinement must execute exactly modelHz')
     const selected=refined[0]
