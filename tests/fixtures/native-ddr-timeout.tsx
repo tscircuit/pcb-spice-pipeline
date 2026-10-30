@@ -20,8 +20,6 @@ const channel = {
   via: { platingThickness: '.025mm', equivalentWidth: '.1mm', omitThroughViaStubs: true },
 }
 
-// Extraction-only reduction of the AM3352 DDR timeout. No vendor model or eye
-// result is needed to reproduce the process deadline before transient analysis.
 export type DdrGroundSize = { width: number; height: number }
 
 export default function NativeDdrTimeout({ ground = { width: 18, height: 12 }, board = { width: 20, height: 14 } }: {
@@ -36,7 +34,6 @@ export default function NativeDdrTimeout({ ground = { width: 18, height: 12 }, b
           {['DQ', 'DQS', 'DQSn', 'GND'].map((_, p) => <React.Fragment key={p}><smtpad
             portHints={[`pin${p + 1}`]} pcbX={0} pcbY={1 - p} width={.3} height={.3} shape="rect" /></React.Fragment>)}
         </footprint>} />
-      {/* Declaration only: this extraction test never opens an IBIS file. */}
       <silkscreentext text={name} pcbX={i ? 6 : -6} pcbY={2} fontSize={.8} />
       <ibismodel componentRef={`chip.${name}`} ibisComponentName="TEST"
         ibisModelAsset={{ project_relative_path: 'extraction-only.ibs', url: './extraction-only.ibs', mimetype: 'text/plain' }}

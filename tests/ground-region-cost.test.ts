@@ -10,8 +10,6 @@ test('DDR ground-region reproduction keeps its physical channels and board uncha
   for (const { records } of [local, wide])
     assert.deepEqual(records.filter(r => r.type.endsWith('_error')), [])
 
-  // The only physical change is the reference-pour outline; all routes and
-  // reference vias are native TSX and the extraction settings are identical.
   const physicalRoutes = (records: typeof local.records) => records
     .filter(r => r.type === 'pcb_trace' || r.type === 'pcb_via')
     .map(r => r.type === 'pcb_trace' ? { type: r.type, route: r.route } : {
