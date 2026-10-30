@@ -20,7 +20,6 @@ export interface RefinementCheck {
   L: number
 }
 
-/** An explicitly requested retry changes only the FastHenry preconditioner. */
 export interface ExtractionOptions { fastHenryConvergenceRetry?: 'cube' }
 
 const fastHenryFailure = (line: string) => /\b(?:error|fatal|failed|failure|severe warning|internal warning|nonphysical overlap)\b|\bHuh\?|\buh oh, segs don.t seem parallel\b/i.test(line) && !/^\s*(?:Error tolerance:|Not an error:)/i.test(line)
@@ -71,8 +70,6 @@ export async function extractChannel(geometry: Geometry, modeling: Modeling, fil
         && lines.some(line => /\bWarning:\s*Convergence not reached\.\s*Stopping iteration\.\.\./i.test(line))
         && !lines.some(fastHenryFailure)
       if(!mayRetry) throw error
-      // Keep the failed attempt and its input separate; canonical files below
-      // describe the selected cube run rather than falsely reporting seg.
       for(const path of [...Object.keys(request.files), ...request.outputFiles, 'fasthenry.stdout.log', 'fasthenry.stderr.log', 'fasthenry.request.json'])
         files[`${directory}/segment-attempt/${path}`] = files[`${directory}/${path}`]
       const retry = {...request, args: ['-p', 'cube', ...request.args.slice(2)]}
