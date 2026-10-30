@@ -74,6 +74,8 @@ await writePipelineOutput({ result, outputDir: 'runs/example' })
 
 Tools default to `fasthenry`, `FasterCap` and `ngspice` on PATH. The adapter executes only requests you pass it, in temporary directories cleaned up on success or failure. It captures stdout/stderr and requested outputs, rejects unsuccessful exits/timeouts, and does no setup, downloads or build-receipt enforcement. `loadIbisSources` loads local files only and rejects traversal and symlinks outside `baseDir`. `writePipelineOutput` writes the supplied artifacts plus `generateReport(result)`; existing files with the same names are overwritten.
 
+To retry a routed-copper FastHenry run once with the cube preconditioner after the segment preconditioner reports GMRES convergence was not reached, pass `fastHenryConvergenceRetry: 'cube'` to `runPipeline`. This is opt-in; timeouts, process failures and other solver diagnostics are not retried. The original deck and tolerances are unchanged, and the usual matrix and mesh convergence checks still apply. The original attempt is preserved under `segment-attempt/`; the canonical request, output and log identify the selected cube run, and `fasthenry.retry.json` records the selection. Cube can be substantially slower and use more memory.
+
 The previous standalone CLI, entry loader, automatic model downloads, setup command and duplicate legacy pipeline have been removed. CLI integrations should render Circuit JSON with their normal renderer and explicitly supply the adapter. Historical receipt comparison/native-IBIS helpers remain internal under `src/legacy`; the independent audit scripts read historical receipt formats and are not a current library API.
 
 ## TSX bridge
