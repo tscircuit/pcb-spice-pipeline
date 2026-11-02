@@ -81,8 +81,10 @@ The previous standalone CLI, entry loader, automatic model downloads, setup comm
 The root import does not load React or the core renderer. `/tsx` exports both supported bridge functions:
 
 ```tsx
+import { Circuit } from 'tscircuit'
 import { ImportedBoard, serializeSimulation } from '@tscircuit/pcb-spice-pipeline/tsx'
 
+const circuit = new Circuit({ platform: { partsEngineDisabled: true } })
 circuit.add(<ImportedBoard circuitJson={savedBoard} fabricatorPreset="jlcpcb_standard">
   {/* Native IBIS models, experiments, stimuli, probes and eyes */}
 </ImportedBoard>)
@@ -91,6 +93,14 @@ const circuitJson = serializeSimulation(circuit)
 ```
 
 React, `@tscircuit/core` and `@tscircuit/props` are optional peers required by this integration, with development dependencies for bridge tests. Serialization preserves exact saved physical records and IDs, remaps native declarations to them, and rejects ambiguous bindings or added physical children. Saved construction is retained. Generating a stackup from a fabricator preset requires a core build containing merged [core #4826](https://github.com/tscircuit/core/pull/4826); a saved Circuit JSON stackup works with the committed core baseline.
+
+For a standalone renderer, install and import the public `tscircuit` package,
+which supplies Core's runtime dependency set. Installing bare `@tscircuit/core`
+can leave undeclared runtime imports unavailable. A clean public-renderer and
+native-record serialization check passed with `tscircuit@0.0.3052`, React 19.2.4,
+Node 22.17.1 and default npm/pnpm installations. See the
+[bounded reproduction](docs/reproductions/public-renderer.md) for exact commands,
+version limits and remaining packaging gaps. This check does not run extraction.
 
 ## Modeling and limits
 
