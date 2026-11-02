@@ -2,9 +2,15 @@ packages:
   - .
 allowBuilds:
   esbuild: true
+  sharp: false
 blockExoticSubdeps: false
 minimumReleaseAgeExclude:
-  - '@tscircuit/core@0.0.2188 || 0.0.2217'
-  - '@tscircuit/props@0.0.709 || 0.0.712'
+  - '@tscircuit/core@0.0.2188 || 0.0.2217 || 0.0.2251 || 0.0.2252'
+  - '@tscircuit/props@0.0.709 || 0.0.712 || 0.0.716'
   - circuit-json@0.0.534
   - jscad-fiber@0.0.92
+  - '@tscircuit/capacity-autorouter@0.0.1029'
+  - '@tscircuit/eval@0.0.1687 || 0.0.1688'
+  - '@tscircuit/runframe@0.0.3120'
+  - circuit-json-to-gltf@0.0.164
+  - tscircuit@0.0.3053
