@@ -1,6 +1,6 @@
 import type { RootCircuit, NormalComponent, Port } from '@tscircuit/core'
-import { importedBoardRecords, importedBoardDeclarations } from './tsx.js'
-import type { ImportedBoardInstance, SavedRecord } from './tsx.js'
+import { importedBoardRecords, importedBoardDeclarations } from './imported-board-symbols.js'
+import type { ImportedBoardInstance, SavedRecord } from './imported-board-symbols.js'
 import type { CircuitJson } from './schema.js'
 import { fail } from './matrices.mjs'
 

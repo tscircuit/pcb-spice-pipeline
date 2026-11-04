@@ -1,14 +1,14 @@
-import type { Board, Group } from '@tscircuit/core'
+import type { Group } from '@tscircuit/core'
 import { createElement, Fragment, useLayoutEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 
 import type { BoardProps } from '@tscircuit/props'
+import { importedBoardRecords, importedBoardDeclarations } from './imported-board-symbols.js'
+import type { ImportedBoardInstance, SavedRecord } from './imported-board-symbols.js'
 export { serializeSimulation } from './tsx-render.js'
+export { importedBoardRecords, importedBoardDeclarations } from './imported-board-symbols.js'
+export type { ImportedBoardInstance, SavedRecord } from './imported-board-symbols.js'
 export type { IbisModelDefinition } from '@tscircuit/props'
-export interface SavedRecord { type: string; [key: string]: unknown }
-export const importedBoardRecords = Symbol.for('pcb-spice-pipeline.imported-board.v2')
-export const importedBoardDeclarations = Symbol.for('pcb-spice-pipeline.imported-board-declarations.v2')
-export type ImportedBoardInstance = Board & { [importedBoardRecords]?: SavedRecord[]; [importedBoardDeclarations]?: Group }
 
 export function savedRecords(circuitJson: readonly unknown[]): SavedRecord[] {
   return circuitJson.map(record => {

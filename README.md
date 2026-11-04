@@ -90,6 +90,8 @@ await circuit.renderUntilSettled()
 const circuitJson = serializeSimulation(circuit)
 ```
 
+`/serialize` exports only `serializeSimulation` and never loads React, so hosts such as the tscircuit CLI can bundle it and serialize an `ImportedBoard` from any package copy: the board is recognized through global symbols, not module identity.
+
 React, `@tscircuit/core` and `@tscircuit/props` are optional peers required by this integration, with development dependencies for bridge tests. Serialization preserves exact saved physical records and IDs, remaps native declarations to them, and rejects ambiguous bindings or added physical children. Saved construction is retained. Generating a stackup from a fabricator preset requires a core build containing merged [core #4826](https://github.com/tscircuit/core/pull/4826); a saved Circuit JSON stackup works with the committed core baseline.
 
 ## Modeling and limits

@@ -23,6 +23,10 @@
       "types": "./dist/tsx.d.ts",
       "import": "./dist/tsx.js"
     },
+    "./serialize": {
+      "types": "./dist/tsx-render.d.ts",
+      "import": "./dist/tsx-render.js"
+    },
     "./node": {
       "types": "./dist/node.d.ts",
       "import": "./dist/node.js"
