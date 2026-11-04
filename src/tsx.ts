@@ -45,12 +45,22 @@ export function ImportedBoard({ circuitJson, children, fabricatorPreset, materia
   })
   for (const component of records.filter(record => record.type === 'source_component')) {
     const ports = records.filter(record => record.type === 'source_port' && record.source_component_id === component.source_component_id)
-    const labels = Object.fromEntries(ports.map((port, index) => {
+    // Core recreates the implicit internal port of a repeated-pad pin from its
+    // pads. Labelling that saved port again would alias it onto another pin.
+    const numbered = new Set(ports.filter(port => port.pin_number !== undefined).map(port => port.source_port_id))
+    const implicit = new Set(records.flatMap(record => {
+      if (record.type !== 'source_component_internal_connection' || record.source_component_id !== component.source_component_id) return []
+      const ids = record.source_port_ids as unknown[]
+      if (!ids.some(id => numbered.has(id))) return []
+      return ids.filter(id => !numbered.has(id))
+    }))
+    const labels = Object.fromEntries(ports.flatMap((port, index) => {
+      if (implicit.has(port.source_port_id)) return []
       let pinNumber = port.pin_number
       if (pinNumber === undefined) pinNumber = index + 1
       let aliases: unknown[] = []
       if (Array.isArray(port.port_hints)) aliases = port.port_hints
-      return [`pin${pinNumber}`, [...new Set([port.name, ...aliases].filter((value): value is string => typeof value === 'string' && value.length > 0))]]
+      return [[`pin${pinNumber}`, [...new Set([port.name, ...aliases].filter((value): value is string => typeof value === 'string' && value.length > 0))]]]
     }))
     preview.push({ type: 'schematic_component', schematic_component_id: `preview_${component.source_component_id}`,
       source_component_id: component.source_component_id, port_labels: labels })

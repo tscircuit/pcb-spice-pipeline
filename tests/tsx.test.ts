@@ -211,6 +211,31 @@ test('unused connector internal aliases preserve the saved board without blockin
 })
 
 
+test('saved repeated-pad pins round-trip without aliasing implicit internal ports onto other pins', async () => {
+  // Tactile switches repeat each pin on two unconnected pads. Core saves the
+  // second pad as an implicit pinN_internal_K port joined by an internal connection.
+  const pads = [[-2, 1, 'pin1'], [-2, -1, 'pin2'], [2, 1, 'pin1'], [2, -1, 'pin2']] as const
+  const source = new Circuit()
+  source.add(h('board', { width: 20, height: 20, routingDisabled: true, schematicDisabled: true },
+    h('chip', { name: 'U1', pinLabels: { pin1: 'DATA', pin2: 'GND', pin3: 'VCC' }, footprint: 'sot23', pcbY: 6 }),
+    h('chip', { name: 'SW1', pinLabels: { pin1: 'A', pin2: 'B' }, footprint: h('footprint', null, ...pads.map(([x, y, hint], i) =>
+      h('smtpad', { key: i, shape: 'rect', width: .6, height: .6, pcbX: x, pcbY: y, portHints: [hint] }))) }),
+    h('resistor', { name: 'R1', resistance: '1k', footprint: '0402', pcbX: 6 }),
+    h('trace', { from: '.R1 > .pin1', to: '.SW1 > .pin1' }),
+    h('trace', { from: '.R1 > .pin2', to: '.SW1 > .pin1_internal_1' })))
+  await source.renderUntilSettled()
+  const original = source.getCircuitJson().filter(record => !record.type.startsWith('simulation_'))
+  assert.ok(original.some(record => record.type === 'source_port' && record.name === 'pin1_internal_1'))
+  assert.ok(original.some(record => record.type === 'source_trace' && record.connected_source_port_ids.some(id =>
+    original.some(port => port.type === 'source_port' && port.source_port_id === id && port.name === 'pin1_internal_1'))))
+  const circuit = new Circuit()
+  circuit.add(h(ImportedBoard, { circuitJson: original }, ...declarations()))
+  await circuit.renderUntilSettled()
+  const records = serializeSimulation(circuit)
+  assert.deepEqual(records.slice(0, original.length), original)
+  assert.equal(records.filter(record => record.type === 'simulation_ibis_model').length, 1)
+})
+
 test('saved board bridge rejects additional physical traces inside declaration children', async () => {
   const source = new Circuit(); source.add(tree()); await source.renderUntilSettled()
   const original = source.getCircuitJson().filter(record => !record.type.startsWith('simulation_'))
