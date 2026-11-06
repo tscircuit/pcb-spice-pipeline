@@ -1,6 +1,6 @@
 {
   "name": "@tscircuit/pcb-spice-pipeline",
-  "version": "0.1.0",
+  "version": "0.1.8",
   "repository": {
     "type": "git",
     "url": "https://github.com/tscircuit/pcb-spice-pipeline.git"
