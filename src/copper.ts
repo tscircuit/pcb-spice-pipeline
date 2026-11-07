@@ -92,6 +92,22 @@ function routePath(route: LaneMapping['originalRoute'], m: ResolvedModeling): Pa
       if (Math.hypot(b.x - a.x, b.y - a.y) > 1e-10) segments.push({ a: [a.x, a.y, z(m, name)], b: [b.x, b.y, z(m, name)], widthMm: b.width, thicknessMm: l.zMaxMm - l.zMinMm, conductivitySm: l.conductivitySm })
     }
   }
+  const coalesced: Segment[] = []
+  for (let i = 0; i < segments.length; i++) {
+    const s = segments[i]
+    const isHorizontal = Math.abs(s.a[2] - s.b[2]) < 1e-8 && Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]) > 1e-10
+    if (!isHorizontal) { coalesced.push(s); continue }
+    let end = s.b
+    while (i + 1 < segments.length) {
+      const next = segments[i + 1]
+      const nextHorizontal = Math.abs(next.a[2] - next.b[2]) < 1e-8 && Math.hypot(next.b[0] - next.a[0], next.b[1] - next.a[1]) > 1e-10
+      if (!nextHorizontal || Math.abs(s.a[2] - next.a[2]) > 1e-8 || Math.abs(s.widthMm - next.widthMm) > 1e-8 || Math.abs(s.thicknessMm - next.thicknessMm) > 1e-8 || Math.hypot(end[0] - s.a[0], end[1] - s.a[1]) >= s.widthMm) break
+      end = next.b
+      i++
+    }
+    if (Math.hypot(end[0] - s.a[0], end[1] - s.a[1]) > 1e-10) coalesced.push({ ...s, b: end })
+  }
+  segments.splice(0, segments.length, ...coalesced)
   if (!segments.length || segments.some(s => ![...s.a, ...s.b, s.widthMm, s.thicknessMm].every(finite))) fail('route_geometry', 'Nonempty finite copper path required')
   for (let i = 1; i < segments.length; i++) if (distance(segments[i - 1].b, segments[i].a) > 1e-5) fail('route_geometry', 'Disconnected copper route')
   return { segments, terminals: [segments[0].a, segments.at(-1)!.b] }
