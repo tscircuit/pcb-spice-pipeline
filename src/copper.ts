@@ -216,7 +216,7 @@ export function routedCopperGeometry(circuit: CircuitJson, m: ResolvedModeling, 
   if (!net || groundNets.some(e => e.name !== net.name))
     fail('ground_net', 'The channel reference must connect to exactly one ground net (same-named source_net records marked is_ground across subcircuits)')
   const netIds = new Set(circuit.filter(e => e.type === 'source_net').filter(e => connected.has(e.source_net_id)).map(e => e.type === 'source_net' ? e.source_net_id : ''))
-  const pours: RoutedCopper['pours'] = circuit.filter(e => e.type === 'pcb_copper_pour').filter(e => netIds.has(e.source_net_id ?? '')).map(pour => {
+  const rawPours: RoutedCopper['pours'] = circuit.filter(e => e.type === 'pcb_copper_pour').filter(e => netIds.has(e.source_net_id ?? '')).map(pour => {
     if (pour.shape !== 'brep') fail('ground_geometry', `${pour.pcb_copper_pour_id}: polygon BREP copper required`)
     const rings = [pour.brep_shape.outer_ring, ...pour.brep_shape.inner_rings]
     const polygon = rings.map((ring, i) => {
@@ -226,6 +226,25 @@ export function routedCopperGeometry(circuit: CircuitJson, m: ResolvedModeling, 
       return area(points) * (i ? -1 : 1) > 0 ? points : points.reverse()
     })
     return { pcbCopperPourId: pour.pcb_copper_pour_id, layer: pour.layer, polygon, ...layer(m, pour.layer) }
+  })
+  const poursByLayer = new Map<string, RoutedCopper['pours']>()
+  for (const pour of rawPours) {
+    const group = poursByLayer.get(pour.layer) ?? []
+    group.push(pour)
+    poursByLayer.set(pour.layer, group)
+  }
+  const pours: RoutedCopper['pours'] = [...poursByLayer.entries()].flatMap(([layerName, layerPours]) => {
+    if (layerPours.length === 1) return layerPours
+    const unioned = copperBoolean(layerPours.map(p => p.polygon.map(closed)))
+    return unioned.map((closedPoly, idx) => ({
+      ...layerPours[0],
+      pcbCopperPourId: layerPours.map(p => p.pcbCopperPourId).join('+'),
+      layer: layerName,
+      polygon: closedPoly.map((ring, i) => {
+        const open = ring.slice(0, -1)
+        return area(open) * (i ? -1 : 1) > 0 ? open : open.reverse()
+      }),
+    }))
   })
   if (!pours.length) fail('ground_geometry', `${net.name}: no physical ground copper pours found`)
   let receiver: string
