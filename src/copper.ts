@@ -94,7 +94,98 @@ function routePath(route: LaneMapping['originalRoute'], m: ResolvedModeling): Pa
   }
   if (!segments.length || segments.some(s => ![...s.a, ...s.b, s.widthMm, s.thicknessMm].every(finite))) fail('route_geometry', 'Nonempty finite copper path required')
   for (let i = 1; i < segments.length; i++) if (distance(segments[i - 1].b, segments[i].a) > 1e-5) fail('route_geometry', 'Disconnected copper route')
-  return { segments, terminals: [segments[0].a, segments.at(-1)!.b] }
+  const coalesced = coalesceSegments(segments)
+  return { segments: coalesced, terminals: [coalesced[0].a, coalesced.at(-1)!.b] }
+}
+
+/** Coalesce finely sampled horizontal curve segments shorter than the trace width
+ * so outer FastHenry sub-filaments do not overlap at shallow curve joints (#46).
+ */
+function coalesceHorizontalRun(run: Segment[]): Segment[] {
+  if (run.length <= 1) return run
+  const merged: Segment[] = [{ ...run[0] }]
+  for (const s of run.slice(1)) {
+    const prev = merged.at(-1)!
+    const dx1 = prev.b[0] - prev.a[0], dy1 = prev.b[1] - prev.a[1], l1 = Math.hypot(dx1, dy1)
+    const dx2 = s.b[0] - s.a[0], dy2 = s.b[1] - s.a[1], l2 = Math.hypot(dx2, dy2)
+    if (l1 > 1e-9 && l2 > 1e-9) {
+      const cross = Math.abs(dx1 * dy2 - dy1 * dx2) / (l1 * l2)
+      const dot = (dx1 * dx2 + dy1 * dy2) / (l1 * l2)
+      const dxTot = s.b[0] - prev.a[0], dyTot = s.b[1] - prev.a[1], lTot = Math.hypot(dxTot, dyTot)
+      const perpDev = lTot > 1e-9 ? Math.abs(dx1 * dyTot - dy1 * dxTot) / lTot : 0
+      if (dot > 0.999999 && cross < 1e-4 && perpDev < 1e-5) { prev.b = s.b; continue }
+    }
+    merged.push({ ...s })
+  }
+  if (merged.length <= 1) return merged
+  const minLen = merged[0].widthMm, out: Segment[] = []
+  for (let i = 0; i < merged.length;) {
+    const seg = merged[i], len = Math.hypot(seg.b[0] - seg.a[0], seg.b[1] - seg.a[1])
+    if (len >= minLen) { out.push({ ...seg }); i++; continue }
+    let j = i + 1
+    while (j < merged.length && Math.hypot(merged[j].b[0] - merged[j].a[0], merged[j].b[1] - merged[j].a[1]) < minLen) j++
+    const sub = merged.slice(i, j), curveOut: Segment[] = []
+    let anchor = sub[0].a
+    for (const s of sub) {
+      if (Math.hypot(s.b[0] - anchor[0], s.b[1] - anchor[1]) >= minLen) {
+        curveOut.push({ ...s, a: anchor, b: s.b })
+        anchor = s.b
+      }
+    }
+    const tail = sub.at(-1)!.b
+    if (anchor !== tail) {
+      if (curveOut.length) curveOut.at(-1)!.b = tail
+      else if (Math.hypot(tail[0] - anchor[0], tail[1] - anchor[1]) > 1e-10) curveOut.push({ ...sub[0], a: anchor, b: tail })
+    }
+    out.push(...curveOut)
+    i = j
+  }
+  let changed = true
+  while (changed && out.length > 1) {
+    changed = false
+    for (let k = 0; k < out.length; k++) {
+      const s = out[k], l = Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1])
+      if (l >= minLen - 1e-9) continue
+      const ux = (s.b[0] - s.a[0]) / l, uy = (s.b[1] - s.a[1]) / l
+      let best = -1, bestDot = -2
+      if (k > 0) {
+        const p = out[k - 1], lp = Math.hypot(p.b[0] - p.a[0], p.b[1] - p.a[1])
+        const dot = ((p.b[0] - p.a[0]) * ux + (p.b[1] - p.a[1]) * uy) / lp
+        if (dot > bestDot) { bestDot = dot; best = k - 1 }
+      }
+      if (k + 1 < out.length) {
+        const n = out[k + 1], ln = Math.hypot(n.b[0] - n.a[0], n.b[1] - n.a[1])
+        const dot = ((n.b[0] - n.a[0]) * ux + (n.b[1] - n.a[1]) * uy) / ln
+        if (dot > bestDot) { bestDot = dot; best = k + 1 }
+      }
+      if (best === k - 1 && Math.hypot(s.b[0] - out[k - 1].a[0], s.b[1] - out[k - 1].a[1]) > 1e-10) {
+        out[k - 1].b = s.b; out.splice(k, 1); changed = true; break
+      }
+      if (best === k + 1 && Math.hypot(out[k + 1].b[0] - s.a[0], out[k + 1].b[1] - s.a[1]) > 1e-10) {
+        out[k + 1].a = s.a; out.splice(k, 1); changed = true; break
+      }
+    }
+  }
+  return out
+}
+
+function coalesceSegments(segments: Segment[]): Segment[] {
+  const out: Segment[] = []
+  for (let i = 0; i < segments.length;) {
+    const first = segments[i]
+    if (Math.abs(first.a[2] - first.b[2]) > 1e-10) { out.push(first); i++; continue }
+    let j = i + 1
+    while (j < segments.length) {
+      const prev = segments[j - 1], curr = segments[j]
+      if (Math.abs(curr.a[2] - curr.b[2]) <= 1e-10 && Math.abs(curr.a[2] - prev.b[2]) <= 1e-10 &&
+          Math.abs(curr.widthMm - prev.widthMm) <= 1e-9 && Math.abs(curr.thicknessMm - prev.thicknessMm) <= 1e-9 &&
+          curr.conductivitySm === prev.conductivitySm && Math.hypot(curr.a[0] - prev.b[0], curr.a[1] - prev.b[1]) <= 1e-6) j++
+      else break
+    }
+    out.push(...coalesceHorizontalRun(segments.slice(i, j)))
+    i = j
+  }
+  return out
 }
 
 type Via = Extract<CircuitJson[number], { type: 'pcb_via' }>
