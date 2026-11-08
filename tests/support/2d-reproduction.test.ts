@@ -22,6 +22,7 @@ test('BEFORE: lane permutations assign physical neighbours to different matrix e
   const m = oldModel()
   const forward = geometryFromCircuitJson(circuitJson as CircuitJson, m)
   const permuted = geometryFromCircuitJson(circuitJson as CircuitJson, { ...m, lanes: [m.lanes[0], m.lanes[2], m.lanes[1]] })
+  /** Separation of the two lanes in the old derived geometry. */
   const distance = (g: typeof forward, a: number, b: number): number => Math.abs(g.cells[0].conductors[a].yM - g.cells[0].conductors[b].yM)
   assert.notEqual(distance(forward, 0, 1), distance(permuted, 0, 2), 'same physical pair changes separation when reordered')
   assert.equal(forward.cells[0].conductors.at(-1)!.widthM, .002, 'invented 2 mm return strip')

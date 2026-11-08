@@ -1,4 +1,5 @@
 import { Circuit, analog } from '@tscircuit/core'
+import type { CircuitJson } from 'circuit-json'
 import React, { Fragment } from 'react'
 import { Sc70Pads, RoutedTrace } from '../differential-data/pcb'
 import { inputPad, outputPad } from '../single-ended/models'
@@ -10,7 +11,7 @@ export const modeling = {
 }
 
 /** Three real SC70 pad links, with physical ground copper and explicit TI buffer declarations. */
-export async function makeBoard(quietMiddle = false, multilayer = false) {
+export async function makeBoard(quietMiddle: boolean = false, multilayer: boolean = false): Promise<CircuitJson> {
   const circuit = new Circuit()
   const count = multilayer ? 1 : 3
   circuit.add(<board width={40} height={24} layers={2} thickness={1.6} routingDisabled schematicDisabled>
@@ -61,7 +62,7 @@ export async function makeBoard(quietMiddle = false, multilayer = false) {
     pcb_board_id: records.find(r => r.type === 'pcb_board')!.pcb_board_id, plated_hole_copper_thickness: .025,
     layers: [
       { layer_type: 'copper', layer: 'top', thickness: .035, electrical_conductivity_s_per_m: 5.8e7 },
-      { layer_type: 'dielectric', thickness: 1.53, relative_permittivity: 4.1, dielectric_loss_tangent: .02 },
+      { layer_type: 'dielectric', thickness: 1.53, relative_permittivity: 4.1, loss_tangent: .02 },
       { layer_type: 'copper', layer: 'bottom', thickness: .035, electrical_conductivity_s_per_m: 5.8e7 },
     ] }]
 }

@@ -4,8 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { geometryFromCircuitJson } from '../src/board/index'
 import { extractChannel } from '../src/extraction/index'
 import { rootScope } from '../src/kernel/index'
-import { createNativeSolver } from '../src/adapters/index'
-const solver = createNativeSolver({timeoutMs:2147483647,tools:{fasthenry:'/opt/homebrew/bin/fasthenry',fastercap:'/opt/homebrew/bin/FasterCap',ngspice:'/opt/homebrew/bin/ngspice'}})
+import { beforeNative as solver } from './before-native'
 await mkdir('runs/2d-baseline',{recursive:true})
 for (const name of ['single-ended','differential-data']) {
   const {circuitJson,modeling}=await import(`../examples/${name}/index.circuit.tsx`)
