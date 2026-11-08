@@ -39,7 +39,8 @@ then 4 for capacitance and dielectric sensitivity, and 4/3 then 2 for the quarti
 Raw residuals are logged separately: they are not required to be below 0.5%. For example the coupled
 stripline stops at 6,912 panels with estimated maximum 0.1672% and raw maximum 2.0378%.
 The entry-wise check compares the published reciprocal matrices; unprojected estimates must also pass
-reciprocity. Exact symmetry zeros use the documented relative floor.
+reciprocity. There is no matrix-norm floor: arbitrarily small nonzero mutual entries receive the
+same relative test. Two exact zeros count as unchanged, and a nonzero-to-zero change counts as 100%.
 A mesh that exhausts floating-point resolution fails with `mesh_convergence`, without a fallback.
 
 The first quiet-middle attempt exposed nearly coincident optional mesh alignment cuts. Merging
@@ -175,7 +176,7 @@ requires distinct two-endpoint PCB routes meeting at shared junctions. These lim
 
 ## Checks and remaining qualification
 
-- `pnpm build`: passed. `pnpm test`: **242 passed, zero failed**, 186.277 s, including actual-TSX
+- `pnpm build`: passed. `pnpm test`: **242 passed, zero failed**, 157.475 s, including actual-TSX
   hole rejection and 250000-element numeric reductions. The previous first-extrapolation checkpoint
   passed 242/242 in 881.928 s; one obsolete timeout test was replaced by the hole regression.
 - `pnpm test:native`: **6 passed / 1 vendor-gated skip, zero failed**, 2.791 s. Includes dynamic
@@ -198,6 +199,9 @@ comparison and replay of the measured output. `scripts/measure-legacy.mjs ABS_RE
 measures BEFORE only. `measure-accuracy.mjs`, `measure-eyes.mjs` and `measure-mutual.mjs` write or
 print the independent numeric tables. Model bytes are fetched by pinned URL/archive/file hashes;
 `examples/differential-data/verify-vendors.mjs` passed fresh verification in this task.
+
+An additional diagnostic made the first fitted driver coefficients continuous at transitions. It
+moved the package abort to 101.597 ns but did not resolve it; that change was not adopted.
 
 Building the small IEEE-double WebAssembly LU required installing Homebrew lld; Homebrew also
 upgraded LLVM from 23.1.4 to 23.1.5. No native extraction tool was installed or used in the new path.

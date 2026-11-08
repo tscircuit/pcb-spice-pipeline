@@ -7,7 +7,9 @@ const native=createNativeSolver({tools:{ngspice:'/opt/homebrew/bin/ngspice'}})
 // Output/repeat controls belong to this evidence script, not the extraction API.
 const root=process.env.SI_MEASUREMENT_DIRECTORY??'runs/qualified'
 const names=process.argv.slice(2)
-for(const name of names.length?names:['single-ended','differential-data','crosstalk','multilayer']) {
+const failures=[]
+for(const name of names.length?names:['single-ended','differential-data','crosstalk','crosstalk-quiet','multilayer']) {
+  try {
   const base=name==='crosstalk-quiet'?'crosstalk':name==='single-package'?'single-ended':name
   const example=await import(`../examples/${base}/index.circuit.tsx`)
   const circuitJson=name===base?example.circuitJson:await example.makeBoard(true)
@@ -71,4 +73,12 @@ for(const name of names.length?names:['single-ended','differential-data','crosst
   await writeFile(`${root}/${name}/summary.json`,JSON.stringify(summary,null,2))
   console.log(JSON.stringify(summary,null,2))
   if(!summary.bitIdentical||!summary.nativeRequestsIdentical)throw new Error(`repeat_changed: ${name}: ${changedFiles.join(', ')}`)
+  } catch(error) {
+    const failure={name,code:error.code??error.name,message:error.message,stack:error.stack}
+    await mkdir(`${root}/${name}`,{recursive:true})
+    await writeFile(`${root}/${name}/failure.json`,JSON.stringify(failure,null,2))
+    console.error(JSON.stringify(failure,null,2))
+    failures.push(error)
+  }
 }
+if(failures.length)throw new AggregateError(failures,`measurement_failed: ${failures.length} board(s); see ${root}/*/failure.json`)

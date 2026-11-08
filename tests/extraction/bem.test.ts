@@ -28,6 +28,9 @@ test('2D microstrip independently matches Hammerstad–Jensen within 2%, with lo
 })
 test('every matrix entry is checked, so small mutual changes cannot hide behind large diagonals', () => {
   assert.ok(matrixResidual([[100, -.001], [-.001, 100]], [[100, -.002], [-.002, 100]]) > .4)
+  assert.equal(matrixResidual([[1,1e-25],[1e-25,1]], [[1,2e-25],[2e-25,1]]), .5)
+  assert.equal(matrixResidual([[1e-25]], [[0]]), 1)
+  assert.equal(matrixResidual([[0]], [[0]]), 0)
   assert.throws(() => solve([[0]], [[1]]), { code: 'matrix_singular' })
 })
 

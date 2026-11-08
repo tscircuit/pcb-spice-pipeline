@@ -172,7 +172,7 @@ export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling
     for (let i = 1; i < trace.route.length; i++) {
       const a = trace.route[i - 1]
       const b = trace.route[i]
-      if (a.route_type === 'wire' && b.route_type === 'wire' && Math.hypot(a.x - b.x, a.y - b.y) > numerics.boundaryToleranceMm) shapes.push({ id: trace.pcb_trace_id + '-' + i, net, physicalNet: ids.some(id=>ground.ids.has(id)) ? 'GROUND' : [...connectedSourceIds(cj,ids[0])].sort()[0], layer: b.layer, polygon: wirePolygon([a.x, a.y], [b.x, b.y], b.width) })
+      if (a.route_type === 'wire' && b.route_type === 'wire' && Math.hypot(a.x - b.x, a.y - b.y) > 0) shapes.push({ id: trace.pcb_trace_id + '-' + i, net, physicalNet: ids.some(id=>ground.ids.has(id)) ? 'GROUND' : [...connectedSourceIds(cj,ids[0])].sort()[0], layer: b.layer, polygon: wirePolygon([a.x, a.y], [b.x, b.y], b.width) })
     }
   }
   for (const pad of cj.filter(r => r.type === 'pcb_smtpad')) {

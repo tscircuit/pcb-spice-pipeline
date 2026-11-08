@@ -25,8 +25,6 @@ export const numerics = {
   edgeGradingPower: 4,
   /** Four-point Gauss–Legendre target-panel integration (exact through degree 7). */
   panelQuadrature: [[-.8611363115940526, .3478548451374538], [-.3399810435848563, .6521451548625461], [.3399810435848563, .6521451548625461], [.8611363115940526, .3478548451374538]],
-  /** Floating-point zero floor only for entries vanishing by symmetry; relative to matrix norm. */
-  symmetryZeroRelative: 1e-10,
   /** Millimetre topology comparisons reflect Circuit JSON's route precision. */
   endpointToleranceMm: 1e-5,
   boundaryToleranceMm: 1e-9,

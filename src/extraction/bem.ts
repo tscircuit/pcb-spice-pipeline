@@ -2,7 +2,7 @@ import { numerics, max } from '../kernel'
 import type { CrossSection } from '../board'
 import { reciprocityResidual } from './checks'
 import { fail } from './diagnostics'
-import { solve, maxAbs, symmetrize, type Matrix } from './linalg'
+import { solve, symmetrize, type Matrix } from './linalg'
 
 export const epsilon0 = numerics.epsilon0
 export const mu0 = numerics.mu0
@@ -140,11 +140,11 @@ function reduceCapacitance(c: Matrix, active: number): Matrix {
   const inverse = solve(c.slice(active).map(row => row.slice(active)), coupling)
   return c.slice(0, active).map((row, i) => row.slice(0, active).map((v, j) => v - row.slice(active).reduce((s, q, k) => s + q * inverse[k][j], 0)))
 }
-/** Entry-wise relative convergence, with only a roundoff floor for exact symmetry zeros. */
+/** Strict entry-wise relative convergence, including arbitrarily small mutual terms.
+ * Two exact zeros are unchanged; arrival at zero from a nonzero entry is a 100% change.
+ */
 export function matrixResidual(a: Matrix, b: Matrix): number {
-  const scale = Math.max(maxAbs(a),maxAbs(b))
-  if (!scale) return 0
-  return b.reduce((largest,row,i)=>row.reduce((current,v,j)=>Math.max(current,Math.abs(v-a[i][j])/Math.max(Math.abs(v),scale*numerics.symmetryZeroRelative)),largest),0)
+  return b.reduce((largest,row,i)=>row.reduce((current,v,j)=>Math.max(current,v===0 ? Number(a[i][j]!==0) : Math.abs(v-a[i][j])/Math.abs(v)),largest),0)
 }
 /** Refines all field-derived RLGC terms without an attempt cap or a 3D solver process. */
 export function solveCrossSection(slice: CrossSection, progress: (message: string) => void = () => {}): BemResult {
