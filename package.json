@@ -1,6 +1,6 @@
 {
   "name": "@tscircuit/signal-integrity-pipeline",
-  "version": "0.1.0",
+  "version": "0.1.11",
   "repository": {
     "type": "git",
     "url": "https://github.com/tscircuit/signal-integrity-pipeline.git"
