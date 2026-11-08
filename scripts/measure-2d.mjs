@@ -13,7 +13,7 @@ for (const name of names.length ? names : ['single-ended', 'differential-data', 
   let nativeSeconds = 0
   const result = await runPipeline({ circuitJson, modeling, ibisSources,
     onProgress: message => { console.log(message)
-      if (message.startsWith('Segment ') && extractionStart === undefined) extractionStart = performance.now()
+      if (message === 'Extract 2D channel' && extractionStart === undefined) extractionStart = performance.now()
     },
     runSolver: async request => {
       if (request.solver !== 'ngspice') throw new Error('3D extraction is forbidden')

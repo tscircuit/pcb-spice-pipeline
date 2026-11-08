@@ -16,28 +16,41 @@ function material(slice: CrossSection, x: number, z: number): number {
 function primitive(x: number, y: number): number {
   return x * Math.log(Math.hypot(x, y) || 1) - x + (y ? Math.abs(y) * Math.atan(x / Math.abs(y)) : 0)
 }
-/** Exact constant-panel single-layer potential and normal-field kernels. */
-function pointKernel(a: Panel, b: Panel): [number, number] {
-  const dx = a.x - b.x
-  const dz = a.z - b.z
-  const u = dx * b.tx + dz * b.tz
-  const v = -dx * b.tz + dz * b.tx
-  const h = b.length / 2
-  const potential = -(primitive(u + h, v) - primitive(u - h, v)) / (2 * Math.PI * b.length)
-  if (a === b) return [potential, 0]
-  const tangent = Math.log(Math.hypot(u + h, v) / Math.hypot(u - h, v)) / b.length
-  const normal = Math.abs(v) < 1e-14 ? 0 : Math.sign(v) * (Math.atan((u + h) / Math.abs(v)) - Math.atan((u - h) / Math.abs(v))) / b.length
-  return [potential, (a.nx * (b.tx * tangent - b.tz * normal) + a.nz * (b.tz * tangent + b.tx * normal)) / (2 * Math.PI)]
+/** Analytic source integration and Galerkin target averaging, without per-pair allocations.
+ * Metal rows need potential; dielectric-transmission rows need normal field only.
+ */
+function kernel(a: Panel, b: Panel): number {
+  const potential = a.group>=-1
+  if (a===b) return potential ? (-Math.log(a.length)+1.5)/(2*Math.PI) : 0
+  let result = 0
+  for (const [t,weight] of numerics.panelQuadrature) {
+    const dx = a.x+t*a.tx*a.length/2-b.x
+    const dz = a.z+t*a.tz*a.length/2-b.z
+    const u = dx*b.tx+dz*b.tz
+    const v = -dx*b.tz+dz*b.tx
+    const h = b.length/2
+    let value: number
+    if (potential) value = -(primitive(u+h,v)-primitive(u-h,v))/(2*Math.PI*b.length)
+    else {
+      const tangent = Math.log(Math.hypot(u+h,v)/Math.hypot(u-h,v))/b.length
+      const normal = Math.abs(v)<numerics.kernelNormalZeroMm ? 0 : Math.sign(v)*(Math.atan((u+h)/Math.abs(v))-Math.atan((u-h)/Math.abs(v)))/b.length
+      const along = a.nx*b.tx+a.nz*b.tz
+      const across = -a.nx*b.tz+a.nz*b.tx
+      value = ((along ? along*tangent : 0)+(across ? across*normal : 0))/(2*Math.PI)
+    }
+    result += value*weight/2
+  }
+  return result
 }
-/** Galerkin target-panel averaging; exact self potential removes collocation's first-order self error. */
-function kernel(a: Panel, b: Panel): [number, number] {
-  if (a === b) return [(-Math.log(a.length) + 1.5) / (2 * Math.PI), 0]
-  const result: [number, number] = [0, 0]
-  for (const [t, weight] of numerics.panelQuadrature) {
-    const sample = { ...a, x: a.x + t * a.tx * a.length / 2, z: a.z + t * a.tz * a.length / 2 }
-    const k = pointKernel(sample, b)
-    result[0] += k[0] * weight / 2
-    result[1] += k[1] * weight / 2
+/** Coalesces repeated projections of one geometric corner, including arithmetic roundoff.
+ * This changes mesh breakpoints only; it never discards a conductor or changes its boundary.
+ */
+function breakpoints(cuts: number[], length: number): number[] {
+  const sorted = [...cuts].sort((a,b)=>a-b)
+  const result: number[] = []
+  for (const cut of sorted) {
+    if (!result.length || (cut-result.at(-1)!)*length > numerics.minimumPanelLengthMm) result.push(cut)
+    else if (cut===1) result[result.length-1]=1
   }
   return result
 }
@@ -51,16 +64,17 @@ function panels(slice: CrossSection, count: number, vacuum: boolean): Panel[] {
     const dx = b.x - a.x
     const dz = b.z - a.z
     const length = Math.hypot(dx, dz)
-    if (length < 1e-12) return
+    if (length < numerics.minimumPanelLengthMm) return
     const cuts = [0, 1]
-    if (Math.abs(dz) < 1e-12) for (const c of slice.conductors) for (const x of [c.xMin, c.xMax, (c.xMin + c.xMax) / 2]) {
+    if (Math.abs(dz) < numerics.minimumPanelLengthMm) for (const c of slice.conductors) for (const x of [c.xMin, c.xMax, (c.xMin + c.xMax) / 2]) {
       const t = (x - a.x) / dx
-      if (t > 1e-8 && t < 1 - 1e-8) cuts.push(t)
+      if (t > numerics.panelEndFractionTolerance && t < 1 - numerics.panelEndFractionTolerance) cuts.push(t)
     }
-    const ordered = [...new Set(cuts)].sort((x, y) => x - y)
+    const ordered = breakpoints(cuts,length)
     for (let k = 1; k < ordered.length; k++) for (let i = 0; i < count; i++) {
       const lo = ordered[k - 1] + (ordered[k] - ordered[k - 1]) * grade(i)
       const hi = ordered[k - 1] + (ordered[k] - ordered[k - 1]) * grade(i + 1)
+      if (hi===lo) fail('mesh_convergence','Panel refinement exhausted IEEE-double coordinate resolution before convergence')
       const x = a.x + dx * (lo + hi) / 2
       const z = a.z + dz * (lo + hi) / 2
       const nx = dz / length
@@ -83,8 +97,8 @@ function panels(slice: CrossSection, count: number, vacuum: boolean): Panel[] {
       const dz = b.z - a.z
       const length = Math.hypot(dx, dz)
       const cuts = [0, 1]
-      for (const c of [...slice.conductors, ...slice.dielectrics]) for (const t of Math.abs(dz) < 1e-12 ? [(c.xMin - a.x) / dx, (c.xMax - a.x) / dx] : [(c.zMin - a.z) / dz, (c.zMax - a.z) / dz]) if (t > 0 && t < 1) cuts.push(t)
-      const sorted = [...new Set(cuts)].sort((x, y) => x - y)
+      for (const c of [...slice.conductors, ...slice.dielectrics]) for (const t of Math.abs(dz) < numerics.minimumPanelLengthMm ? [(c.xMin - a.x) / dx, (c.xMax - a.x) / dx] : [(c.zMin - a.z) / dz, (c.zMax - a.z) / dz]) if (t > 0 && t < 1) cuts.push(t)
+      const sorted = breakpoints(cuts,length)
       for (let k = 1; k < sorted.length; k++) {
         const lo = sorted[k - 1]
         const hi = sorted[k]
@@ -105,8 +119,10 @@ function capacitance(slice: CrossSection, count: number, vacuum: boolean): { C: 
   const n = p.length
   const groups = Math.max(...slice.conductors.map(c => c.group)) + 1
   const a: Matrix = p.map((target, i) => [...p.map((source, j) => {
-    const [potential, field] = kernel(target, source)
-    return target.group >= -1 ? potential : (i === j ? 1 / target.length : 0) - 2 * target.contrast * field
+    const coefficient = kernel(target,source)
+    const value = target.group >= -1 ? coefficient : (i === j ? 1 / target.length : 0) - 2 * target.contrast * coefficient
+    if (!Number.isFinite(value)) fail('mesh_convergence',`Nonfinite panel coefficient ${i},${j}: ${JSON.stringify({target,source,coefficient})}`)
+    return value
   }), target.group >= -1 ? 1 : 0])
   a.push([...p.map(() => 1), 0])
   const rhs: Matrix = p.map(panel => Array.from({ length: groups }, (_, j) => Number(panel.group === j)))
@@ -148,18 +164,20 @@ export function solveCrossSection(slice: CrossSection, progress: (message: strin
     } : undefined
     const residual = estimate && previousEstimate ? Math.max(matrixResidual(previousEstimate.C, estimate.C), matrixResidual(previousEstimate.C0, estimate.C0)) : null
     steps.push({ panels: normal.panels.length, residual, rawResidual })
-    progress(`2D BEM: ${normal.panels.length} panels; entry-wise residual ${residual ?? 'initial'}; target < 0.005`)
+    progress(`2D BEM: ${normal.panels.length} panels; entry-wise residual ${residual ?? 'initial'}; target < ${numerics.meshRelativeChange}`)
     if (residual !== null && residual < numerics.meshRelativeChange) {
       const inverse = solve(vacuum.C, vacuum.C.map((_, i) => vacuum.C.map((__, j) => Number(i === j))))
       const currents = vacuum.charge.map(row => inverse[0].map((_, j) => row.reduce((s, q, i) => s + epsilon0 * q * inverse[i][j], 0)))
       const surface = inverse.map((_, i) => inverse.map((__, j) => vacuum.panels.reduce((s, panel, k) => s + currents[k][i] * currents[k][j] / (panel.length / 1000) / Math.sqrt(panel.sigma), 0)))
+      const tangent = Math.max(0,...slice.dielectrics.map(d=>d.lossTangent))
       let loss: Matrix = reduced.map(row => row.map(() => 0))
-      for (let k = 0; k < slice.dielectrics.length; k++) {
-        const d = slice.dielectrics[k]
-        if (!d.lossTangent) continue
-        const shifted = { ...slice, dielectrics: slice.dielectrics.map((v, i) => i === k ? { ...v, er: v.er * (1 + numerics.dielectricRelativeStep) } : v) }
-        const high = reduceCapacitance(capacitance(shifted, count, false).C, active)
-        loss = loss.map((row, i) => row.map((v, j) => v + d.lossTangent * (high[i][j] - reduced[i][j]) / numerics.dielectricRelativeStep))
+      if (tangent) {
+        // Chain rule: dC/ds for eps_k(s)=eps_k*(1+s*tan(delta_k)/maxTan).
+        // One directional solve gives sum_k tan(delta_k)*eps_k*dC/d(eps_k),
+        // preserving identical materials instead of creating artificial interfaces one at a time.
+        const shifted = {...slice,dielectrics:slice.dielectrics.map(d=>({...d,er:d.er*(1+numerics.dielectricRelativeStep*d.lossTangent/tangent)}))}
+        const high = reduceCapacitance(capacitance(shifted,count,false).C,active)
+        loss = high.map((row,i)=>row.map((v,j)=>tangent*(v-reduced[i][j])/numerics.dielectricRelativeStep))
       }
       return { C: symmetrize(estimate!.C), C0: symmetrize(estimate!.C0), loss: symmetrize(loss), surface: symmetrize(surface.slice(0, active).map(row => row.slice(0, active))), steps }
     }

@@ -21,6 +21,20 @@ export const numerics = {
   boundaryToleranceMm: 1e-9,
   interfaceProbeMm: 1e-7,
   coordinateDigits: 8,
+  stackupCoordinateDigits: 10,
+  /** Direction and panel predicates in mm or dimensionless panel fractions; avoid roundoff slivers. */
+  directionTolerance: 1e-8,
+  minimumPanelLengthMm: 1e-12,
+  kernelNormalZeroMm: 1e-14,
+  panelEndFractionTolerance: 1e-8,
+  /** Observed-eye boundary/interpolation tolerances are fractions of one UI, not resource limits. */
+  eyeBoundaryToleranceUi: 1e-9,
+  eyeInterpolationToleranceUi: 1e-12,
+  eyePlotPoints: 1200,
+  /** Accept only start-time roundoff smaller than a native timestep or this relative duration. */
+  simulationStartRelativeTolerance: 1e-8,
+  /** IEEE-double solver output, independent of text formatting used for input components. */
+  ngspiceOutputDigits: 17,
   /** Quasi-TEM ladder delay <= IBIS 10–90% rise time / 10 (prompt amendment). */
   cellsPerRiseTime: 10,
   /** Cover low-frequency data content and a decade above the IBIS 0.5/tr knee. */
@@ -44,11 +58,19 @@ export const numerics = {
   mu0: 1.25663706212e-6,
   /** Dense pivots below this scaled IEEE-double threshold are a named singular-matrix error. */
   pivotAbsoluteFloor: 1e-25,
+  /** WebAssembly's defined 64-KiB page; clang's exported heap starts after its two initial pages.
+   * Memory grows to the matrix size. Neither value imposes a matrix, lane or mesh limit.
+   */
+  wasmPageBytes: 65536,
+  luInitialMemoryPages: 2,
   /** Matrix validation tolerances; these predate BEM and also protect SPICE passivity. */
   matrixReciprocity: .005,
   choleskyRelativeFloor: 1e-12,
   /** SPICE text precision retains more digits than the extraction accuracy supports. */
   netlistDigits: 12,
-  /** Series RC roundoff negative-capacitance floor, in F. Material negatives always fail. */
-  capacitanceRoundoffF: 1e-20,
+  /** TI Analog Engineer's Pocket Reference eqs. 87–88, dimensions in mm.
+   * https://www.ti.com/lit/eb/slyw038c/slyw038c.pdf
+   */
+  viaInductanceHPerMm: .2e-9,
+  viaCapacitanceFPerMm: .0555e-12,
 } as const

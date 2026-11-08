@@ -1,14 +1,14 @@
 import type { CircuitJson } from 'circuit-json'
+import { numerics } from '../kernel'
 import { fail } from './diagnostics'
 
-export const defaultCopperConductivitySm = 5.8e7
 export interface CopperLayer { name: string; zMinMm: number; zMaxMm: number; conductivitySm: number }
 export interface DielectricLayer { material?: string; zMinMm: number; zMaxMm: number; relativePermittivity: number; lossTangent: number }
 export interface BoardStackup {
   pcbBoardId: string; copperLayers: CopperLayer[]; dielectrics: DielectricLayer[]; relativePermittivity: number; viaPlatingMm?: number
 }
 /** Validates a physical construction field without substituting a guessed material. */
-function field(value: unknown, code: 'stackup_permittivity' | 'stackup_loss' | 'stackup_conductivity', label: string, zero = false): number {
+function field(value: unknown, code: 'stackup_permittivity' | 'stackup_loss' | 'stackup_conductivity', label: string, zero: boolean = false): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || (zero ? value < 0 : value <= 0)) fail(code, `pcb_stackup: ${label} is required`)
   return value
 }
@@ -26,10 +26,13 @@ export function stackupFromCircuitJson(circuit: CircuitJson): BoardStackup {
   for (const layer of [...record.layers].reverse()) {
     if (typeof layer.thickness !== 'number' || layer.thickness <= 0) fail('stackup', `${layer.layer_type}: positive physical thickness required`)
     const lo = z
-    z = Math.round((z + layer.thickness) * 1e10) / 1e10
+    z = Math.round((z + layer.thickness) * 10 ** numerics.stackupCoordinateDigits) / 10 ** numerics.stackupCoordinateDigits
     if (layer.layer_type === 'copper') copperLayers.push({ name: layer.layer, zMinMm: lo, zMaxMm: z,
       conductivitySm: field(layer.electrical_conductivity_s_per_m, 'stackup_conductivity', `${layer.layer}.electrical_conductivity_s_per_m`) })
-    else dielectrics.push({ material: layer.layer_type === 'dielectric' ? layer.material_name : 'soldermask', zMinMm: lo, zMaxMm: z,
+    if (layer.layer_type === 'copper' && layer.layer !== 'top' && layer.layer !== 'bottom') dielectrics.push({material:'etched-layer fill',zMinMm:lo,zMaxMm:z,
+      relativePermittivity:field(Reflect.get(layer,'dielectric_fill_relative_permittivity'),'stackup_permittivity',`${layer.layer}.dielectric_fill_relative_permittivity`),
+      lossTangent:field(Reflect.get(layer,'dielectric_fill_loss_tangent'),'stackup_loss',`${layer.layer}.dielectric_fill_loss_tangent`,true)})
+    else if (layer.layer_type !== 'copper') dielectrics.push({ material: layer.layer_type === 'dielectric' ? layer.material_name : 'soldermask', zMinMm: lo, zMaxMm: z,
       relativePermittivity: field(layer.relative_permittivity, 'stackup_permittivity', `${layer.layer_type}.relative_permittivity`),
       lossTangent: field(Reflect.get(layer, 'dielectric_loss_tangent') ?? Reflect.get(layer, 'loss_tangent'), 'stackup_loss', `${layer.layer_type}.dielectric_loss_tangent`, true) })
   }

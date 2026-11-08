@@ -8,7 +8,7 @@
  * (Was: metrics.mjs probeWaveformRows/foldProbeEye + the eye loop of general-pipeline.ts.)
  */
 export type {
-  Signal, WaveformRows, EyeGate, EyeRequest, EyeAlignment, EyeLimits, FoldOptions, EyeSample, EyeMetrics, FoldedEye, EyeResult,
+  Signal, WaveformRows, EyeGate, EyeRequest, EyeAlignment, FoldOptions, EyeSample, EyeMetrics, FoldedEye, EyeResult,
 } from './types'
 export { probeWaveformRows } from './waveform'
 export { foldProbeEye } from './fold'

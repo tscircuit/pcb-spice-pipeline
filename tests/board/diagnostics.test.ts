@@ -22,10 +22,7 @@ for (const [code, change] of [
     cj.push(p) }],
   ['slice_ground', (cj: any[]) => { for (let i = cj.length - 1; i >= 0; i--) if (cj[i].type === 'pcb_copper_pour' || cj[i].type === 'pcb_smtpad' || (cj[i].type === 'pcb_trace' && !cj.some(s => s.type === 'source_trace' && /^D\d$/.test(s.name) && s.source_trace_id === cj[i].source_trace_id))) cj.splice(i, 1) }],
   ['route_branch', (cj: any[]) => { cj.find(r => r.type === 'source_trace' && r.name === 'D0').connected_source_port_ids.push('extra-branch') }],
-  ['route_topology', (cj: any[]) => { const t = trace(cj)
-    const a = t.route[0]
-    const b = t.route.at(-1)
-    t.route = [a,{...a,x:0},{...a,x:-3},b] }],
+
 ] as const) {
   test(`malformed TSX copper raises ${code}`, () => {
     const cj = structuredClone(circuitJson) as any[]

@@ -9,3 +9,8 @@ test('nonnegative Foster fit reproduces a known positive-real branch spectrum', 
   assert.ok(fit.relativeRms < .08)
   assert.equal(fittedLoss(fit,0),0)
 })
+
+test('invalid and zero loss data terminate explicitly, with no hidden fit loop', () => {
+  assert.throws(() => fitLoss([NaN],[1]),{code:'loss_fit'})
+  assert.deepEqual(fitLoss([1,10],[0,0]).weights,[0,0,0,0])
+})

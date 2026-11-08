@@ -9,7 +9,7 @@ test('construction retains copper, dielectric loss and plating from original rec
   assert.equal(s.dielectrics[0].lossTangent, .02)
   assert.equal(s.copperLayers[0].conductivitySm, 5.8e7)
 })
-for (const [field, code] of [['relative_permittivity', 'stackup_permittivity'], ['dielectric_loss_tangent', 'stackup_loss'], ['electrical_conductivity_s_per_m', 'stackup_conductivity']] as const) {
+for (const [field, code] of [['relative_permittivity', 'stackup_permittivity'], ['loss_tangent', 'stackup_loss'], ['electrical_conductivity_s_per_m', 'stackup_conductivity']] as const) {
   test(`missing physical ${field} has named diagnostic ${code}`, () => {
     const cj = structuredClone(circuitJson) as CircuitJson
     const stack = cj.find(r => r.type === 'pcb_stackup')!

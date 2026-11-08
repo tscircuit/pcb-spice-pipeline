@@ -43,3 +43,10 @@ test('admission records exact source bytes and evidence; compilation pins each r
   assert.deepEqual(assembly.value.map(a=>a.spiceSha256),compiled[0].map(m=>sha256(m.source)))
   assert.deepEqual(JSON.parse(assembly.artifacts[0].body),JSON.parse(JSON.stringify(assembly.value)))
 })
+
+test('IBIS schedules have no 100000-bit cap and still reject unrepresentable indices',async()=>{
+  const {logicalBitSchedule}=await import('@tscircuit/ibis-to-spice')
+  const stimulus={pattern:{type:'bits',bits:'0',repeat:true},initialState:0,unitInterval:'1ns',startTime:'0ns'}
+  assert.deepEqual(logicalBitSchedule(stimulus,'100001ns').transitions,[])
+  assert.throws(()=>logicalBitSchedule({...stimulus,unitInterval:'1ps'},'1000000000000000000s'),{code:'stimulus_too_long'})
+})

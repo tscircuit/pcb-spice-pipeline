@@ -9,12 +9,13 @@ Extraction now walks the actual copper. It does not launch FastHenry or FasterCa
 2. **Solve the slice.** A constant-panel boundary-element method solves conductor potentials and
    dielectric transmission boundaries in open space. A charge-neutral constraint determines the
    common potential. Solve again in vacuum and calculate L = μ0 ε0 C0⁻¹. Neutral floating pads are
-   eliminated with a Schur complement. Repeated geometry is cached within the extraction.
+   eliminated with a Schur complement. Repeated geometry is cached. Dense IEEE-double elimination uses the included WebAssembly kernel;
+   `scripts/build-lu.mjs` rebuilds it from the readable C source.
 3. **Model vias.** Use physical hole, pad, antipad, plating and active length. A missing dimension
    raises a named diagnostic. TI's closed-form via approximation gives lumped R/L/C; it is not a
    full-wave discontinuity solution.
 4. **Build the ladder.** The fastest selected IBIS edge and the bit timing determine the frequency
-   band and number of cells. Each cell has the complete coupled inductance matrix and Maxwell C.
+   band and number of cells. Each cell has the complete coupled inductance matrix and physical C.
    Positive-real Foster RL branches model skin/proximity loss from the solved surface-current
    distribution. Series RC branches model dielectric loss from material sensitivity. Fit residuals
    and all mesh refinement steps are artifacts. This works with native ngspice primitives.
@@ -23,9 +24,10 @@ Extraction now walks the actual copper. It does not launch FastHenry or FasterCa
 
 All numerical policy is in `src/kernel/numerics.ts`. There are no solver process timeouts, mesh
 attempt limits, lane caps, or maximum cell clamps. Refinement continues until every nonzero matrix
-entry meets the documented relative-change criterion. Exact symmetry zeros use a roundoff floor.
+C/C0 estimate entry meets the documented relative-change criterion; all-matrix loss convergence
+qualification is tracked explicitly in REPORT.md. Exact symmetry zeros use a roundoff floor.
 Physical Dk, loss tangent, copper conductivity, layer thickness and via plating come from the original
-`pcb_stackup`, including solder mask; incomplete presets fail with field-specific diagnostics.
+`pcb_stackup` (the examples declare it directly with the `pcbStackup` JSX prop), including solder mask; incomplete presets fail with field-specific diagnostics.
 
 The model has explicit limits. Cross-sections are local quasi-TEM models, excluding radiation and
 bend fringing. Magnetic coupling is distributed between parallel, co-propagating route pieces;

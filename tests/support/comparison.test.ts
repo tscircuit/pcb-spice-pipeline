@@ -137,7 +137,7 @@ test('saved-run comparison binds artifacts and computes pairs before shared rend
   for (const path of ['electrical-node-map.json', 'converter-runtime.json']) await save(path, {})
   await save('channel.cir', '* synthetic test network\n')
   const input = fixture()
-  await save('geometry.json', { ...input.geometry, approximations: ['Synthetic report fixture'],
+  await save('geometry.json', { ...input.geometry, cells:[], stackup:{copperLayers:[]}, approximations: ['Synthetic report fixture'],
     mappings: input.geometry.mappings.map((lane, i) => ({ ...lane, port: `lane${i}`, sourceTraceId: `trace${i}`, pcbTraceId: `pcb${i}`,
       stages: [{ kind: 'wire', profile: 'top', lengthMm: 1, widthMm: .1 }], originalRoute: [{ x: 0, y: i }, { x: 1, y: i }] })) })
   const binarySha256 = { fasthenry: 'henry', fastercap: 'cap', ngspice: 'spice' }

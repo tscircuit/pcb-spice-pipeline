@@ -2,11 +2,12 @@
 import type { CircuitJson, Geometry } from '../board'
 import { selectPort } from '../board'
 import { channelSpice, type ExtractedStage } from '../extraction'
+import { numerics } from '../kernel'
 import { fail } from './diagnostics'
 import type { CircuitNodes, CompiledModel, ElectricalModel, ElectricalSources, SimulationModeling, SimulationPlan, SimulationSpiceOptions } from './types'
 
 /** Formats a number with 17 significant digits so SPICE decks round-trip doubles exactly. */
-const num = (value: number): string => Number(value.toPrecision(17)).toString()
+const num = (value: number): string => Number(value.toPrecision(numerics.ngspiceOutputDigits)).toString()
 /** Rejects any electrical input that is not a finite number (or not positive, when required) before it reaches the deck. */
 const finite = (input: unknown, label: string, positive: boolean = false): number => {
   if (typeof input !== 'number' || !Number.isFinite(input) || (positive && input <= 0)) return fail('electrical_input', `${label}: explicit finite ${positive ? 'positive ' : ''}value required`)
@@ -164,7 +165,8 @@ export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geom
   validateProbeScope(plan, geometry, models, nodes, electrical)
   // IBIS behavioral sources reference internal voltage-source currents. Probe-only
   // saves discard those branch vectors in upstream ngspice; preserve them all.
-  lines.push('.control', 'set wr_singlescale', 'set wr_vecnames', 'set numdgt=17', 'save all', `tran ${num(plan.maxStepSeconds)} ${num(plan.durationSeconds)} ${num(plan.startTimeSeconds)} ${num(plan.maxStepSeconds)}`)
+  // ngspice's norefvalue disables wall-clock-driven progress text only; errors remain recorded.
+  lines.push('.control', 'set norefvalue', 'set wr_singlescale', 'set wr_vecnames', `set numdgt=${numerics.ngspiceOutputDigits}`, 'save all', `tran ${num(plan.maxStepSeconds)} ${num(plan.durationSeconds)} ${num(plan.startTimeSeconds)} ${num(plan.maxStepSeconds)}`)
   for (const [i, probe] of plan.probes.entries()) lines.push(`let probe${i} = ${probe.signalNode === '0' ? '0' : `v(${probe.signalNode})`}-${probe.referenceNode === '0' ? '0' : `v(${probe.referenceNode})`}`)
   lines.push(`wrdata waveform.dat ${plan.probes.map((_, i) => `probe${i}`).join(' ')}`, 'quit', '.endc', '.end', '')
   return lines.join('\n')

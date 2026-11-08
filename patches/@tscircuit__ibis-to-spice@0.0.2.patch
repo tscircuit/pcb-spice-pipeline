@@ -1,0 +1,100 @@
+diff --git a/dist/chunk-5WGMOTLW.js b/dist/chunk-5WGMOTLW.js
+index 741625e..d8e6789 100644
+--- a/dist/chunk-5WGMOTLW.js
++++ b/dist/chunk-5WGMOTLW.js
+@@ -533,10 +533,10 @@ function clockWeights(converted, stimulus) {
+     );
+   const half = seconds(stimulus.period) / 2, duration = seconds(stimulus.duration);
+   const intervals = Math.ceil(duration / half);
+-  if (intervals > 1e4)
++  if (!Number.isSafeInteger(intervals))
+     throw new IbisError(
+       "stimulus_too_long",
+-      "Clock stimulus exceeds 10000 edge intervals"
++      "Clock edge indices must be representable safe integers"
+     );
+   if (Math.max(
+     converted.weights.rising.at(-1)[0],
+@@ -738,7 +738,6 @@ function validateIbisDefinitionSource(source) {
+ }
+ 
+ // lib/load.ts
+-var MAX_BYTES = 64 * 1024 * 1024;
+ async function loadIbisSource(config, fetcher = fetch) {
+   if (Boolean(config.source) === Boolean(config.sourceUrl))
+     throw new IbisError(
+@@ -772,8 +771,6 @@ async function loadIbisSource(config, fetcher = fetch) {
+       "IBIS source returned an HTML page instead of a model file"
+     );
+   const bytes = new Uint8Array(await response.arrayBuffer());
+-  if (bytes.byteLength > MAX_BYTES)
+-    throw new IbisError("source_too_large", "IBIS download exceeds 64 MiB");
+   const isZip = bytes[0] === 80 && bytes[1] === 75;
+   let sourceBytes = bytes;
+   if (isZip) {
+@@ -783,13 +780,13 @@ async function loadIbisSource(config, fetcher = fetch) {
+         "ZIP sources require an explicit archivePath"
+       );
+     const archive = unzipSync(bytes, {
+-      filter: (entry) => entry.name === config.archivePath && entry.originalSize <= MAX_BYTES
++      filter: (entry) => entry.name === config.archivePath
+     });
+     sourceBytes = archive[config.archivePath];
+     if (!sourceBytes)
+       throw new IbisError(
+         "missing_archive_member",
+-        "Selected IBIS archive member is missing or exceeds 64 MiB"
++        "Selected IBIS archive member is missing"
+       );
+   } else if (config.archivePath)
+     throw new IbisError(
+@@ -835,7 +832,6 @@ function createIbisModelResolver(fetcher = fetch) {
+ async function loadIbisDefinitionSource(source, options = {}) {
+   validateIbisDefinitionSource(source);
+   if (source.content !== void 0) {
+-    if (new TextEncoder().encode(source.content).length > MAX_BYTES) throw new IbisError("source_too_large", "IBIS text exceeds 64 MiB");
+     if (source.sha256 && sourceHash(source.content) !== source.sha256.toLowerCase()) throw new IbisError("hash_mismatch", "Inline IBIS source does not match sha256");
+     return source.content;
+   }
+@@ -850,15 +846,14 @@ async function loadIbisDefinitionSource(source, options = {}) {
+     if (/text\/html/i.test(response.headers.get("content-type") ?? "")) throw new IbisError("invalid_ibis", "IBIS URL returned HTML instead of model data");
+     bytes = new Uint8Array(await response.arrayBuffer());
+   }
+-  if (bytes.length > MAX_BYTES) throw new IbisError("source_too_large", "IBIS source exceeds 64 MiB");
+   if (source.sha256 && sourceHash(bytes) !== source.sha256.toLowerCase()) throw new IbisError("hash_mismatch", "Original source bytes do not match SHA-256");
+   const isZip = bytes[0] === 80 && bytes[1] === 75;
+   if (isZip) {
+     if (!source.archive?.member) throw new IbisError("missing_archive_path", "ZIP sources require an explicit archive.member");
+     const selected = source.archive.member;
+-    const archive = unzipSync(bytes, { filter: (entry) => entry.name === selected && entry.originalSize <= MAX_BYTES });
++    const archive = unzipSync(bytes, { filter: (entry) => entry.name === selected });
+     bytes = archive[selected];
+-    if (!bytes) throw new IbisError("missing_archive_member", "IBIS archive member is missing or exceeds 64 MiB");
++    if (!bytes) throw new IbisError("missing_archive_member", "IBIS archive member is missing");
+     if (source.archive.memberSha256 && sourceHash(bytes) !== source.archive.memberSha256.toLowerCase()) throw new IbisError("member_hash_mismatch", "Extracted archive member does not match SHA-256");
+   } else if (source.archive) throw new IbisError("invalid_archive", "archive was provided for a non-ZIP source");
+   return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+diff --git a/dist/index.js b/dist/index.js
+index 1429092..d9998be 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -35,15 +35,16 @@ function logicalBitSchedule(stimulus, durationInput, polarity = "non-inverting")
+   const unitInterval = ibisTimeSeconds(stimulus.unitInterval), startTime = ibisTimeSeconds(stimulus.startTime, true), duration = ibisTimeSeconds(durationInput);
+   if (startTime >= duration) throw new IbisError("invalid_stimulus", "Stimulus startTime must precede simulation duration");
+   const intervals = (duration - startTime) / unitInterval;
+-  const count = Math.max(1, Math.ceil(intervals - Math.max(1, intervals) * Number.EPSILON * 8));
+-  if (!Number.isFinite(intervals) || count > 1e5) throw new IbisError("stimulus_too_long", "Stimulus exceeds 100000 bit intervals");
+-  if (!stimulus.pattern.repeat && count > stimulus.pattern.bits.length)
++  const count = Math.ceil(intervals);
++  if (!Number.isSafeInteger(count)) throw new IbisError("stimulus_too_long", "Stimulus bit indices must be representable safe integers");
++  if (!stimulus.pattern.repeat && startTime + stimulus.pattern.bits.length * unitInterval < duration)
+     throw new IbisError("uncovered_stimulus", "Nonrepeating bits must cover the simulation duration");
+   const invert = Number(Boolean(stimulus.inverted)) ^ Number(polarity === "inverting");
+   const initialState = stimulus.initialState ^ invert;
+   let previous = initialState;
+   const transitions = [];
+   for (let i = 0; i < count; i++) {
++    if (startTime + i * unitInterval >= duration) break;
+     const state = Number(stimulus.pattern.bits[i % stimulus.pattern.bits.length]) ^ invert;
+     if (state !== previous) transitions.push({ time: startTime + i * unitInterval, state });
+     previous = state;

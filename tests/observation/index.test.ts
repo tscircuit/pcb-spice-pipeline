@@ -66,10 +66,9 @@ test('foldProbeEye matches the pre-module metrics.mjs for stimulus-clock and rec
     const rows = waveform(r, columns)
     const eye = eyeFor(r, rows, columns)
     const points = r.pick([2, 3, 5, 17, 1200, 1, 2.5])
-    const limits = r.pick([undefined, {}, { maxWindows: r.int(1, 30) }, { maxSamples: r.int(1, 400) }])
     const capture = r.next() < 0.4 ? captures(r, rows) : undefined
     const alignment: EyeAlignment = capture ? { kind: 'received-differential-dqs', captureTimesSeconds: capture } : { kind: 'stimulus-clock' }
-    const now = outcome(() => foldProbeEye(rows, eye, { alignment, pointsPerWindow: points, limits }))
+    const now = outcome(() => foldProbeEye(rows, eye, { alignment, pointsPerWindow: points }))
     see(`seed ${seed}`, now)
     if (now.ok) {
       folded++

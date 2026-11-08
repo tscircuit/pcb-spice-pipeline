@@ -16,6 +16,12 @@ test('segments preserve physical lengths and actual unequal neighbour positions'
 test('removed numerical settings fail instead of being silently ignored', () => {
   assert.throws(() => geometryFromCircuitJson(circuitJson as CircuitJson, { ...modeling, sections: 1 } as never), { code: 'modeling_input' })
 })
-test('a via without a recorded antipad raises via_antipad, without guessing', () => {
-  assert.throws(() => geometryFromCircuitJson(via as CircuitJson, viaModeling), { code: 'via_antipad' })
+test('multilayer TSX derives actual via antipads and splits at plane edges and layers', () => {
+  const g = geometryFromCircuitJson(via as CircuitJson, viaModeling)
+  assert.equal(g.cells.filter(c=>c.via).length,2)
+  assert.ok(g.cells.filter(c=>c.via).every(c=>Math.abs(c.via!.antipadMm-.7)<.001))
+  assert.ok(g.cells.some(c=>c.profile==='inner2'))
+  const noHoles = structuredClone(via) as any[]
+  for (const p of noHoles.filter(r=>r.type==='pcb_copper_pour')) p.brep_shape.inner_rings=[]
+  assert.throws(()=>geometryFromCircuitJson(noHoles as CircuitJson,viaModeling),{code:'via_antipad'})
 })

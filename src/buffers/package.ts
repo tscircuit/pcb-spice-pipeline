@@ -33,7 +33,7 @@ export function convertWithPackage(bytes: Uint8Array, input: ModelRunDefinition)
   }
   result.source = result.source.replace(wrapper[0], `.subckt ${wrapper[1]} ${wrapper[2]}\n${lines.join('\n')}\n${core}.ends ${wrapper[1]}`)
   result.metadata.packagePolicy = 'vendor'
-  result.metadata.omissions = []
-  result.warnings = []
+  result.metadata.omissions = result.metadata.omissions.filter(w=>w !== 'Vendor package excluded by explicit packagePolicy=omit')
+  result.warnings = result.warnings.filter(w=>w !== 'Vendor package excluded by explicit packagePolicy=omit')
   return result
 }

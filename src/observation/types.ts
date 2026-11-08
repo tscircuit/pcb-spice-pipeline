@@ -23,14 +23,11 @@ export interface EyeRequest extends EyeGate {
 export type EyeAlignment =
   | { readonly kind: 'stimulus-clock' }
   | { readonly kind: 'received-differential-dqs'; readonly captureTimesSeconds: readonly number[] }
-/** Allocation limits checked before any folded sample is produced. */
-export interface EyeLimits { maxWindows?: number; maxSamples?: number }
 export interface FoldOptions {
   /** Default { kind: 'stimulus-clock' }. */
   alignment?: EyeAlignment
   /** Default 1200. */
   pointsPerWindow?: number
-  limits?: EyeLimits
 }
 /** [window index, folded time offset (s), absolute time (s), voltage (V)]. */
 export type EyeSample = [window: number, offsetSeconds: number, timeSeconds: number, voltageV: number]

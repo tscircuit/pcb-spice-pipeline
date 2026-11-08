@@ -1,5 +1,6 @@
 // The per-experiment ngspice part of general-pipeline.ts runPipeline, plus the plan-level checks
 // it performed around declarations. Messages, artifact paths and bytes unchanged.
+import { numerics } from '../kernel'
 import { safeId, sha256, type Artifact, type ArtifactScope, type Produced } from '../kernel'
 import { invoke, type SolverContext } from '../solver'
 import { parseRecord, type CircuitJson, type Geometry } from '../board'
@@ -56,8 +57,8 @@ export async function runExperiment(ctx: SolverContext, experiment: ArtifactScop
   artifacts.push(...solve.artifacts)
   const waveformText = run.outputs['waveform.dat']
   const rows: number[][] = probeWaveformRows(waveformText, plan.probes)
-  if (rows[0][0] > plan.startTimeSeconds + Math.max(plan.maxStepSeconds, plan.durationSeconds * 1e-8)) fail('simulation_start', `${plan.name}: solver output omits the beginning of the declared recording`)
-  if (Math.abs(rows[rows.length - 1][0] - plan.durationSeconds) > plan.durationSeconds * 1e-8) fail('simulation_duration', `${plan.name}: native solver did not complete the declared duration`)
+  if (rows[0][0] > plan.startTimeSeconds + Math.max(plan.maxStepSeconds, plan.durationSeconds * numerics.simulationStartRelativeTolerance)) fail('simulation_start', `${plan.name}: solver output omits the beginning of the declared recording`)
+  if (Math.abs(rows[rows.length - 1][0] - plan.durationSeconds) > plan.durationSeconds * numerics.simulationStartRelativeTolerance) fail('simulation_duration', `${plan.name}: native solver did not complete the declared duration`)
   const csv = 'time_s,' + plan.probes.map(probe => probe.simulationVoltageProbeId + '_v').join(',') + '\n' + rows.map(row => row.join(',')).join('\n') + '\n'
   artifacts.push(experiment.text('waveform.csv', csv))
   artifacts.push(experiment.json('waveform.json', { simulationExperimentId: plan.simulationExperimentId, probes: plan.probes, samples: rows.length, timestamps: 'actual adaptive solver times in seconds', source: 'waveform.dat', sourceSha256: sha256(waveformText) }))

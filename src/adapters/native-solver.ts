@@ -29,7 +29,7 @@ export function createNativeSolver({ tools = {} }: NativeSolverOptions = {}): Ru
       let run: { stdout: string; stderr: string }
       try {
         run = await exec(tools[request.solver] ?? (request.solver === 'fastercap' ? 'FasterCap' : request.solver), request.args,
-          { cwd: directory, maxBuffer: Infinity, env: { ...process.env, OMP_NUM_THREADS: '1' } })
+          { cwd: directory, maxBuffer: Infinity })
       } catch (error) {
         const detail = error as Error & { code?: string | number | null; killed?: boolean; signal?: string; stdout?: string; stderr?: string }
         fail('native_solver', `${request.solver}: ${detail.message}\n${detail.stdout ?? ''}\n${detail.stderr ?? ''}`)
@@ -42,7 +42,7 @@ export function createNativeSolver({ tools = {} }: NativeSolverOptions = {}): Ru
         }
         catch (error) {
           if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-          // The pipeline validates required outputs and solver diagnostics.
+          fail('native_solver', `${request.solver}: missing requested output ${path}\n${run.stdout}\n${run.stderr}`)
         }
       }
       return { ...run, files }

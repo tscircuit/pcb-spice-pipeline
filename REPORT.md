@@ -63,3 +63,37 @@ will supersede this paragraph. Focused tests: 20/21 initially (one obsolete fixt
 then all 17 new diagnostic checks and all 5 TSX geometry/reproduction checks passed.
 
 See [docs/2d-extraction.md](docs/2d-extraction.md) and `src/kernel/numerics.ts` for the method and policy.
+
+## Subsequent working increment
+
+The four closed-form configurations now pass the 2% thresholds: isolated and edge-coupled
+microstrip and stripline (including both mode impedances and mutual L/C). Independent native AC
+checks pass for full R/L/K/C matrices, Foster skin loss, general positive-definite dielectric loss,
+and twelve lanes. `pnpm test:native` most recently passed five tests, with one vendor-only test
+skipped; separate real-TI CLI runs are recorded independently. Native supply-pin package verification also passes on the synthetic input-model fixture; the real TI package run is pending.
+
+The latest single-ended run extracted in 12.596 s, simulated in 17.428 s, total 31.050 s. A small
+IEEE-double WebAssembly LU kernel and allocation-free panel evaluation replace the slow JavaScript
+elimination. Source and a rebuild script are included; no native extraction process runs. Other
+board timings remain pending. These measurements supersede the first-increment timing above.
+
+All board geometry and construction now come from TSX, including `pcbStackup`. Four pnpm patches
+remove obsolete controls and lane caps from props/Circuit JSON/core serialization and expose physical
+stackup construction in JSX. The fourth removes the converter’s 100000-bit and 64-MiB input caps;
+only representability errors remain. No geometry records are assembled by hand. This is a local dependency
+patch pending equivalent upstream releases; no `bun patch` was used.
+
+The multilayer TSX is now a four-layer board with actual circular antipad voids in its inner ground
+pour. The via diameter is measured from those voids. Etched internal-layer dielectric fill is explicit;
+missing fill properties have named diagnostics. The earlier `via_antipad` limitation above is superseded.
+The expanded real-board native runs are still being validated. General dielectric shunts use an exact
+passive transformer congruence because material sensitivity need not have Maxwell pairwise signs.
+
+The full unit suite passes 234/234 after updating the pinned registry for the new backend/storage diagnostics. `pnpm build`, lint and type checks pass. Mesh qualification still applies to C/C0 estimates;
+all-matrix convergence and final eye/NEXT/FEXT/timing tables remain outstanding.
+
+The first full real-TI RS-485 run now completes on native ngspice: extraction 603.187 s,
+ngspice 684.055 s, total 1288.844 s, 134 segments. It fails both speed targets. The naive
+unsigned matrix-entry sum is 1.476879 nH; a signed selected-route mutual-L comparison is still
+pending and this number must not be equated to the 4.2-nH 3D reference. The native twelve-lane,
+frequency-dependent multiport and supply-package checks pass. Full unit suite: 234/234.

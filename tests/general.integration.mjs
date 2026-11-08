@@ -105,3 +105,72 @@ test('actual vendor single-ended and differential boards preserve driven data an
     await writePipelineOutput({result,outputDir:join(output,name)})
   }
 })
+
+test('native Foster RL and general passive RC modes reproduce independently calculated complex multiport currents',async()=>{
+  const R=[[2,.3,.4],[.3,3,.5],[.4,.5,4]]
+  const L=[[4e-9,1e-9,.8e-9],[1e-9,5e-9,1.2e-9],[.8e-9,1.2e-9,6e-9]]
+  const C=[[5e-12,-1e-12,-.5e-12],[-1e-12,6e-12,-.8e-12],[-.5e-12,-.8e-12,7e-12]]
+  const S=[[.03,.01,0],[.01,.05,.01],[0,.01,.04]]
+  const D=[[.4e-12,.08e-12,.03e-12],[.08e-12,.6e-12,.04e-12],[.03e-12,.04e-12,.5e-12]]
+  const pole=2*Math.PI*1e7
+  const omega=2*Math.PI*1e8
+  const stage=channelStage({R,L,C})
+  stage.skin={matrix:S,fit:{poles:[pole],weights:[1]}}
+  stage.dielectric={matrix:D,fit:{poles:[pole],weights:[pole]}}
+  const voltage=[1,2,3]
+  const deck=['General passive modes',channelSpice([stage],3),...voltage.map((v,i)=>`V${i} in${i} 0 AC ${v}`),
+    'X in0 in1 in2 0 0 0 0 CHANNEL','.control','set wr_singlescale','set wr_vecnames','set numdgt=17',
+    'ac lin 1 100Meg 100Meg','wrdata result.dat i(V0) i(V1) i(V2)','quit','.endc','.end'].join('\n')+'\n'
+  const solved=await solver({solver:'ngspice',args:['-n','-b','matrix.cir'],files:{'matrix.cir':deck},outputFiles:['result.dat']})
+  const values=solved.files['result.dat'].trim().split(/\r?\n/)[1].trim().split(/\s+/).map(Number)
+  // Independent complex Gaussian solve of Z*I=V, then add Y*V/2 at the input plane.
+  const mul=(a,b)=>[a[0]*b[0]-a[1]*b[1],a[0]*b[1]+a[1]*b[0]]
+  const div=(a,b)=>mul(a,[b[0]/(b[0]**2+b[1]**2),-b[1]/(b[0]**2+b[1]**2)])
+  const sub=(a,b)=>[a[0]-b[0],a[1]-b[1]]
+  const relaxation=[omega**2/(pole**2+omega**2),pole*omega/(pole**2+omega**2)]
+  const a=R.map((row,i)=>[...row.map((r,j)=>[r+S[i][j]*relaxation[0],omega*L[i][j]+S[i][j]*relaxation[1]]),[voltage[i],0]])
+  for(let k=0;k<3;k++) for(let i=k+1;i<3;i++) {
+    const ratio=div(a[i][k],a[k][k])
+    for(let j=k;j<4;j++)a[i][j]=sub(a[i][j],mul(ratio,a[k][j]))
+  }
+  const current=Array(3)
+  for(let i=2;i>=0;i--) {
+    let value=a[i][3]
+    for(let j=i+1;j<3;j++)value=sub(value,mul(a[i][j],current[j]))
+    current[i]=div(value,a[i][i])
+  }
+  for(let i=0;i<3;i++) {
+    const shunt=voltage.reduce((sum,v,j)=>[sum[0]+v*D[i][j]*pole*relaxation[0]/2,
+      sum[1]+v*(omega*(C[i][j]-D[i][j])+D[i][j]*pole*relaxation[1])/2],[0,0])
+    for(let part=0;part<2;part++)assert.ok(Math.abs(values[1+2*i+part]+current[i][part]+shunt[part])<1e-9)
+  }
+})
+
+test('native primitive netlist executes twelve coupled-capable lanes without a device lane cap',async()=>{
+  const size=12
+  const diagonal=v=>Array.from({length:size},(_,i)=>Array.from({length:size},(_,j)=>i===j?v:0))
+  const stage=channelStage({R:diagonal(2),L:diagonal(1e-9),C:diagonal(1e-12)})
+  const inputs=Array.from({length:size},(_,i)=>`in${i}`)
+  const deck=['Twelve lanes',channelSpice([stage],size),...inputs.map((node,i)=>`V${i} ${node} 0 AC ${i===0?1:0}`),
+    `X ${inputs.join(' ')} ${inputs.map(()=>'0').join(' ')} 0 CHANNEL`,'.control','set wr_singlescale','set wr_vecnames',
+    'ac lin 1 100Meg 100Meg',`wrdata result.dat ${inputs.map((_,i)=>`i(V${i})`).join(' ')}`,'quit','.endc','.end'].join('\n')+'\n'
+  const result=await solver({solver:'ngspice',args:['-n','-b','matrix.cir'],files:{'matrix.cir':deck},outputFiles:['result.dat']})
+  const row=result.files['result.dat'].trim().split(/\r?\n/)[1].trim().split(/\s+/).map(Number)
+  assert.equal(row.length,25)
+  assert.ok(Math.abs(row[1]+2/(4+(2*Math.PI*.1)**2))<1e-8)
+  assert.ok(row.slice(3).every(v=>Math.abs(v)<1e-12))
+})
+
+test('native supply-pin package parasitics execute without omitting or rewriting admitted bytes',async()=>{
+  const input=inMemoryInput()
+  input.ibisSources['models/test.ibs']=Buffer.from(input.ibisSources['models/test.ibs'].toString().replace('[Pin]','[Package]\nR_pkg .1 .1 .1\nL_pkg 2n 2n 2n\nC_pkg .2p .2p .2p\n[Pin]'))
+  for(const model of input.circuitJson.filter(r=>r.type==='simulation_ibis_model'))model.include_package_parasitics=true
+  const result=await runPipeline({...input,runSolver:solver})
+  const run=result.experiments[0]
+  assert.ok(run.waveform.rows.length>2)
+  for(const model of run.assembly) {
+    assert.equal(model.metadata.packagePolicy,'vendor')
+    assert.deepEqual(model.metadata.omissions,[])
+    assert.ok(model.metadata.packageData.mappedPins.some(p=>p.inductanceHenries>0))
+  }
+})

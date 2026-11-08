@@ -30,3 +30,43 @@ test('every matrix entry is checked, so small mutual changes cannot hide behind 
   assert.ok(matrixResidual([[100, -.001], [-.001, 100]], [[100, -.002], [-.002, 100]]) > .4)
   assert.throws(() => solve([[0]], [[1]]), { code: 'matrix_singular' })
 })
+
+import { coupledMicrostrip, coupledStripline } from './closed-form'
+/** A physical thin-metal stripline or microstrip pair; dimensions are millimetres. */
+function coupledFixture(stripline: boolean): CrossSection {
+  const signal = {zMin:1,zMax:1.001,conductivitySm:5.8e7}
+  const ground = {group:-1,xMin:-20,xMax:20,conductivitySm:5.8e7}
+  return {conductors:[
+    {id:'a',group:0,xMin:-1.25,xMax:-.25,...signal},
+    {id:'b',group:1,xMin:.25,xMax:1.25,...signal},
+    {id:'lower',...ground,zMin:-.035,zMax:0},
+    ...(stripline?[{id:'upper',...ground,zMin:2,zMax:2.035}]:[]),
+  ],dielectrics:[{xMin:-20,xMax:20,zMin:0,zMax:stripline?2:1,er:4,lossTangent:0}]}
+}
+for (const stripline of [false,true]) test(`coupled ${stripline?'stripline':'microstrip'} independently matches published modes, L12 and C12 within 2%`,()=>{
+  const oracle = stripline?coupledStripline(1,.5,2,4):coupledMicrostrip(1,.5,4)
+  const result = solveCrossSection(coupledFixture(stripline))
+  const C = result.C
+  const C0 = result.C0
+  const ze = Math.sqrt(mu0*epsilon0/((C[0][0]+C[0][1])*(C0[0][0]+C0[0][1])))
+  const zo = Math.sqrt(mu0*epsilon0/((C[0][0]-C[0][1])*(C0[0][0]-C0[0][1])))
+  const inverse = solve(C0,[[1,0],[0,1]])
+  const measured = {ze,zo,l12:mu0*epsilon0*inverse[0][1],c12:C[0][1]}
+  for (const key of ['ze','zo','l12','c12'] as const) assert.ok(Math.abs(measured[key]/oracle[key]-1)<.02,`${key}: ${measured[key]} vs ${oracle[key]}`)
+  if (stripline) assert.ok(Math.abs((C[0][0]+C[0][1])/(C0[0][0]+C0[0][1])/4-1)<.02)
+  else {
+    assert.ok(Math.abs((C[0][0]+C[0][1])/(C0[0][0]+C0[0][1])/(oracle as ReturnType<typeof coupledMicrostrip>).ee-1)<.02)
+    assert.ok(Math.abs((C[0][0]-C[0][1])/(C0[0][0]-C0[0][1])/(oracle as ReturnType<typeof coupledMicrostrip>).eo-1)<.02)
+  }
+})
+test('isolated stripline matches Wheeler thin-strip limit within 2%',()=>{
+  // Wheeler's thin-strip engineering equation: Z = 30*pi / (sqrt(er)*(w/b + 2*ln(2)/pi)).
+  // H. A. Wheeler, IEEE MTT-13 (1965), 172–185; w/b=.5 is in the broad-strip regime.
+  const fixture = coupledFixture(true)
+  fixture.conductors = fixture.conductors.filter(c=>c.group!==1).map(c=>c.group===0?{...c,xMin:-.5,xMax:.5}:c)
+  const r = solveCrossSection(fixture)
+  const z = Math.sqrt(mu0*epsilon0/(r.C[0][0]*r.C0[0][0]))
+  const expected = 30*Math.PI/(2*(.5+2*Math.log(2)/Math.PI))
+  assert.ok(Math.abs(z/expected-1)<.02,`${z} vs ${expected}`)
+  assert.ok(Math.abs(r.C[0][0]/r.C0[0][0]/4-1)<.02)
+})

@@ -1,3 +1,4 @@
+import { fourLayerStackup } from '../../examples/stackup'
 import { Circuit } from '@tscircuit/core'
 import React from 'react'
 import type { AnyCircuitElement } from 'circuit-json'
@@ -18,7 +19,7 @@ export const curvedPoints: [number, number][] = [
 /** A minimal four-layer TX-to-RX DQ channel on a ground pour; options switch on the vias, net bindings, short or route shape a test needs. */
 export function NativeChannel({ vias = false, netBindings = false, short = false, points = [[-3, 0], [3, 0]] }: ChannelOptions): React.JSX.Element {
   const local = points.map(([x, y]) => ({ x: x - points[0][0], y: y - points[0][1] }))
-  return <board width={60} height={60} thickness={1.6} layers={4} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled>
+  return <board width={60} height={60} thickness={1.6} layers={4} pcbStackup={fourLayerStackup} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled>
     {(['TX', 'RX'] as const).map((name, i) => <chip key={name} name={name}
       pcbX={points[i ? points.length - 1 : 0][0]} pcbY={points[i ? points.length - 1 : 0][1]}
       pinLabels={{ pin1: 'DQ', pin2: 'GND' }} connections={{ GND: 'net.GND', ...(netBindings ? { DQ: 'net.DQ' } : {}) }}
@@ -53,10 +54,5 @@ export async function nativeChannel(options: ChannelOptions = {}): Promise<AnyCi
   const circuit = new Circuit({ platform: { partsEngineDisabled: true } })
   circuit.add(<NativeChannel {...options} />)
   await circuit.renderUntilSettled()
-  const records = circuit.getCircuitJson()
-  for (const record of records) if (record.type === 'pcb_stackup') for (const layer of record.layers) {
-    if (layer.layer_type === 'copper') layer.electrical_conductivity_s_per_m = 5.8e7
-    else Object.assign(layer, { loss_tangent: .02 })
-  }
-  return records
+  return circuit.getCircuitJson()
 }

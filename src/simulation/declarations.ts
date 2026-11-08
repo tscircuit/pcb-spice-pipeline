@@ -171,7 +171,7 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Pick<Geometry
     if(scope===undefined) fail('simulation_scope',`${experiment.name}: multiple modeled subcircuits require an explicit experiment scope`)
     const scopedModels=models.filter(model=>subcircuits.within(componentScope(model.source_component_id),scope))
     if(!scopedModels.length) fail('simulation_scope',`${experiment.name}: no models in its explicit subcircuit scope`)
-    for(const mapping of geometry.mappings) for(const endpoint of [mapping.from,mapping.to]) {
+    for(const mapping of geometry.mappings.filter(m => m.role !== 'interconnect')) for(const endpoint of [mapping.from,mapping.to]) {
       const port=ports.get(endpoint)
       if(!port) fail('ibis_mapping',`${mapping.port}: missing channel endpoint ${endpoint}`)
       if(!subcircuits.within(componentScope(port.source_component_id),scope)) fail('simulation_scope',`${experiment.name}: this explicit PCB channel belongs to another scope; separate channel configurations are required`)
@@ -191,7 +191,7 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Pick<Geometry
       const attachments=scopedModels.filter(model=>Object.values(model.ibis_pin_name_to_source_port_id).includes(state.source_port_id))
       if(attachments.length!==1) fail('ibis_state',`${experiment.name}: run state must select exactly one modeled pin`)
     }
-    for(const mapping of geometry.mappings) for(const endpoint of [mapping.from,mapping.to]) {
+    for(const mapping of geometry.mappings.filter(m => m.role !== 'interconnect')) for(const endpoint of [mapping.from,mapping.to]) {
       const bindings=scopedModels.flatMap(model=>Object.values(model.ibis_pin_name_to_source_port_id)).filter(port=>port===endpoint)
       if(bindings.length!==1||!stateIds.has(endpoint)) fail('channel_model',`${experiment.name} ${mapping.port}: endpoint ${endpoint} requires exactly one modeled physical pin and an explicit run state`)
     }

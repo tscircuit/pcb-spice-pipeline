@@ -5,14 +5,14 @@ import type { RunSolver } from '../../src/solver'
 import { geometryFromCircuitJson, validateCircuitRecords, type CircuitJson, type Geometry, type Modeling as BoardModeling } from '../../src/board'
 import { extractChannel, type ChannelMatrices, type ExtractionModeling } from '../../src/extraction'
 import { foldEyes, type EyeFoldInput, type EyeResult } from '../../src/observation'
-import { assertConverter, admitBuffers, compileBuffers, ibisAssembly, type AssemblyEntry, type BufferModeling, type IbisSources } from '../../src/buffers'
+import { assertConverter, admitBuffers, compileBuffers, ibisAssembly, extractionBand, type AssemblyEntry, type BufferModeling, type IbisSources } from '../../src/buffers'
 import {
   generalDeclarations, electricalSources, safeSimulationPlans, modelRunDefinition, bindExperiments, electricalNodeMap,
   runExperiment, simulationResultCircuitJson, experimentResult, type ExperimentResult, type ExperimentRun, type SimulationModeling,
 } from '../../src/simulation'
 import { resolveDdrAssessments, assessDdr, type DdrModeling } from '../../src/ddr'
 
-export type ComposedModeling = BoardModeling & ExtractionModeling & SimulationModeling & DdrModeling & BufferModeling
+export type ComposedModeling = BoardModeling & SimulationModeling & DdrModeling & BufferModeling
 export interface ComposeInput { circuitJson: CircuitJson; modeling: ComposedModeling; ibisSources: IbisSources; runSolver: RunSolver; onProgress?: (m: string) => void }
 export interface ComposeResult {
   circuitJson: CircuitJson; simulationResultCircuitJson: CircuitJson; modeling: ComposedModeling; geometry: Geometry; matrices: ChannelMatrices
@@ -40,7 +40,7 @@ export async function compose({ circuitJson, modeling, ibisSources, runSolver, o
     rootScope('board').json('geometry.json', geometry), electricalNodeMap(declarations.nodes, electrical, rootScope('simulation')),
   ])
   const ctx = { runSolver, progress: onProgress }
-  const extracted = await extractChannel(geometry, modeling, rootScope('extraction'), ctx)
+  const extracted = await extractChannel(geometry, extractionBand(compiled.flat(), plans), rootScope('extraction'), ctx)
   ledger = ledger.add(extracted.artifacts)
   const runs: ExperimentRun[] = []
   const experiments = []

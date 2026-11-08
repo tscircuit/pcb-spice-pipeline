@@ -2,16 +2,20 @@ import type { Artifact, ArtifactScope, Produced } from '../kernel'
 import { sha256, numerics } from '../kernel'
 import type { SolverContext } from '../solver'
 import type { Geometry } from '../board'
+import { fail } from './diagnostics'
 import { validateMatrix } from './checks'
 import { solve, scale, type Matrix } from './linalg'
-import { epsilon0, mu0, solveCrossSection, type BemResult } from './bem'
+import { epsilon0, mu0, type BemResult } from './bem'
 import { fitLoss, fittedLoss } from './loss'
+import { cachedSlice } from './cache'
 import { viaRlc } from './via'
 import { channelSpice } from './rlgc'
 import type { ExtractionModeling, ExtractedChannel, ExtractedStage } from './types'
 
 /** Cached 2D extraction only. Native solvers are used later for transient simulation, never for board extraction. */
 export async function extractChannel(geometry: Geometry, band: ExtractionModeling, scope: ArtifactScope, ctx: SolverContext): Promise<Produced<ExtractedChannel>> {
+  if (![band.bitRateHz, band.riseTimeSeconds].every(v => Number.isFinite(v) && v > 0)) fail('model_frequency', 'Extraction requires a derived finite IBIS edge time and bit rate')
+  ctx.progress('Extract 2D channel')
   const cache = new Map<string, BemResult>()
   const artifacts: Artifact[] = []
   const matrices: ExtractedStage[] = []
@@ -20,7 +24,7 @@ export async function extractChannel(geometry: Geometry, band: ExtractionModelin
   const frequenciesHz = Array.from({ length: numerics.frequencySamples }, (_, i) => minimum * (maximum / minimum) ** (i / (numerics.frequencySamples - 1)))
   const frequencyHz = numerics.kneeFrequencyPerInverseRise / band.riseTimeSeconds
   for (const cell of geometry.cells) {
-    const sliceHash = sha256(JSON.stringify(cell.slice ? { ...cell.slice, conductors: cell.slice.conductors.map(({ id, ...physical }) => physical) } : cell.via))
+    const sliceHash = sha256(JSON.stringify(cell.slice ? { ...cell.slice, conductors: cell.slice.conductors.map(({ id, physicalNet, ...physical }) => physical) } : cell.via))
     const n = cell.ports.length
     let R: Matrix
     let L: Matrix
@@ -41,7 +45,8 @@ export async function extractChannel(geometry: Geometry, band: ExtractionModelin
     } else {
       let solution = cache.get(sliceHash)
       if (!solution) {
-        solution = solveCrossSection(cell.slice!, message => ctx.progress(`Segment ${cell.stage}: ${message}`))
+        ctx.progress(`Segment ${cell.stage}: solve slice ${sliceHash}`)
+        solution = cachedSlice(sliceHash, cell.slice!, message => ctx.progress(`Segment ${cell.stage}: ${message}`))
         cache.set(sliceHash, solution)
         artifacts.push(scope.child('slices', sliceHash).json('rlgc-per-metre.json', solution))
       }

@@ -7,8 +7,6 @@ import {mkdtemp,mkdir,readdir,readFile,rm,stat,symlink,writeFile} from 'node:fs/
 import {join} from 'node:path'
 import {tmpdir} from 'node:os'
 import {createNativeSolver,loadIbisSources} from '../../src/adapters'
-import {invoke} from '../../src/solver'
-import {rootScope} from '../../src/kernel'
 import type {CircuitJson} from '../../src/board'
 
 type T={after:(fn:()=>Promise<void>|void)=>void}
@@ -77,14 +75,11 @@ test('nonzero exit rejects native_solver with logs and removes the workdir',asyn
   await workdirGone()
 })
 
-test('missing requested output is omitted (solver.invoke rejects native_output) and the workdir is removed',async t=>{
+test('missing requested output is a named error with logs and cleans the workdir',async t=>{
   const {tool,workdirGone}=await sandbox(t)
   const solver=createNativeSolver({tools:{ngspice:process.execPath}})
-  const request={solver:'ngspice' as const,files:{'deck.cir':'x'},args:tool(`require('node:fs').writeFileSync('extra.dat','e')`),outputFiles:['waveform.dat']}
-  const result=await solver(request)
-  assert.deepEqual(Object.keys(result.files),[])  // only requested outputs are read; extra.dat is not
-  await workdirGone()
-  await assert.rejects(invoke({runSolver:solver,progress:()=>{}},rootScope('simulation'),request),code('native_output',/ngspice: missing waveform.dat/))
+  const request={solver:'ngspice' as const,files:{'deck.cir':'x'},args:tool(`process.stdout.write('tool log')`),outputFiles:['waveform.dat']}
+  await assert.rejects(solver(request),code('native_solver',/missing requested output waveform.dat[\s\S]*tool log/))
   await workdirGone()
 })
 

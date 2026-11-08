@@ -55,21 +55,33 @@ export function channelSpice(extracted: readonly ExtractedStage[], lanes: number
     }
     for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (L[i][j]) lines.push(`K${g}_${i}_${j} L${g}_${i} L${g}_${j} ${num(L[i][j] / Math.sqrt(L[i][i] * L[j][j]))}`)
     for (const [side, nodes] of [['A', before], ['B', after]] as const) {
-      /** Realizes a Maxwell branch as grounded and pairwise capacitors or series RC branches. */
-      const shunt = (matrix: Matrix, pole?: number, branch = ''): void => {
-        const pairs: [number, number, number][] = matrix.map((row, i) => [i, -1, sum(row)])
-        for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) pairs.push([i, j, -matrix[i][j]])
-        for (const [i, j, value] of pairs) {
-          if (value < -numerics.capacitanceRoundoffF) fail('capacitance_sign', 'Dielectric sensitivity needs a general passive multiport realization')
-          if (value <= 0) continue
-          const label = `${g}${side}${branch}_${i}_${j < 0 ? 'G' : j}`
-          const target = j < 0 ? 'REF' : nodes[j]
-          if (pole) lines.push(`RD${label} ${nodes[i]} D${label} ${num(2 / value)}`, `CD${label} D${label} ${target} ${num(value / (2 * pole))}`)
-          else lines.push(`C${label} ${nodes[i]} ${target} ${num(value / 2)}`)
+      /** Realizes a positive-definite shunt by an exact ideal-transformer congruence. */
+      const modal = (matrix: Matrix, pole: number | undefined, branch: string): void => {
+        if (!matrix.some(row=>row.some(v=>v!==0))) return
+        const unit = Math.max(...matrix.map((row,i)=>row[i]))
+        const factor = validateMatrix(scale(matrix,1/unit),'dielectric shunt',numerics.matrixReciprocity).cholesky
+        for (let mode=0;mode<n;mode++) {
+          const label = `${g}${side}${branch}_${mode}`
+          const terms = nodes.map((node,i)=>({node,gain:factor[i][mode]})).filter(t=>t.gain!==0)
+          for (let i=0;i<terms.length;i++) {
+            const from = i ? `E${label}_${i}` : `M${label}`
+            const to = i===terms.length-1 ? 'REF' : `E${label}_${i+1}`
+            lines.push(`ED${label}_${i} ${from} ${to} ${terms[i].node} REF ${num(terms[i].gain)}`)
+            lines.push(`FD${label}_${i} ${terms[i].node} REF VD${label} ${num(terms[i].gain)}`)
+          }
+          lines.push(`VD${label} M${label} D${label} 0`)
+          if (pole!==undefined) lines.push(`RD${label} D${label} RC${label} ${num(1/unit)}`,`CD${label} RC${label} REF ${num(unit/pole)}`)
+          else lines.push(`CD${label} D${label} REF ${num(unit)}`)
         }
       }
-      shunt(C)
-      e.dielectric.fit.weights.forEach((w, b) => shunt(scale(e.dielectric.matrix, w / e.cells), e.dielectric.fit.poles[b], `D${b}`))
+      const maxwell = C.every((row,i)=>sum(row)>=0 && row.every((v,j)=>i===j || v<=0))
+      if (!maxwell) modal(scale(C,1/2),undefined,'C')
+      else {
+        const pairs: [number,number,number][] = C.map((row,i)=>[i,-1,sum(row)])
+        for (let i=0;i<n;i++) for (let j=i+1;j<n;j++) pairs.push([i,j,-C[i][j]])
+        for (const [i,j,value] of pairs) if (value>0) lines.push(`C${g}${side}_${i}_${j<0?'G':j} ${nodes[i]} ${j<0?'REF':nodes[j]} ${num(value/2)}`)
+      }
+      e.dielectric.fit.weights.forEach((w,b)=>modal(scale(e.dielectric.matrix,w/(2*e.cells)),e.dielectric.fit.poles[b],`D${b}`))
     }
   }
   lines.push('.ends CHANNEL')

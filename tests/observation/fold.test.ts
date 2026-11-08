@@ -7,7 +7,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import type { Diagnostic } from '../../src/kernel'
-import { foldProbeEye, type EyeGate, type EyeLimits, type FoldedEye, type WaveformRows } from '../../src/observation'
+import { foldProbeEye, type EyeGate, type FoldedEye, type WaveformRows } from '../../src/observation'
 
 /** A random time on the 1/16 s dyadic grid in [lo, hi], so window-completeness comparisons are exact. */
 const grid = (r: Rng, lo: number, hi: number): number => r.int(lo * 16, hi * 16) / 16
@@ -86,10 +86,10 @@ test('received-capture fold keeps exactly the captures whose [c-UI, c+UI] lies i
   assert.ok(kept > 1000 && dropped > 1000, `coverage ${kept}/${dropped}`)
 })
 
-// Old positional foldProbeEye(rows, eye, pointsPerWindow, limits) from tests/eyediagram.test.mjs and tests/general.test.mjs.
+// Old positional foldProbeEye(rows, eye, pointsPerWindow) from tests/eyediagram.test.mjs and tests/general.test.mjs.
 /** Fold with the default stimulus-clock alignment at a given resolution, in the pre-module positional call shape. */
-function foldPoints(rows: WaveformRows, eye: EyeGate, pointsPerWindow: number, limits?: EyeLimits): FoldedEye {
-  return foldProbeEye(rows, eye, { pointsPerWindow, limits })
+function foldPoints(rows: WaveformRows, eye: EyeGate, pointsPerWindow: number): FoldedEye {
+  return foldProbeEye(rows, eye, { pointsPerWindow })
 }
 
 // Copied from tests/eyediagram.test.mjs (foldProbeEye tests only; eyeSimulation/resolveEyeDiagram/
@@ -161,23 +161,11 @@ test('fixed eye origin/gates fold irregular timestamps and repeated levels witho
   assert.throws(() => foldPoints(rows, { ...eye, startTimeSeconds: 4.5 }, 5), /no complete/)
 })
 
-// Copied from tests/metrics.test.mjs (foldProbeEye half of the budget test; measureWaveform/foldEye are legacy, not ported).
-test('eye budgets reject window and sample amplification before interpolation', () => {
-  const rows = [[0, 0], [5, 1]]
-  const eye = { name: 'bounded', column: 1, unitIntervalSeconds: 1, timeOriginSeconds: .5, startTimeSeconds: 0, endTimeSeconds: 5 }
-  for (const fold of [
-    (points: number, limits?: EyeLimits, ui = 1) => foldProbeEye(rows, { ...eye, unitIntervalSeconds: ui }, { pointsPerWindow: points, limits }),
-  ]) {
-    assert.throws(() => fold(2, { maxWindows: 3 }), /eye_budget.*windows/)
-    assert.throws(() => fold(3, { maxSamples: 11 }), /eye_budget.*samples/)
-    assert.throws(() => fold(1e9), /eye_budget.*samples/)
-    assert.throws(() => fold(2, undefined, 1e-8), /eye_budget.*windows/)
-    assert.throws(() => fold(2, undefined, 1e-20), /eye_budget/)
-    assert.throws(() => fold(2, { maxSamples: Infinity }), /eye_budget/)
-    const result = fold(3, { maxWindows: 4, maxSamples: 12 })
-    assert.equal(result.windows, 4)
-    assert.equal(result.samples.length, 12)
-  }
+test('folds all requested windows without an allocation budget; unsafe indices fail explicitly', () => {
+  const rows = [[0,0],[5,1]]
+  const eye = {name:'all',column:1,unitIntervalSeconds:1,timeOriginSeconds:.5,startTimeSeconds:0,endTimeSeconds:5}
+  assert.equal(foldProbeEye(rows,eye,{pointsPerWindow:3}).samples.length,12)
+  assert.throws(()=>foldProbeEye(rows,{...eye,unitIntervalSeconds:1e-20},{pointsPerWindow:2}),{code:'eye_indices'})
 })
 
 // Copied from tests/ddr.test.ts: the received-alignment fold assertion that does not need assessDdr

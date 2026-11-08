@@ -15,12 +15,13 @@ export type CopperXYZ = [number, number, number]
 export type CopperPolygon = CopperPoint[][]
 export interface RouteStage { kind: 'wire' | 'via'; profile: string; lengthMm: number; widthMm: number; thicknessMm: number }
 export interface LaneMapping {
+  role?: 'signal' | 'interconnect'
   port: string; sourceTraceId: string; pcbTraceId: string; from: string; to: string
   pcbPorts: string[]; stages: RouteStage[]; originalRoute: RoutedPoint[]
 }
 /** Rectangles in the transverse (x,z) plane, in millimetres. The ground is group -1. */
 export interface SliceConductor {
-  id: string; group: number; xMin: number; xMax: number; zMin: number; zMax: number; conductivitySm: number
+  id: string; group: number; physicalNet?: string; xMin: number; xMax: number; zMin: number; zMax: number; conductivitySm: number
 }
 export interface SliceDielectric { xMin: number; xMax: number; zMin: number; zMax: number; er: number; lossTangent: number }
 export interface CrossSection { activeCount?: number; conductors: SliceConductor[]; dielectrics: SliceDielectric[] }

@@ -13,7 +13,7 @@ export type EyeFoldInput =
   | { readonly request: EyeRequest; readonly alignment: { readonly kind: 'received-differential-dqs'; readonly captureTimesSeconds: readonly number[] }; readonly ddrAssessment: unknown }
 
 /**
- * Fold each eye of one experiment with default resolution/limits and write today's artifacts
+ * Fold each eye of one experiment with documented plot resolution and write today's artifacts
  * under `experiment` (the `experiments/<id>` scope): eyes/<eyeId>/eye-data.csv,
  * eyes/<eyeId>/eye-data.json and eyes.json. `waveform.sha256` is the SHA-256 of that
  * experiment's waveform.csv. Bytes match the pre-module general-pipeline.ts eye loop.

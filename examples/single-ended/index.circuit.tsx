@@ -1,17 +1,19 @@
+import { twoLayerStackup } from '../stackup'
 import React from "react"
 import { Circuit, analog } from "@tscircuit/core"
 import type { JSX } from "react"
 import { inputPad, outputPad } from "./models"
 import { BenchSupply, RoutedTrace, Sc70Pads } from "../differential-data/pcb"
 import construction from "./board-construction.json"
-export { modeling } from "./simulation.config"
+import { modeling } from "./simulation.config"
+export { modeling }
 
 const pins = { pin1: "NC", pin2: "A", pin3: "GND", pin4: "Y", pin5: "VCC" }
 
 /** Explicit CMOS output-pad data; this does not simulate the inverter core. */
 function Board(): JSX.Element {
   return <board width={construction.widthMm} height={construction.heightMm}
-    thickness={construction.thicknessMm} layers={2} routingDisabled schematicDisabled>
+    thickness={construction.thicknessMm} layers={2} pcbStackup={twoLayerStackup} routingDisabled schematicDisabled>
     <chip name="TX" manufacturerPartNumber="SN74LVC1G04DCK" pcbX={-15} pcbY={0}
       pinLabels={pins} footprint={<Sc70Pads />}  />
     <chip name="RX" manufacturerPartNumber="SN74LVC1G04DCK" pcbX={15} pcbY={0}
@@ -34,7 +36,7 @@ function Board(): JSX.Element {
       points={[{ x: -21, y: 5, via: true, fromLayer: "top", toLayer: "bottom" }, { x: -17, y: 5 }, { x: -17, y: -0.65, via: true, fromLayer: "bottom", toLayer: "top" }]} />
     <RoutedTrace name="GROUND_RETURN" from=".TX > .GND" to=".RX > .GND" origin={[-15, 0]} width={0.35}
       points={[{ x: -17, y: -0.65, via: true, fromLayer: "top", toLayer: "bottom" }, { x: -17, y: -6 }, { x: 13, y: -6 }, { x: 13, y: -0.65, via: true, fromLayer: "bottom", toLayer: "top" }]} />
-    <analog.transientsimulation spiceEngine="pcb_spice" name="SI" duration="1600ns" timePerStep="50ps" ibisPinStates={{
+    <analog.transientsimulation pcbSpiceChannel={{lanes:modeling.lanes.map(l=>({name:l.port,from:`.${l.from.component} > .${l.from.port}`,to:`.${l.to.component} > .${l.to.port}`}))}} spiceEngine="pcb_spice" name="SI" duration="1600ns" timePerStep="50ps" ibisPinStates={{
       ".TX > .Y": { isOutput: true, isOutputEnabled: true }, ".RX > .A": { isOutput: false },
     }} />
     <analog.digitalstimulus name="DATA" simulationRef=".SI" sourcePinRef=".TX > .Y"
@@ -53,13 +55,4 @@ function Board(): JSX.Element {
 const circuit = new Circuit()
 circuit.add(<Board />)
 await circuit.renderUntilSettled()
-export const circuitJson = [...circuit.getCircuitJson(), {
-  type: "pcb_stackup", pcb_stackup_id: "example-stackup",
-  pcb_board_id: circuit.getCircuitJson().find(record => record.type === "pcb_board")!.pcb_board_id,
-  plated_hole_copper_thickness: .025,
-  layers: [
-    {layer_type: "copper", layer: "top", thickness: .035, electrical_conductivity_s_per_m: 5.8e7},
-    {layer_type: "dielectric", thickness: 1.53, relative_permittivity: 4.1, dielectric_loss_tangent: .02},
-    {layer_type: "copper", layer: "bottom", thickness: .035, electrical_conductivity_s_per_m: 5.8e7},
-  ],
-}]
+export const circuitJson = circuit.getCircuitJson()

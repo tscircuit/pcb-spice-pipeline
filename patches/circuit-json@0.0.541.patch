@@ -1,0 +1,1466 @@
+diff --git a/dist/index.d.mts b/dist/index.d.mts
+index a54ead1b4ecb9370d3b6f6cc8b2d1d7cd3940ec5..eb827375ecbe0e4d6e9ca8fedf715c97a54a199d 100644
+--- a/dist/index.d.mts
++++ b/dist/index.d.mts
+@@ -30981,47 +30981,14 @@ interface SpiceSimulationOptions {
+     vntol?: number | string;
+ }
+ interface PcbSpiceChannel {
+-    reduction: "routed-copper" | "straightened-stages";
+-    sections: number;
+     lanes: Array<{
+         name: string;
+         driver_source_port_id: string;
+         receiver_source_port_id: string;
+     }>;
+-    reference_source_port_id: string;
+     passive_source_component_ids?: string[];
+-    extraction: {
+-        minimum_frequency_hz: number;
+-        maximum_frequency_hz: number;
+-        model_frequency_hz: number;
+-        filaments: number;
+-        refinement_filaments: number;
+-        convergence_tolerance: number;
+-        capacitance_tolerance: number;
+-        reciprocity_tolerance: number;
+-        dc_resistance_tolerance: number;
+-        max_panel_length_mm: number;
+-        ground_mesh_size_mm?: number;
+-    };
+-    relative_permittivity?: number;
+-    via_plating_thickness_mm?: number;
+-    via_equivalent_width_mm?: number;
+-    omit_through_via_stubs?: boolean;
+-    straightened_stage_profiles?: Record<string, {
+-        spacing_mm: number;
+-        relative_permittivity: number;
+-        return: {
+-            width_mm: number;
+-            thickness_mm: number;
+-            length_factor: number;
+-            center_y_mm: number;
+-            center_z_mm: number;
+-        };
+-    }>;
+ }
+ declare const pcb_spice_channel: z.ZodObject<{
+-    reduction: z.ZodUnion<[z.ZodLiteral<"routed-copper">, z.ZodLiteral<"straightened-stages">]>;
+-    sections: z.ZodNumber;
+     lanes: z.ZodArray<z.ZodObject<{
+         name: z.ZodString;
+         driver_source_port_id: z.ZodString;
+@@ -31035,192 +31002,21 @@ declare const pcb_spice_channel: z.ZodObject<{
+         driver_source_port_id: string;
+         receiver_source_port_id: string;
+     }>, "many">;
+-    reference_source_port_id: z.ZodString;
+     passive_source_component_ids: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+-    extraction: z.ZodEffects<z.ZodObject<{
+-        minimum_frequency_hz: z.ZodNumber;
+-        maximum_frequency_hz: z.ZodNumber;
+-        model_frequency_hz: z.ZodNumber;
+-        filaments: z.ZodNumber;
+-        refinement_filaments: z.ZodNumber;
+-        convergence_tolerance: z.ZodNumber;
+-        capacitance_tolerance: z.ZodNumber;
+-        reciprocity_tolerance: z.ZodNumber;
+-        dc_resistance_tolerance: z.ZodNumber;
+-        max_panel_length_mm: z.ZodNumber;
+-        ground_mesh_size_mm: z.ZodOptional<z.ZodNumber>;
+-    }, "strip", z.ZodTypeAny, {
+-        minimum_frequency_hz: number;
+-        maximum_frequency_hz: number;
+-        model_frequency_hz: number;
+-        filaments: number;
+-        refinement_filaments: number;
+-        convergence_tolerance: number;
+-        capacitance_tolerance: number;
+-        reciprocity_tolerance: number;
+-        dc_resistance_tolerance: number;
+-        max_panel_length_mm: number;
+-        ground_mesh_size_mm?: number | undefined;
+-    }, {
+-        minimum_frequency_hz: number;
+-        maximum_frequency_hz: number;
+-        model_frequency_hz: number;
+-        filaments: number;
+-        refinement_filaments: number;
+-        convergence_tolerance: number;
+-        capacitance_tolerance: number;
+-        reciprocity_tolerance: number;
+-        dc_resistance_tolerance: number;
+-        max_panel_length_mm: number;
+-        ground_mesh_size_mm?: number | undefined;
+-    }>, {
+-        minimum_frequency_hz: number;
+-        maximum_frequency_hz: number;
+-        model_frequency_hz: number;
+-        filaments: number;
+-        refinement_filaments: number;
+-        convergence_tolerance: number;
+-        capacitance_tolerance: number;
+-        reciprocity_tolerance: number;
+-        dc_resistance_tolerance: number;
+-        max_panel_length_mm: number;
+-        ground_mesh_size_mm?: number | undefined;
+-    }, {
+-        minimum_frequency_hz: number;
+-        maximum_frequency_hz: number;
+-        model_frequency_hz: number;
+-        filaments: number;
+-        refinement_filaments: number;
+-        convergence_tolerance: number;
+-        capacitance_tolerance: number;
+-        reciprocity_tolerance: number;
+-        dc_resistance_tolerance: number;
+-        max_panel_length_mm: number;
+-        ground_mesh_size_mm?: number | undefined;
+-    }>;
+-    relative_permittivity: z.ZodOptional<z.ZodNumber>;
+-    via_plating_thickness_mm: z.ZodOptional<z.ZodNumber>;
+-    via_equivalent_width_mm: z.ZodOptional<z.ZodNumber>;
+-    omit_through_via_stubs: z.ZodOptional<z.ZodBoolean>;
+-    straightened_stage_profiles: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodObject<{
+-        spacing_mm: z.ZodNumber;
+-        relative_permittivity: z.ZodNumber;
+-        return: z.ZodObject<{
+-            width_mm: z.ZodNumber;
+-            thickness_mm: z.ZodNumber;
+-            length_factor: z.ZodNumber;
+-            center_y_mm: z.ZodNumber;
+-            center_z_mm: z.ZodNumber;
+-        }, "strip", z.ZodTypeAny, {
+-            width_mm: number;
+-            thickness_mm: number;
+-            length_factor: number;
+-            center_y_mm: number;
+-            center_z_mm: number;
+-        }, {
+-            width_mm: number;
+-            thickness_mm: number;
+-            length_factor: number;
+-            center_y_mm: number;
+-            center_z_mm: number;
+-        }>;
+-    }, "strip", z.ZodTypeAny, {
+-        relative_permittivity: number;
+-        spacing_mm: number;
+-        return: {
+-            width_mm: number;
+-            thickness_mm: number;
+-            length_factor: number;
+-            center_y_mm: number;
+-            center_z_mm: number;
+-        };
+-    }, {
+-        relative_permittivity: number;
+-        spacing_mm: number;
+-        return: {
+-            width_mm: number;
+-            thickness_mm: number;
+-            length_factor: number;
+-            center_y_mm: number;
+-            center_z_mm: number;
+-        };
+-    }>>>;
+ }, "strip", z.ZodTypeAny, {
+-    reduction: "routed-copper" | "straightened-stages";
+-    sections: number;
+     lanes: {
+         name: string;
+         driver_source_port_id: string;
+         receiver_source_port_id: string;
+     }[];
+-    reference_source_port_id: string;
+-    extraction: {
+-        minimum_frequency_hz: number;
+-        maximum_frequency_hz: number;
+-        model_frequency_hz: number;
+-        filaments: number;
+-        refinement_filaments: number;
+-        convergence_tolerance: number;
+-        capacitance_tolerance: number;
+-        reciprocity_tolerance: number;
+-        dc_resistance_tolerance: number;
+-        max_panel_length_mm: number;
+-        ground_mesh_size_mm?: number | undefined;
+-    };
+-    relative_permittivity?: number | undefined;
+     passive_source_component_ids?: string[] | undefined;
+-    via_plating_thickness_mm?: number | undefined;
+-    via_equivalent_width_mm?: number | undefined;
+-    omit_through_via_stubs?: boolean | undefined;
+-    straightened_stage_profiles?: Record<string, {
+-        relative_permittivity: number;
+-        spacing_mm: number;
+-        return: {
+-            width_mm: number;
+-            thickness_mm: number;
+-            length_factor: number;
+-            center_y_mm: number;
+-            center_z_mm: number;
+-        };
+-    }> | undefined;
+ }, {
+-    reduction: "routed-copper" | "straightened-stages";
+-    sections: number;
+     lanes: {
+         name: string;
+         driver_source_port_id: string;
+         receiver_source_port_id: string;
+     }[];
+-    reference_source_port_id: string;
+-    extraction: {
+-        minimum_frequency_hz: number;
+-        maximum_frequency_hz: number;
+-        model_frequency_hz: number;
+-        filaments: number;
+-        refinement_filaments: number;
+-        convergence_tolerance: number;
+-        capacitance_tolerance: number;
+-        reciprocity_tolerance: number;
+-        dc_resistance_tolerance: number;
+-        max_panel_length_mm: number;
+-        ground_mesh_size_mm?: number | undefined;
+-    };
+-    relative_permittivity?: number | undefined;
+     passive_source_component_ids?: string[] | undefined;
+-    via_plating_thickness_mm?: number | undefined;
+-    via_equivalent_width_mm?: number | undefined;
+-    omit_through_via_stubs?: boolean | undefined;
+-    straightened_stage_profiles?: Record<string, {
+-        relative_permittivity: number;
+-        spacing_mm: number;
+-        return: {
+-            width_mm: number;
+-            thickness_mm: number;
+-            length_factor: number;
+-            center_y_mm: number;
+-            center_z_mm: number;
+-        };
+-    }> | undefined;
+ }>;
+ interface SimulationExperiment {
+     type: "simulation_experiment";
+@@ -31273,8 +31069,6 @@ declare const simulation_experiment: z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     }>>;
+     pcb_spice_channel: z.ZodOptional<z.ZodObject<{
+-        reduction: z.ZodUnion<[z.ZodLiteral<"routed-copper">, z.ZodLiteral<"straightened-stages">]>;
+-        sections: z.ZodNumber;
+         lanes: z.ZodArray<z.ZodObject<{
+             name: z.ZodString;
+             driver_source_port_id: z.ZodString;
+@@ -31288,192 +31082,21 @@ declare const simulation_experiment: z.ZodEffects<z.ZodObject<{
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }>, "many">;
+-        reference_source_port_id: z.ZodString;
+         passive_source_component_ids: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+-        extraction: z.ZodEffects<z.ZodObject<{
+-            minimum_frequency_hz: z.ZodNumber;
+-            maximum_frequency_hz: z.ZodNumber;
+-            model_frequency_hz: z.ZodNumber;
+-            filaments: z.ZodNumber;
+-            refinement_filaments: z.ZodNumber;
+-            convergence_tolerance: z.ZodNumber;
+-            capacitance_tolerance: z.ZodNumber;
+-            reciprocity_tolerance: z.ZodNumber;
+-            dc_resistance_tolerance: z.ZodNumber;
+-            max_panel_length_mm: z.ZodNumber;
+-            ground_mesh_size_mm: z.ZodOptional<z.ZodNumber>;
+-        }, "strip", z.ZodTypeAny, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }>, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }>;
+-        relative_permittivity: z.ZodOptional<z.ZodNumber>;
+-        via_plating_thickness_mm: z.ZodOptional<z.ZodNumber>;
+-        via_equivalent_width_mm: z.ZodOptional<z.ZodNumber>;
+-        omit_through_via_stubs: z.ZodOptional<z.ZodBoolean>;
+-        straightened_stage_profiles: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodObject<{
+-            spacing_mm: z.ZodNumber;
+-            relative_permittivity: z.ZodNumber;
+-            return: z.ZodObject<{
+-                width_mm: z.ZodNumber;
+-                thickness_mm: z.ZodNumber;
+-                length_factor: z.ZodNumber;
+-                center_y_mm: z.ZodNumber;
+-                center_z_mm: z.ZodNumber;
+-            }, "strip", z.ZodTypeAny, {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            }, {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            }>;
+-        }, "strip", z.ZodTypeAny, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }>>>;
+-    }, "strip", z.ZodTypeAny, {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
++    }, "strip", z.ZodTypeAny, {
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+-    }, {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
++    }, {
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     }>>;
+     dc_sweep_voltage_source_id: z.ZodOptional<z.ZodString>;
+     dc_sweep_current_source_id: z.ZodOptional<z.ZodString>;
+@@ -31503,43 +31126,12 @@ declare const simulation_experiment: z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+@@ -31569,43 +31161,12 @@ declare const simulation_experiment: z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+@@ -31635,43 +31196,12 @@ declare const simulation_experiment: z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+@@ -31701,43 +31231,12 @@ declare const simulation_experiment: z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+@@ -66526,8 +66025,6 @@ declare const any_circuit_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     }>>;
+     pcb_spice_channel: z.ZodOptional<z.ZodObject<{
+-        reduction: z.ZodUnion<[z.ZodLiteral<"routed-copper">, z.ZodLiteral<"straightened-stages">]>;
+-        sections: z.ZodNumber;
+         lanes: z.ZodArray<z.ZodObject<{
+             name: z.ZodString;
+             driver_source_port_id: z.ZodString;
+@@ -66541,192 +66038,21 @@ declare const any_circuit_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }>, "many">;
+-        reference_source_port_id: z.ZodString;
+         passive_source_component_ids: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+-        extraction: z.ZodEffects<z.ZodObject<{
+-            minimum_frequency_hz: z.ZodNumber;
+-            maximum_frequency_hz: z.ZodNumber;
+-            model_frequency_hz: z.ZodNumber;
+-            filaments: z.ZodNumber;
+-            refinement_filaments: z.ZodNumber;
+-            convergence_tolerance: z.ZodNumber;
+-            capacitance_tolerance: z.ZodNumber;
+-            reciprocity_tolerance: z.ZodNumber;
+-            dc_resistance_tolerance: z.ZodNumber;
+-            max_panel_length_mm: z.ZodNumber;
+-            ground_mesh_size_mm: z.ZodOptional<z.ZodNumber>;
+-        }, "strip", z.ZodTypeAny, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }>, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }>;
+-        relative_permittivity: z.ZodOptional<z.ZodNumber>;
+-        via_plating_thickness_mm: z.ZodOptional<z.ZodNumber>;
+-        via_equivalent_width_mm: z.ZodOptional<z.ZodNumber>;
+-        omit_through_via_stubs: z.ZodOptional<z.ZodBoolean>;
+-        straightened_stage_profiles: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodObject<{
+-            spacing_mm: z.ZodNumber;
+-            relative_permittivity: z.ZodNumber;
+-            return: z.ZodObject<{
+-                width_mm: z.ZodNumber;
+-                thickness_mm: z.ZodNumber;
+-                length_factor: z.ZodNumber;
+-                center_y_mm: z.ZodNumber;
+-                center_z_mm: z.ZodNumber;
+-            }, "strip", z.ZodTypeAny, {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            }, {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            }>;
+-        }, "strip", z.ZodTypeAny, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }>>>;
+-    }, "strip", z.ZodTypeAny, {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
++    }, "strip", z.ZodTypeAny, {
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+-    }, {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
++    }, {
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     }>>;
+     dc_sweep_voltage_source_id: z.ZodOptional<z.ZodString>;
+     dc_sweep_current_source_id: z.ZodOptional<z.ZodString>;
+@@ -66756,43 +66082,12 @@ declare const any_circuit_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+@@ -66822,43 +66117,12 @@ declare const any_circuit_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+@@ -66888,43 +66152,12 @@ declare const any_circuit_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+@@ -66954,43 +66187,12 @@ declare const any_circuit_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+@@ -92022,8 +91224,6 @@ declare const any_soup_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     }>>;
+     pcb_spice_channel: z.ZodOptional<z.ZodObject<{
+-        reduction: z.ZodUnion<[z.ZodLiteral<"routed-copper">, z.ZodLiteral<"straightened-stages">]>;
+-        sections: z.ZodNumber;
+         lanes: z.ZodArray<z.ZodObject<{
+             name: z.ZodString;
+             driver_source_port_id: z.ZodString;
+@@ -92037,192 +91237,21 @@ declare const any_soup_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }>, "many">;
+-        reference_source_port_id: z.ZodString;
+         passive_source_component_ids: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+-        extraction: z.ZodEffects<z.ZodObject<{
+-            minimum_frequency_hz: z.ZodNumber;
+-            maximum_frequency_hz: z.ZodNumber;
+-            model_frequency_hz: z.ZodNumber;
+-            filaments: z.ZodNumber;
+-            refinement_filaments: z.ZodNumber;
+-            convergence_tolerance: z.ZodNumber;
+-            capacitance_tolerance: z.ZodNumber;
+-            reciprocity_tolerance: z.ZodNumber;
+-            dc_resistance_tolerance: z.ZodNumber;
+-            max_panel_length_mm: z.ZodNumber;
+-            ground_mesh_size_mm: z.ZodOptional<z.ZodNumber>;
+-        }, "strip", z.ZodTypeAny, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }>, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }, {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        }>;
+-        relative_permittivity: z.ZodOptional<z.ZodNumber>;
+-        via_plating_thickness_mm: z.ZodOptional<z.ZodNumber>;
+-        via_equivalent_width_mm: z.ZodOptional<z.ZodNumber>;
+-        omit_through_via_stubs: z.ZodOptional<z.ZodBoolean>;
+-        straightened_stage_profiles: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodObject<{
+-            spacing_mm: z.ZodNumber;
+-            relative_permittivity: z.ZodNumber;
+-            return: z.ZodObject<{
+-                width_mm: z.ZodNumber;
+-                thickness_mm: z.ZodNumber;
+-                length_factor: z.ZodNumber;
+-                center_y_mm: z.ZodNumber;
+-                center_z_mm: z.ZodNumber;
+-            }, "strip", z.ZodTypeAny, {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            }, {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            }>;
+-        }, "strip", z.ZodTypeAny, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }>>>;
+-    }, "strip", z.ZodTypeAny, {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
++    }, "strip", z.ZodTypeAny, {
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+-    }, {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
++    }, {
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     }>>;
+     dc_sweep_voltage_source_id: z.ZodOptional<z.ZodString>;
+     dc_sweep_current_source_id: z.ZodOptional<z.ZodString>;
+@@ -92252,43 +91281,12 @@ declare const any_soup_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+@@ -92318,43 +91316,12 @@ declare const any_soup_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+@@ -92384,43 +91351,12 @@ declare const any_soup_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+@@ -92450,43 +91386,12 @@ declare const any_soup_element: z.ZodUnion<[z.ZodEffects<z.ZodObject<{
+         vntol?: string | number | undefined;
+     } | undefined;
+     pcb_spice_channel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             driver_source_port_id: string;
+             receiver_source_port_id: string;
+         }[];
+-        reference_source_port_id: string;
+-        extraction: {
+-            minimum_frequency_hz: number;
+-            maximum_frequency_hz: number;
+-            model_frequency_hz: number;
+-            filaments: number;
+-            refinement_filaments: number;
+-            convergence_tolerance: number;
+-            capacitance_tolerance: number;
+-            reciprocity_tolerance: number;
+-            dc_resistance_tolerance: number;
+-            max_panel_length_mm: number;
+-            ground_mesh_size_mm?: number | undefined;
+-        };
+-        relative_permittivity?: number | undefined;
+         passive_source_component_ids?: string[] | undefined;
+-        via_plating_thickness_mm?: number | undefined;
+-        via_equivalent_width_mm?: number | undefined;
+-        omit_through_via_stubs?: boolean | undefined;
+-        straightened_stage_profiles?: Record<string, {
+-            relative_permittivity: number;
+-            spacing_mm: number;
+-            return: {
+-                width_mm: number;
+-                thickness_mm: number;
+-                length_factor: number;
+-                center_y_mm: number;
+-                center_z_mm: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+     dc_sweep_voltage_source_id?: string | undefined;
+     dc_sweep_current_source_id?: string | undefined;
+diff --git a/dist/index.mjs b/dist/index.mjs
+index f3f19a74e868722823ead748b31ae7668c002460..ca885e1e1fcf80f8961491fb93930acfa551425e 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -3334,12 +3334,15 @@ var nonnegative_length = length.pipe(z143.number().finite().nonnegative());
+ var positive_number = z143.number().finite().positive();
+ var nonnegative_number = z143.number().finite().nonnegative();
+ var pcb_stackup_soldermask_layer = z143.object({
++  loss_tangent:nonnegative_number.optional(),
+   layer_type: z143.literal("soldermask").describe("Soldermask layer"),
+   thickness: positive_length.optional().describe("Soldermask thickness in mm, omitted when unknown"),
+   relative_permittivity: positive_number.optional().describe("Soldermask relative permittivity")
+ });
+ expectTypesMatch(true);
+ var pcb_stackup_copper_layer = z143.object({
++  dielectric_fill_relative_permittivity:positive_number.optional(),
++  dielectric_fill_loss_tangent:nonnegative_number.optional(),
+   layer_type: z143.literal("copper").describe("Copper layer"),
+   layer: layer_ref.describe("PCB copper layer, such as top, inner1 or bottom"),
+   thickness: positive_length.describe("Copper thickness in mm"),
+@@ -5028,57 +5031,9 @@ var spice_simulation_options = z213.object({
+   vntol: z213.union([z213.number(), z213.string()]).optional()
+ }).describe("SPICE solver options for a simulation experiment");
+ var pcb_spice_channel = z213.object({
+-  reduction: z213.union([
+-    z213.literal("routed-copper"),
+-    z213.literal("straightened-stages")
+-  ]),
+-  sections: z213.number().int().min(1).max(128),
+-  lanes: z213.array(
+-    z213.object({
+-      name: z213.string().min(1),
+-      driver_source_port_id: z213.string().min(1),
+-      receiver_source_port_id: z213.string().min(1)
+-    })
+-  ).min(1).max(3),
+-  reference_source_port_id: z213.string().min(1),
+-  passive_source_component_ids: z213.array(z213.string().min(1)).optional(),
+-  extraction: z213.object({
+-    minimum_frequency_hz: z213.number().finite().positive(),
+-    maximum_frequency_hz: z213.number().finite().positive(),
+-    model_frequency_hz: z213.number().finite().positive(),
+-    filaments: z213.number().int().positive(),
+-    refinement_filaments: z213.number().int().positive(),
+-    convergence_tolerance: z213.number().finite().positive(),
+-    capacitance_tolerance: z213.number().finite().positive(),
+-    reciprocity_tolerance: z213.number().finite().positive(),
+-    dc_resistance_tolerance: z213.number().finite().positive(),
+-    max_panel_length_mm: z213.number().finite().positive(),
+-    ground_mesh_size_mm: z213.number().finite().positive().optional()
+-  }).refine(
+-    (extraction) => extraction.refinement_filaments > extraction.filaments,
+-    {
+-      path: ["refinement_filaments"],
+-      message: "refinement_filaments must be greater than filaments"
+-    }
+-  ),
+-  relative_permittivity: z213.number().finite().positive().optional(),
+-  via_plating_thickness_mm: z213.number().finite().positive().optional(),
+-  via_equivalent_width_mm: z213.number().finite().positive().optional(),
+-  omit_through_via_stubs: z213.boolean().optional(),
+-  straightened_stage_profiles: z213.record(
+-    z213.object({
+-      spacing_mm: z213.number().finite().positive(),
+-      relative_permittivity: z213.number().finite().positive(),
+-      return: z213.object({
+-        width_mm: z213.number().finite().positive(),
+-        thickness_mm: z213.number().finite().positive(),
+-        length_factor: z213.number().finite().positive(),
+-        center_y_mm: z213.number().finite(),
+-        center_z_mm: z213.number().finite()
+-      })
+-    })
+-  ).optional()
+-});
++  lanes:z213.array(z213.object({name:z213.string().min(1),driver_source_port_id:z213.string().min(1),receiver_source_port_id:z213.string().min(1)}).strict()).min(1),
++  passive_source_component_ids:z213.array(z213.string().min(1)).optional()
++}).strict();
+ expectTypesMatch(true);
+ var simulation_experiment = z213.object({
+   type: z213.literal("simulation_experiment"),

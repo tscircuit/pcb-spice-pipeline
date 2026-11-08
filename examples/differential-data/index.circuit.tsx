@@ -1,10 +1,12 @@
+import { twoLayerStackup } from '../stackup'
 import React from "react"
 import { Circuit, analog } from "@tscircuit/core"
 import type { JSX } from "react"
 import { rs485Pads } from "./models"
 import { BenchSupply, RoutedTrace, Soic8Pads } from "./pcb"
 import construction from "./board-construction.json"
-export { modeling } from "./simulation.config"
+import { modeling } from "./simulation.config"
+export { modeling }
 
 const pins = { pin1: "R", pin2: "RE_N", pin3: "DE", pin4: "D", pin5: "GND", pin6: "A", pin7: "B", pin8: "VCC" }
 const bits = "0011101001010110"
@@ -12,7 +14,7 @@ const bits = "0011101001010110"
 /** Designed routed RS-485 pad/channel experiment; no receiver/core logic model. */
 function Board(): JSX.Element {
   return <board width={construction.widthMm} height={construction.heightMm}
-    thickness={construction.thicknessMm} layers={2} routingDisabled schematicDisabled>
+    thickness={construction.thicknessMm} layers={2} pcbStackup={twoLayerStackup} routingDisabled schematicDisabled>
     <chip name="TX" manufacturerPartNumber="SN65HVD72D" pcbX={-15} pcbY={0}
       pinLabels={pins} footprint={<Soic8Pads />}  />
     <chip name="RX" manufacturerPartNumber="SN65HVD72D" pcbX={15} pcbY={0}
@@ -21,6 +23,11 @@ function Board(): JSX.Element {
     <ibismodel componentRef=".RX" {...rs485Pads} />
     <BenchSupply />
     <resistor name="RTERM" resistance="120" pcbX={22} pcbY={0} pcbRotation={90} footprint="0603" />
+    <net name="GND" /><trace from=".TX > .GND" to="net.GND" />
+    <copperpour name="REFERENCE" layer="bottom" connectsTo="net.GND" unbroken outline={[
+      {x:-20,y:-5},{x:23,y:-5},{x:23,y:5},{x:19.5,y:5},{x:19.5,y:1.4},{x:18.5,y:1.4},{x:18.5,y:5},
+      {x:-10.5,y:5},{x:-10.5,y:1.4},{x:-11.5,y:1.4},{x:-11.5,y:5},{x:-20,y:5},
+    ]} />
     <RoutedTrace name="BUS_A" from=".TX > .A" to=".RX > .A" origin={[-15, 0]}
       points={[{ x: -10, y: -0.635 }, { x: -10, y: -3 }, { x: 20, y: -3 }, { x: 20, y: -0.635 }]} />
     <RoutedTrace name="BUS_B" from=".TX > .B" to=".RX > .B" origin={[-15, 0]}
@@ -35,7 +42,7 @@ function Board(): JSX.Element {
       points={[{ x: -21, y: 5, via: true, fromLayer: "top", toLayer: "bottom" }, { x: -13, y: 5 }, { x: -13, y: -1.905, via: true, fromLayer: "bottom", toLayer: "top" }]} />
     <RoutedTrace name="GROUND_RETURN" from=".TX > .GND" to=".RX > .GND" origin={[-15, 0]} width={0.35}
       points={[{ x: -13, y: -1.905, via: true, fromLayer: "top", toLayer: "bottom" }, { x: -13, y: -6 }, { x: 19, y: -6 }, { x: 19, y: -1.905, via: true, fromLayer: "bottom", toLayer: "top" }]} />
-    <analog.transientsimulation spiceEngine="pcb_spice" name="SI" duration="128us" timePerStep="5ns" ibisPinStates={{
+    <analog.transientsimulation pcbSpiceChannel={{lanes:modeling.lanes.map(l=>({name:l.port,from:`.${l.from.component} > .${l.from.port}`,to:`.${l.to.component} > .${l.to.port}`})),passiveComponentRefs:['.RTERM']}} spiceEngine="pcb_spice" name="SI" duration="128us" timePerStep="5ns" ibisPinStates={{
       ".TX > .A": { isOutput: true, isOutputEnabled: true }, ".TX > .B": { isOutput: true, isOutputEnabled: true },
       ".RX > .A": { isOutput: false }, ".RX > .B": { isOutput: false },
     }} />
@@ -56,13 +63,4 @@ function Board(): JSX.Element {
 const circuit = new Circuit()
 circuit.add(<Board />)
 await circuit.renderUntilSettled()
-export const circuitJson = [...circuit.getCircuitJson(), {
-  type: "pcb_stackup", pcb_stackup_id: "example-stackup",
-  pcb_board_id: circuit.getCircuitJson().find(record => record.type === "pcb_board")!.pcb_board_id,
-  plated_hole_copper_thickness: .025,
-  layers: [
-    {layer_type: "copper", layer: "top", thickness: .035, electrical_conductivity_s_per_m: 5.8e7},
-    {layer_type: "dielectric", thickness: 1.53, relative_permittivity: 4.1, dielectric_loss_tangent: .02},
-    {layer_type: "copper", layer: "bottom", thickness: .035, electrical_conductivity_s_per_m: 5.8e7},
-  ],
-}]
+export const circuitJson = circuit.getCircuitJson()

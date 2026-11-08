@@ -1,7 +1,8 @@
+import { numerics } from '../../kernel'
 import type { CrossSection, CopperPoint, CopperPolygon, SliceConductor } from './types'
 import { fail } from '../diagnostics'
 
-export interface CopperShape { id: string; net: string; layer: string; polygon: CopperPolygon }
+export interface CopperShape { id: string; net: string; physicalNet?: string; layer: string; polygon: CopperPolygon }
 /** Intersects a whole polygon, including voids, with a plane at longitudinal coordinate t. */
 export function sliceIntervals(polygon: CopperPolygon, dx: number, dy: number, t: number): [number, number][] {
   const crossings: number[] = []
@@ -26,16 +27,16 @@ export function wirePolygon(a: CopperPoint, b: CopperPoint, width: number): Copp
 }
 /** Unions touching metal on the same electrical net, rejecting physical shorts. */
 export function mergeConductors(slice: CrossSection): void {
-  const sorted = [...slice.conductors].sort((a, b) => a.zMin - b.zMin || a.group - b.group || a.xMin - b.xMin)
+  const sorted = [...slice.conductors].sort((a, b) => a.zMin - b.zMin || a.group - b.group || (a.physicalNet??'').localeCompare(b.physicalNet??'') || a.xMin - b.xMin)
   const merged: SliceConductor[] = []
   for (const c of sorted) {
     const previous = merged.at(-1)
-    if (previous && c.zMin === previous.zMin && c.zMax === previous.zMax && c.group === previous.group && c.xMin <= previous.xMax + 1e-9) previous.xMax = Math.max(previous.xMax, c.xMax)
+    if (previous && c.zMin === previous.zMin && c.zMax === previous.zMax && c.group === previous.group && c.physicalNet === previous.physicalNet && c.xMin <= previous.xMax + numerics.boundaryToleranceMm) previous.xMax = Math.max(previous.xMax, c.xMax)
     else merged.push({ ...c })
   }
   for (let i = 0; i < merged.length; i++) for (const b of merged.slice(i + 1)) {
     const a = merged[i]
-    if (a.group !== b.group && Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin) > 1e-8 && Math.min(a.zMax, b.zMax) - Math.max(a.zMin, b.zMin) > 1e-8) fail('conductor_overlap', `${a.id} overlaps ${b.id} on different nets`)
+    if ((a.group !== b.group || a.physicalNet !== b.physicalNet) && Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin) > numerics.boundaryToleranceMm && Math.min(a.zMax, b.zMax) - Math.max(a.zMin, b.zMin) > numerics.boundaryToleranceMm) fail('conductor_overlap', `${a.id} (group ${a.group}, x=${a.xMin}..${a.xMax}) overlaps ${b.id} (group ${b.group}, x=${b.xMin}..${b.xMax}) on different nets`)
   }
   slice.conductors = merged
 }

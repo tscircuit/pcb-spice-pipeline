@@ -1,0 +1,742 @@
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 081d54273662a96b88e901bec1d0882a8f3407e9..cc13897f890b72251f8c3476c0edf9dc73e8f4db 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -69360,6 +69360,8 @@ declare const boardOutlinePoint: z.ZodEffects<z.ZodObject<{
+     padDiameter?: string | number | undefined;
+ }>;
+ interface BoardProps extends Omit<SubcircuitGroupProps, "subcircuit" | "connections" | "outline"> {
++    /** Physical construction, serialized directly as pcb_stackup. */
++    pcbStackup?: {layers: Array<Record<string, unknown>>; plated_hole_copper_thickness?: number};
+     title?: string;
+     /** e.g. "NEMA17.backface". */
+     mountedTo?: string;
+@@ -191348,49 +191350,14 @@ interface AnalogTransientSimulationProps extends AnalogAnalysisSimulationBasePro
+     pcbSpiceChannel?: PcbSpiceChannelProps;
+ }
+ interface PcbSpiceChannelProps {
+-    reduction: "routed-copper" | "straightened-stages";
+-    sections: number;
+     lanes: Array<{
+         name: string;
+         from: string;
+         to: string;
+     }>;
+-    referencePinRef: string;
+     passiveComponentRefs?: string[];
+-    extraction: {
+-        minimumFrequency: number | string;
+-        maximumFrequency: number | string;
+-        modelFrequency: number | string;
+-        filaments: number;
+-        refinementFilaments: number;
+-        convergenceTolerance: number;
+-        capacitanceTolerance: number;
+-        reciprocityTolerance: number;
+-        dcResistanceTolerance: number;
+-        maxPanelLength: number | string;
+-        groundMeshSize?: number | string;
+-    };
+-    relativePermittivity?: number;
+-    via?: {
+-        platingThickness?: number | string;
+-        equivalentWidth?: number | string;
+-        omitThroughViaStubs?: boolean;
+-    };
+-    straightenedStageProfiles?: Record<string, {
+-        spacing: number | string;
+-        relativePermittivity: number;
+-        return: {
+-            width: number | string;
+-            thickness: number | string;
+-            lengthFactor: number;
+-            centerY: number | string;
+-            centerZ: number | string;
+-        };
+-    }>;
+ }
+ declare const pcbSpiceChannelProps: z.ZodObject<{
+-    reduction: z.ZodEnum<["routed-copper", "straightened-stages"]>;
+-    sections: z.ZodNumber;
+     lanes: z.ZodArray<z.ZodObject<{
+         name: z.ZodString;
+         from: z.ZodString;
+@@ -191404,214 +191371,27 @@ declare const pcbSpiceChannelProps: z.ZodObject<{
+         from: string;
+         to: string;
+     }>, "many">;
+-    referencePinRef: z.ZodString;
+     passiveComponentRefs: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+-    extraction: z.ZodEffects<z.ZodObject<{
+-        minimumFrequency: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-        maximumFrequency: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-        modelFrequency: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-        filaments: z.ZodNumber;
+-        refinementFilaments: z.ZodNumber;
+-        convergenceTolerance: z.ZodNumber;
+-        capacitanceTolerance: z.ZodNumber;
+-        reciprocityTolerance: z.ZodNumber;
+-        dcResistanceTolerance: z.ZodNumber;
+-        maxPanelLength: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-        groundMeshSize: z.ZodOptional<z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>>;
+-    }, "strip", z.ZodTypeAny, {
+-        minimumFrequency: number;
+-        maximumFrequency: number;
+-        modelFrequency: number;
+-        filaments: number;
+-        refinementFilaments: number;
+-        convergenceTolerance: number;
+-        capacitanceTolerance: number;
+-        reciprocityTolerance: number;
+-        dcResistanceTolerance: number;
+-        maxPanelLength: number;
+-        groundMeshSize?: number | undefined;
+-    }, {
+-        minimumFrequency: string | number;
+-        maximumFrequency: string | number;
+-        modelFrequency: string | number;
+-        filaments: number;
+-        refinementFilaments: number;
+-        convergenceTolerance: number;
+-        capacitanceTolerance: number;
+-        reciprocityTolerance: number;
+-        dcResistanceTolerance: number;
+-        maxPanelLength: string | number;
+-        groundMeshSize?: string | number | undefined;
+-    }>, {
+-        minimumFrequency: number;
+-        maximumFrequency: number;
+-        modelFrequency: number;
+-        filaments: number;
+-        refinementFilaments: number;
+-        convergenceTolerance: number;
+-        capacitanceTolerance: number;
+-        reciprocityTolerance: number;
+-        dcResistanceTolerance: number;
+-        maxPanelLength: number;
+-        groundMeshSize?: number | undefined;
+-    }, {
+-        minimumFrequency: string | number;
+-        maximumFrequency: string | number;
+-        modelFrequency: string | number;
+-        filaments: number;
+-        refinementFilaments: number;
+-        convergenceTolerance: number;
+-        capacitanceTolerance: number;
+-        reciprocityTolerance: number;
+-        dcResistanceTolerance: number;
+-        maxPanelLength: string | number;
+-        groundMeshSize?: string | number | undefined;
+-    }>;
+-    relativePermittivity: z.ZodOptional<z.ZodNumber>;
+-    via: z.ZodOptional<z.ZodObject<{
+-        platingThickness: z.ZodOptional<z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>>;
+-        equivalentWidth: z.ZodOptional<z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>>;
+-        omitThroughViaStubs: z.ZodOptional<z.ZodBoolean>;
+-    }, "strip", z.ZodTypeAny, {
+-        platingThickness?: number | undefined;
+-        equivalentWidth?: number | undefined;
+-        omitThroughViaStubs?: boolean | undefined;
+-    }, {
+-        platingThickness?: string | number | undefined;
+-        equivalentWidth?: string | number | undefined;
+-        omitThroughViaStubs?: boolean | undefined;
+-    }>>;
+-    straightenedStageProfiles: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodObject<{
+-        spacing: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-        relativePermittivity: z.ZodNumber;
+-        return: z.ZodObject<{
+-            width: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-            thickness: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-            lengthFactor: z.ZodNumber;
+-            centerY: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-            centerZ: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-        }, "strip", z.ZodTypeAny, {
+-            width: number;
+-            centerY: number;
+-            thickness: number;
+-            lengthFactor: number;
+-            centerZ: number;
+-        }, {
+-            width: string | number;
+-            centerY: string | number;
+-            thickness: string | number;
+-            lengthFactor: number;
+-            centerZ: string | number;
+-        }>;
+-    }, "strip", z.ZodTypeAny, {
+-        relativePermittivity: number;
+-        spacing: number;
+-        return: {
+-            width: number;
+-            centerY: number;
+-            thickness: number;
+-            lengthFactor: number;
+-            centerZ: number;
+-        };
+-    }, {
+-        relativePermittivity: number;
+-        spacing: string | number;
+-        return: {
+-            width: string | number;
+-            centerY: string | number;
+-            thickness: string | number;
+-            lengthFactor: number;
+-            centerZ: string | number;
+-        };
+-    }>>>;
+ }, "strip", z.ZodTypeAny, {
+-    reduction: "routed-copper" | "straightened-stages";
+-    sections: number;
+     lanes: {
+         name: string;
+         from: string;
+         to: string;
+     }[];
+-    referencePinRef: string;
+-    extraction: {
+-        minimumFrequency: number;
+-        maximumFrequency: number;
+-        modelFrequency: number;
+-        filaments: number;
+-        refinementFilaments: number;
+-        convergenceTolerance: number;
+-        capacitanceTolerance: number;
+-        reciprocityTolerance: number;
+-        dcResistanceTolerance: number;
+-        maxPanelLength: number;
+-        groundMeshSize?: number | undefined;
+-    };
+-    via?: {
+-        platingThickness?: number | undefined;
+-        equivalentWidth?: number | undefined;
+-        omitThroughViaStubs?: boolean | undefined;
+-    } | undefined;
+     passiveComponentRefs?: string[] | undefined;
+-    relativePermittivity?: number | undefined;
+-    straightenedStageProfiles?: Record<string, {
+-        relativePermittivity: number;
+-        spacing: number;
+-        return: {
+-            width: number;
+-            centerY: number;
+-            thickness: number;
+-            lengthFactor: number;
+-            centerZ: number;
+-        };
+-    }> | undefined;
+ }, {
+-    reduction: "routed-copper" | "straightened-stages";
+-    sections: number;
+     lanes: {
+         name: string;
+         from: string;
+         to: string;
+     }[];
+-    referencePinRef: string;
+-    extraction: {
+-        minimumFrequency: string | number;
+-        maximumFrequency: string | number;
+-        modelFrequency: string | number;
+-        filaments: number;
+-        refinementFilaments: number;
+-        convergenceTolerance: number;
+-        capacitanceTolerance: number;
+-        reciprocityTolerance: number;
+-        dcResistanceTolerance: number;
+-        maxPanelLength: string | number;
+-        groundMeshSize?: string | number | undefined;
+-    };
+-    via?: {
+-        platingThickness?: string | number | undefined;
+-        equivalentWidth?: string | number | undefined;
+-        omitThroughViaStubs?: boolean | undefined;
+-    } | undefined;
+     passiveComponentRefs?: string[] | undefined;
+-    relativePermittivity?: number | undefined;
+-    straightenedStageProfiles?: Record<string, {
+-        relativePermittivity: number;
+-        spacing: string | number;
+-        return: {
+-            width: string | number;
+-            centerY: string | number;
+-            thickness: string | number;
+-            lengthFactor: number;
+-            centerZ: string | number;
+-        };
+-    }> | undefined;
+ }>;
+ declare const analogTransientSimulationProps: z.ZodEffects<z.ZodObject<{
+     duration: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, number, string | number>>;
+     startTime: z.ZodDefault<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>>;
+     timePerStep: z.ZodDefault<z.ZodEffects<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, number, string | number>>;
+     pcbSpiceChannel: z.ZodOptional<z.ZodObject<{
+-        reduction: z.ZodEnum<["routed-copper", "straightened-stages"]>;
+-        sections: z.ZodNumber;
+         lanes: z.ZodArray<z.ZodObject<{
+             name: z.ZodString;
+             from: z.ZodString;
+@@ -191625,206 +191405,21 @@ declare const analogTransientSimulationProps: z.ZodEffects<z.ZodObject<{
+             from: string;
+             to: string;
+         }>, "many">;
+-        referencePinRef: z.ZodString;
+         passiveComponentRefs: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+-        extraction: z.ZodEffects<z.ZodObject<{
+-            minimumFrequency: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-            maximumFrequency: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-            modelFrequency: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-            filaments: z.ZodNumber;
+-            refinementFilaments: z.ZodNumber;
+-            convergenceTolerance: z.ZodNumber;
+-            capacitanceTolerance: z.ZodNumber;
+-            reciprocityTolerance: z.ZodNumber;
+-            dcResistanceTolerance: z.ZodNumber;
+-            maxPanelLength: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-            groundMeshSize: z.ZodOptional<z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>>;
+-        }, "strip", z.ZodTypeAny, {
+-            minimumFrequency: number;
+-            maximumFrequency: number;
+-            modelFrequency: number;
+-            filaments: number;
+-            refinementFilaments: number;
+-            convergenceTolerance: number;
+-            capacitanceTolerance: number;
+-            reciprocityTolerance: number;
+-            dcResistanceTolerance: number;
+-            maxPanelLength: number;
+-            groundMeshSize?: number | undefined;
+-        }, {
+-            minimumFrequency: string | number;
+-            maximumFrequency: string | number;
+-            modelFrequency: string | number;
+-            filaments: number;
+-            refinementFilaments: number;
+-            convergenceTolerance: number;
+-            capacitanceTolerance: number;
+-            reciprocityTolerance: number;
+-            dcResistanceTolerance: number;
+-            maxPanelLength: string | number;
+-            groundMeshSize?: string | number | undefined;
+-        }>, {
+-            minimumFrequency: number;
+-            maximumFrequency: number;
+-            modelFrequency: number;
+-            filaments: number;
+-            refinementFilaments: number;
+-            convergenceTolerance: number;
+-            capacitanceTolerance: number;
+-            reciprocityTolerance: number;
+-            dcResistanceTolerance: number;
+-            maxPanelLength: number;
+-            groundMeshSize?: number | undefined;
+-        }, {
+-            minimumFrequency: string | number;
+-            maximumFrequency: string | number;
+-            modelFrequency: string | number;
+-            filaments: number;
+-            refinementFilaments: number;
+-            convergenceTolerance: number;
+-            capacitanceTolerance: number;
+-            reciprocityTolerance: number;
+-            dcResistanceTolerance: number;
+-            maxPanelLength: string | number;
+-            groundMeshSize?: string | number | undefined;
+-        }>;
+-        relativePermittivity: z.ZodOptional<z.ZodNumber>;
+-        via: z.ZodOptional<z.ZodObject<{
+-            platingThickness: z.ZodOptional<z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>>;
+-            equivalentWidth: z.ZodOptional<z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>>;
+-            omitThroughViaStubs: z.ZodOptional<z.ZodBoolean>;
+-        }, "strip", z.ZodTypeAny, {
+-            platingThickness?: number | undefined;
+-            equivalentWidth?: number | undefined;
+-            omitThroughViaStubs?: boolean | undefined;
+-        }, {
+-            platingThickness?: string | number | undefined;
+-            equivalentWidth?: string | number | undefined;
+-            omitThroughViaStubs?: boolean | undefined;
+-        }>>;
+-        straightenedStageProfiles: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodObject<{
+-            spacing: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-            relativePermittivity: z.ZodNumber;
+-            return: z.ZodObject<{
+-                width: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-                thickness: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-                lengthFactor: z.ZodNumber;
+-                centerY: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-                centerZ: z.ZodPipeline<z.ZodEffects<z.ZodUnion<[z.ZodString, z.ZodNumber]>, number, string | number>, z.ZodNumber>;
+-            }, "strip", z.ZodTypeAny, {
+-                width: number;
+-                centerY: number;
+-                thickness: number;
+-                lengthFactor: number;
+-                centerZ: number;
+-            }, {
+-                width: string | number;
+-                centerY: string | number;
+-                thickness: string | number;
+-                lengthFactor: number;
+-                centerZ: string | number;
+-            }>;
+-        }, "strip", z.ZodTypeAny, {
+-            relativePermittivity: number;
+-            spacing: number;
+-            return: {
+-                width: number;
+-                centerY: number;
+-                thickness: number;
+-                lengthFactor: number;
+-                centerZ: number;
+-            };
+-        }, {
+-            relativePermittivity: number;
+-            spacing: string | number;
+-            return: {
+-                width: string | number;
+-                centerY: string | number;
+-                thickness: string | number;
+-                lengthFactor: number;
+-                centerZ: string | number;
+-            };
+-        }>>>;
+     }, "strip", z.ZodTypeAny, {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             from: string;
+             to: string;
+         }[];
+-        referencePinRef: string;
+-        extraction: {
+-            minimumFrequency: number;
+-            maximumFrequency: number;
+-            modelFrequency: number;
+-            filaments: number;
+-            refinementFilaments: number;
+-            convergenceTolerance: number;
+-            capacitanceTolerance: number;
+-            reciprocityTolerance: number;
+-            dcResistanceTolerance: number;
+-            maxPanelLength: number;
+-            groundMeshSize?: number | undefined;
+-        };
+-        via?: {
+-            platingThickness?: number | undefined;
+-            equivalentWidth?: number | undefined;
+-            omitThroughViaStubs?: boolean | undefined;
+-        } | undefined;
+         passiveComponentRefs?: string[] | undefined;
+-        relativePermittivity?: number | undefined;
+-        straightenedStageProfiles?: Record<string, {
+-            relativePermittivity: number;
+-            spacing: number;
+-            return: {
+-                width: number;
+-                centerY: number;
+-                thickness: number;
+-                lengthFactor: number;
+-                centerZ: number;
+-            };
+-        }> | undefined;
+-    }, {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
++    }, {
+         lanes: {
+             name: string;
+             from: string;
+             to: string;
+         }[];
+-        referencePinRef: string;
+-        extraction: {
+-            minimumFrequency: string | number;
+-            maximumFrequency: string | number;
+-            modelFrequency: string | number;
+-            filaments: number;
+-            refinementFilaments: number;
+-            convergenceTolerance: number;
+-            capacitanceTolerance: number;
+-            reciprocityTolerance: number;
+-            dcResistanceTolerance: number;
+-            maxPanelLength: string | number;
+-            groundMeshSize?: string | number | undefined;
+-        };
+-        via?: {
+-            platingThickness?: string | number | undefined;
+-            equivalentWidth?: string | number | undefined;
+-            omitThroughViaStubs?: boolean | undefined;
+-        } | undefined;
+         passiveComponentRefs?: string[] | undefined;
+-        relativePermittivity?: number | undefined;
+-        straightenedStageProfiles?: Record<string, {
+-            relativePermittivity: number;
+-            spacing: string | number;
+-            return: {
+-                width: string | number;
+-                centerY: string | number;
+-                thickness: string | number;
+-                lengthFactor: number;
+-                centerZ: string | number;
+-            };
+-        }> | undefined;
+     }>>;
+     ibisPinStates: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodDiscriminatedUnion<"isOutput", [z.ZodObject<{
+         isOutput: z.ZodLiteral<false>;
+@@ -191883,45 +191478,12 @@ declare const analogTransientSimulationProps: z.ZodEffects<z.ZodObject<{
+         isOutputEnabled: boolean;
+     }> | undefined;
+     pcbSpiceChannel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             from: string;
+             to: string;
+         }[];
+-        referencePinRef: string;
+-        extraction: {
+-            minimumFrequency: number;
+-            maximumFrequency: number;
+-            modelFrequency: number;
+-            filaments: number;
+-            refinementFilaments: number;
+-            convergenceTolerance: number;
+-            capacitanceTolerance: number;
+-            reciprocityTolerance: number;
+-            dcResistanceTolerance: number;
+-            maxPanelLength: number;
+-            groundMeshSize?: number | undefined;
+-        };
+-        via?: {
+-            platingThickness?: number | undefined;
+-            equivalentWidth?: number | undefined;
+-            omitThroughViaStubs?: boolean | undefined;
+-        } | undefined;
+         passiveComponentRefs?: string[] | undefined;
+-        relativePermittivity?: number | undefined;
+-        straightenedStageProfiles?: Record<string, {
+-            relativePermittivity: number;
+-            spacing: number;
+-            return: {
+-                width: number;
+-                centerY: number;
+-                thickness: number;
+-                lengthFactor: number;
+-                centerZ: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+ }, {
+     name?: string | undefined;
+@@ -191944,45 +191506,12 @@ declare const analogTransientSimulationProps: z.ZodEffects<z.ZodObject<{
+         isOutputEnabled: boolean;
+     }> | undefined;
+     pcbSpiceChannel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             from: string;
+             to: string;
+         }[];
+-        referencePinRef: string;
+-        extraction: {
+-            minimumFrequency: string | number;
+-            maximumFrequency: string | number;
+-            modelFrequency: string | number;
+-            filaments: number;
+-            refinementFilaments: number;
+-            convergenceTolerance: number;
+-            capacitanceTolerance: number;
+-            reciprocityTolerance: number;
+-            dcResistanceTolerance: number;
+-            maxPanelLength: string | number;
+-            groundMeshSize?: string | number | undefined;
+-        };
+-        via?: {
+-            platingThickness?: string | number | undefined;
+-            equivalentWidth?: string | number | undefined;
+-            omitThroughViaStubs?: boolean | undefined;
+-        } | undefined;
+         passiveComponentRefs?: string[] | undefined;
+-        relativePermittivity?: number | undefined;
+-        straightenedStageProfiles?: Record<string, {
+-            relativePermittivity: number;
+-            spacing: string | number;
+-            return: {
+-                width: string | number;
+-                centerY: string | number;
+-                thickness: string | number;
+-                lengthFactor: number;
+-                centerZ: string | number;
+-            };
+-        }> | undefined;
+     } | undefined;
+ }>, {
+     duration: number;
+@@ -192005,45 +191534,12 @@ declare const analogTransientSimulationProps: z.ZodEffects<z.ZodObject<{
+         isOutputEnabled: boolean;
+     }> | undefined;
+     pcbSpiceChannel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             from: string;
+             to: string;
+         }[];
+-        referencePinRef: string;
+-        extraction: {
+-            minimumFrequency: number;
+-            maximumFrequency: number;
+-            modelFrequency: number;
+-            filaments: number;
+-            refinementFilaments: number;
+-            convergenceTolerance: number;
+-            capacitanceTolerance: number;
+-            reciprocityTolerance: number;
+-            dcResistanceTolerance: number;
+-            maxPanelLength: number;
+-            groundMeshSize?: number | undefined;
+-        };
+-        via?: {
+-            platingThickness?: number | undefined;
+-            equivalentWidth?: number | undefined;
+-            omitThroughViaStubs?: boolean | undefined;
+-        } | undefined;
+         passiveComponentRefs?: string[] | undefined;
+-        relativePermittivity?: number | undefined;
+-        straightenedStageProfiles?: Record<string, {
+-            relativePermittivity: number;
+-            spacing: number;
+-            return: {
+-                width: number;
+-                centerY: number;
+-                thickness: number;
+-                lengthFactor: number;
+-                centerZ: number;
+-            };
+-        }> | undefined;
+     } | undefined;
+ }, {
+     name?: string | undefined;
+@@ -192066,45 +191562,12 @@ declare const analogTransientSimulationProps: z.ZodEffects<z.ZodObject<{
+         isOutputEnabled: boolean;
+     }> | undefined;
+     pcbSpiceChannel?: {
+-        reduction: "routed-copper" | "straightened-stages";
+-        sections: number;
+         lanes: {
+             name: string;
+             from: string;
+             to: string;
+         }[];
+-        referencePinRef: string;
+-        extraction: {
+-            minimumFrequency: string | number;
+-            maximumFrequency: string | number;
+-            modelFrequency: string | number;
+-            filaments: number;
+-            refinementFilaments: number;
+-            convergenceTolerance: number;
+-            capacitanceTolerance: number;
+-            reciprocityTolerance: number;
+-            dcResistanceTolerance: number;
+-            maxPanelLength: string | number;
+-            groundMeshSize?: string | number | undefined;
+-        };
+-        via?: {
+-            platingThickness?: string | number | undefined;
+-            equivalentWidth?: string | number | undefined;
+-            omitThroughViaStubs?: boolean | undefined;
+-        } | undefined;
+         passiveComponentRefs?: string[] | undefined;
+-        relativePermittivity?: number | undefined;
+-        straightenedStageProfiles?: Record<string, {
+-            relativePermittivity: number;
+-            spacing: string | number;
+-            return: {
+-                width: string | number;
+-                centerY: string | number;
+-                thickness: string | number;
+-                lengthFactor: number;
+-                centerZ: string | number;
+-            };
+-        }> | undefined;
+     } | undefined;
+ }>;
+ 
+diff --git a/dist/index.js b/dist/index.js
+index 8b0feda23f0a394eb02233e347cce1a668cd0ac2..1b682d21dcd3d7c08dc0e728e127ccd6d402d81b 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -17336,6 +17336,7 @@ var boardOutlinePoint = z60.object({
+   }
+ });
+ var boardProps = subcircuitGroupProps.omit({ connections: true }).extend({
++  pcbStackup:z60.object({layers:z60.array(z60.record(z60.unknown())),plated_hole_copper_thickness:z60.number().finite().positive().optional()}).optional(),
+   mountedTo: z60.string().trim().min(1).optional().describe('e.g. "NEMA17.backface".'),
+   mountGap: distance.pipe(z60.number().nonnegative().finite()).optional().describe('Clearance from the mounting face, e.g. "6mm".'),
+   mountRotationAnchor: boardMountRotationAnchor.optional().describe('e.g. "J_USB" or "rightedge".'),
+@@ -18943,56 +18944,9 @@ var positiveLength = length4.pipe(z110.number().finite().positive());
+ var signedLength = length4.pipe(z110.number().finite());
+ var positiveFrequency = frequency3.pipe(z110.number().finite().positive());
+ var pcbSpiceChannelProps = z110.object({
+-  reduction: z110.enum(["routed-copper", "straightened-stages"]),
+-  sections: z110.number().int().min(1).max(128),
+-  lanes: z110.array(
+-    z110.object({
+-      name: z110.string().min(1),
+-      from: z110.string().min(1),
+-      to: z110.string().min(1)
+-    })
+-  ).min(1).max(3),
+-  referencePinRef: z110.string().min(1),
+-  passiveComponentRefs: z110.array(z110.string().min(1)).optional(),
+-  extraction: z110.object({
+-    minimumFrequency: positiveFrequency,
+-    maximumFrequency: positiveFrequency,
+-    modelFrequency: positiveFrequency,
+-    filaments: z110.number().int().positive(),
+-    refinementFilaments: z110.number().int().positive(),
+-    convergenceTolerance: z110.number().finite().positive(),
+-    capacitanceTolerance: z110.number().finite().positive(),
+-    reciprocityTolerance: z110.number().finite().positive(),
+-    dcResistanceTolerance: z110.number().finite().positive(),
+-    maxPanelLength: positiveLength,
+-    groundMeshSize: positiveLength.optional()
+-  }).refine(
+-    (extraction) => extraction.refinementFilaments > extraction.filaments,
+-    {
+-      path: ["refinementFilaments"],
+-      message: "refinementFilaments must be greater than filaments"
+-    }
+-  ),
+-  relativePermittivity: z110.number().finite().positive().optional(),
+-  via: z110.object({
+-    platingThickness: positiveLength.optional(),
+-    equivalentWidth: positiveLength.optional(),
+-    omitThroughViaStubs: z110.boolean().optional()
+-  }).optional(),
+-  straightenedStageProfiles: z110.record(
+-    z110.object({
+-      spacing: positiveLength,
+-      relativePermittivity: z110.number().finite().positive(),
+-      return: z110.object({
+-        width: positiveLength,
+-        thickness: positiveLength,
+-        lengthFactor: z110.number().finite().positive(),
+-        centerY: signedLength,
+-        centerZ: signedLength
+-      })
+-    })
+-  ).optional()
+-});
++  lanes: z110.array(z110.object({name:z110.string().min(1),from:z110.string().min(1),to:z110.string().min(1)}).strict()).min(1),
++  passiveComponentRefs:z110.array(z110.string().min(1)).optional()
++}).strict();
+ expectTypesMatch(
+   true
+ );

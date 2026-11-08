@@ -29,9 +29,6 @@ test('observation diagnostics keep codes and messages', () => {
   assert.throws(() => foldProbeEye(rows, { ...eye, startTimeSeconds: 4 }), { code: 'eye_windows' })
   assert.throws(() => foldProbeEye(rows, { ...eye, startTimeSeconds: 4 }),
     diag('eye_windows', 'e: no complete two-UI windows within measurement gate [4, 5] s; UI 1 s; skip 3.5 UI from timeOrigin 0.5 s; recorded timestamps [0, 5] s'))
-  assert.throws(() => foldProbeEye(rows, eye, { limits: { maxWindows: 0 } }), { code: 'eye_budget' })
-  assert.throws(() => foldProbeEye(rows, eye, { limits: { maxWindows: 0 } }), diag('eye_budget', 'Eye limits must be positive safe integers'))
-  assert.throws(() => foldProbeEye(rows, eye, { limits: { maxWindows: 3 } }), diag('eye_budget', 'Eye windows exceed the limit of 3 or have unsafe boundary indices'))
-  assert.throws(() => foldProbeEye(rows, eye, { pointsPerWindow: 5, limits: { maxSamples: 19 } }), diag('eye_budget', 'Eye plotted samples exceed the limit of 19'))
+  assert.throws(()=>foldProbeEye(rows,{...eye,unitIntervalSeconds:1e-20},{pointsPerWindow:2}),{code:'eye_indices'})
   assert.throws(() => foldProbeEye([[0, 0], [3.5 - 5e-10, 1]], { ...eye, timeOriginSeconds: 0, endTimeSeconds: 10 }, { pointsPerWindow: 5 }), { code: 'eye_interpolation' })
 })

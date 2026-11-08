@@ -1,9 +1,12 @@
+import { fail } from './diagnostics'
 import { numerics } from '../kernel'
 import type { LossFit } from './types'
 
 /** Four nonnegative Foster branches fitted over the automatically derived frequency band. */
 export function fitLoss(frequencies: number[], target: number[]): LossFit {
+  if (!frequencies.length || frequencies.length !== target.length || frequencies.some(f => !Number.isFinite(f) || f <= 0) || target.some(v => !Number.isFinite(v) || v < 0)) fail('loss_fit', 'Finite positive frequencies and matching nonnegative loss samples are required')
   const poles = Array.from({ length: numerics.lossBranches }, (_, i) => 2 * Math.PI * frequencies[0] * (frequencies.at(-1)! / frequencies[0]) ** (i / (numerics.lossBranches - 1)))
+  if (target.every(v => v === 0)) return {poles, weights:poles.map(() => 0), relativeRms:0, maxRelative:0}
   const basis = frequencies.map(f => poles.map(p => (2 * Math.PI * f) ** 2 / ((2 * Math.PI * f) ** 2 + p ** 2)))
   const weights = poles.map(() => 0)
   const scale = target.map(v => Math.max(v, Math.max(...target) * numerics.fitZeroRelative))
@@ -20,6 +23,7 @@ export function fitLoss(frequencies: number[], target: number[]): LossFit {
       weights[j] = Math.max(0, numerator / denominator)
     }
     const error = target.reduce((s, v, i) => s + ((basis[i].reduce((a, b, j) => a + b * weights[j], 0) - v) / scale[i]) ** 2, 0)
+    if (!Number.isFinite(error)) fail('loss_fit', 'Nonfinite Foster fit objective')
     if (previous - error <= numerics.fitRelativeChange * Math.max(1, previous) && Number.isFinite(previous)) break
     previous = error
   }
