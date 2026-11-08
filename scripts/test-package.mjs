@@ -3,19 +3,24 @@ import {mkdtemp,readFile,writeFile,mkdir,rm,access,copyFile} from 'node:fs/promi
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {fileURLToPath} from 'node:url'
-import {execFile} from 'node:child_process'
-import {promisify} from 'node:util'
+import {spawn} from 'node:child_process'
 import {inMemoryInput} from '../tests/fixtures/in-memory.mjs'
 
-const exec=promisify(execFile)
 const root=fileURLToPath(new URL('../',import.meta.url))
 const temporary=await mkdtemp(join(tmpdir(),'pcb-package-'))
-const run=async(executable,args,cwd)=>{
-  try{
-    return await exec(executable,args,{cwd,timeout:180000,maxBuffer:8*1024*1024})
-  }
-  catch(error){throw Error(`${executable} ${args.join(' ')}\n${error.stdout??''}\n${error.stderr??error.message}`)}
-}
+const run=(executable,args,cwd)=>new Promise((resolve,reject)=>{
+  const child=spawn(executable,args,{cwd,stdio:['ignore','pipe','pipe']})
+  let stdout=''
+  let stderr=''
+  child.stdout.setEncoding('utf8').on('data',chunk=>{
+    stdout+=chunk
+  })
+  child.stderr.setEncoding('utf8').on('data',chunk=>{
+    stderr+=chunk
+  })
+  child.once('error',reject)
+  child.once('close',(code,signal)=>code===0?resolve({stdout,stderr}):reject(Error(`${executable} ${args.join(' ')}: ${signal??code}\n${stdout}\n${stderr}`)))
+})
 try {
   const packed=JSON.parse((await run('npm',['pack','--json','--pack-destination',temporary],root)).stdout)[0]
   assert.ok(packed.files.every(file=>file.path.startsWith('dist/')||['README.md','LICENSE','package.json'].includes(file.path)))

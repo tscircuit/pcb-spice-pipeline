@@ -172,12 +172,14 @@ connection impedance and via RF loss are not extracted. These limits are recorde
 
 ## Checks and remaining qualification
 
-- `pnpm build`: passed. `pnpm test`: 241 passed, zero failed, 545.310 s. The via-span correction
-  also passes the three focused actual-TSX geometry checks. A final full run includes the new
-  250000-element numeric reduction regression; its result will replace this status.
-- `pnpm test:native`: 6 passed / 1 vendor-gated skip, zero failed, 2.741 s. These include dynamic
+- `pnpm build`: passed. `pnpm test`: 242 passed, zero failed, 881.928 s at checkpoint `9984c9c`,
+  including the 250000-element numeric reduction regression. Subsequent cleanup removes one
+  obsolete timeout-harness test; the seven comparison checks still pass (1.324 s).
+- `pnpm test:native`: 6 passed / 1 vendor-gated skip, zero failed, 4.339 s. These include dynamic
   synthetic supply-pin packages and bit-identical internal-branch save restriction. Separate
   real-TI runs are above.
+- `pnpm test:package`: passed packed Node execution, denied-host execution, NodeNext declarations
+  and Bun execution. The packaging runner now streams without timeout or output-buffer limits.
 - Lint, module graph, vocabulary and type checking pass; the 100001-bit actual TSX admission test
   passes through patched props, core and Circuit JSON. Native primitive test executes twelve lanes.
 - Native: all four default boards on the earlier increment; stricter single-ended/multilayer;

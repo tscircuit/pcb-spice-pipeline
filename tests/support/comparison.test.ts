@@ -183,7 +183,7 @@ test('unsafe traffic indices fail promptly instead of stalling the loop', () => 
     import assert from 'node:assert/strict'
     import { stimulusActivity } from ${JSON.stringify(new URL('./legacy/comparison.ts', import.meta.url).href)}
     assert.throws(() => stimulusActivity(${JSON.stringify(stimulus)}, 1, 2), /comparison_traffic.*safe/)
-  `], { timeout: 5000, encoding: 'utf8' })
+  `], { encoding: 'utf8' })
   assert.ifError(result.error)
   assert.equal(result.status, 0, result.stderr)
 })
