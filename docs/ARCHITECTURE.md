@@ -9,9 +9,12 @@ appear in the new result Circuit JSON.
 ```mermaid
 flowchart LR
   source["Circuit JSON SI records"] --> derive["pipeline: independent block derivation"]
-  derive --> board["board: actual copper and stackup"]
+  derive --> board3d["board: 3D routed copper geometry and stackup"]
+  board3d --> check{"straight parallel traces,<br/>one rectangular return?"}
+  check -->|"yes"| bars["board: extra 2D bar reduction<br/>(cross-section extruded, real coordinates)"]
+  check -->|"no"| extract
+  bars --> extract["extraction: native R/L/C and convergence"]
   derive --> buffers["buffers: selected vendor models and package networks"]
-  board --> extract["extraction: native R/L/C and convergence"]
   buffers --> simulate["simulation: native transient"]
   extract --> simulate
   simulate --> observe["observation: finite eyes and timing"]

@@ -50,13 +50,20 @@ No package install or solver download happens during `runPipeline`.
 ## General workflow
 
 ```mermaid
-flowchart LR
-  circuit["Circuit JSON + IBIS bytes"] --> blocks["Validate and group SI blocks"]
-  blocks --> derive["Derive copper, states, references and test patterns"]
-  derive --> extract["Native extraction and mesh convergence"]
-  extract --> transient["Native transient and numerical convergence"]
-  transient --> results["Waveforms, eyes, NEXT/FEXT, strobe margins and RLGC"]
-  results --> output["Circuit JSON results + solver evidence"]
+flowchart TD
+  board[/"Your board<br/>(Circuit JSON with signalintegrity blocks)"/] --> s1["1. Read the board, group the blocks, derive drivers, receivers, pin states and patterns<br/><small>pipeline</small>"]
+  chips[/"Chip models<br/>(IBIS files)"/] --> s4
+  s1 --> s2["2. Build the 3D copper geometry: routed traces, vias, pours, stackup<br/><small>board</small>"]
+  s2 --> q{"Straight parallel traces over<br/>one rectangular return?"}
+  q -->|"yes"| s2b["2b. Extra: replace the 3D copper with straight bars<br/>(a 2D cross-section taken from the real coordinates, extruded along the length)<br/><small>board</small>"]
+  q -->|"no"| s3
+  s2b --> s3["3. Measure the wires: R, L, C, refining the mesh until it converges<br/><small>extraction</small>"]
+  s3 <-->|"runSolver"| fs{{"FastHenry + FasterCap"}}
+  s3 --> s4["4. Build one circuit per block: wires + chip buffers + packages<br/><small>buffers, simulation</small>"]
+  s4 --> s5["5. Simulate the signals; refine sections and time step until converged<br/><small>simulation</small>"]
+  s5 <-->|"runSolver"| ng{{"ngspice"}}
+  s5 --> s6["6. Measure: eyes, NEXT/FEXT, strobe margins<br/><small>observation</small>"]
+  s6 --> out[/"Result records + solver evidence"/]
 ```
 
 ```mermaid
@@ -80,8 +87,11 @@ stateDiagram-v2
 
 Missing electrical facts fail explicitly. Numerical settings come from selected
 IBIS edge rates, bit rates, stackup and actual routes. Matrix order follows stable
-physical pin identities, and coupling follows copper positions. Verified parallel
-rectangular copper can use a bar reduction; arbitrary routes keep routed geometry.
+physical pin identities, and coupling follows copper positions. The 3D routed
+copper geometry is always built first. Only when the traces are verified straight,
+parallel and over one rectangular return is it replaced by straight bars (step 2b);
+every other route is extracted from the 3D geometry. In that case `geometry.json`
+holds the bars, not the 3D copper.
 
 Every block produces an independent run. A differential endpoint drives opposite
 physical levels and measures P minus N. Quiet signals remain connected, with
