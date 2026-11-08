@@ -23,6 +23,8 @@ export interface LaneModeling { port: string; from: PortSelector; to: PortSelect
 export interface BoardModeling {
   reduction: 'straightened-stages' | 'routed-copper'; sections: number
   relativePermittivity?: number
+  allowIdeal?: boolean
+  simplifyParallel?: boolean
   groundReturn?: PortSelector
   lanes: LaneModeling[]
   profiles?: Record<string, ReturnProfile>

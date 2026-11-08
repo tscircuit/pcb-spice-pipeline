@@ -6,9 +6,8 @@ import {
   generalDeclarations, electricalSources, safeSimulationPlans, modelRunDefinition, bindExperiments, electricalNodeMap,
   runExperiment, simulationResultCircuitJson, experimentResult,
 } from '../simulation'
-import { foldEyes, type EyeFoldInput } from '../observation'
+import { foldEyes, sampleVoltage, type EyeFoldInput } from '../observation'
 import { resolveDdrAssessments, assessDdr } from '../ddr'
-import { modelingFromCircuitJson } from './modeling'
 import type { EyeDescriptor } from './result'
 import type { Chain, ObservedRun, Stage } from './state'
 
@@ -29,7 +28,7 @@ import type { Chain, ObservedRun, Stage } from './state'
 export const admit: Stage<'input', 'admitted'> = {
   name: 'admit', from: 'input', to: 'admitted',
   run: ({ options }) => {
-    const modeling = options.modeling ?? modelingFromCircuitJson(options.circuitJson)
+    const modeling = options.modeling
     const board = admitBoard(options.circuitJson)
     assertConverter()
     return {
@@ -79,9 +78,41 @@ export const simulate: Stage<'extracted', 'simulated'> = {
     const runs: ObservedRun[] = []
     const artifacts: Artifact[] = []
     for (const [index, plan] of state.plans.entries()) {
-      const scope = rootScope('simulation').child('experiments', plan.simulationExperimentId)
-      const assembly = ibisAssembly(state.compiled[index], scope.handTo('buffers'))
-      const run = await runExperiment(ctx, scope, state.bound, index, state.geometry, state.modeling, state.channel.matrices)
+      const base = rootScope('simulation').child('experiments', plan.simulationExperimentId)
+      let scope = base
+      let assembly = ibisAssembly(state.compiled[index], scope.handTo('buffers'))
+      let run = await runExperiment(ctx, scope, state.bound, index, state.geometry, state.modeling, state.channel.matrices)
+      artifacts.push(...assembly.artifacts, ...run.artifacts)
+      const convergence: { sections: number; step_s: number; residual: number }[] = []
+      if (state.modeling.simplifyParallel) for (let refinement = 1; refinement <= 3; refinement++) {
+        const previous = run
+        plan.maxStepSeconds /= 2
+        state.modeling.sections = Math.min(128, state.modeling.sections * 2)
+        scope = base.child(`numerical-refinement-${refinement}`)
+        assembly = ibisAssembly(state.compiled[index], scope.handTo('buffers'))
+        run = await runExperiment(ctx, scope, state.bound, index, state.geometry, state.modeling, state.channel.matrices)
+        artifacts.push(...assembly.artifacts, ...run.artifacts)
+        const rows = previous.value.rows
+        let squaredError = 0
+        let norm = 0
+        let samples = 0
+        const gate = Math.max(...plan.stimuli.map(s => s.start_time_ms / 1000 + 16 * s.bit_duration_ms / 1000), 0)
+        for (let i = 0; i < 20000; i++) {
+          const time = gate + (plan.durationSeconds - gate) * i / 19999
+          for (let column = 1; column <= plan.probes.length; column++) {
+            const before = sampleVoltage(rows, column, time)
+            const after = sampleVoltage(run.value.rows, column, time)
+            squaredError += (after - before) ** 2
+            samples++
+            norm = Math.max(norm, Math.abs(before), Math.abs(after))
+          }
+        }
+        const residual = Math.sqrt(squaredError / samples) / Math.max(norm, 1e-12)
+        convergence.push({ sections: state.modeling.sections, step_s: plan.maxStepSeconds, residual })
+        if (residual <= .01) break
+        if (refinement === 3) throw new Error(`${plan.name}: sections/timestep did not converge within 1% after three refinements`)
+      }
+      artifacts.push(base.json('numerical-convergence.json', { definition: 'RMS waveform difference on 20000 uniformly spaced times after 16 UI, normalized by maximum measured amplitude', tolerance: .01, checks: convergence }))
       const inputs: EyeFoldInput[] = plan.eyes.map(eye => {
         const assessment = state.ddr.find(a => a.eye === eye)
         const ddrAssessment = assessment ? assessDdr(run.value.rows, assessment) : undefined
@@ -90,8 +121,8 @@ export const simulate: Stage<'extracted', 'simulated'> = {
           : { request: eye, alignment: { kind: 'stimulus-clock' } }
       })
       const eyes = foldEyes(run.value.rows, inputs, { sha256: run.value.waveformCsvSha256 }, scope.handTo('observation'))
-      artifacts.push(...assembly.artifacts, ...run.artifacts, ...eyes.artifacts)
-      runs.push({ run: run.value, eyes: eyes.value as EyeDescriptor[], assembly: assembly.value })
+      artifacts.push(...eyes.artifacts)
+      runs.push({ run: run.value, eyes: eyes.value as EyeDescriptor[], assembly: assembly.value, solverInvocations: convergence.length + 1 })
     }
     return { state: { ...state, phase: 'simulated', runs }, artifacts }
   },
@@ -100,7 +131,7 @@ export const simulate: Stage<'extracted', 'simulated'> = {
 export const observe: Stage<'simulated', 'observed'> = {
   name: 'observe', from: 'simulated', to: 'observed',
   run: state => {
-    const experimentResults = state.runs.map(({ run, eyes, assembly }) => experimentResult(run, eyes, assembly))
+    const experimentResults = state.runs.map(({ run, eyes, assembly, solverInvocations }) => ({ ...experimentResult(run, eyes, assembly), solverInvocations }))
     const results = simulationResultCircuitJson(state.board.circuitJson, state.experiments.plans, state.runs.map(r => r.run))
     return { state: { ...state, phase: 'observed', experimentResults, results }, artifacts: [] }
   },

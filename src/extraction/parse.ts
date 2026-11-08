@@ -14,7 +14,7 @@ export function parseFastHenry(text: string): ImpedanceSample[] {
   return blocks.map(b=>{
     const n=Number(b[2])
     const rows=b[4].trim().split(/\n/).filter(r=>r.trim()).slice(0,n)
-    if(![2,3,4].includes(n) || Number(b[3])!==n) fail('fasthenry_ports', 'One to three signals and one return required')
+    if(n < 2 || Number(b[3])!==n) fail('fasthenry_ports', 'At least one signal and one return required')
     const matrix=rows.map(r=>[...r.matchAll(/([+-]?[\d.]+(?:[eE][+-]?\d+)?)\s+([+-]?[\d.]+(?:[eE][+-]?\d+)?)j/g)].map(m=>[Number(m[1]),Number(m[2])]))
     if(matrix.length!==n || matrix.some(r=>r.length!==n)) fail('fasthenry_output','Malformed complex matrix')
     return {frequencyHz:Number(b[1]),R:matrix.map(r=>r.map(v=>v[0])),L:matrix.map(r=>r.map(v=>v[1]/(2*Math.PI*Number(b[1]))))}
@@ -26,7 +26,7 @@ export function parseFasterCap(text: string): CapacitanceOutput {
   if(!blocks.length) fail('fastercap_output','No 3D capacitance matrix in solver stdout')
   const b=blocks.at(-1)!
   const n=Number(b[1])
-  if(![2,3,4].includes(n) || Number(b[2])!==n) fail('fastercap_ports','Expected 2x2, 3x3 or 4x4 Maxwell matrix')
+  if(n < 2 || Number(b[2])!==n) fail('fastercap_ports','Expected a square Maxwell matrix with at least two conductors')
   const names: string[]=[]
   const matrix=b[3].trim().split('\n').slice(0,n).map(r=>{
     const parts=r.trim().split(/\s+/)

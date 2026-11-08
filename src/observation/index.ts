@@ -13,3 +13,4 @@ export type {
 export { probeWaveformRows } from './waveform'
 export { foldProbeEye } from './fold'
 export { foldEyes, eyeDataCsv, type EyeFoldInput } from './artifacts'
+export { sampleVoltage, crossingTimes, quietPeak, measureEye, strobeMargins } from './measure'

@@ -27,7 +27,7 @@ export function validateMatrix(a: Matrix, name: string, tolerance: number = 0.02
 /** Reduces an (n+1)-conductor impedance matrix to n signal loops that each return through the last conductor. */
 export function loopImpedance(a: Matrix): Matrix {
   const n=a.length-1
-  if(![1,2,3].includes(n)) fail('matrix_dimension','One to three signals plus a return required')
+  if(n < 1) fail('matrix_dimension','At least one signal plus a return required')
   const A=Array.from({length:n+1},(_,i)=>Array.from({length:n},(_,j)=>i===n?-1:Number(i===j)))
   return multiply(multiply(transpose(A),a),A)
 }

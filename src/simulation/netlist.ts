@@ -161,10 +161,26 @@ export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geom
   if (extracted.some(stage => stage.R.length !== geometry.mappings.length)) fail('matrix_dimension', 'Extracted channels must match every selected signal')
   const channel = [...geometry.mappings.map(mapping => nodes.node(mapping.from)), ...geometry.mappings.map(mapping => nodes.node(mapping.to))]
   if (channel.includes('0') || new Set(channel).size !== channel.length) fail('channel_short', 'Every selected signal must have distinct driver and receiver nodes separate from the reference')
-  lines.push(channelSpice(extracted, modeling.sections), `XCHAN ${[...channel, '0'].join(' ')} CHANNEL`)
+  if (channel.length) lines.push(channelSpice(extracted, modeling.sections), `XCHAN ${[...channel, '0'].join(' ')} CHANNEL`)
   validateProbeScope(plan, geometry, models, nodes, electrical)
   // IBIS behavioral sources reference internal voltage-source currents. Probe-only
   // saves discard those branch vectors in upstream ngspice; preserve them all.
+  // Initialize channel charge from the declared logic levels. Constraints apply
+  // only during startup; every reported measurement excludes 16 UI settling.
+  const initialConditions: string[] = []
+  for (const mapping of geometry.mappings) {
+    const stimulus = plan.stimuli.find(s => [mapping.from, mapping.to].includes(s.source_port_id))
+    if (!stimulus) continue
+    const pin = models.flatMap(model => model.metadata?.pins ?? []).find(pin => pin.port === stimulus.source_port_id)
+    const high = Boolean(stimulus.initial_state) !== Boolean(stimulus.inverted) !== (pin?.polarity === 'inverting')
+    const rail = pin?.references.pullup
+    const supply = rail ? electrical.sourceBindings.find(source => source.positiveNode === nodes.node(rail)) : undefined
+    const voltage = supply ? electrical.lines.find(line => line.startsWith('V') && line.split(/\s+/)[1] === supply.positiveNode)?.split(/\s+/)[3] : undefined
+    if (!voltage || !Number.isFinite(Number(voltage))) continue
+    const initial = high ? Number(voltage) : 0
+    for (const id of [mapping.from, mapping.to]) initialConditions.push(`v(${nodes.node(id)})=${initial}`)
+  }
+  if (initialConditions.length) lines.push('.ic ' + initialConditions.join(' '))
   lines.push('.control', 'set wr_singlescale', 'set wr_vecnames', 'set numdgt=17', 'save all', `tran ${num(plan.maxStepSeconds)} ${num(plan.durationSeconds)} ${num(plan.startTimeSeconds)} ${num(plan.maxStepSeconds)}`)
   for (const [i, probe] of plan.probes.entries()) lines.push(`let probe${i} = ${probe.signalNode === '0' ? '0' : `v(${probe.signalNode})`}-${probe.referenceNode === '0' ? '0' : `v(${probe.referenceNode})`}`)
   lines.push(`wrdata waveform.dat ${plan.probes.map((_, i) => `probe${i}`).join(' ')}`, 'quit', '.endc', '.end', '')

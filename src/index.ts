@@ -1,6 +1,6 @@
 // Root entry: pure (no node:*). Re-exports module surfaces only (check-modules S5).
-export { modelingFromCircuitJson, runPipeline } from './pipeline'
-export type { PipelineOptions, PipelineModeling, PipelineResult, Modeling } from './pipeline'
+export { runPipeline } from './pipeline'
+export type { PipelineOptions, PipelineResult, BlockResult } from './pipeline'
 export type { Solver, SolverRequest, SolverResult, RunSolver } from './solver'
 export type { FileMap, Diagnostic, DiagnosticSubject } from './kernel'
 export type { DiagnosticCode } from './modules.generated'

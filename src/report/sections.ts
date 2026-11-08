@@ -3,7 +3,7 @@ import type { CircuitJson, SimulationIbisPinState, Geometry } from '../board'
 import { selectPort } from '../board'
 import type { SimulationPlan } from '../simulation'
 import type { DdrAssessment } from '../ddr'
-import type { Modeling } from '../pipeline'
+import type { NumericalSettings as Modeling } from '../pipeline'
 
 export type ReportTest = Pick<SimulationPlan, 'startTimeSeconds' | 'durationSeconds' | 'maxStepSeconds' | 'stimuli' | 'states' | 'models'>
 export interface ReportContext {

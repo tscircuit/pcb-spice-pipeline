@@ -23,3 +23,5 @@ export { selectPort, resolveRouteVias } from './geometry/ports'
 export { polygonContains, ringArea, closeRing } from './geometry/polygon'
 export { derivedReturnWidthMm, groundPourLayers, stackupStageReturn, measuredLaneSpacingMm, type StageReturn, type StageReturnPart } from './geometry/returns'
 export { validateModeling, geometryFromCircuitJson, channelGeometry } from './geometry'
+
+export type { SimulationSignalIntegrity, SimulationSignal, SignalEndpoint, SignalResult, SignalWaveform, SignalEye, SignalCrosstalk, SignalStrobeMargin, SignalIntegrityRlgc } from './signals'

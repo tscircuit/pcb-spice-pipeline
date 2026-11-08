@@ -1,4 +1,5 @@
-import { pcb_stackup, type CircuitJson } from 'circuit-json'
+import { pcb_stackup } from 'circuit-json'
+import type { CircuitJson } from './schema'
 import { fail } from './diagnostics'
 
 export const defaultCopperConductivitySm = 5.8e7

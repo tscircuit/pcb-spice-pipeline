@@ -103,7 +103,7 @@ export async function extractChannel(geometry: Geometry, modeling: ExtractionMod
     record([stageScope.json('extraction.json',result)])
     extracted.push(result)
   }
-  const spice=channelSpice(extracted,modeling.sections)
+  const spice=geometry.mappings.length ? channelSpice(extracted,modeling.sections) : ''
   record([scope.text('channel.cir',spice)])
   return {value:{matrices:extracted,spice},artifacts:[...files.values()]}
 }

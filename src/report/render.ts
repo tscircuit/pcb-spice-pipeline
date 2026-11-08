@@ -17,7 +17,7 @@ function namedArtifact(result: PipelineResult, path: string): string {
  * Pure and deterministic; reads result.files only through paths the result names.
  */
 export function generateReport(result: PipelineResult): FileMap {
-  return generateReportData({context:reportContext(result.circuitJson,result.geometry,result.modeling),
+  return generateReportData({context:reportContext(result.circuitJson,result.geometry,result.blocks[0].numericalSettings),
     limitations:result.limitations,runs:result.experiments.map(run=>({
       name:run.name,rows:run.waveform.rows,probes:run.probes,test:run.plan,
       eyes:run.eyes.map(({samples,...eye})=>({...eye,csv:namedArtifact(result,`${run.directory}/${eye.directory}/eye-data.csv`)})),

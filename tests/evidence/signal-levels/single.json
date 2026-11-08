@@ -1,0 +1,112 @@
+{
+  "name": "single",
+  "seconds": 42.633,
+  "sources": {
+    "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+    "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+  },
+  "blocks": [
+    {
+      "name": "SINGLE",
+      "numericalSettings": {
+        "reduction": "routed-copper",
+        "simplifyParallel": true,
+        "sections": 4,
+        "lanes": [
+          {
+            "port": "DATA_source_port_2",
+            "from": {
+              "sourcePortId": "source_port_2"
+            },
+            "to": {
+              "sourcePortId": "source_port_4"
+            },
+            "sourceTraceId": "source_trace_6"
+          }
+        ],
+        "channelReference": {
+          "sourcePortId": "source_port_1"
+        },
+        "groundReturn": {
+          "sourcePortId": "source_port_5"
+        },
+        "relativePermittivity": 4.37654051099877,
+        "extraction": {
+          "minimumHz": 0.858,
+          "modelHz": 858000000,
+          "maximumHz": 8580000000,
+          "filaments": 13,
+          "refinementFilaments": 17,
+          "convergenceTolerance": 0.05,
+          "capTolerance": 0.02,
+          "reciprocityTolerance": 0.025,
+          "dcResistanceTolerance": 0.002,
+          "maxPanelLengthMm": 0.2,
+          "groundMeshMm": 0.1
+        },
+        "passiveComponents": []
+      },
+      "results": [
+        {
+          "type": "simulation_signal_eye",
+          "simulation_signal_eye_id": "si_0_signal_0_0",
+          "simulation_signal_id": "si_0_signal_0",
+          "source_port_id": "source_port_4",
+          "unit_interval_s": 5e-8,
+          "eye_height_v": 3.299983888581115,
+          "eye_width_s": 4.9249999999999994e-8,
+          "mask_margin_v": 0.7999833011945947,
+          "vih_v": 2,
+          "vil_v": 0.8,
+          "alignment": "bit_rate"
+        },
+        {
+          "type": "simulation_signal_integrity_rlgc",
+          "simulation_signal_integrity_rlgc_id": "si_0",
+          "simulation_signal_integrity_id": "si_0",
+          "signal_order": [
+            "si_0_signal_0"
+          ],
+          "source_port_order": [
+            "source_port_2"
+          ],
+          "matrices": [
+            {
+              "frequency_hz": 858000000,
+              "r_ohm": [
+                [
+                  0.330663944
+                ]
+              ],
+              "l_h": [
+                [
+                  1.2855230416250756e-8
+                ]
+              ],
+              "c_f": [
+                [
+                  3.8865394253580127e-13
+                ]
+              ],
+              "g_s": [
+                [
+                  0
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "limitations": [
+        "Automatically verified straight parallel traces and rectangular return with matching endpoints; bar dimensions and positions are the actual routed copper coordinates",
+        "Uniform current injection across each return end; finite pad contact crowding omitted by the automatic parallel-bar reduction",
+        "Homogeneous stackup-weighted dielectric, constant-frequency R/L and uniform pi sections; dielectric loss, roughness and frequency dispersion are not fitted",
+        "Vendor scalar pin/package RLC as a pi network: shunt C split equally between board and die, with ground-pin C across its lead",
+        "Vendor scalar pin/package RLC as a pi network: shunt C split equally between board and die, with ground-pin C across its lead",
+        "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
+        "Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
+        "Maximum solver integration step and display resolution are separate settings"
+      ]
+    }
+  ]
+}

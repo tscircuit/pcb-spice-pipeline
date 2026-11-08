@@ -193,7 +193,7 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Pick<Geometry
     }
     for(const mapping of geometry.mappings) for(const endpoint of [mapping.from,mapping.to]) {
       const bindings=scopedModels.flatMap(model=>Object.values(model.ibis_pin_name_to_source_port_id)).filter(port=>port===endpoint)
-      if(bindings.length!==1||!stateIds.has(endpoint)) fail('channel_model',`${experiment.name} ${mapping.port}: endpoint ${endpoint} requires exactly one modeled physical pin and an explicit run state`)
+      if(bindings.length > 1 || (bindings.length === 1 && !stateIds.has(endpoint)) || (bindings.length === 0 && !components.some(component => component.source_component_id === ports.get(endpoint)?.source_component_id && ['simple_resistor', 'simple_capacitor', 'simple_inductor'].includes(component.ftype)))) fail('channel_model',`${experiment.name} ${mapping.port}: endpoint ${endpoint} requires exactly one modeled physical pin and an explicit run state`)
     }
     for(const stimulus of stimuli) {
       if(stimulusIds.has(stimulus.source_port_id)) fail('stimulus_duplicate',`${experiment.name}: multiple stimuli drive the same physical output`)
@@ -255,7 +255,6 @@ export function modelRunDefinition(model: PipelineIbisModel,plan: SimulationPlan
   }
   for(const stimulus of plan.stimuli) if(selected.has(stimulus.source_port_id)) stimuli[stimulus.source_port_id]={unitInterval:stimulus.bit_duration_ms,startTime:stimulus.start_time_ms,initialState:stimulus.initial_state,inverted:stimulus.inverted??false,pattern:{type:'bits',bits:stimulus.transmission_pattern.bits,repeat:stimulus.transmission_pattern.repeat}}
   const references: Record<string,IbisReferencePorts>=Object.fromEntries(Object.entries(model.ibis_pin_name_to_reference_source_port_ids??{}).map(([pin,refs])=>[pin,{pullup:refs.pullup_reference_source_port_id,pulldown:refs.pulldown_reference_source_port_id,powerClamp:refs.power_clamp_reference_source_port_id,groundClamp:refs.ground_clamp_reference_source_port_id,external:refs.external_reference_source_port_id}]))
-  let packagePolicy: IbisModelDefinition['packagePolicy']='omit'
-  if(model.include_package_parasitics) packagePolicy='vendor'
+  const packagePolicy: IbisModelDefinition['packagePolicy']='vendor'
   return {definition:{source:{file:model.ibis_model_asset.project_relative_path},component:model.ibis_component_name,pinMap,modelSelections:model.ibis_pin_name_to_model_name,references,corner:model.model_value_corner,packagePolicy},run:{duration:plan.durationSeconds*1000,pinStates,stimuli}}
 }

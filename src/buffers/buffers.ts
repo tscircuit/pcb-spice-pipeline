@@ -3,6 +3,7 @@ import * as converter from '@tscircuit/ibis-to-spice'
 import { sha256, type Artifact, type ArtifactScope, type Produced } from '../kernel'
 import { fail } from './diagnostics'
 import { loadModelSource } from './source'
+import { convertPackaged } from './package'
 import type { AdmittedBuffers, AssemblyEntry, BufferModeling, CompiledBuffer, IbisSources, LoadedModelSource, ModelRunDefinition, ModelSourceRequest } from './types'
 
 /** Fails 'converter_version' unless the pinned upstream general converter is installed. Today's first IBIS check. */
@@ -49,7 +50,7 @@ export function compileBuffers<M extends { pipelineId: string; ibis_component_na
     const input = define(model, plan)
     const source = admitted.sources[index]
     input.definition.source = { file: source.evidence.ibsFile, sha256: source.evidence.sourceSha256 }
-    const result = converter.convertIbisModelToSpice(source.bytes, input.definition, input.run)
+    const result = convertPackaged(source.bytes, input)
     return { ...result, name: model.ibis_component_name, pipelineId: model.pipelineId, input, sourceEvidence: admitted.sources[index].evidence }
   }))
 }

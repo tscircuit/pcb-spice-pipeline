@@ -6,6 +6,7 @@ import { fail } from '../diagnostics'
 import { stackupFromCircuitJson, defaultCopperConductivitySm } from '../stackup'
 import { selectPort, resolveRouteVias } from './ports'
 import { routedCopperGeometry } from './routed'
+import { parallelCopperGeometry } from './parallel'
 import { groundPourLayers, measuredLaneSpacingMm, stackupStageReturn } from './returns'
 import type { BoardModeling as Modeling, Geometry, GeometryCell, LaneMapping, ResolvedModeling, RouteStage, RoutedPoint } from './types'
 
@@ -22,7 +23,7 @@ const finite=(v: unknown,label: string): number=>{
 /** Checks every modeling field the reductions rely on before any geometry is built, failing with the matching board code. */
 export function validateModeling(m: Modeling): void {
   if(!['straightened-stages','routed-copper'].includes(m.reduction)) fail('reduction','Select straightened-stages or routed-copper')
-  if(!Array.isArray(m.lanes)||![1,2,3].includes(m.lanes.length)) fail('lanes','One to three explicit source/receiver lanes are supported')
+  if(!Array.isArray(m.lanes)||(m.lanes.length < 1 && !m.allowIdeal)) fail('lanes','At least one routed conductor is required')
   for(const [i,l] of m.lanes.entries()) if(!l.port||!l.from||!l.to) fail('pin_mapping',`Lane ${i}: port/from/to mappings required`)
   if(new Set(m.lanes.map(l=>l.port)).size!==m.lanes.length) fail('pin_mapping','Lane port labels must be distinct')
   if(m.reduction==='routed-copper') {
@@ -52,6 +53,7 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
   const m: ResolvedModeling = {...modeling, stackup: stackup.copperLayers, conductivitySm: defaultCopperConductivitySm,
     relativePermittivity: modeling.relativePermittivity ?? stackup.relativePermittivity, viaPlatingMm: modeling.viaPlatingMm ?? stackup.viaPlatingMm}
   validateModeling(m)
+  if (!m.lanes.length && m.allowIdeal) return { stackup, cells: [], mappings: [], units: { circuitJson: 'mm', geometry: 'm', conductivity: 'S/m' }, approximations: ['Unrouted signal copper is ideal by explicit block.unrouted=ideal'] }
   const routes: RouteStage[][]=[]
   const mappings: LaneMapping[]=[]
   const selectedTraces=new Set<string>()
@@ -143,7 +145,10 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
     routes.push(stages)
     mappings.push({port:lane.port,sourceTraceId:src.source_trace_id,pcbTraceId:traces[0].pcb_trace_id,from:from.source_port_id,to:to.source_port_id,pcbPorts:ports.map(p=>p.pcb_port_id),stages,originalRoute:route})
   }
-  if(m.reduction==='routed-copper') return {...routedCopperGeometry(cj,m,mappings),stackup}
+  if(m.reduction==='routed-copper') {
+    const geometry = {...routedCopperGeometry(cj,m,mappings),stackup}
+    return m.simplifyParallel ? parallelCopperGeometry(geometry) : geometry
+  }
   if(routes.some(route=>route.length!==routes[0].length||route.some((s,i)=>s.profile!==routes[0][i].profile))) fail('route_topology','Selected routes must have identical ordered layer/via stage topology')
   let grounds: Set<string>|undefined
   /** Ground-pour layers for derived returns, computed once on first use. */

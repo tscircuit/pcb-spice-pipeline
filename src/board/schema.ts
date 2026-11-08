@@ -1,11 +1,12 @@
 // Circuit JSON record admission (was schema.ts + circuit-schema.mjs). Validation never edits input.
 import { z } from 'zod'
 import * as base from 'circuit-json'
-import type { CircuitJson } from 'circuit-json'
+import type { CircuitJson as BaseCircuitJson } from 'circuit-json'
+import { simulation_signal, simulation_signal_integrity, type SimulationSignal, type SimulationSignalIntegrity, type SignalResult } from './signals'
+export type CircuitJson = (BaseCircuitJson[number] | SimulationSignal | SimulationSignalIntegrity | SignalResult)[]
 import { fail } from './diagnostics'
 
 export type {
-  CircuitJson,
   SimulationExperiment,
   SimulationIbisModel,
   SimulationIbisPinState,
@@ -31,6 +32,7 @@ const numericDisplayOffsets = (record: Record<string, unknown>): Record<string, 
 }
 
 const physicalCompatibility: Record<string, z.ZodTypeAny> = {
+  simulation_ibis_model: compatible(base.simulation_ibis_model, record => ({ ...record, model_value_corner: record.model_value_corner ?? 'typical', include_package_parasitics: true })),
   source_port: compatible(base.source_port, record => {
     if (record.source_component_id === null) delete record.source_component_id
     return record
@@ -56,6 +58,9 @@ const physicalCompatibility: Record<string, z.ZodTypeAny> = {
 }
 /** Picks the zod schema for one record by its type (source components by ftype), preferring the compatibility schemas. */
 export function recordSchema(record: { type: string; ftype?: string }): z.ZodTypeAny | undefined {
+  if (record.type === 'simulation_signal') return simulation_signal
+  if (record.type === 'simulation_signal_integrity') return simulation_signal_integrity
+  if (['simulation_signal_waveform', 'simulation_signal_eye', 'simulation_signal_crosstalk', 'simulation_signal_strobe_margin', 'simulation_signal_integrity_rlgc'].includes(record.type)) return z.object({ type: z.literal(record.type) }).passthrough()
   let schemaName = record.type
   if (record.type === 'source_component') schemaName = `source_${record.ftype}`
   return physicalCompatibility[record.type] ?? Reflect.get(base, schemaName)
