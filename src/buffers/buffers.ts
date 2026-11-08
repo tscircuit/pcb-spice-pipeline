@@ -50,7 +50,7 @@ export function compileBuffers<M extends { pipelineId: string; ibis_component_na
     const input = define(model, plan)
     const source = admitted.sources[index]
     input.definition.source = { file: source.evidence.ibsFile, sha256: source.evidence.sourceSha256 }
-    const result = convertPackaged(source.bytes, input)
+    const result = input.definition.packagePolicy === 'vendor' ? convertPackaged(source.bytes, input) : converter.convertIbisModelToSpice(source.bytes, input.definition, input.run)
     return { ...result, name: model.ibis_component_name, pipelineId: model.pipelineId, input, sourceEvidence: admitted.sources[index].evidence }
   }))
 }

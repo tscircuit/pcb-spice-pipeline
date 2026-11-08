@@ -3,12 +3,12 @@
 Native signal-integrity simulation for tscircuit boards. Describe each test with
 `<signalintegrity>` and `<signal>`; the pipeline consumes the resulting Circuit JSON,
 extracts coupled copper with FastHenry/FasterCap, and runs IBIS buffers in ngspice.
-This is the pipeline implementation of [RFC #26](https://github.com/tscircuit/rfc/pull/26).
+This draft implements the pipeline entry of [RFC #26](https://github.com/tscircuit/rfc/pull/26).
 
 ## How to use it?
 
 ```tsx
-<signalintegrity name="DATA_TEST" bitRate="20Mbps">
+<signalintegrity name="DATA_TEST" bitRate="20Mbps" pdn="ideal">
   <signal name="DATA" driver=".TX > .Y" receiver=".RX > .A" />
 </signalintegrity>
 ```
@@ -30,6 +30,8 @@ are IO ports. There is no `modeling` option or separate simulation configuration
 Each `result.blocks` entry owns its matrices, results, numerical settings evidence
 and limitations. `simulationResultCircuitJson` retains the input and appends only
 the RFC's five new result record kinds. Re-running replaces prior SI results.
+
+The draft explicitly rejects extracted PDN, branched routes and coupled package matrices; these RFC requirements remain open.
 
 See [the TSX levels](examples/levels) and [native evidence](docs/native-signal-levels.md).
 The installed core predates the sibling intrinsic-element PRs: the native runner

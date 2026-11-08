@@ -39,9 +39,11 @@ export function convertDie(bytes: Uint8Array, input: ModelRunDefinition): Conver
     // Retain the converter's measured switching weights for each actual edge.
     weights.push(schedule ? bitWeights(converted, schedule) : undefined)
   }
-  const rails = [...new Set(pins.flatMap(pin => Object.values(pin.references)))].sort()
+  const rails = [...new Set(pins.flatMap(pin => Object.values(pin.references).filter((port): port is string => typeof port === 'string')))].sort()
   const mapping: Record<string, string> = Object.fromEntries(pins.map((pin, i) => [`PAD${i}`, pin.port]))
-  rails.forEach((port, i) => { mapping[`REF${i}`] = port })
+  rails.forEach((port, i) => {
+    mapping[`REF${i}`] = port
+  })
   /** Wrapper node for an explicitly mapped chip reference. */
   const reference = (port: string): string => `REF${rails.indexOf(port)}`
   const lines = [`* Vendor die buffers; original IBIS SHA-256 ${sha256(bytes)}`, `.subckt ${name} ${Object.keys(mapping).join(' ')}`]

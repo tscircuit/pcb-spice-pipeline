@@ -14,6 +14,7 @@ export function Inverter({ name, x, y, driver }: { name: string; x: number; y: n
         <smtpad portHints={['pin3']} pcbX={0} pcbY={-3.5 - y} width={.5} height={.5} shape="rect" />
         <smtpad portHints={['pin5']} pcbX={0} pcbY={2} width={.5} height={.5} shape="rect" />
       </footprint>} />
+    {/* @ts-expect-error Installed props require the removed corner/package props; the test adapter supplies them. */}
     <ibismodel componentRef={`.${name}`} ibisModelAsset={asset('sn74lvc1g04.ibs')} ibisComponentName="LVC1G04_DCK"
       ibisPinNameToPortLabel={{ [pin]: label, '3': 'GND', '5': 'VCC' }}
       ibisPinNameToModelName={{ [pin]: driver ? 'LVC1G04_OUT_33' : 'LVC1G04_IN_33' }}
@@ -30,6 +31,7 @@ export function Transceiver({ name, x }: { name: string; x: number }): React.JSX
         <smtpad portHints={['pin5']} pcbX={0} pcbY={-3.5} width={.5} height={.5} shape="rect" />
         <smtpad portHints={['pin8']} pcbX={0} pcbY={2} width={.5} height={.5} shape="rect" />
       </footprint>} />
+    {/* @ts-expect-error Installed props require the removed corner/package props; the test adapter supplies them. */}
     <ibismodel componentRef={`.${name}`} ibisModelAsset={asset('sn65hvd72.ibs')} ibisComponentName="SN65HVD72D"
       ibisPinNameToPortLabel={{ '5': 'GND', '6': 'A', '7': 'B', '8': 'VCC' }} ibisPinNameToModelName={{ '6': 'a_b_p', '7': 'a_b_n' }}
       ibisPinNameToReferencePortLabels={{ '6': { pullup: 'VCC', pulldown: 'GND', powerClamp: 'VCC', groundClamp: 'GND' }, '7': { pullup: 'VCC', pulldown: 'GND', powerClamp: 'VCC', groundClamp: 'GND' } }} />

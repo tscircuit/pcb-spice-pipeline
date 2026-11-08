@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import type { CircuitJson } from '../../src/board'
-import type { Modeling } from '../../src/pipeline'
+import type { NumericalSettings as Modeling } from '../../src/pipeline'
 
 /** The straight two-pad fixture with a bottom-layer ground plane, ground pins and a receiver IBIS model added, for routed-copper return-path tests. */
 export function groundPlaneFixture(): { circuit: CircuitJson; modeling: Modeling } {

@@ -1,15 +1,76 @@
 {
   "name": "single",
-  "seconds": 42.633,
+  "seconds": 64.071,
   "sources": {
     "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
     "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+  },
+  "native_execution": [
+    {
+      "block": "si_0",
+      "solver": "fasthenry",
+      "request_sha256": "87e4d8a72b55452ea4ece1af99a9fb566af6e4d85b3f2d8d6e5edfddbab9199b"
+    },
+    {
+      "block": "si_0",
+      "solver": "fasthenry",
+      "request_sha256": "88de8593abba04471eccac9682c94cf62963041497febf00ded3aa55ab82c08e"
+    },
+    {
+      "block": "si_0",
+      "solver": "fasthenry",
+      "request_sha256": "81c3d2d3cfd34b4af7301d0a0457feb18ed2c8e97b65fd415c97f3be28e0cfad"
+    },
+    {
+      "block": "si_0",
+      "solver": "fasthenry",
+      "request_sha256": "2cf982ebf3bb1fac37afcaafe33b81b659f70b6af5b6620a7a139233765468fe"
+    },
+    {
+      "block": "si_0",
+      "solver": "fasthenry",
+      "request_sha256": "724a04b2b8026f53a4ddbc9e4eabf3f13fa90d6262e697f7e5af6b7544420317"
+    },
+    {
+      "block": "si_0",
+      "solver": "fasthenry",
+      "request_sha256": "5ec5efbe27c36f4eaac787a888ca7cd4da41d296e3b66b296a269fad6bdb39aa"
+    },
+    {
+      "block": "si_0",
+      "solver": "fastercap",
+      "request_sha256": "f8a1a453e83982eb0f4b887a806aeff2bf61bd9bdeb4d1d9cf5efd7add9ade1b"
+    },
+    {
+      "block": "si_0",
+      "solver": "ngspice",
+      "request_sha256": "59c6055c395399a33d88d19ae3e315f62e19f89d7cd9d0e3ed3f7859df496cc3"
+    },
+    {
+      "block": "si_0",
+      "solver": "ngspice",
+      "request_sha256": "d59266a45cec54f0d393cecd65919f49b512b7c07ea75aa62b5d25d30454ddc2"
+    }
+  ],
+  "transient_convergence": {
+    "blocks/si_0/experiments/si_0/numerical-convergence.json": {
+      "definition": "RMS waveform difference on 20000 uniformly spaced times after 16 UI, normalized by maximum measured amplitude",
+      "tolerance": 0.01,
+      "checks": [
+        {
+          "sections": 4,
+          "step_s": 1.457612935665808e-11,
+          "residual": 0.002750323748669726
+        }
+      ]
+    }
   },
   "blocks": [
     {
       "name": "SINGLE",
       "numericalSettings": {
         "reduction": "routed-copper",
+        "allowIdeal": false,
         "simplifyParallel": true,
         "sections": 4,
         "lanes": [

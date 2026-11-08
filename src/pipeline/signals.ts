@@ -52,7 +52,7 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
   const circuit = structuredClone(input.filter(r => !r.type.startsWith('simulation_') || ['simulation_ibis_model', 'simulation_voltage_source'].includes(r.type)))
   for (const model of circuit.filter(r => r.type === 'simulation_ibis_model')) {
     model.model_value_corner = { typ: 'typical', min: 'minimum', max: 'maximum' }[block.corner] as 'typical' | 'minimum' | 'maximum'
-    Reflect.deleteProperty(model, 'include_package_parasitics')
+    model.include_package_parasitics = true
     for (const signal of signals) for (const endpoint of [signal.driver, ...signal.receivers]) if (endpoint.ibis_model_name) {
       for (const port of endpointPorts(endpoint)) for (const [pin, target] of Object.entries(model.ibis_pin_name_to_source_port_id)) if (target === port) {
         model.ibis_pin_name_to_model_name = { ...model.ibis_pin_name_to_model_name, [pin]: endpoint.ibis_model_name }

@@ -1,15 +1,56 @@
 {
   "name": "differential",
-  "seconds": 16.66,
+  "seconds": 17.159,
   "sources": {
     "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
     "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+  },
+  "native_execution": [
+    {
+      "block": "si_0",
+      "solver": "fasthenry",
+      "request_sha256": "ced640018cff8b26213fee6f15b9c9dc8f82e741f219503e1cc7d79d82e1685a"
+    },
+    {
+      "block": "si_0",
+      "solver": "fasthenry",
+      "request_sha256": "1fcb65d030bc86af8de261a63fead5823917e571e3c2f963b03d9b9ceec4336e"
+    },
+    {
+      "block": "si_0",
+      "solver": "fastercap",
+      "request_sha256": "e19905422dbecb7aebf5239b4c76d4e38a123a36d71d44cc29b6c58ee137e9fb"
+    },
+    {
+      "block": "si_0",
+      "solver": "ngspice",
+      "request_sha256": "d5cd64f948b28595bd797f8f1671cfae18bf21ed4b628b43eb184a07eaa564cb"
+    },
+    {
+      "block": "si_0",
+      "solver": "ngspice",
+      "request_sha256": "fd193908f0228baf3af57fca66ec31129e9dfdf04a83867fd419e03520063df7"
+    }
+  ],
+  "transient_convergence": {
+    "blocks/si_0/experiments/si_0/numerical-convergence.json": {
+      "definition": "RMS waveform difference on 20000 uniformly spaced times after 16 UI, normalized by maximum measured amplitude",
+      "tolerance": 0.01,
+      "checks": [
+        {
+          "sections": 4,
+          "step_s": 1.4807339854159875e-8,
+          "residual": 3.6295342374067963e-7
+        }
+      ]
+    }
   },
   "blocks": [
     {
       "name": "RS485",
       "numericalSettings": {
         "reduction": "routed-copper",
+        "allowIdeal": false,
         "simplifyParallel": true,
         "sections": 4,
         "lanes": [

@@ -27,7 +27,7 @@ const RAISED = [
   'ibis_state', 'lane_spacing', 'lanes', 'layer_transition', 'matrix_dimension', 'matrix_format',
   'matrix_order', 'matrix_zero', 'mesh_convergence', 'model_frequency', 'modeling_input', 'native_convergence',
   'native_declaration', 'native_geometry', 'native_output', 'native_solver', 'native_timeout', 'passive_capability',
-  'passive_reference', 'passivity', 'pcb_spice_channel', 'pin_mapping', 'probe_observation',
+  'passive_reference', 'passivity', 'signal_integrity_input', 'pin_mapping', 'probe_observation',
   'probe_reference', 'reciprocity', 'reduction', 'reference', 'reference_energy',
   'result_schema', 'return_geometry', 'route_geometry', 'route_selection', 'route_topology', 'route_type',
   'sections', 'simulation_capability', 'simulation_duration', 'simulation_experiment', 'simulation_id', 'simulation_probe',

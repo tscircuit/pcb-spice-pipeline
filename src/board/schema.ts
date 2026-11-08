@@ -1,14 +1,18 @@
 // Circuit JSON record admission (was schema.ts + circuit-schema.mjs). Validation never edits input.
 import { z } from 'zod'
 import * as base from 'circuit-json'
-import type { CircuitJson as BaseCircuitJson } from 'circuit-json'
+import type { CircuitJson as BaseCircuitJson, SimulationIbisModel as BaseIbisModel } from 'circuit-json'
 import { simulation_signal, simulation_signal_integrity, type SimulationSignal, type SimulationSignalIntegrity, type SignalResult } from './signals'
-export type CircuitJson = (BaseCircuitJson[number] | SimulationSignal | SimulationSignalIntegrity | SignalResult)[]
+export type SimulationIbisModel = Omit<BaseIbisModel, 'include_package_parasitics' | 'model_value_corner'> & {
+  /** Private lowered fields while the installed converter schema predates RFC #26. */
+  model_value_corner?: BaseIbisModel['model_value_corner']
+  include_package_parasitics?: boolean
+}
+export type CircuitJson = (Exclude<BaseCircuitJson[number], BaseIbisModel> | SimulationIbisModel | SimulationSignal | SimulationSignalIntegrity | SignalResult)[]
 import { fail } from './diagnostics'
 
 export type {
   SimulationExperiment,
-  SimulationIbisModel,
   SimulationIbisPinState,
   SimulationDigitalStimulus,
 } from 'circuit-json'

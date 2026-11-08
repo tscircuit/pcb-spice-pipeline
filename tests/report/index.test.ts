@@ -4,7 +4,7 @@
 // The portability test moved from tests/report-portability.test.mjs; assertions unchanged.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { runPipeline } from '../../src/pipeline'
+import { reportFixture as runPipeline } from '../support/report-fixture'
 import { generateReport } from '../../src/report'
 import { transmittedBits } from '../../src'
 import type { RunSolver } from '../../src/solver'

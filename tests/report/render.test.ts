@@ -17,7 +17,7 @@ async function writeViewerData(path:string,data:ReportData,title?:string): Promi
 import type {ReportData} from '../../src/report/sections'
 import {reportContext} from '../../src/report/sections'
 import {geometryFromCircuitJson} from '../../src/board'
-import type {Modeling} from '../../src/pipeline'
+import type {NumericalSettings as Modeling} from '../../src/pipeline'
 import type {CircuitJson} from '../../src/board'
 
 test('portable results retain raw adaptive samples and escape embedded names',async t=>{

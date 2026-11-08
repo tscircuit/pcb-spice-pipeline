@@ -35,9 +35,9 @@ test('the canned solver passes every check on the straight board', async () => {
 
 test('parsers reject malformed native output', () => {
   rejects(() => parseFastHenry(''), 'fasthenry_output', /No frequency matrices in Zc\.mat/)
-  rejects(() => parseFastHenry('Impedance matrix for frequency = 1 5 x 5\n'), 'fasthenry_ports', /One to three signals/)
+  rejects(() => parseFastHenry('Impedance matrix for frequency = 1 1 x 1\n'), 'fasthenry_ports', /At least one signal/)
   rejects(() => parseFasterCap(''), 'fastercap_output', /No 3D capacitance matrix/)
-  rejects(() => parseFasterCap('Capacitance matrix is:\nDimension 5 x 5\ng 1\n'), 'fastercap_ports', /Expected 2x2, 3x3 or 4x4/)
+  rejects(() => parseFasterCap('Capacitance matrix is:\nDimension 1 x 1\ng 1\n'), 'fastercap_ports', /at least two conductors/)
   rejects(() => validateMatrix([[1, 2]], 'X'), 'matrix_format', /X: finite square matrix required/)
   rejects(() => validateMatrix([[0]], 'X'), 'matrix_zero', /X/)
   rejects(() => meshPolygon([[[0, 0], [1, 0], [1, 1]]], () => 0), 'copper_surface', /panel size must be finite and positive/)

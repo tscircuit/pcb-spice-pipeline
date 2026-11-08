@@ -14,7 +14,7 @@ import type { Chain, ObservedRun, Stage } from './state'
 /**
  * The one list of stages. Order here IS execution order, and it is today's runPipeline order
  * (same failure order, same progress messages, same artifact bytes):
- *   admit    input→admitted      modeling (given ?? modelingFromCircuitJson); board.admitBoard; buffers.assertConverter
+ *   admit    input→admitted      private derived settings; board.admitBoard; buffers.assertConverter
  *   declare  admitted→declared   board.channelGeometry; simulation.generalDeclarations; ddr.resolveDdrAssessments;
  *                                simulation.electricalSources + safeSimulationPlans; buffers.admitBuffers
  *   bind     declared→bound      buffers.compileBuffers; simulation.bindExperiments      ── validation line
@@ -112,7 +112,7 @@ export const simulate: Stage<'extracted', 'simulated'> = {
         if (residual <= .01) break
         if (refinement === 3) throw new Error(`${plan.name}: sections/timestep did not converge within 1% after three refinements`)
       }
-      artifacts.push(base.json('numerical-convergence.json', { definition: 'RMS waveform difference on 20000 uniformly spaced times after 16 UI, normalized by maximum measured amplitude', tolerance: .01, checks: convergence }))
+      if (convergence.length) artifacts.push(base.json('numerical-convergence.json', { definition: 'RMS waveform difference on 20000 uniformly spaced times after 16 UI, normalized by maximum measured amplitude', tolerance: .01, checks: convergence }))
       const inputs: EyeFoldInput[] = plan.eyes.map(eye => {
         const assessment = state.ddr.find(a => a.eye === eye)
         const ddrAssessment = assessment ? assessDdr(run.value.rows, assessment) : undefined

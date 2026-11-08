@@ -79,14 +79,18 @@ test('nonzero exit rejects native_solver with logs and removes the workdir',asyn
 })
 
 test('timeout kills the tool, rejects native_timeout and removes the workdir',async t=>{
-  const {root,tool,workdirGone}=await sandbox(t)
+  const {root,tmp,tool,workdirGone}=await sandbox(t)
   const marker=join(root,'survived.txt')
   const solver=createNativeSolver({tools:{fastercap:process.execPath},timeoutMs:200})
   const started=Date.now()
   await assert.rejects(solver({solver:'fastercap',files:{'deck.lst':'x'},args:tool(`setTimeout(()=>require('node:fs').writeFileSync(${JSON.stringify(marker)},'x'),1500)`),outputFiles:['out.txt']}),
     code('native_timeout',/^native_timeout: fastercap: exceeded 200 ms process timeout; /))
   assert.ok(Date.now()-started<1500)
-  await workdirGone()
+  await workdirGone().catch(async error => {
+    // Under concurrent load the timeout may kill Node before its cwd marker is written.
+    if (error.code !== 'ENOENT') throw error
+    assert.deepEqual(await readdir(tmp), [])
+  })
   await new Promise(done=>setTimeout(done,1600))
   await assert.rejects(stat(marker),{code:'ENOENT'})  // killed, not merely abandoned
 })

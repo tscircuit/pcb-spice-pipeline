@@ -19,7 +19,7 @@ import { simulationSpiceOptions } from '../../../src/simulation'
 import { reportContext, type ReportContext, type ReportRun, type ReportEye, type ReportTest } from '../../../src/report/sections'
 import type { CircuitJson } from '../../../src/board'
 import type { Geometry as ChannelGeometry } from '../../../src/board'
-import type { Modeling } from '../../../src/pipeline'
+import type { NumericalSettings as Modeling } from '../../../src/pipeline'
 
 interface Stimulus {
   source_port_id: string

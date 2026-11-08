@@ -1,7 +1,7 @@
 import { Circuit, analog } from '@tscircuit/core'
 import React from 'react'
 import type { AnyCircuitElement } from 'circuit-json'
-import { modelingFromCircuitJson } from '../../src/pipeline'
+import type { NumericalSettings } from '../../src/pipeline'
 import { geometryFromCircuitJson } from '../../src/board'
 import { fastHenryDeck } from '../../src/extraction'
 
@@ -72,7 +72,14 @@ export async function nativeDdrTimeout(): Promise<{ records: AnyCircuitElement[]
   circuit.add(<NativeDdrTimeout />)
   await circuit.renderUntilSettled()
   const records = circuit.getCircuitJson()
-  const modeling = { ...modelingFromCircuitJson(records), groundReturn: { component: 'U3', port: 'GND' } }
+  const modeling: NumericalSettings = {
+    reduction: 'routed-copper', sections: 12, relativePermittivity: 4.1,
+    lanes: lanes.map(name => ({ port: name, from: { component: 'U1', port: name }, to: { component: 'U3', port: name } })),
+    channelReference: { component: 'U1', port: 'GND' }, groundReturn: { component: 'U3', port: 'GND' },
+    viaPlatingMm: .025, viaEquivalentWidthMm: .1, omitThroughViaStubs: true,
+    extraction: { minimumHz: 1, maximumHz: 1e9, modelHz: 1e8, filaments: 3, refinementFilaments: 5,
+      convergenceTolerance: .05, capTolerance: .02, reciprocityTolerance: .025, dcResistanceTolerance: .002, maxPanelLengthMm: 2, groundMeshMm: 3 },
+  }
   const geometry = geometryFromCircuitJson(records, modeling)
   const deck = fastHenryDeck(geometry.cells[0], { ...modeling.extraction,
     minimumHz: modeling.extraction.modelHz, maximumHz: modeling.extraction.modelHz,

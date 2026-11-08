@@ -10,6 +10,6 @@ export default () => <board width={16} height={12} thickness={1.6} layers={4} fa
   <Reference />
   <signalintegrity name="STROBE" bitRate={20e6} duration={48 / 20e6} pdn="ideal">
     <signal name="DQS" driver=".TX0 > .Y" receiver=".RX0 > .A" pattern="clock" offset={25e-9} />
-    <signal name="DQ" driver=".TX1 > .Y" receiver=".RX1 > .A" strobe="DQS" mask={{ setup_s: 75e-12, hold_s: 100e-12 }} />
+    <signal name="DQ" driver=".TX1 > .Y" receiver=".RX1 > .A" strobe="DQS" mask={{ setup: 75e-12, hold: 100e-12 }} />
   </signalintegrity>
 </board>

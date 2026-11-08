@@ -15,7 +15,7 @@ export const simulation_signal = z.object({
   name: z.string().min(1), driver: endpoint, receivers: z.array(endpoint).min(1), bit_rate_bps: z.number().positive().finite(),
   pattern: z.string().min(1), seed: z.number().int(), offset_s: z.number().nonnegative().finite(),
   quiet: z.enum(['low', 'high', 'off']).optional(), probe: z.enum(['local', 'global']),
-  mask: z.union([z.literal('ibis'), z.object({ vih_v: z.number().finite().optional(), vil_v: z.number().finite().optional(), setup_s: z.number().nonnegative().optional(), hold_s: z.number().nonnegative().optional() })]),
+  mask: z.union([z.literal('ibis'), z.object({ vih_v: z.number().finite().optional(), vil_v: z.number().finite().optional(), setup_s: z.number().nonnegative().finite().optional(), hold_s: z.number().nonnegative().finite().optional() })]),
   strobe_simulation_signal_id: z.string().optional(),
 })
 export type SimulationSignalIntegrity = z.infer<typeof simulation_signal_integrity>

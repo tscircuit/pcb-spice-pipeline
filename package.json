@@ -30,7 +30,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --import tsx --test 'tests/**/*.test.mjs' 'tests/**/*.test.ts'",
+    "test": "node --import tsx --test 'tests/**/*.test.mjs' 'tests/**/*.test.ts' 'tests/**/*.test.tsx'",
     "test:native": "npm run build && node --import tsx --test tests/general.integration.mjs",
     "typecheck": "tsc --noEmit && tsc -p tests/tsconfig.json",
     "build": "node scripts/build-client.mjs --clean && tsc && node scripts/fix-dist-imports.mjs && node scripts/bundle.mjs",

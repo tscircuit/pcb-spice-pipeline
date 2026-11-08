@@ -93,24 +93,35 @@ export function receiverThresholds(pin: InspectedPin, differential: boolean, mas
   const overrides = mask === 'ibis' ? {} : mask
   let vih = overrides.vih_v
   let vil = overrides.vil_v
+  const text = modelText(pin)
+  /** Read an explicit threshold at its declared corner; no assumed logic family. */
+  const value = (key: string): number | undefined => {
+    const line = text.split(/\r?\n/).find(line => new RegExp(`^\\s*${key}(?:\\s|=)`, 'i').test(line))
+    if (!line) return undefined
+    const tokens = line.replace(/\|.*$/, '').trim().split(/[\s=]+/).slice(1)
+    const token = tokens.length >= 3 ? tokens[corner] : tokens[0]
+    return token && token !== 'NA' ? ibisNumber(token) : undefined
+  }
   if (differential) {
     const pair = pin.component.differentialPins.find(pair => pair.pin === pin.pin)
-    vih ??= pair?.voltage ?? undefined
-    vil ??= pair?.voltage === null || pair?.voltage === undefined ? undefined : -pair.voltage
-  } else {
-    const text = modelText(pin)
-    /** Read a threshold at the selected corner, including [Receiver Thresholds]. */
-    const value = (key: string): number | undefined => {
-      const line = text.split(/\r?\n/).find(line => new RegExp(`^\\s*${key}(?:\\s|=)`, 'i').test(line))
-      if (!line) return undefined
-      const tokens = line.replace(/\|.*$/, '').trim().split(/[\s=]+/).slice(1)
-      const token = tokens.length >= 3 ? tokens[corner] : tokens[0]
-      return token && token !== 'NA' ? ibisNumber(token) : undefined
-    }
+    // IBIS [Receiver Thresholds] Vdiff_ac overrides [Diff_pin] vdiff.
+    const threshold = value('Vdiff_ac') ?? pair?.voltage ?? undefined
+    vih ??= threshold
+    vil ??= threshold === undefined ? undefined : -threshold
+  } else if (vih === undefined || vil === undefined) {
+    if (value('Threshold_sensitivity')) throw new Error(`${pin.port}: supply/Vref-dependent receiver thresholds need explicit mask.vih/vil`)
     const vth = value('Vth')
-    vih ??= vth !== undefined && value('Vinh_ac') !== undefined ? vth + value('Vinh_ac')! : value('Vinh')
-    vil ??= vth !== undefined && value('Vinl_ac') !== undefined ? vth + value('Vinl_ac')! : value('Vinl')
+    if (/^\s*\[Receiver Thresholds\]/mi.test(text)) {
+      const high = value('Vinh_ac')
+      const low = value('Vinl_ac')
+      // These are offsets from Vth; optional extrema bound the guaranteed valid region.
+      vih ??= vth !== undefined && high !== undefined ? (value('Vth_max') ?? vth) + high : undefined
+      vil ??= vth !== undefined && low !== undefined ? (value('Vth_min') ?? vth) + low : undefined
+    } else {
+      vih ??= value('Vinh')
+      vil ??= value('Vinl')
+    }
   }
-  if (vih === undefined || vil === undefined || vih <= vil) throw new Error(`${pin.port}: receiver thresholds missing or invalid; provide mask.vih/vil`)
+  if (vih === undefined || vil === undefined || !Number.isFinite(vih) || !Number.isFinite(vil) || vih <= vil) throw new Error(`${pin.port}: receiver thresholds missing or invalid; provide mask.vih/vil`)
   return { vih, vil }
 }

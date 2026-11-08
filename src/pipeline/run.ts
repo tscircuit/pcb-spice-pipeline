@@ -5,10 +5,11 @@ import type { PipelineOptions, PipelineResult, BlockResult, PreparedResult } fro
 import { prepareBlocks } from './signals'
 import { runPrepared } from './prepared'
 import { signalResults } from './results'
+import { fail } from './diagnostics'
 
 /** Run every Circuit JSON signal-integrity block independently with native solver IO. */
 export async function runPipeline(options: PipelineOptions): Promise<PipelineResult> {
-  if ('modeling' in options) throw new Error('modeling has been removed; describe the test with <signalintegrity> and <signal>')
+  if ('modeling' in options) fail('signal_integrity_input', 'modeling has been removed; describe the test with <signalintegrity> and <signal>')
   validateCircuitRecords(options.circuitJson)
   const prepared = prepareBlocks(options.circuitJson, options.ibisSources)
   const blocks: BlockResult[] = []
