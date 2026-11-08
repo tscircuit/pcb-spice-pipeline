@@ -70,7 +70,7 @@ flowchart TD
 stateDiagram-v2
   [*] --> validate
   validate --> derive
-  derive --> extract
+  derive --> extract: 3D copper model (2D bars if straight parallel)
   extract --> extract: refine mesh
   extract --> simulate: converged
   simulate --> simulate: refine sections and timestep

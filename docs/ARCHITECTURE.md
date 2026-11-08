@@ -25,9 +25,9 @@ flowchart LR
 stateDiagram-v2
   [*] --> input
   input --> admitted: schema and derived settings
-  admitted --> declared: geometry and declarations
+  admitted --> declared: 3D copper model (2D bars if straight parallel) and declarations
   declared --> bound: buffers and probe scope
-  bound --> extracted: native extraction
+  bound --> extracted: mesh copper, native R/L/C
   extracted --> simulated: native transient
   simulated --> observed: measurements
   observed --> sealed: results and artifacts
