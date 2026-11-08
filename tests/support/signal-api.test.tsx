@@ -27,7 +27,7 @@ function Four(): React.JSX.Element {
       <trace from={`.TX${i} > .Y`} to={`.RX${i} > .A`} width={.2} pcbPath={[`.TX${i} > .Y`, `.RX${i} > .A`]} />
     </React.Fragment>)}
     <Reference />
-    <signalintegrity name="FOUR" bitRate={20e6} duration={48 / 20e6} pdn="ideal">
+    <signalintegrity name="FOUR" bitRate={20e6} duration={48 / 20e6}>
       {[0, 1, 2, 3].map(i => <signal key={i} name={`D${i}`} driver={`.TX${i} > .Y`} receiver={`.RX${i} > .A`} />)}
     </signalintegrity>
   </board>

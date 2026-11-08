@@ -8,7 +8,7 @@ This draft implements the pipeline entry of [RFC #26](https://github.com/tscircu
 ## How to use it?
 
 ```tsx
-<signalintegrity name="DATA_TEST" bitRate="20Mbps" pdn="ideal">
+<signalintegrity name="DATA_TEST" bitRate="20Mbps">
   <signal name="DATA" driver=".TX > .Y" receiver=".RX > .A" />
 </signalintegrity>
 ```

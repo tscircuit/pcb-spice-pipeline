@@ -80,7 +80,7 @@ export async function renderSignals(tree: React.ReactElement): Promise<CircuitJs
       return signal.offset_s + (16 + period) / signal.bit_rate_bps
     }))
     records.push({ type: 'simulation_signal_integrity', simulation_signal_integrity_id: id, name: String(block.name ?? 'SI'), bit_rate_bps: rate,
-      duration_s: valueWithUnits(block.duration ?? defaultDuration), corner: (block.corner ?? 'typ') as 'typ' | 'min' | 'max', unlisted_nets: 'passive', unrouted: (block.unrouted ?? 'error') as 'error' | 'ideal', pdn: (block.pdn ?? 'extracted') as 'ideal' | 'extracted', supply: (block.supply ?? 'board') as 'board' | 'ibis' }, ...signals)
+      duration_s: valueWithUnits(block.duration ?? defaultDuration), corner: (block.corner ?? 'typ') as 'typ' | 'min' | 'max', unlisted_nets: 'passive', unrouted: (block.unrouted ?? 'error') as 'error' | 'ideal', pdn: (block.pdn ?? 'ideal') as 'ideal' | 'extracted', supply: (block.supply ?? 'board') as 'board' | 'ibis' }, ...signals)
   }
   return records
 }

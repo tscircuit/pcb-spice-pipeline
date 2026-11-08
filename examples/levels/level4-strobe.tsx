@@ -8,7 +8,7 @@ export default () => <board width={16} height={12} thickness={1.6} layers={4} fa
     <trace from={`.TX${i} > .Y`} to={`.RX${i} > .A`} width={.2} pcbPath={[`.TX${i} > .Y`, `.RX${i} > .A`]} />
   </React.Fragment>)}
   <Reference />
-  <signalintegrity name="STROBE" bitRate={20e6} duration={48 / 20e6} pdn="ideal">
+  <signalintegrity name="STROBE" bitRate={20e6} duration={48 / 20e6}>
     <signal name="DQS" driver=".TX0 > .Y" receiver=".RX0 > .A" pattern="clock" offset={25e-9} />
     <signal name="DQ" driver=".TX1 > .Y" receiver=".RX1 > .A" strobe="DQS" mask={{ setup: 75e-12, hold: 100e-12 }} />
   </signalintegrity>

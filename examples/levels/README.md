@@ -8,7 +8,8 @@
   it is not a characterized DDR memory interface.
 
 The pad fixtures and coplanar return were designed for native API tests. They use
-actual routed coordinates and explicit ideal PDN. No simulation.config.ts is needed.
+actual routed coordinates and the default ideal PDN (`pdn="extracted"` is not
+implemented yet). No simulation.config.ts is needed.
 Use the vendor source lock in the parent folder; keep fetched IBIS files local.
 The temporary renderer adapter is required until the sibling core/props PRs publish.
 See `docs/native-signal-levels.md` for measured results and outstanding limitations.

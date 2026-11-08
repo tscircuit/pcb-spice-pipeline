@@ -4,7 +4,7 @@ Source: the TSX fixtures in `examples/levels`, rendered with the installed core 
 `tests/support/signal-render.tsx`. The adapter supplies the unpublished SI records
 and bridges the old required IBIS corner/package props. Stackup comes from core's
 1.6 mm, four-layer JLC preset. These are designed pad/channel fixtures, not physical
-package land patterns or manufactured boards. PDN is explicitly ideal in these runs.
+package land patterns or manufactured boards. PDN is ideal in these runs (the default); `pdn="extracted"` is not implemented yet.
 
 The native commands use FastHenry, FasterCap and ngspice from `/opt/homebrew/bin`.
 All three requested cases completed through the public `runPipeline` entry, with all scalar

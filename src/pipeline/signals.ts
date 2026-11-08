@@ -106,7 +106,7 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
   const step = Math.min(1 / rate / 100, edge / 20)
   const reference = pins.get([...driven.keys()].sort()[0])!.ground
   const lanes: NumericalSettings['lanes'] = []
-  if (block.pdn === 'extracted') throw new Error('pdn=extracted: a full multi-port power/ground network is not implemented; use explicit pdn=ideal for this draft backend')
+  if (block.pdn === 'extracted') throw new Error('pdn="extracted" is not implemented yet; omit pdn to use the default pdn="ideal"')
   for (const port of circuit.filter(r => r.type === 'source_port').filter(port => topology.has(port.source_port_id) && !pins.has(port.source_port_id))) {
     const component = circuit.filter(r => r.type === 'source_component').find(component => component.source_component_id === port.source_component_id)
     if (!component || !['simple_resistor', 'simple_capacitor', 'simple_inductor'].includes(component.ftype)) throw new Error(`${component?.name ?? port.source_port_id} is on the signal and has no supported SPICE or IBIS model.`)
