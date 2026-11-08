@@ -10,11 +10,17 @@ export const numerics = {
   meshRefinementRatio: 2,
   /** Galerkin constant panels have second-order capacitance error; Richardson removes that term. */
   capacitanceExtrapolationOrder: 2,
+  /** A second Richardson step removes the next smooth Galerkin h^4 term.
+   * Corner/interface remainders are still subject to the same entry-wise refinement test.
+   */
+  capacitanceCorrectionOrder: 4,
   /** Laplace's exterior 3*pi/2 wedge gives J~r^(-1/3). Its unresolved J^2 integral
    * scales as h^(1/3). Quartic endpoint grading h~n^-4 therefore gives n^(-4/3)
    * leading surface-loss error. Richardson removes it; every output entry must still converge.
    */
   skinExtrapolationOrder: 4/3,
+  /** After the corner-current term, the smooth-panel surface integral has h^2 error. */
+  skinCorrectionOrder: 2,
   /** Quartic endpoint grading resolves metal/dielectric corner charge singularities. */
   edgeGradingPower: 4,
   /** Four-point Gauss–Legendre target-panel integration (exact through degree 7). */

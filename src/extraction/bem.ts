@@ -153,6 +153,7 @@ export function solveCrossSection(slice: CrossSection, progress: (message: strin
   let count = numerics.initialPanelsPerEdge as number
   let previous: {C:Matrix;C0:Matrix;L:Matrix;surface:Matrix;loss:Matrix} | undefined
   let previousEstimate: {C:Matrix;C0:Matrix;L:Matrix;surface:Matrix;loss:Matrix} | undefined
+  let previousFirst: {C:Matrix;C0:Matrix;surface:Matrix;loss:Matrix} | undefined
   const steps: BemResult['steps'] = []
   for (;;) {
     const normal = capacitance(slice,count,false)
@@ -186,18 +187,26 @@ export function solveCrossSection(slice: CrossSection, progress: (message: strin
       surface:extrapolate(surface,previous.surface,numerics.skinExtrapolationOrder),
       loss:extrapolate(loss,previous.loss,numerics.capacitanceExtrapolationOrder),
     } : undefined
-    const estimated = estimate ? {...estimate,L:solve(estimate.C0,estimate.C0.map((_,i)=>estimate.C0.map((__,j)=>Number(i===j))))} : undefined
+    const corrected = estimate && previousFirst ? {
+      C:extrapolate(estimate.C,previousFirst.C,numerics.capacitanceCorrectionOrder),
+      C0:extrapolate(estimate.C0,previousFirst.C0,numerics.capacitanceCorrectionOrder),
+      surface:extrapolate(estimate.surface,previousFirst.surface,numerics.skinCorrectionOrder),
+      loss:extrapolate(estimate.loss,previousFirst.loss,numerics.capacitanceCorrectionOrder),
+    } : undefined
+    const physical = corrected ? { C:symmetrize(corrected.C), C0:symmetrize(corrected.C0), surface:symmetrize(corrected.surface), loss:symmetrize(corrected.loss) } : undefined
+    const estimated = physical ? {...physical,L:solve(physical.C0,physical.C0.map((_,i)=>physical.C0.map((__,j)=>Number(i===j))))} : undefined
     const entries = estimated && previousEstimate ? Object.fromEntries(Object.entries(estimated).map(([key,matrix])=>[key,matrixResidual(previousEstimate![key as keyof typeof estimated],matrix)])) : null
     const residual = entries ? max(Object.values(entries)) : null
     steps.push({panels:normal.panels.length,residual,rawResidual,entries,rawEntries})
     progress(`2D BEM: ${normal.panels.length} panels; estimated C/C0/L/skin/loss ${residual??'initial'}; raw ${rawResidual??'initial'}; target < ${numerics.meshRelativeChange}`)
     if (residual!==null && residual<numerics.meshRelativeChange) {
-      for (const [name,matrix] of Object.entries(estimated!)) if (reciprocityResidual(matrix)>numerics.matrixReciprocity) fail('reciprocity',`BEM ${name}: antisymmetry exceeds ${numerics.matrixReciprocity} before averaging`)
+      for (const [name,matrix] of Object.entries(corrected!)) if (reciprocityResidual(matrix)>numerics.matrixReciprocity) fail('reciprocity',`BEM ${name}: unprojected antisymmetry exceeds ${numerics.matrixReciprocity}`)
       return {
-      C:symmetrize(estimated!.C),C0:symmetrize(estimated!.C0),surface:symmetrize(estimated!.surface),loss:symmetrize(estimated!.loss),steps,
+      C:estimated!.C,C0:estimated!.C0,surface:estimated!.surface,loss:estimated!.loss,steps,
       }
     }
     if (!Number.isFinite(residual??0) || !Number.isFinite(rawResidual??0)) fail('mesh_convergence','Nonfinite BEM refinement; inspect the cross-section')
+    previousFirst = estimate
     previousEstimate = estimated
     previous = current
     count *= numerics.meshRefinementRatio

@@ -35,10 +35,11 @@ Shared junction nodes preserve routed folds and termination stubs; no CPL lane-l
 
 Each refinement logs C/C0/L/surface-loss/dielectric-loss entry residuals. Termination requires all
 **estimated** nonzero entries to change by less than 0.5%. Richardson orders are 2 for capacitance
-and dielectric sensitivity, 4/3 for the quartic-graded rectangular-corner surface-current integral.
+then 4 for capacitance and dielectric sensitivity, and 4/3 then 2 for the quartic-graded rectangular-corner surface-current integral.
 Raw residuals are logged separately: they are not required to be below 0.5%. For example the coupled
-stripline stops at 6,912 panels with estimated maximum 0.4308% and raw maximum 2.0378%.
-Reciprocity is checked before averaging; exact symmetry zeros use the documented relative floor.
+stripline stops at 6,912 panels with estimated maximum 0.1672% and raw maximum 2.0378%.
+The entry-wise check compares the published reciprocal matrices; unprojected estimates must also pass
+reciprocity. Exact symmetry zeros use the documented relative floor.
 A mesh that exhausts floating-point resolution fails with `mesh_convergence`, without a fallback.
 
 The first quiet-middle attempt exposed nearly coincident optional mesh alignment cuts. Merging
@@ -54,7 +55,7 @@ are identified separately and are not cold-extraction speed claims.
 
 | Board | BEFORE extraction, 3D | AFTER extraction, 2D | BEFORE ngspice | AFTER ngspice | AFTER mesh policy |
 |---|---:|---:|---:|---:|---|
-| single-ended | 89.113 | 51.063 | 6.195 | 8.289 | all-matrix estimates |
+| single-ended | 89.113 | 49.787 | 6.195 | 11.290 | final reciprocal two-level estimates |
 | differential-data | 11.603 | 603.187 | 10.233 | 684.055 | earlier C/C0-only increment |
 | crosstalk, all active | 234.089 | 420.993 | 27.210 | 842.539 | earlier C/C0-only increment |
 | multilayer | 491.585 | 1276.748 | 4.660 | 51.013 | all-matrix estimates |
@@ -62,8 +63,8 @@ are identified separately and are not cold-extraction speed claims.
 All four AFTER rows completed actual native ngspice, with real TI bytes. The differential/crosstalk
 rows do not qualify the final all-matrix stopping policy; stricter full reruns are in progress.
 The earlier C/C0-only multilayer run was extraction 143.720 s / ngspice 85.300 s; the stricter skin
-criterion makes the cost visible. Single-ended second native run: extraction 0.0164 s (cached),
-ngspice 9.777 s, total 10.387 s. Every artifact and the native request were bit-identical.
+criterion makes the cost visible. Final single-ended second native run: extraction 0.0288 s (cached),
+ngspice 9.895 s, total 10.363 s. Every artifact and the native request were bit-identical.
 
 The seconds-level extraction target is not met across the examples. The earlier differential and
 crosstalk native processes also exceed one minute. The dense BEM and large stiff primitive ladders
@@ -88,20 +89,20 @@ accuracy, vias, bends or split-return discontinuities against a 3D field solver.
 
 | Configuration | Quantity | Published oracle | 2D result | Error |
 |---|---|---:|---:|---:|
-| single microstrip | Z0 (ohm) | 74.103195 | 73.975204 | -0.1727% |
-| single microstrip | effective er, even | 2.914643 | 2.916428 | +0.0612% |
-| single stripline | Z0 (ohm) | 50.064094 | 50.121745 | +0.1152% |
-| single stripline | effective er, even | 4.000000 | 4.000000 | +0.0000% |
-| coupled microstrip | Ze (ohm) | 90.441144 | 90.305010 | -0.1505% |
-| coupled microstrip | Zo (ohm) | 55.330197 | 55.223377 | -0.1931% |
-| coupled microstrip | L12 (nH/m) | 116.660844 | 117.048743 | +0.3325% |
-| coupled microstrip | C12 (pF/m) | -16.210649 | -16.164788 | -0.2829% |
-| coupled microstrip | effective er, even | 3.104053 | 3.112367 | +0.2678% |
-| coupled microstrip | effective er, odd | 2.610314 | 2.605230 | -0.1948% |
-| coupled stripline | Ze (ohm) | 57.384087 | 57.294790 | -0.1556% |
-| coupled stripline | Zo (ohm) | 41.761490 | 41.651454 | -0.2635% |
-| coupled stripline | L12 (nH/m) | 52.111374 | 52.180553 | +0.1328% |
-| coupled stripline | C12 (pF/m) | -21.745283 | -21.865699 | +0.5538% |
+| single microstrip | Z0 (ohm) | 74.103195 | 73.943537 | -0.2155% |
+| single microstrip | effective er, even | 2.914643 | 2.918273 | +0.1246% |
+| single stripline | Z0 (ohm) | 50.064094 | 50.117087 | +0.1059% |
+| single stripline | effective er, even | 4.000000 | 4.000000 | -0.0000% |
+| coupled microstrip | Ze (ohm) | 90.441144 | 90.298213 | -0.1580% |
+| coupled microstrip | Zo (ohm) | 55.330197 | 55.222365 | -0.1949% |
+| coupled microstrip | L12 (nH/m) | 116.660844 | 117.048381 | +0.3322% |
+| coupled microstrip | C12 (pF/m) | -16.210649 | -16.161661 | -0.3022% |
+| coupled microstrip | effective er, even | 3.104053 | 3.112821 | +0.2824% |
+| coupled microstrip | effective er, odd | 2.610314 | 2.605317 | -0.1915% |
+| coupled stripline | Ze (ohm) | 57.384087 | 57.294841 | -0.1555% |
+| coupled stripline | Zo (ohm) | 41.761490 | 41.651488 | -0.2634% |
+| coupled stripline | L12 (nH/m) | 52.111374 | 52.180609 | +0.1329% |
+| coupled stripline | C12 (pF/m) | -21.745283 | -21.865686 | +0.5537% |
 | coupled stripline | effective er, even | 4.000000 | 4.000000 | +0.0000% |
 | coupled stripline | effective er, odd | 4.000000 | 4.000000 | +0.0000% |
 
@@ -168,18 +169,20 @@ static bias, and must not be presented as dynamic validation.
 Further boundaries: quasi-TEM, no radiation/bend fringing; oblique metal is neutral electrostatic
 loading, with distributed magnetic coupling only between parallel co-propagating pieces. Real
 reference copper is used, with ideal board-ground/DC-rail connections. Longitudinal supply/ground
-connection impedance and via RF loss are not extracted. These limits are recorded on results.
+connection impedance and via RF loss are not extracted. Continuous tapers, curved pour boundaries,
+nonrectangular SMT pads and standalone drilled/plated holes raise named diagnostics. Routed fanout
+requires distinct two-endpoint PCB routes meeting at shared junctions. These limits are recorded on results.
 
 ## Checks and remaining qualification
 
-- `pnpm build`: passed. `pnpm test`: 242 passed, zero failed, 881.928 s at checkpoint `9984c9c`,
-  including the 250000-element numeric reduction regression. Subsequent cleanup removes one
-  obsolete timeout-harness test; the seven comparison checks still pass (1.324 s).
-- `pnpm test:native`: 6 passed / 1 vendor-gated skip, zero failed, 4.339 s. These include dynamic
-  synthetic supply-pin packages and bit-identical internal-branch save restriction. Separate
-  real-TI runs are above.
+- `pnpm build`: passed. `pnpm test`: **242 passed, zero failed**, 186.277 s, including actual-TSX
+  hole rejection and 250000-element numeric reductions. The previous first-extrapolation checkpoint
+  passed 242/242 in 881.928 s; one obsolete timeout test was replaced by the hole regression.
+- `pnpm test:native`: **6 passed / 1 vendor-gated skip, zero failed**, 2.791 s. Includes dynamic
+  synthetic supply-pin packages, twelve lanes and bit-identical internal-branch save restriction.
+  Separate real-TI runs are above.
 - `pnpm test:package`: passed packed Node execution, denied-host execution, NodeNext declarations
-  and Bun execution. The packaging runner now streams without timeout or output-buffer limits.
+  and Bun execution. The packaging runner streams without timeout or output-buffer limits.
 - Lint, module graph, vocabulary and type checking pass; the 100001-bit actual TSX admission test
   passes through patched props, core and Circuit JSON. Native primitive test executes twelve lanes.
 - Native: all four default boards on the earlier increment; stricter single-ended/multilayer;

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { geometryFromCircuitJson, type CircuitJson } from '../../../src/board'
 import { circuitJson, modeling } from '../../../examples/crosstalk/index.circuit'
 import { circuitJson as via, modeling as viaModeling } from '../../../examples/multilayer/index.circuit'
+import { drilledHoles } from '../../fixtures/drilled-holes'
 
 test('segments preserve physical lengths and actual unequal neighbour positions', () => {
   const g = geometryFromCircuitJson(circuitJson as CircuitJson, modeling)
@@ -15,6 +16,11 @@ test('segments preserve physical lengths and actual unequal neighbour positions'
 })
 test('removed numerical settings fail instead of being silently ignored', () => {
   assert.throws(() => geometryFromCircuitJson(circuitJson as CircuitJson, { ...modeling, sections: 1 } as never), { code: 'modeling_input' })
+})
+test('actual JSX drilled holes raise a named diagnostic instead of losing physical geometry', async () => {
+  const holes = await drilledHoles()
+  assert.equal(holes.length, 1)
+  assert.throws(() => geometryFromCircuitJson([...circuitJson, ...holes], modeling), { code: 'slice_conductor' })
 })
 test('multilayer TSX derives actual via antipads and splits at plane edges and layers', () => {
   const g = geometryFromCircuitJson(via as CircuitJson, viaModeling)

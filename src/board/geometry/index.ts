@@ -35,6 +35,8 @@ export function boardGround(cj: CircuitJson): { ids: Set<string>; port: string }
 export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling): Geometry {
   validateModeling(modeling)
   const stackup = stackupFromCircuitJson(cj)
+  const hole = cj.find(r => r.type === 'pcb_hole' || r.type === 'pcb_plated_hole')
+  if (hole) fail('slice_conductor', `${hole.type}: standalone drilled/plated holes need a dielectric/barrel slice model; they cannot be silently omitted`)
   const ground = boardGround(cj)
   const rails = new Set<string>()
   for (const source of cj.filter(r => r.type === 'simulation_voltage_source')) {

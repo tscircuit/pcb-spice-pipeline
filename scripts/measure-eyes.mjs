@@ -66,7 +66,9 @@ export function measureEye(rows,eye,pattern,thresholds) {
 }
 if(process.argv[1]?.endsWith('measure-eyes.mjs')) {
   const measurements=[]
-  for(const [group,root] of [['before','runs/before-eyes'],['after','runs/2d']])for(const name of ['single-ended','differential-data']) {
+  const afterRoot=process.env.SI_MEASUREMENT_DIRECTORY??'runs/qualified'
+  const names=process.argv.slice(2)
+  for(const [group,root] of [['before','runs/before-eyes'],['after',afterRoot]])for(const name of names.length?names:['single-ended','differential-data']) {
     const directory=`${root}/${name}/experiments/simulation_experiment_0`
     const rows=(await readFile(`${directory}/waveform.csv`,'utf8')).trim().split(/\r?\n/).slice(1).map(line=>line.split(',').map(Number))
     const eyes=JSON.parse(await readFile(`${directory}/eyes.json`,'utf8'))
@@ -81,6 +83,6 @@ if(process.argv[1]?.endsWith('measure-eyes.mjs')) {
     const result=measureEye(rows,eye,pattern,thresholds)
     measurements.push({group,name,probe:eye.name,...result})
   }
-  await writeFile('runs/eye-comparison.json',JSON.stringify(measurements,null,2))
+  await writeFile(`${afterRoot}/eye-comparison.json`,JSON.stringify(measurements,null,2))
   console.log(JSON.stringify(measurements,null,2))
 }

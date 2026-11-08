@@ -1,6 +1,6 @@
 {
   "in-memory": {
-    "channel.cir": "6cee93523de5cb1dadc46db96c0f79b5cfd8fa20e52f82ac80fe59096b0cb667",
+    "channel.cir": "369425b7fa8ce8df6d9dd20cd15e80ac3170afa7c786e175e966a4bab5a50158",
     "circuit-results.json": "80ee9578e6778ce3650efe3d93dd30b6e03d844fe7dcaa54be9e7a46d763efb5",
     "electrical-node-map.json": "5ee0e3f1e790184db2a41e9d2012ca95c51a0b9bbe7244b6dfaa1dada50408bd",
     "experiments/run/experiment.json": "5e917a2917061f40ac1e31f42d230084629da1cf550391e65f285d26c525954e",
@@ -12,10 +12,10 @@
     "experiments/run/model-0.lib": "a7989a0ee525de0f4f58a0e2a95bf983df61c587db98ebaa065f8202b3b768c1",
     "experiments/run/model-1.lib": "6fe52658fe25884bf3fda5bc25a034b17c45f5d75aaf8d12f5f0dc24561404e0",
     "experiments/run/native-ibis-assembly.json": "63090333b93230aaef84ea53ca00be861d4267dc96b80e2e97518eac74ced895",
-    "experiments/run/ngspice.request.json": "299892131478ab6d54901a586b1988091b9cf2bfb8687a26bfc62fe4dd661b87",
+    "experiments/run/ngspice.request.json": "927642a74b0caa8eda3ad632dbe77e49541fde75eeed890f222c4a82d399be94",
     "experiments/run/ngspice.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "experiments/run/ngspice.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "experiments/run/simulation.cir": "880cdeafc753096604732ffa1b1aabe5a38f63872bfe0b293cd14f10c5d12847",
+    "experiments/run/simulation.cir": "4b9c66114d1889bd03fad86cfd99b218482fac0cb79bbc79d6af6f59b1fc4ede",
     "experiments/run/waveform.csv": "6c5e09eaf8b7312af66dfc39a6c6b6721665dbe43e8fb3373b31475db494d013",
     "experiments/run/waveform.dat": "1e19d640212f2ee09181d5518d6cfc0c55c8833822e830369fbd95dcc998e423",
     "experiments/run/waveform.json": "f5d0a8f56aab2c5c59027df2bf68426c4a17d8a456dae76b4a4fd83774dea56b",
@@ -24,15 +24,15 @@
     "inputs/ibis/model-0.ibs": "689e7c29e216bc7427b86476ede2e240d11f1ec720c68bac602f7182760974a6",
     "inputs/ibis/model-1.ibs": "689e7c29e216bc7427b86476ede2e240d11f1ec720c68bac602f7182760974a6",
     "inputs/modeling.json": "652f4f6a416d95b2c0450e7d8be3a7d96212bd3dd0405ee51b0badf24e4a1d3c",
-    "mesh-convergence.json": "e498d25b812f20d59de53606e8907ffb06238316ddb4927695e4d7cebf8a9f0c",
+    "mesh-convergence.json": "772733aef299fca2ad4e6bf89f6a34129380e09ae6e1deee028da7d1f6ca4fa5",
     "segment-map.json": "89e0935410fa40d48cf4c833d0481b4eea22d305b529d1e8d8aee6cee73b618f",
-    "slices/0161c56f536e9bf2240ee81dc1e6ef8e6abf4b8f5dfbc765ca2e631a92ce8bed/rlgc-per-metre.json": "2d9cb307cda8fd8df2643a5110c382aa4af0c1ddc8ac40ff0260f9caa87c3655",
-    "stage-0/extraction.json": "a960febea46eb70911624fd879463bac337cf88faa5ec896e1441c3491563368",
+    "slices/0161c56f536e9bf2240ee81dc1e6ef8e6abf4b8f5dfbc765ca2e631a92ce8bed/rlgc-per-metre.json": "5d04d870ad0c232b02f1e9b27de51c334e91cbaf3ed5f97f8d1783ddc164d095",
+    "stage-0/extraction.json": "1a3e2ae1b8e16572a5d96fe60c8e7e268514ae99f7f2697504102f2560f3915a",
     "vendor-sources.json": "855909a5cef761b52139f6948bfc5ac787722752d4781d559c8303c1f0135c4a",
-    "<result-without-files>": "df583febcab5f63a3c2aa765abd8343a35f82b314803009eeb24356f81c7acd8"
+    "<result-without-files>": "ae3b44074bf828cb966a039cc0c6769a6ebfa416f3525cc171c2ac8eb4748322"
   },
   "rerun": {
-    "channel.cir": "6cee93523de5cb1dadc46db96c0f79b5cfd8fa20e52f82ac80fe59096b0cb667",
+    "channel.cir": "369425b7fa8ce8df6d9dd20cd15e80ac3170afa7c786e175e966a4bab5a50158",
     "circuit-results.json": "077f303ce58b6f96f4d9bea2b040932cfce325a76c428c57faf44715f18b3f2b",
     "electrical-node-map.json": "5ee0e3f1e790184db2a41e9d2012ca95c51a0b9bbe7244b6dfaa1dada50408bd",
     "experiments/run/experiment.json": "5e917a2917061f40ac1e31f42d230084629da1cf550391e65f285d26c525954e",
@@ -44,10 +44,10 @@
     "experiments/run/model-0.lib": "a7989a0ee525de0f4f58a0e2a95bf983df61c587db98ebaa065f8202b3b768c1",
     "experiments/run/model-1.lib": "6fe52658fe25884bf3fda5bc25a034b17c45f5d75aaf8d12f5f0dc24561404e0",
     "experiments/run/native-ibis-assembly.json": "63090333b93230aaef84ea53ca00be861d4267dc96b80e2e97518eac74ced895",
-    "experiments/run/ngspice.request.json": "299892131478ab6d54901a586b1988091b9cf2bfb8687a26bfc62fe4dd661b87",
+    "experiments/run/ngspice.request.json": "927642a74b0caa8eda3ad632dbe77e49541fde75eeed890f222c4a82d399be94",
     "experiments/run/ngspice.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "experiments/run/ngspice.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "experiments/run/simulation.cir": "880cdeafc753096604732ffa1b1aabe5a38f63872bfe0b293cd14f10c5d12847",
+    "experiments/run/simulation.cir": "4b9c66114d1889bd03fad86cfd99b218482fac0cb79bbc79d6af6f59b1fc4ede",
     "experiments/run/waveform.csv": "00591348160ac63b63d341001ea9e5646eef57d77cc0b674312bfe440f2e561f",
     "experiments/run/waveform.dat": "5960561ded65c1ed387a769740c32e33cfe87ffbd2dcc6c566722abb982c2395",
     "experiments/run/waveform.json": "25479e18f899b33ade3622683255227839ff74dbf466d50e729ab1468f1eaad2",
@@ -56,11 +56,11 @@
     "inputs/ibis/model-0.ibs": "689e7c29e216bc7427b86476ede2e240d11f1ec720c68bac602f7182760974a6",
     "inputs/ibis/model-1.ibs": "689e7c29e216bc7427b86476ede2e240d11f1ec720c68bac602f7182760974a6",
     "inputs/modeling.json": "652f4f6a416d95b2c0450e7d8be3a7d96212bd3dd0405ee51b0badf24e4a1d3c",
-    "mesh-convergence.json": "e498d25b812f20d59de53606e8907ffb06238316ddb4927695e4d7cebf8a9f0c",
+    "mesh-convergence.json": "772733aef299fca2ad4e6bf89f6a34129380e09ae6e1deee028da7d1f6ca4fa5",
     "segment-map.json": "89e0935410fa40d48cf4c833d0481b4eea22d305b529d1e8d8aee6cee73b618f",
-    "slices/0161c56f536e9bf2240ee81dc1e6ef8e6abf4b8f5dfbc765ca2e631a92ce8bed/rlgc-per-metre.json": "2d9cb307cda8fd8df2643a5110c382aa4af0c1ddc8ac40ff0260f9caa87c3655",
-    "stage-0/extraction.json": "a960febea46eb70911624fd879463bac337cf88faa5ec896e1441c3491563368",
+    "slices/0161c56f536e9bf2240ee81dc1e6ef8e6abf4b8f5dfbc765ca2e631a92ce8bed/rlgc-per-metre.json": "5d04d870ad0c232b02f1e9b27de51c334e91cbaf3ed5f97f8d1783ddc164d095",
+    "stage-0/extraction.json": "1a3e2ae1b8e16572a5d96fe60c8e7e268514ae99f7f2697504102f2560f3915a",
     "vendor-sources.json": "855909a5cef761b52139f6948bfc5ac787722752d4781d559c8303c1f0135c4a",
-    "<result-without-files>": "d8b18eee4b8f87f80f9f752e2447e06e86bfeed6bd9f0612d4691e0a0b951f0a"
+    "<result-without-files>": "50287435c054dabd91815f1c920a94099e4c3e09bcdd50e61c996fdd45a7e6c2"
   }
 }

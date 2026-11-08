@@ -27,9 +27,10 @@ Extraction now walks the actual copper. It does not launch FastHenry or FasterCa
 All numerical policy is in `src/kernel/numerics.ts`. There are no solver process timeouts, mesh
 attempt limits, lane caps, or maximum cell clamps. Refinement continues until every nonzero C/C0/L, surface-current-loss and dielectric-loss
 **estimate** entry changes by less than 0.5%. Richardson extrapolation removes the leading panel error
-(second order for C/C0/loss, order 4/3 for the quartic-graded corner-current integral). Both raw and
+(orders 2 then 4 for C/C0/loss, orders 4/3 then 2 for the quartic-graded corner-current integral). Both raw and
 estimated residuals are logged; the raw skin-loss residual can exceed 0.5% at termination. Reciprocity
-is checked before averaging. Exact symmetry zeros use a documented roundoff floor.
+of the unprojected estimates must also pass. The entry-wise check compares the published reciprocal
+matrices; exact symmetry zeros use a documented roundoff floor.
 Physical Dk, loss tangent, copper conductivity, layer thickness and via plating come from the original
 `pcb_stackup` (the examples declare it directly with the `pcbStackup` JSX prop), including solder mask; incomplete presets fail with field-specific diagnostics.
 
