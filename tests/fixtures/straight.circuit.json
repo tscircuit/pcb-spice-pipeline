@@ -151,18 +151,68 @@
       {
         "layer_type": "copper",
         "layer": "top",
-        "thickness": 0.035
+        "thickness": 0.035,
+        "electrical_conductivity_s_per_m": 58000000.0
       },
       {
         "layer_type": "dielectric",
         "thickness": 0.2,
-        "relative_permittivity": 4.1
+        "relative_permittivity": 4.1,
+        "dielectric_loss_tangent": 0
       },
       {
         "layer_type": "copper",
         "layer": "bottom",
-        "thickness": 0.035
+        "thickness": 0.035,
+        "electrical_conductivity_s_per_m": 58000000.0
       }
     ]
+  },
+  {
+    "type": "source_net",
+    "source_net_id": "board-ground",
+    "name": "GND",
+    "is_ground": true,
+    "member_source_group_ids": []
+  },
+  {
+    "type": "source_trace",
+    "source_trace_id": "board-ground-trace",
+    "connected_source_port_ids": [
+      "g0"
+    ],
+    "connected_source_net_ids": [
+      "board-ground"
+    ]
+  },
+  {
+    "type": "pcb_copper_pour",
+    "pcb_copper_pour_id": "board-ground-pour",
+    "source_net_id": "board-ground",
+    "layer": "bottom",
+    "shape": "brep",
+    "brep_shape": {
+      "outer_ring": {
+        "vertices": [
+          {
+            "x": -1,
+            "y": -2
+          },
+          {
+            "x": 11,
+            "y": -2
+          },
+          {
+            "x": 11,
+            "y": 2
+          },
+          {
+            "x": -1,
+            "y": 2
+          }
+        ]
+      },
+      "inner_rings": []
+    }
   }
 ]

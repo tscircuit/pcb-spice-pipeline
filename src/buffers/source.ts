@@ -21,7 +21,6 @@ export function loadModelSource(model: ModelSourceRequest, sources: IbisSources)
   const source = sources[path]
   if (typeof source !== 'string' && !(source instanceof Uint8Array)) fail('ibis_asset', `${path}: expected a string or Uint8Array`)
   const bytes = typeof source === 'string' ? new TextEncoder().encode(source) : source
-  if (bytes.length > 64 * 1024 * 1024) fail('ibis_asset', 'IBIS asset exceeds 64 MiB')
   if (bytes[0] === 0x50 && bytes[1] === 0x4b) fail('ibis_asset', 'IBIS asset must be a plain .ibs file; extract ZIP archives explicitly')
   const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)
   if (/^\s*(?:<!doctype\s+html|<html)\b/i.test(text)) fail('ibis_asset', 'IBIS asset contains HTML instead of model data')

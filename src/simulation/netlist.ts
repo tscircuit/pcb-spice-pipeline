@@ -1,7 +1,7 @@
 // Was src/general-spice.ts (electrical sources, experiment netlist, probe scope). Logic and messages unchanged.
 import type { CircuitJson, Geometry } from '../board'
 import { selectPort } from '../board'
-import { channelSpice, type StageMatrices } from '../extraction'
+import { channelSpice, type ExtractedStage } from '../extraction'
 import { fail } from './diagnostics'
 import type { CircuitNodes, CompiledModel, ElectricalModel, ElectricalSources, SimulationModeling, SimulationPlan, SimulationSpiceOptions } from './types'
 
@@ -143,7 +143,7 @@ export function simulationSpiceOptions(overrides: SimulationPlan['experiment']['
  * Writes the complete ngspice deck for one experiment: rails, IBIS buffers, the extracted channel
  * and the control block that records every probe to waveform.dat.
  */
-export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geometry, 'mappings'>, modeling: { sections: number }, extracted: readonly StageMatrices[], models: readonly CompiledModel[], nodes: CircuitNodes, electrical: ElectricalSources): string {
+export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geometry, 'mappings'>, modeling: SimulationModeling, extracted: readonly ExtractedStage[], models: readonly CompiledModel[], nodes: CircuitNodes, electrical: ElectricalSources): string {
   const lines = ['Native transient: explicit physical source rails, IBIS run controls and extracted PCB channel']
   const options = simulationSpiceOptions(plan.experiment.spice_options)
   lines.push('.options ' + Object.entries(options).map(([key, input]) => `${key}=${input}`).join(' '), ...electrical.lines)
@@ -158,10 +158,9 @@ export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geom
     })
     lines.push(`* ${safeComment(model.name)}`, renamed.source, `XIBIS${i} ${terminals.join(' ')} ${renamed.wrapper}`)
   }
-  if (extracted.some(stage => stage.R.length !== geometry.mappings.length)) fail('matrix_dimension', 'Extracted channels must match every selected signal')
   const channel = [...geometry.mappings.map(mapping => nodes.node(mapping.from)), ...geometry.mappings.map(mapping => nodes.node(mapping.to))]
-  if (channel.includes('0') || new Set(channel).size !== channel.length) fail('channel_short', 'Every selected signal must have distinct driver and receiver nodes separate from the reference')
-  lines.push(channelSpice(extracted, modeling.sections), `XCHAN ${[...channel, '0'].join(' ')} CHANNEL`)
+  if (channel.includes('0') || geometry.mappings.some(m => nodes.node(m.from) === nodes.node(m.to))) fail('channel_short', 'Channel edges require distinct endpoint nodes separate from board ground')
+  lines.push(channelSpice(extracted, geometry.mappings.length), `XCHAN ${[...channel, '0'].join(' ')} CHANNEL`)
   validateProbeScope(plan, geometry, models, nodes, electrical)
   // IBIS behavioral sources reference internal voltage-source currents. Probe-only
   // saves discard those branch vectors in upstream ngspice; preserve them all.

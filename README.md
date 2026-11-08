@@ -14,13 +14,13 @@ You give it a tscircuit board (as Circuit JSON) and models of the chips on it (I
 | DDR timing checks (optional) | Whether memory data arrives inside its allowed time window. |
 | Report | One HTML page plus CSV files that open anywhere, with no internet needed. |
 
-Three free programs do the heavy physics: **FastHenry** and **FasterCap** measure the wires, and **ngspice** simulates the circuit. The library never starts them itself. You pass it a `runSolver` function that does, so the same code runs in Node, Bun, a browser or on a server. On Node with the programs installed, the `/node` entry gives you a ready-made `runSolver`.
+The built-in 2D boundary-element solver extracts RLGC from actual copper and layered materials. **ngspice** simulates the circuit through the `runSolver` callback. See [the extraction method](docs/2d-extraction.md) for automatic meshing, loss fitting and model limits.
 
 > Formerly `@tscircuit/pcb-spice-pipeline`. It still implements the `pcb_spice` simulation engine: boards keep declaring `spiceEngine="pcb_spice"`, so saved Circuit JSON does not change.
 
 ## How to use it?
 
-**On Node, with the three programs installed:**
+**On Node, with ngspice installed:**
 
 ```ts
 import { runPipeline } from '@tscircuit/signal-integrity-pipeline'
@@ -29,7 +29,7 @@ import { createNativeSolver, loadIbisSources, writePipelineOutput } from '@tscir
 const result = await runPipeline({
   circuitJson,                                                    // your board
   ibisSources: await loadIbisSources({ circuitJson, baseDir: projectDirectory }), // chip models from disk
-  runSolver: createNativeSolver({ timeoutMs: 900_000 }),         // finds fasthenry, FasterCap, ngspice on PATH
+  runSolver: createNativeSolver(),                                      // finds ngspice on PATH
   onProgress: console.log,
 })
 await writePipelineOutput({ result, outputDir: 'runs/example' }) // writes all files + results.html
@@ -56,7 +56,8 @@ flowchart TD
   board[/"Your board<br/>(Circuit JSON)"/] --> s1["1. Read the board, pick the wires to study<br/><small>board</small>"]
   chips[/"Chip models<br/>(IBIS files)"/] --> s3
   s1 --> s2["2. Measure the wires: R, L, C<br/><small>extraction</small>"]
-  s2 <-->|"runSolver"| fs{{"FastHenry + FasterCap"}}
+  s2 --> bem["Layered 2D BEM, vacuum solve, fitted losses"]
+  bem --> s3
   s1 --> s3["3. Build one circuit: wires + chips<br/><small>buffers, simulation</small>"]
   s2 --> s3
   s3 --> s4["4. Simulate the signals over time<br/><small>simulation</small>"]
@@ -119,7 +120,7 @@ type SolverResult = {
 }
 ```
 
-Each request has an independent working directory. FastHenry gets coarse and refined extraction requests; FasterCap gets its automatic-refinement request; each experiment gets one ngspice transient shared by all its probes and eyes. The callback must reject unsuccessful process exits or return their nonzero `exitCode`. The library additionally checks stdout/stderr diagnostics, required outputs, conductor ordering, finite matrices, reciprocity, passivity, mesh convergence, analytic DC resistance, capacitance scaling and finite-return energy/charge reconstruction. Transients must contain finite, increasing timestamps and cover the declared recording. Recovered ngspice operating-point warnings are accepted only when the transient completes. No approximate solver or cached result replaces native physics.
+Each experiment gets one native ngspice transient shared by all probes and eyes. Extraction is in-process TypeScript and emits its segment map, per-segment RLGC, loss-fit residuals and mesh convergence. Required outputs, physical material fields, finite matrices and passivity are checked. A complete transient must cover the declared recording.
 
 `PipelineResult` exposes:
 
@@ -143,14 +144,13 @@ import {
 
 const ibisSources = await loadIbisSources({ circuitJson, baseDir: projectDirectory })
 const runSolver = createNativeSolver({
-  tools: { fasthenry: '/tools/fasthenry', fastercap: '/tools/FasterCap', ngspice: '/tools/ngspice' },
-  timeoutMs: 900_000,
+  tools: { ngspice: '/tools/ngspice' },
 })
 const result = await runPipeline({ circuitJson, modeling, ibisSources, runSolver })
 await writePipelineOutput({ result, outputDir: 'runs/example' })
 ```
 
-Tools default to `fasthenry`, `FasterCap` and `ngspice` on PATH. The adapter executes only requests you pass it, in temporary directories cleaned up on success or failure. It captures stdout/stderr and requested outputs, rejects unsuccessful exits/timeouts, and does no setup, downloads or build-receipt enforcement. `loadIbisSources` loads local files only and rejects traversal and symlinks outside `baseDir`. `writePipelineOutput` writes the supplied artifacts plus `generateReport(result)`; existing files with the same names are overwritten.
+ngspice defaults to `ngspice` on PATH. The adapter executes only requests you pass it, in temporary directories cleaned up on success or failure. It captures stdout/stderr and requested outputs, rejects unsuccessful exits, and does no setup, downloads or build-receipt enforcement. `loadIbisSources` loads local files only and rejects traversal and symlinks outside `baseDir`. `writePipelineOutput` writes the supplied artifacts plus `generateReport(result)`; existing files with the same names are overwritten.
 
 The previous standalone CLI, entry loader, automatic model downloads, setup command and duplicate legacy pipeline have been removed. CLI integrations should render Circuit JSON with their normal renderer and explicitly supply the adapter. Historical receipt comparison/native-IBIS helpers remain internal test helpers under `tests/support/legacy`; the independent audit scripts read historical receipt formats and are not a current library API.
 
@@ -164,7 +164,7 @@ React, `@tscircuit/core` and `@tscircuit/props` are optional peers, used here on
 
 ### Modeling and limits
 
-Modeling selects physical lanes, construction, extraction tolerances, explicit source rails and passives. Circuit JSON owns IBIS models, pin states, digital traffic, PCB-engine experiments, probes and eyes. Routed copper derives heights, dielectric thickness/permittivity and conductivity from the saved `pcb_stackup`. Straightened-stage modeling remains an explicit reduction with documented approximations.
+Modeling selects physical lane endpoints, explicit source rails and passives. Circuit JSON owns IBIS models, pin states, traffic, experiments, probes and eyes. `pcb_stackup` owns construction, conductivity, Dk, loss tangent and plating. Numerical extraction controls and selected return strips have been removed.
 
 `modeling.ddrAssessments` optionally binds a ground-referenced DQ probe/eye to a differential received DQS probe. Each configuration supplies its direction, sample offset, Vref, AC/DC thresholds, setup/hold times, minimum strobe amplitude and maximum interval error. Received DQS crossings center complete two-UI windows. Assessments retain configured limits, per-edge margins and unevaluated checks; uncharacterized limits are illustrative. Finite simulated observations do not establish DDR compliance, BER or hardware accuracy.
 
@@ -187,8 +187,6 @@ The build bundles the pure entry with browser dependency resolution, pruning unu
 `pnpm test:package` checks an isolated npm install with no optional peers, root and `/node` imports, a complete in-memory run in Node and Bun when available, guarded host access, and NodeNext declarations. `BUN=/path/to/bun` selects Bun explicitly. Unit fixtures use canned solver responses to test orchestration; native regressions use real processes:
 
 ```sh
-PCB_SPICE_FASTHENRY=/tools/fasthenry \
-PCB_SPICE_FASTERCAP=/tools/FasterCap \
 PCB_SPICE_NGSPICE=/tools/ngspice pnpm test:native
 ```
 

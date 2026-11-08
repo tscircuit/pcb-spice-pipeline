@@ -1,3 +1,5 @@
+This document describes the module boundaries. The current extraction flow and changed contracts are in [2d-extraction.md](2d-extraction.md).
+
 # signal-integrity-pipeline: domain-owned modules, stages as values, verification by types and oracles
 
 ## Problem
@@ -17,7 +19,7 @@ import { createNativeSolver, loadIbisSources, writePipelineOutput } from '@tscir
 const result = await runPipeline({
   circuitJson,
   ibisSources: await loadIbisSources({ circuitJson, baseDir: projectDir }),
-  runSolver: createNativeSolver({ timeoutMs: 600_000 }),
+  runSolver: createNativeSolver(),
   onProgress: console.log,
 })
 await writePipelineOutput({ result, outputDir: 'out/' })
@@ -47,8 +49,8 @@ catch (e) {
 |---|---|---|
 | `kernel` | `Diagnostic` + code registry, `Artifact`/`ArtifactScope`/`ArtifactLedger`, `SafeId`, `sha256` | none (provides the ledger) |
 | `solver` | `RunSolver` port; `invoke()` is the only way to run a solver: result shape, exit code, required outputs, log capture | `<scope>/<solver>.{request.json,stdout.log,stderr.log}` + I/O files |
-| `board` | Circuit JSON admission → `Board`, stackup, port selection, lanes, both reductions as **unmeshed mm copper** | `inputs/circuit.json`, `geometry.json` |
-| `extraction` | meshing (ground mesh, polygon mesh, panel sizing), FastHenry/FasterCap decks, parsers, convergence, reciprocity/passivity/DC-R, linear algebra, RLGC | today's `stage-N/**`, `channel.cir` |
+| `board` | Circuit JSON admission → `Board`, stackup, port selection, lanes and **whole-board cross-sections** | `inputs/circuit.json`, `geometry.json` |
+| `extraction` | layered 2D BEM, automatic refinement, loss fitting, via formulas, linear algebra and coupled RLGC ladders | today's `stage-N/**`, `channel.cir` |
 | `buffers` | IBIS admission, SHA pinning, pinned converter, compiled libs | `vendor-sources.json`, `<exp>/native-ibis-assembly.json`, `<exp>/*.lib` |
 | `simulation` | experiments, node map, probe scope, netlist, ngspice diagnostics, waveform coverage, result records | `electrical-node-map.json`, `experiments/<id>/…` |
 | `observation` | `Signal`, `EyeRequest`, complete-window folding, metrics (leaf) | `<exp>/eyes/**`, `<exp>/eyes.json` |
@@ -115,7 +117,7 @@ No TLA+. Nothing in this library is concurrent: stages run in order, experiments
 | Module fences: no unowned code, index-only imports, acyclic, `node:*` only in adapters | `check-modules` S1–S6 (from the filesystem and import graph) |
 | Every module tested; every declared code raised by some test | `check-modules` M2–M3 |
 | Single writer, sealed is final, sorted output | `tests/kernel/index.test.ts` |
-| Temp dir always removed; timeout kills; only requested outputs read | `tests/adapters/native-solver.test.ts`: fault injection at each step |
+| Temp dir always removed; only requested outputs read | `tests/adapters/native-solver.test.ts`: fault injection at each step |
 | Geometry, meshing, extraction numerics (#44 #46 #49 #53 #54) | `fast-check` properties vs exact oracle; metamorphic tests (translate, mirror, mesh halving converges); existing `scripts/verification` audits |
 | Eye folding keeps every complete window | Oracle: brute-force window enumeration vs closed-form fold |
 | DDR status rule | Exhaustive decision-table test (small finite input space) |

@@ -33,6 +33,7 @@ export interface AdmittedBuffers {
 
 /** Today's per-plan compiled model: the converter result plus pipeline identity and inputs. */
 export type CompiledBuffer = ConvertedGeneralIbisComponent & {
+  sourceText: string
   name: string
   pipelineId: string
   input: ModelRunDefinition

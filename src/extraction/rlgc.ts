@@ -1,51 +1,75 @@
-// RLGC pi-section subcircuit text (was spice.ts channelSpice; the legacy simulationSpice has no non-legacy caller and stays behind).
+import { numerics } from '../kernel'
 import { fail } from './diagnostics'
 import { validateMatrix } from './checks'
 import { scale, sum, type Matrix } from './linalg'
+import type { ExtractedStage } from './types'
 
-/** One stage's loop matrices (spice.ts called this `ChannelMatrices`). */
 export interface StageMatrices { R: Matrix; L: Matrix; C: Matrix }
-
-/** Formats a value with 12 significant digits so the netlist text is stable across runs. */
-const num = (value: number): string => Number(value.toPrecision(12)).toString()
-
-/** Writes the RLGC channel as a SPICE subcircuit: each stage is split into equal pi sections with coupled R, L and C between signals. */
-export function channelSpice(extracted: readonly StageMatrices[], sections: number): string {
-  if (!Number.isInteger(sections) || sections < 1 || sections > 128) fail('sections', 'sections must be an integer 1..128')
-  if (!extracted.length || !extracted[0].R.length) fail('matrix_dimension', 'At least one extracted channel stage is required')
-  const n = extracted[0].R.length
-  for (const [stage, matrices] of extracted.entries()) {
+/** Stable significant digits avoid platform-specific formatting noise. */
+const num = (v: number): string => Number(v.toPrecision(numerics.netlistDigits)).toString()
+/** Emits passive matrix R/L/K plus fitted RL and RC branches. Cell count is owned by extraction. */
+export function channelSpice(extracted: readonly ExtractedStage[], lanes: number): string {
+  if (!extracted.length || !Number.isInteger(lanes) || lanes < 1) fail('matrix_dimension', 'A nonempty channel with physical endpoints is required')
+  for (const stage of extracted) {
+    if (!Number.isInteger(stage.cells) || stage.cells < 1 || !Array.isArray(stage.ports) || stage.ports.length !== stage.R.length) fail('matrix_dimension', 'Each segment needs derived cells and a port for every conductor')
     for (const kind of ['R', 'L', 'C'] as const) {
-      if (matrices[kind].length !== n) fail('matrix_dimension', `Stage ${stage} ${kind}: channel dimensions disagree`)
-      validateMatrix(matrices[kind], `Stage ${stage} ${kind}`, 1e-10)
-    }
-    if (matrices.C.some((row, i) => row.some((entry, j) => i !== j && entry > 0) || sum(row) <= 0)) {
-      fail('capacitance_sign', `Stage ${stage}: referenced Maxwell C requires nonpositive mutual and positive shunt capacitance`)
+      if (stage[kind].length !== stage.ports.length) fail('matrix_dimension', `${kind}: segment dimensions disagree`)
+      validateMatrix(stage[kind], kind, numerics.matrixReciprocity)
     }
   }
-  const inputs = Array.from({ length: n }, (_, i) => `IN${i}`)
-  const outputs = Array.from({ length: n }, (_, i) => `OUT${i}`)
-  const lines = ['* Constant-frequency passive matrix pi channel; explicit reference terminal', `.subckt CHANNEL ${[...inputs, ...outputs, 'REF'].join(' ')}`]
-  let global = 0
-  for (const [stage, e] of extracted.entries()) for (let section = 0; section < sections; section++) {
-    const g = global++
-    const R: Matrix = scale(e.R, 1 / sections)
-    const L: Matrix = scale(e.L, 1 / sections)
-    const C: Matrix = scale(e.C, 1 / sections)
-    const first = g === 0
-    const last = stage === extracted.length - 1 && section === sections - 1
-    const before = inputs.map((input, i) => first ? input : `N${g}_${i}`)
-    const after = outputs.map((output, i) => last ? output : `N${g + 1}_${i}`)
+  const lines = ['* Automatic coupled RLGC: 2D BEM; positive-real Foster skin/dielectric branches',
+    `.subckt CHANNEL ${Array.from({ length: lanes }, (_, i) => `IN${i}`).concat(Array.from({ length: lanes }, (_, i) => `OUT${i}`), ['REF']).join(' ')}`]
+  for (const e of extracted) for (let cell = 0; cell < e.cells; cell++) {
+    const g = `S${e.stage}C${cell}`
+    const n = e.R.length
+    const before = e.ports.map((p, i) => cell === 0 ? p.from : `N${g}_${i}`)
+    const after = e.ports.map((p, i) => cell === e.cells - 1 ? p.to : `NS${e.stage}C${cell + 1}_${i}`)
+    const R = scale(e.R, 1 / e.cells)
+    const L = scale(e.L, 1 / e.cells)
+    const total = e.dielectric.fit.weights.reduce((s, w, i) => s + w / e.dielectric.fit.poles[i], 0)
+    const C = e.C.map((row, i) => row.map((v, j) => (v - total * e.dielectric.matrix[i][j]) / e.cells))
+    validateMatrix(C, 'instantaneous dielectric C', numerics.matrixReciprocity)
     for (let i = 0; i < n; i++) {
-      lines.push(`VS${g}_${i} ${before[i]} S${g}_${i} 0`, `R${g}_${i} S${g}_${i} R${g}_${i} ${num(R[i][i])}`)
-      // The shared return contributes cross resistance R_ij * I_j as well as mutual inductance.
-      if (n > 1) lines.push(`E${g}_${i} R${g}_${i} L${g}_${i} value={${R[i].flatMap((r, j) => j === i ? [] : [`${num(r)}*i(VS${g}_${j})`]).join('+')}}`)
-      lines.push(`L${g}_${i} ${n > 1 ? `L${g}_${i}` : `R${g}_${i}`} ${after[i]} ${num(L[i][i])}`)
+      lines.push(`VS${g}_${i} ${before[i]} I${g}_${i} 0`, `R${g}_${i} I${g}_${i} R${g}_${i} ${num(R[i][i])}`)
+      let tail = `R${g}_${i}`
+      for (let j = 0; j < n; j++) if (j !== i && R[i][j]) {
+        const next = `H${g}_${i}_${j}`
+        lines.push(`H${g}_${i}_${j} ${tail} ${next} VS${g}_${j} ${num(R[i][j])}`)
+        tail = next
+      }
+      for (let b = 0; b < e.skin.fit.weights.length; b++) {
+        const matrix = scale(e.skin.matrix, e.skin.fit.weights[b] / e.cells)
+        if (!matrix.some(row => row.some(v => v !== 0))) continue
+        const factor = validateMatrix(matrix, 'skin branch', numerics.matrixReciprocity).cholesky
+        for (let mode = 0; mode < n; mode++) if (factor[i][mode]) {
+          const next = `T${g}B${b}_${i}_${mode}`
+          lines.push(`E${g}B${b}_${i}_${mode} ${tail} ${next} M${g}B${b}_${mode} REF ${num(factor[i][mode])}`)
+          tail = next
+        }
+        if (i === 0) for (let mode = 0; mode < n; mode++) {
+          lines.push(`RF${g}B${b}_${mode} M${g}B${b}_${mode} REF 1`, `LF${g}B${b}_${mode} M${g}B${b}_${mode} REF ${num(1 / e.skin.fit.poles[b])}`)
+          for (let j = 0; j < n; j++) if (factor[j][mode]) lines.push(`FF${g}B${b}_${mode}_${j} REF M${g}B${b}_${mode} VS${g}_${j} ${num(factor[j][mode])}`)
+        }
+      }
+      lines.push(`L${g}_${i} ${tail} ${after[i]} ${num(L[i][i])}`)
     }
-    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) lines.push(`K${g}_${i}_${j} L${g}_${i} L${g}_${j} ${num(L[i][j] / Math.sqrt(L[i][i] * L[j][j]))}`)
-    for (const [label, nodes] of [['a', before], ['b', after]] as const) {
-      for (let i = 0; i < n; i++) lines.push(`CG${g}${label}${i} ${nodes[i]} REF ${num(sum(C[i]) / 2)}`)
-      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (C[i][j] < 0) lines.push(`CM${g}${label}${i}_${j} ${nodes[i]} ${nodes[j]} ${num(-C[i][j] / 2)}`)
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (L[i][j]) lines.push(`K${g}_${i}_${j} L${g}_${i} L${g}_${j} ${num(L[i][j] / Math.sqrt(L[i][i] * L[j][j]))}`)
+    for (const [side, nodes] of [['A', before], ['B', after]] as const) {
+      /** Realizes a Maxwell branch as grounded and pairwise capacitors or series RC branches. */
+      const shunt = (matrix: Matrix, pole?: number, branch = ''): void => {
+        const pairs: [number, number, number][] = matrix.map((row, i) => [i, -1, sum(row)])
+        for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) pairs.push([i, j, -matrix[i][j]])
+        for (const [i, j, value] of pairs) {
+          if (value < -numerics.capacitanceRoundoffF) fail('capacitance_sign', 'Dielectric sensitivity needs a general passive multiport realization')
+          if (value <= 0) continue
+          const label = `${g}${side}${branch}_${i}_${j < 0 ? 'G' : j}`
+          const target = j < 0 ? 'REF' : nodes[j]
+          if (pole) lines.push(`RD${label} ${nodes[i]} D${label} ${num(2 / value)}`, `CD${label} D${label} ${target} ${num(value / (2 * pole))}`)
+          else lines.push(`C${label} ${nodes[i]} ${target} ${num(value / 2)}`)
+        }
+      }
+      shunt(C)
+      e.dielectric.fit.weights.forEach((w, b) => shunt(scale(e.dielectric.matrix, w / e.cells), e.dielectric.fit.poles[b], `D${b}`))
     }
   }
   lines.push('.ends CHANNEL')

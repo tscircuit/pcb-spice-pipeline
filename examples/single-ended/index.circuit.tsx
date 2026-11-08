@@ -19,6 +19,11 @@ function Board(): JSX.Element {
     <ibismodel componentRef=".TX" {...outputPad} />
     <ibismodel componentRef=".RX" {...inputPad} />
     <BenchSupply />
+    <net name="GND" />
+    <trace from=".TX > .GND" to="net.GND" />
+    <copperpour name="REFERENCE" layer="bottom" connectsTo="net.GND" unbroken outline={[
+      {x:-18,y:-5},{x:18,y:-5},{x:18,y:.3},{x:-18,y:.3},
+    ]} />
     <RoutedTrace name="CMOS_DATA" from=".TX > .Y" to=".RX > .A" origin={[-15, 0]}
       points={[{ x: -12, y: -0.65 }, { x: -12, y: 0 }]} />
     <RoutedTrace from=".PWR > .VCC" to=".TX > .VCC" origin={[-22, 7]} width={0.35}
@@ -51,9 +56,10 @@ await circuit.renderUntilSettled()
 export const circuitJson = [...circuit.getCircuitJson(), {
   type: "pcb_stackup", pcb_stackup_id: "example-stackup",
   pcb_board_id: circuit.getCircuitJson().find(record => record.type === "pcb_board")!.pcb_board_id,
+  plated_hole_copper_thickness: .025,
   layers: [
-    {layer_type: "copper", layer: "top", thickness: .035},
-    {layer_type: "dielectric", thickness: 1.53, relative_permittivity: 4.1},
-    {layer_type: "copper", layer: "bottom", thickness: .035},
+    {layer_type: "copper", layer: "top", thickness: .035, electrical_conductivity_s_per_m: 5.8e7},
+    {layer_type: "dielectric", thickness: 1.53, relative_permittivity: 4.1, dielectric_loss_tangent: .02},
+    {layer_type: "copper", layer: "bottom", thickness: .035, electrical_conductivity_s_per_m: 5.8e7},
   ],
 }]

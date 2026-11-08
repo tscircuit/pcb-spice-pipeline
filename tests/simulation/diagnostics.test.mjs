@@ -1,3 +1,4 @@
+import {channelStage} from '../support/channel'
 // Every code in src/simulation/diagnostics.ts raised with today's code AND message (module rule M3).
 // MESSAGES are the pre-module implementation's messages, recorded on 2026-11-07 while the old flat src/
 // still existed and this test compared old and new raisers directly.
@@ -32,7 +33,7 @@ const deck=(extraction,models=[{source:'.subckt BUFFER P R\nRTEST P R 1000\n.end
   return impl.generalSimulationSpice(d.plans[0],g,m,extraction,models,d.nodes,impl.electricalSources(cj,m,d.nodes))
 }
 const identity=[[1,0],[0,1]]
-const matrices=[{R:identity,L:identity,C:identity}]
+const matrices=[channelStage({R:identity,L:identity,C:identity})]
 const square=extra=>cj=>{
   cj.push({type:'simulation_voltage_source',simulation_voltage_source_id:'sq',is_dc_source:false,terminal1_source_port_id:'v0',terminal2_source_port_id:'g0',voltage:3.3,frequency:1e6,wave_shape:'square',...extra})
 }
@@ -67,7 +68,7 @@ const MESSAGES={
  "source_capability": "source_capability: Voltage waveform sinewave is unsupported by this PCB backend",
  "passive_reference": "passive_reference: Selected passive component is missing or ambiguous",
  "passive_capability": "passive_capability: TX: expected two physical ports",
- "matrix_dimension": "matrix_dimension: Extracted channels must match every selected signal",
+ "matrix_dimension": "matrix_dimension: Each segment needs derived cells and a port for every conductor",
  "ibis_contract": "ibis_contract: Converter did not emit a SPICE component wrapper",
  "spice_options": "spice_options: Unsupported integration method",
  "probe_observation": "probe_observation: single: signal/reference is outside the declared electrical model scope"
@@ -119,7 +120,7 @@ test('simulation codes and messages equal the pre-module implementation', () => 
     assert.ok(Object.hasOwn(MESSAGES, code), code)
     assert.throws(() => run(impls.current), e => {
       assert.ok(e instanceof Diagnostic, code)
-      assert.equal(e.domain, 'simulation')
+      assert.equal(e.domain, code === 'matrix_dimension' ? 'extraction' : 'simulation')
       assert.deepEqual({ code: e.code, message: e.message }, { code, message: MESSAGES[code] })
       return true
     }, code)

@@ -1,176 +1,220 @@
-// Lane resolution + both reductions -> today's Geometry (was geometry.ts minus decks).
 import type { ArtifactScope, Produced } from '../../kernel'
+import { sha256 } from '../../kernel'
 import type { CircuitJson } from '../schema'
 import type { Board } from '../model'
 import { fail } from '../diagnostics'
-import { stackupFromCircuitJson, defaultCopperConductivitySm } from '../stackup'
+import { connectedSourceIds } from '../connectivity'
+import { stackupFromCircuitJson } from '../stackup'
 import { selectPort, resolveRouteVias } from './ports'
-import { routedCopperGeometry } from './routed'
-import { groundPourLayers, measuredLaneSpacingMm, stackupStageReturn } from './returns'
-import type { BoardModeling as Modeling, Geometry, GeometryCell, LaneMapping, ResolvedModeling, RouteStage, RoutedPoint } from './types'
+import { sliceIntervals, wirePolygon, mergeConductors, type CopperShape } from './slices'
+import type { BoardModeling, CopperPoint, CrossSection, Geometry, GeometryCell, LaneMapping } from './types'
 
-/** Returns `v` when it is a positive finite number; otherwise fails 'modeling_input' naming `label`. */
-const positive=(v: unknown,label: string): number=>{
-  if(typeof v!=='number'||!Number.isFinite(v)||v<=0) fail('modeling_input',`${label} must be a positive number`)
-  return v
+interface Edge { lane: string; a: CopperPoint; b: CopperPoint; layer: string; width: number; dx: number; dy: number; lo: number; hi: number; forward: boolean; from: string; to: string }
+/** Stable geometry coordinates prevent endpoint roundoff from creating spurious junctions. */
+const round = (v: number): number => Math.round(v * 1e8) / 1e8
+/** Rejects removed numerical controls even when passed by an untyped JavaScript caller. */
+export function validateModeling(modeling: BoardModeling): void {
+  for (const key of ['reduction', 'sections', 'extraction', 'profiles', 'straightened_stage_profiles', 'groundMeshMm', 'groundReturn', 'channelReference', 'viaPlatingMm', 'viaEquivalentWidthMm', 'omitThroughViaStubs', 'relativePermittivity'])
+    if (key in modeling) fail('modeling_input', `Remove modeling.${key}; physical data comes from pcb_stackup and numerical choices are automatic`)
+  if (!modeling.lanes?.length || new Set(modeling.lanes.map(l => l.port)).size !== modeling.lanes.length) fail('lanes', 'Declare distinct lane names and physical endpoints')
 }
-/** Returns `v` when it is a finite number; otherwise fails 'modeling_input' naming `label`. */
-const finite=(v: unknown,label: string): number=>{
-  if(typeof v!=='number'||!Number.isFinite(v)) fail('modeling_input',`${label} must be explicit and finite`)
-  return v
+/** Uses the connected board ground net rather than an API-selected return lead. */
+export function boardGround(cj: CircuitJson): { ids: Set<string>; port: string } {
+  const nets = cj.filter(r => r.type === 'source_net').filter(r => r.is_ground)
+  const negatives = cj.filter(r => r.type === 'simulation_voltage_source').map(r => r.is_dc_source ? r.negative_source_port_id ?? r.negative_source_net_id : r.terminal2_source_port_id).filter((id): id is string => Boolean(id))
+  const seed = nets[0]?.source_net_id ?? negatives[0]
+  if (!seed) fail('ground_net', 'Mark the ground net or connect a physical DC supply with a negative terminal')
+  const ids = connectedSourceIds(cj, seed)
+  if (nets.some(n => !ids.has(n.source_net_id))) fail('ground_net', 'Several disconnected ground nets: the channel reference is ambiguous')
+  const ports = cj.filter(r => r.type === 'source_port' && ids.has(r.source_port_id))
+  if (!ports.length) fail('ground_reference', 'Ground net must connect to a physical source port')
+  return { ids, port: ports.map(p => p.type === 'source_port' ? p.source_port_id : '').sort()[0] }
 }
-/** Checks every modeling field the reductions rely on before any geometry is built, failing with the matching board code. */
-export function validateModeling(m: Modeling): void {
-  if(!['straightened-stages','routed-copper'].includes(m.reduction)) fail('reduction','Select straightened-stages or routed-copper')
-  if(!Array.isArray(m.lanes)||![1,2,3].includes(m.lanes.length)) fail('lanes','One to three explicit source/receiver lanes are supported')
-  for(const [i,l] of m.lanes.entries()) if(!l.port||!l.from||!l.to) fail('pin_mapping',`Lane ${i}: port/from/to mappings required`)
-  if(new Set(m.lanes.map(l=>l.port)).size!==m.lanes.length) fail('pin_mapping','Lane port labels must be distinct')
-  if(m.reduction==='routed-copper') {
-    positive(m.relativePermittivity,'relativePermittivity (homogeneous dielectric approximation)')
-    positive(m.extraction?.groundMeshMm,'extraction.groundMeshMm')
-  }
-  for(const [name,p] of Object.entries(m.reduction==='routed-copper'?{}:m.profiles??{})) {
-    positive(p.spacingMm,`${name} spacingMm`)
-    positive(p.relativePermittivity,`${name} relativePermittivity`)
-    if(!p.return) fail('return_geometry',`${name}: explicit finite return required`)
-    for(const key of ['widthMm','thicknessMm','lengthFactor'] as const) positive(p.return[key],`${name}.return.${key}`)
-    finite(p.return.centerYMm,`${name}.return.centerYMm`)
-    finite(p.return.centerZMm,`${name}.return.centerZMm`)
-  }
-  if(!m.extraction) fail('extraction','Explicit mesh/frequency/model settings required')
-  for(const key of ['minimumHz','maximumHz','modelHz','filaments','refinementFilaments','convergenceTolerance','capTolerance','maxPanelLengthMm','reciprocityTolerance','dcResistanceTolerance'] as const) positive(m.extraction[key],`extraction.${key}`)
-  if(m.extraction.minimumHz>m.extraction.modelHz||m.extraction.modelHz>m.extraction.maximumHz||!Number.isInteger(m.extraction.filaments)) fail('extraction','Require minimumHz <= modelHz <= maximumHz and integer filaments')
-  if(!Number.isInteger(m.extraction.refinementFilaments)||m.extraction.refinementFilaments<=m.extraction.filaments) fail('extraction','Integer refinementFilaments must exceed filaments')
-  if(!Number.isInteger(m.sections)||m.sections<1||m.sections>128) fail('sections','sections must be an integer 1..128')
-}
-/** Resolves each lane to its routed PCB trace and reduces the routes to geometry cells (straightened stages) or routed copper. */
-export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geometry {
-  if(!Array.isArray(cj)) fail('circuit_json','Expected a Circuit JSON element array, not a mesh-preparation object')
+/** Walks actual routed wires, cuts at physical events, and intersects every layer with each slice. */
+export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling): Geometry {
+  validateModeling(modeling)
   const stackup = stackupFromCircuitJson(cj)
-  for (const key of ['stackup', 'conductivitySm', 'copperLayers']) if (key in modeling)
-    fail('modeling_input', `Remove modeling.${key}; physical construction comes from Circuit JSON pcb_stackup`)
-  const m: ResolvedModeling = {...modeling, stackup: stackup.copperLayers, conductivitySm: defaultCopperConductivitySm,
-    relativePermittivity: modeling.relativePermittivity ?? stackup.relativePermittivity, viaPlatingMm: modeling.viaPlatingMm ?? stackup.viaPlatingMm}
-  validateModeling(m)
-  const routes: RouteStage[][]=[]
-  const mappings: LaneMapping[]=[]
-  const selectedTraces=new Set<string>()
-  const selectedPorts=new Set<string>()
-  for(const lane of m.lanes) {
-    const from=selectPort(cj,lane.from)
-    const to=selectPort(cj,lane.to)
-    if(from.source_port_id===to.source_port_id||[from.source_port_id,to.source_port_id].some(id=>selectedPorts.has(id))) fail('pin_mapping',`${lane.port}: selected lanes require distinct physical source and receiver ports`)
-    selectedPorts.add(from.source_port_id)
-    selectedPorts.add(to.source_port_id)
-    const sources=cj.filter(e=>e.type==='source_trace').filter(e=>(lane.sourceTraceId?e.source_trace_id===lane.sourceTraceId:e.connected_source_port_ids?.includes(from.source_port_id)&&e.connected_source_port_ids?.includes(to.source_port_id)))
-    if(sources.length!==1) fail('route_selection',`${lane.port}: expected one source trace; specify sourceTraceId`)
-    const src=sources[0]
-    if(!src.connected_source_port_ids?.includes(from.source_port_id)||!src.connected_source_port_ids?.includes(to.source_port_id)) fail('pin_mapping',`${lane.port}: selected trace does not connect requested source ports`)
-    if(src.connected_source_port_ids.length!==2) fail('route_selection',`${lane.port}: fan-out is unsupported; selected trace must connect exactly the two requested ports`)
-    if(selectedTraces.has(src.source_trace_id)) fail('route_selection',`${lane.port}: selected lanes must use distinct source traces`)
-    selectedTraces.add(src.source_trace_id)
-    const traces=cj.filter(e=>e.type==='pcb_trace').filter(e=>e.source_trace_id===src.source_trace_id)
-    if(traces.length!==1) fail('route_selection',`${lane.port}: expected one complete PCB route, got ${traces.length}`)
-    const original=resolveRouteVias(cj,traces[0])
-    if(!Array.isArray(original)||original.length<2) fail('empty_route',`${lane.port}: at least two routed vertices required`)
-    let route: RoutedPoint[]=original.map((p,i)=>{
-      if(p.route_type!=='wire'&&p.route_type!=='via') fail('route_type','Only wire/via routed primitives supported')
-      finite(p.x,`${lane.port} route[${i}].x`)
-      finite(p.y,`${lane.port} route[${i}].y`)
-      if(p.route_type==='wire') {
-        positive(p.width,`${lane.port} route[${i}].width`)
-        if(p.start_width!==undefined||p.end_width!==undefined||p.width_interpolation_mode!==undefined) fail('varying_width','Tapered routes are not supported by the straightened-stage reduction')
-      }
-      return p
-    })
-    if(route[0].route_type!=='wire'||route[route.length-1].route_type!=='wire') fail('route_type','Routed endpoints must be wire vertices at the selected PCB ports')
-    const ports=[from,to].map(p=>{
-      const matches=cj.filter(e=>e.type==='pcb_port').filter(e=>e.source_port_id===p.source_port_id)
-      if(matches.length!==1) fail('pin_mapping',`${lane.port}: expected one PCB port for ${p.source_port_id}, got ${matches.length}`)
-      return matches[0]
-    })
-    for(const p of ports) {
-      finite(p.x,`${p.pcb_port_id}.x`)
-      finite(p.y,`${p.pcb_port_id}.y`)
-    }
-    /** True when a route point sits on a port position (within 1e-5 mm). */
-    const matches=(a: { x: number; y: number },p: { x: number; y: number }): boolean=>Math.hypot(a.x-p.x,a.y-p.y)<1e-5
-    if(matches(route[0],ports[1])&&matches(route[route.length-1],ports[0])) route=[...route].reverse().map(p=>p.route_type==='via'?{...p,from_layer:p.to_layer,to_layer:p.from_layer}:p)
-    if(!matches(route[0],ports[0])||!matches(route[route.length-1],ports[1])) fail('endpoint_position',`${lane.port}: routed endpoints do not match selected physical source/receiver ports`)
-    for(const [point,port] of [[route[0],ports[0]],[route[route.length-1],ports[1]]] as const) {
-      if(point.route_type==='wire'&&!port.layers.includes(point.layer)) fail('endpoint_layer',`${lane.port}: route layer does not reach physical pad ${port.pcb_port_id}`)
-      for(const key of ['start_pcb_port_id','end_pcb_port_id'] as const) if(point.route_type==='wire'&&point[key]&&point[key]!==port.pcb_port_id) fail('stale_endpoint',`${lane.port}: ${key}=${point[key]} disagrees with ${port.pcb_port_id}; repair source metadata explicitly`)
-    }
-    const stages: RouteStage[]=[]
-    /** Looks up the stackup copper layer named `n`, failing 'stackup' when it is missing. */
-    const layer=(n: string): ResolvedModeling['stackup'][number]=>{
-      const l=m.stackup.find(l=>l.name===n)
-      if(!l) fail('stackup',`No copper z range for ${n}`)
-      return l
-    }
-    for(let i=1;i<route.length;i++) {
-      const a=route[i-1]
-      const b=route[i]
-      if(!['wire','via'].includes(a.route_type)||!['wire','via'].includes(b.route_type)) fail('route_type','Only wire/via routed primitives supported')
-      const distance=Math.hypot(b.x-a.x,b.y-a.y)
-      if(b.route_type==='via') {
-        if(distance>1e-5) fail('via_geometry','Via must follow a co-located wire vertex')
-        if(a.route_type!=='wire'||a.layer!==b.from_layer||b.from_layer===b.to_layer) fail('via_geometry','Via must continue preceding wire layer and change layer')
-        const la=layer(b.from_layer)
-        const lb=layer(b.to_layer)
-        const plating=positive(m.viaPlatingMm,'viaPlatingMm (not recorded in ordinary Circuit JSON)')
-        const width=positive(m.viaEquivalentWidthMm,'viaEquivalentWidthMm')
-        if(!m.omitThroughViaStubs) fail('via_stub','This reduction requires explicit omitThroughViaStubs=true')
-        const hole=positive(b.hole_diameter,'hole_diameter')
-        const area=Math.PI*((hole/2+plating)**2-(hole/2)**2)
-        const length=Math.abs((la.zMinMm+la.zMaxMm-lb.zMinMm-lb.zMaxMm)/2)
-        positive(length,'via active length')
-        stages.push({kind:'via',profile:'via',lengthMm:length,widthMm:width,thicknessMm:area/width,holeMm:hole,platingMm:plating})
-      } else if(distance>1e-10) {
-        const layerName=a.route_type==='via'?a.to_layer:a.layer
-        if(b.layer!==layerName) fail('layer_transition','Layer change requires explicit via')
-        const l=layer(layerName)
-        const width=positive(b.width,'route wire width')
-        if(a.route_type==='wire'&&a.width!==b.width) fail('varying_width','Width transitions require explicit supported stage reduction')
-        const last=stages.at(-1)
-        if(last?.kind==='wire'&&last.profile===layerName&&last.widthMm===width) last.lengthMm+=distance
-        else stages.push({kind:'wire',profile:layerName,lengthMm:distance,widthMm:width,thicknessMm:l.zMaxMm-l.zMinMm,conductivitySm:l.conductivitySm})
-      } else if(b.layer!==(a.route_type==='via'?a.to_layer:a.layer)) {
-        fail('layer_transition','Co-located layer change still requires explicit via')
-      }
-    }
-    if(!stages.length) fail('empty_route',lane.port)
-    routes.push(stages)
-    mappings.push({port:lane.port,sourceTraceId:src.source_trace_id,pcbTraceId:traces[0].pcb_trace_id,from:from.source_port_id,to:to.source_port_id,pcbPorts:ports.map(p=>p.pcb_port_id),stages,originalRoute:route})
+  const ground = boardGround(cj)
+  const rails = new Set<string>()
+  for (const source of cj.filter(r => r.type === 'simulation_voltage_source')) {
+    if (!source.is_dc_source && source.wave_shape) continue
+    const positive = source.is_dc_source ? source.positive_source_port_id ?? source.positive_source_net_id : source.terminal1_source_port_id
+    if (positive) for (const id of connectedSourceIds(cj, positive)) rails.add(id)
   }
-  if(m.reduction==='routed-copper') return {...routedCopperGeometry(cj,m,mappings),stackup}
-  if(routes.some(route=>route.length!==routes[0].length||route.some((s,i)=>s.profile!==routes[0][i].profile))) fail('route_topology','Selected routes must have identical ordered layer/via stage topology')
-  let grounds: Set<string>|undefined
-  /** Ground-pour layers for derived returns, computed once on first use. */
-  const groundLayers=(): Set<string>=>grounds??=groundPourLayers(cj,m.channelReference?selectPort(cj,m.channelReference).source_port_id:undefined)
-  const cells: GeometryCell[]=routes[0].map((_,i)=>{
-    const signals=routes.map(r=>r[i])
-    const name=signals[0].profile
-    const profile=m.profiles?.[name]
-    // Without a declared profile, a wire stage returns in the adjacent ground
-    // planes from pcb_stackup; via stages still need an explicit `via` profile.
-    if(!profile&&signals[0].kind!=='wire') fail('return_geometry',`Missing ${name} return/material profile; via stages need an explicit straightened-stage profile`)
-    const derived=profile?undefined:stackupStageReturn(stackup,groundLayers(),name)
-    const spacingMm=profile?profile.spacingMm:signals.length>1?measuredLaneSpacingMm(mappings.map(l=>l.originalRoute),name):0
-    const length=Math.max(...signals.map(s=>s.lengthMm))/1000
-    const conductors: GeometryCell['conductors']=signals.map((s,j)=>({name:`sig${j}`,lengthM:s.lengthMm/1000,widthM:s.widthMm/1000,thicknessM:s.thicknessMm/1000,conductivitySm:s.conductivitySm??defaultCopperConductivitySm,yM:(j-(signals.length-1)/2)*spacingMm/1000,zM:0}))
-    const parts=profile?[{widthM:profile.return.widthMm/1000,thicknessM:profile.return.thicknessMm/1000,yM:profile.return.centerYMm/1000,zM:profile.return.centerZMm/1000}]
-      :derived!.parts.map(p=>({widthM:p.widthMm/1000,thicknessM:p.thicknessMm/1000,yM:0,zM:p.centerZMm/1000}))
-    conductors.push({name:'return',lengthM:length*(profile?.return.lengthFactor??1),...parts[0],conductivitySm:defaultCopperConductivitySm,...(parts.length>1?{parts}:{})})
-    const boxes=conductors.flatMap(c=>(c.parts??[c]).map(p=>({name:c.name,...p})))
-    for(let a=0;a<boxes.length;a++) for(let b=a+1;b<boxes.length;b++) if(Math.abs(boxes[a].yM-boxes[b].yM)<(boxes[a].widthM+boxes[b].widthM)/2 && Math.abs(boxes[a].zM-boxes[b].zM)<(boxes[a].thicknessM+boxes[b].thicknessM)/2) fail('conductor_overlap',`Stage ${i}: ${boxes[a].name}/${boxes[b].name} overlap`)
-    return {stage:i,profile:name,conductors,relativePermittivity:profile?profile.relativePermittivity:derived!.relativePermittivity,conductivitySm:m.conductivitySm}
-  })
-  return {stackup,cells,mappings,units:{circuitJson:'mm',geometry:'m',conductivity:'S/m'},approximations:['Actual stage lengths, widths and ordered layer transitions from routed Circuit JSON; routes straightened within each stage','Uniform signal center spacing per stage (declared, or the median routed spacing between lanes); actual varying route spacing is not extracted','Finite parallel return bar per stage (declared profile, or one 2 mm bar in each adjacent ground-pour layer from pcb_stackup); isolated neutral conductor group, with ideal reference joins between stages','Homogeneous explicit effective permittivity per stage; no dielectric loss, roughness, plane cutouts, unselected neighboring nets or bend coupling','Via rectangle preserves assumed plated barrel metal area; pads and unconnected through-via stubs omitted','Whole-stage matrices divided into uniform pi sections; constant R/L at modelHz; frequency dispersion not fitted']}
+  const board = cj.find(r => r.type === 'pcb_board')!
+  if (board.type !== 'pcb_board') fail('stackup', 'Missing pcb_board')
+  const outline: CopperPoint[][] = [board.outline?.length ? board.outline.map(p => [p.x, p.y]) : [
+    [board.center.x - board.width! / 2, board.center.y - board.height! / 2], [board.center.x + board.width! / 2, board.center.y - board.height! / 2],
+    [board.center.x + board.width! / 2, board.center.y + board.height! / 2], [board.center.x - board.width! / 2, board.center.y + board.height! / 2],
+  ]]
+  const mappings: LaneMapping[] = []
+  const edges: Edge[] = []
+  const shapes: CopperShape[] = []
+  const cells: GeometryCell[] = []
+  const laneNets = new Map<string, string>()
+  const selected = new Set<string>()
+  /** Copper layer at the physical height; there is no homogeneous-stackup fallback. */
+  const layer = (name: string): Geometry['stackup']['copperLayers'][number] => {
+    const found = stackup.copperLayers.find(c => c.name === name)
+    if (!found) fail('stackup', `Missing copper layer ${name}`)
+    return found
+  }
+  const endpointsByPosition = new Map<string, string>()
+  /** Node at a real route point, shared by adjacent wire segments and vias. */
+  const node = (lane: string, x: number, y: number, name: string): string => {
+    const key = JSON.stringify([lane, round(x), round(y), name])
+    return endpointsByPosition.get(key) ?? `J${sha256(key).slice(0, 16)}`
+  }
+  const lanes = [...modeling.lanes]
+  for (const trace of cj.filter(r => r.type === 'pcb_trace')) {
+    const source = cj.find(r => r.type === 'source_trace' && r.source_trace_id === trace.source_trace_id)
+    if (!source || source.type !== 'source_trace' || source.connected_source_port_ids.some(id => ground.ids.has(id) || rails.has(id))) continue
+    if (lanes.some(l => l.sourceTraceId === source.source_trace_id || (source.connected_source_port_ids.includes(selectPort(cj, l.from).source_port_id) && source.connected_source_port_ids.includes(selectPort(cj, l.to).source_port_id)))) continue
+    if (source.connected_source_port_ids.length !== 2) fail('route_branch', `${source.source_trace_id}: physical branch requires split PCB routes at its junction`)
+    lanes.push({ port: `copper_${source.source_trace_id}`, sourceTraceId: source.source_trace_id, from: { sourcePortId: source.connected_source_port_ids[0] }, to: { sourcePortId: source.connected_source_port_ids[1] } })
+  }
+  for (const lane of lanes.sort((a, b) => a.port.localeCompare(b.port))) {
+    const from = selectPort(cj, lane.from)
+    const to = selectPort(cj, lane.to)
+    const sources = cj.filter(r => r.type === 'source_trace').filter(r => lane.sourceTraceId ? r.source_trace_id === lane.sourceTraceId : r.connected_source_port_ids.includes(from.source_port_id) && r.connected_source_port_ids.includes(to.source_port_id))
+    if (sources.length !== 1) fail('route_selection', `${lane.port}: select one complete routed source trace`)
+    const source = sources[0]
+    if (source.connected_source_port_ids.length !== 2) fail('route_branch', `${lane.port}: routed fanout requires explicit lane endpoints at each junction`)
+    const traces = cj.filter(r => r.type === 'pcb_trace' && r.source_trace_id === source.source_trace_id)
+    if (traces.length !== 1 || selected.has(source.source_trace_id)) fail('route_selection', `${lane.port}: expected a distinct complete pcb_trace`)
+    selected.add(source.source_trace_id)
+    const trace = traces[0]
+    if (trace.type !== 'pcb_trace') fail('route_selection', lane.port)
+    const ports = [from, to].map(p => cj.find(r => r.type === 'pcb_port' && r.source_port_id === p.source_port_id))
+    if (ports.some(p => !p || p.type !== 'pcb_port')) fail('pin_mapping', `${lane.port}: missing physical PCB endpoint`)
+    let route = resolveRouteVias(cj, trace)
+    const p0 = ports[0] as Extract<CircuitJson[number], { type: 'pcb_port' }>
+    if (Math.hypot(route[0].x - p0.x, route[0].y - p0.y) > 1e-5) route = [...route].reverse().map(p => p.route_type === 'via' ? { ...p, from_layer: p.to_layer, to_layer: p.from_layer } : p)
+    const endpoints = [route[0], route.at(-1)!]
+    for (let i = 0; i < 2; i++) {
+      const p = ports[i] as typeof p0
+      if (Math.hypot(endpoints[i].x - p.x, endpoints[i].y - p.y) > 1e-5) fail('endpoint_position', `${lane.port}: route misses endpoint ${p.pcb_port_id}`)
+    }
+    const mapping: LaneMapping = { port: lane.port, sourceTraceId: source.source_trace_id, pcbTraceId: trace.pcb_trace_id,
+      from: from.source_port_id, to: to.source_port_id, pcbPorts: ports.map(p => p!.type === 'pcb_port' ? p.pcb_port_id : ''), stages: [], originalRoute: route }
+    mappings.push(mapping)
+    for (let k = 0; k < endpoints.length; k++) {
+      const point = endpoints[k]
+      const name = point.route_type === 'via' ? point.to_layer : point.layer
+      endpointsByPosition.set(JSON.stringify([lane.port, round(point.x), round(point.y), name]), `${k ? 'OUT' : 'IN'}${mappings.length - 1}`)
+    }
+    for (const id of connectedSourceIds(cj, from.source_port_id)) laneNets.set(id, lane.port)
+    for (let i = 1; i < route.length; i++) {
+      const a = route[i - 1]
+      const b = route[i]
+      const name = a.route_type === 'via' ? a.to_layer : a.layer
+      const physical = layer(name)
+      const start = i === 1 ? `IN${mappings.length - 1}` : node(lane.port, a.x, a.y, name)
+      const finish = i === route.length - 1 ? `OUT${mappings.length - 1}` : node(lane.port, b.x, b.y, b.route_type === 'via' ? b.to_layer : b.layer)
+      if (b.route_type === 'via') {
+        if (Math.hypot(b.x - a.x, b.y - a.y) > 1e-5) fail('via_geometry', 'Via must follow a co-located wire')
+        const plating = stackup.viaPlatingMm
+        if (!plating || plating <= 0) fail('via_plating', `${lane.port}: pcb_stackup.plated_hole_copper_thickness is required`)
+        const via = cj.find(r => r.type === 'pcb_via' && Math.hypot(r.x - b.x, r.y - b.y) < 1e-5 && r.pcb_trace_id === trace.pcb_trace_id)
+        if (!via || via.type !== 'pcb_via') fail('via_geometry', `${lane.port}: physical via pad/barrel dimensions required`)
+        const antipad = Reflect.get(via, 'antipad_diameter')
+        if (typeof antipad !== 'number' || antipad <= via.outer_diameter) fail('via_antipad', `${via.pcb_via_id}: physical antipad_diameter must exceed outer_diameter; cannot infer a circular antipad from a split plane`)
+        const bottom = layer(b.to_layer)
+        const length = Math.abs((physical.zMinMm + physical.zMaxMm - bottom.zMinMm - bottom.zMaxMm) / 2)
+        cells.push({ stage: 0, profile: 'via', lengthM: length / 1000, ports: [{ lane: lane.port, from: start, to: finish }], start: [a.x, a.y], end: [b.x, b.y], via: {
+          holeMm: via.hole_diameter, padMm: via.outer_diameter, antipadMm: antipad, platingMm: plating, lengthMm: length, er: stackup.relativePermittivity, conductivitySm: physical.conductivitySm } })
+        mapping.stages.push({ kind: 'via', profile: 'via', lengthMm: length, widthMm: via.outer_diameter, thicknessMm: plating })
+        continue
+      }
+      if (b.layer !== name) fail('layer_transition', 'A physical via is required for every layer change')
+      const length = Math.hypot(b.x - a.x, b.y - a.y)
+      if (length < 1e-9) continue
+      if (b.width_interpolation_mode || b.start_width !== undefined || b.end_width !== undefined) fail('varying_width', 'Continuous tapers require a nonuniform transmission model')
+      let dx = (b.x - a.x) / length
+      let dy = (b.y - a.y) / length
+      const forward = dx > 1e-8 || (Math.abs(dx) < 1e-8 && dy > 0)
+      if (!forward) { dx = -dx
+        dy = -dy }
+      const ta = a.x * dx + a.y * dy
+      const tb = b.x * dx + b.y * dy
+      edges.push({ lane: lane.port, a: [a.x, a.y], b: [b.x, b.y], layer: name, width: b.width, dx, dy, lo: Math.min(ta, tb), hi: Math.max(ta, tb), forward, from: start, to: finish })
+      shapes.push({ id: trace.pcb_trace_id + '-' + i, net: lane.port, layer: name, polygon: wirePolygon([a.x, a.y], [b.x, b.y], b.width) })
+      mapping.stages.push({ kind: 'wire', profile: name, lengthMm: length, widthMm: b.width, thicknessMm: physical.zMaxMm - physical.zMinMm })
+    }
+  }
+  for (const pour of cj.filter(r => r.type === 'pcb_copper_pour')) {
+    if (pour.shape !== 'brep' || [pour.brep_shape.outer_ring, ...pour.brep_shape.inner_rings].some(r => r.vertices.some(v => v.bulge))) fail('ground_geometry', 'Copper pours require straight BREP boundaries')
+    const net = ground.ids.has(pour.source_net_id ?? '') ? 'GROUND' : laneNets.get(pour.source_net_id ?? '')
+    if (!net) fail('slice_conductor', `${pour.pcb_copper_pour_id}: unselected driven copper needs an electrical channel binding`)
+    shapes.push({ id: pour.pcb_copper_pour_id, net, layer: pour.layer, polygon: [pour.brep_shape.outer_ring, ...pour.brep_shape.inner_rings].map(r => r.vertices.map(v => [v.x, v.y])) })
+  }
+  for (const trace of cj.filter(r => r.type === 'pcb_trace').filter(r => !selected.has(r.source_trace_id ?? ''))) {
+    const source = cj.find(r => r.type === 'source_trace' && r.source_trace_id === trace.source_trace_id)
+    if (!source || source.type !== 'source_trace') fail('slice_conductor', `${trace.pcb_trace_id}: missing electrical identity`)
+    const ids = [...source.connected_source_port_ids, ...(source.connected_source_net_ids ?? [])]
+    const net = ids.some(id => ground.ids.has(id) || rails.has(id)) ? 'GROUND' : ids.map(id => laneNets.get(id)).find(Boolean)
+    if (!net) fail('slice_conductor', `${trace.pcb_trace_id}: unselected driven trace requires a channel binding`)
+    for (let i = 1; i < trace.route.length; i++) {
+      const a = trace.route[i - 1]
+      const b = trace.route[i]
+      if (a.route_type === 'wire' && b.route_type === 'wire' && Math.hypot(a.x - b.x, a.y - b.y) > 1e-9) shapes.push({ id: trace.pcb_trace_id + '-' + i, net, layer: b.layer, polygon: wirePolygon([a.x, a.y], [b.x, b.y], b.width) })
+    }
+  }
+  for (const pad of cj.filter(r => r.type === 'pcb_smtpad')) {
+    const port = cj.find(r => r.type === 'pcb_port' && r.pcb_port_id === pad.pcb_port_id)
+    const id = port?.type === 'pcb_port' ? port.source_port_id : ''
+    const net = ground.ids.has(id) || rails.has(id) ? 'GROUND' : laneNets.get(id) ?? `FLOAT_${pad.pcb_smtpad_id}`
+    if (pad.shape !== 'rect') fail('slice_conductor', `${pad.pcb_smtpad_id}: only rectangular pad boundaries are implemented`)
+    const angle = ((Reflect.get(pad, 'rotation') as number | undefined) ?? 0) * Math.PI / 180
+    shapes.push({ id: pad.pcb_smtpad_id, net, layer: pad.layer, polygon: [[[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => [pad.x + x * pad.width / 2 * Math.cos(angle) - y * pad.height / 2 * Math.sin(angle), pad.y + x * pad.width / 2 * Math.sin(angle) + y * pad.height / 2 * Math.cos(angle)])] })
+  }
+  const directions = new Map(edges.map(e => [`${round(e.dx)},${round(e.dy)}`, [e.dx, e.dy]]))
+  for (const [key, [dx, dy]] of [...directions].sort(([a], [b]) => a.localeCompare(b))) {
+    const parallel = edges.filter(e => `${round(e.dx)},${round(e.dy)}` === key)
+    const cuts = [...new Set([...parallel.flatMap(e => [round(e.lo), round(e.hi)]), ...shapes.flatMap(s => s.polygon.flat().map(p => round(p[0] * dx + p[1] * dy)))])].sort((a, b) => a - b)
+    for (let k = 1; k < cuts.length; k++) {
+      const lo = cuts[k - 1]
+      const hi = cuts[k]
+      const t = (lo + hi) / 2
+      const active = parallel.filter(e => e.lo < t && e.hi > t).sort((a, b) => a.lane.localeCompare(b.lane))
+      if (!active.length || hi - lo < 1e-7) continue
+      if (new Set(active.map(e => e.lane)).size !== active.length) fail('route_topology', 'A lane folds back through its own slice; an explicit multiport discontinuity model is needed')
+      const order = active.map(e => e.lane)
+      const bounds = sliceIntervals(outline, dx, dy, t)
+      const slice: CrossSection = { activeCount: order.length, conductors: [], dielectrics: stackup.dielectrics.flatMap(d => bounds.map(([xMin, xMax]) => ({ xMin, xMax, zMin: d.zMinMm, zMax: d.zMaxMm, er: d.relativePermittivity, lossTangent: d.lossTangent }))) }
+      const floating = new Map<string, number>()
+      for (const shape of shapes) {
+        const physical = layer(shape.layer)
+        const intervals = sliceIntervals(shape.polygon, dx, dy, t)
+        if (!intervals.length) continue
+        let group = shape.net === 'GROUND' ? -1 : order.indexOf(shape.net)
+        if (group < 0 && shape.net !== 'GROUND') {
+          if (!floating.has(shape.net)) floating.set(shape.net, order.length + floating.size)
+          group = floating.get(shape.net)!
+        }
+        for (const [xMin, xMax] of intervals) if (xMax - xMin > 1e-9) slice.conductors.push({ id: shape.id, group, xMin: round(xMin), xMax: round(xMax), zMin: physical.zMinMm, zMax: physical.zMaxMm, conductivitySm: physical.conductivitySm })
+      }
+      if (!slice.conductors.some(c => c.group === -1)) fail('slice_ground', `No board ground crosses slice ${key} at ${t} mm; a 2D return cannot be determined`)
+      mergeConductors(slice)
+      const ports = active.map(e => {
+        /** Junction at an interval boundary, shared by all slices along this wire. */
+        const at = (v: number): string => Math.abs(v - (e.forward ? e.lo : e.hi)) < 1e-7 ? e.from : Math.abs(v - (e.forward ? e.hi : e.lo)) < 1e-7 ? e.to : node(e.lane, dx * v - dy * (-dy * e.a[0] + dx * e.a[1]), dy * v + dx * (-dy * e.a[0] + dx * e.a[1]), e.layer)
+        return { lane: e.lane, from: at(lo), to: at(hi) }
+      })
+      cells.push({ stage: 0, profile: active.map(e => e.layer).join('+'), lengthM: (hi - lo) / 1000, ports, slice, start: [dx * lo, dy * lo], end: [dx * hi, dy * hi] })
+    }
+  }
+  cells.forEach((c, i) => { c.stage = i })
+  return { stackup, mappings, cells, groundSourcePortId: ground.port, units: { circuitJson: 'mm', geometry: 'm', conductivity: 'S/m' }, approximations: [
+    'Declared ideal DC source rails are AC equipotential; their physical copper is included with reference surfaces. Distributed rail impedance is outside this model.',
+    'Local quasi-TEM cross-sections at segment midpoints; radiation and bend fringing require a 3D full-wave model and are excluded.',
+    'Only co-propagating parallel wires share distributed magnetic coupling; oblique conductors have electrostatic floating-charge coupling in each local slice.',
+    'Floating pads are neutral conductors, eliminated by a Schur complement; inner copper etch gaps have no inferred resin fill.',
+    'Vias use cited lumped barrel/pad/antipad formulas; a missing circular antipad is a named error. Ground is the connected board ground net.',
+  ] }
 }
-
-/** Board + board modeling -> today's Geometry, plus `geometry.json` under `scope` (byte-identical to jsonFile). */
-export function channelGeometry(board: Board, modeling: Modeling, scope: ArtifactScope): Produced<Geometry> {
+/** Geometry and segment-map artifacts contain only deterministic physical values. */
+export function channelGeometry(board: Board, modeling: BoardModeling, scope: ArtifactScope): Produced<Geometry> {
   const value = geometryFromCircuitJson(board.circuitJson, modeling)
-  return { value, artifacts: [scope.json('geometry.json', value)] }
+  return { value, artifacts: [scope.json('geometry.json', value), scope.json('segment-map.json', value.cells)] }
 }

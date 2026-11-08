@@ -4,10 +4,10 @@ import { safeId, sha256, type Artifact, type ArtifactScope, type Produced } from
 import { invoke, type SolverContext } from '../solver'
 import { parseRecord, type CircuitJson, type Geometry } from '../board'
 import { probeWaveformRows } from '../observation'
-import type { StageMatrices } from '../extraction'
+import type { ExtractedStage } from '../extraction'
 import { fail } from './diagnostics'
 import { generalSimulationSpice, validateProbeScope } from './netlist'
-import type { BoundExperiments, CircuitNodes, ElectricalSources, ExperimentModel, ExperimentResult, ExperimentRun, Experiments, SafeSimulationPlan, SimulationPlan } from './types'
+import type { SimulationModeling, BoundExperiments, CircuitNodes, ElectricalSources, ExperimentModel, ExperimentResult, ExperimentRun, Experiments, SafeSimulationPlan, SimulationPlan } from './types'
 
 /**
  * Today's runPipeline safeId loop over experiment and eye ids (fails kernel 'simulation_id').
@@ -40,7 +40,7 @@ export function bindExperiments<M extends ExperimentModel>(experiments: Experime
  * accepted only when a complete finite transient follows.
  */
 export async function runExperiment(ctx: SolverContext, experiment: ArtifactScope, bound: BoundExperiments, index: number,
-  geometry: Pick<Geometry, 'mappings'>, modeling: { sections: number }, extracted: readonly StageMatrices[]): Promise<Produced<ExperimentRun>> {
+  geometry: Pick<Geometry, 'mappings'>, modeling: SimulationModeling, extracted: readonly ExtractedStage[]): Promise<Produced<ExperimentRun>> {
   const plan = bound.plans[index]
   const models = bound.compiled[index]
   const artifacts: Artifact[] = []

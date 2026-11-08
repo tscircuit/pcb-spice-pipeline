@@ -9,3 +9,4 @@ export { type Artifact, type ArtifactPath, type ArtifactScope, type FileMap, typ
 export { type SafeId, safeId } from './ids'
 export { sha256 } from './hash'
 
+export { numerics } from './numerics'

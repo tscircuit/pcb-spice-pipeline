@@ -25,3 +25,8 @@ test('unrelated top-level subcircuits only share the unscoped root', () => {
   const tree = subcircuitTree([group('a'), group('b')])
   assert.equal(tree.common(['sub_a', 'sub_b']), undefined)
 })
+
+test('cyclic subcircuit ancestry is a named simulation_scope error', () => {
+  const tree = subcircuitTree([group('a','b'), group('b','a')])
+  assert.throws(() => tree.within('sub_a','sub_b'), {code:'simulation_scope'})
+})

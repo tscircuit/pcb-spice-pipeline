@@ -26,7 +26,7 @@ test('model paths cannot escape the explicit project',()=>{
   for(const path of ['../outside.ibs','/outside.ibs','C:/outside.ibs','a\\b.ibs','a/../b.ibs','a\0.ibs'])
     assert.throws(()=>loadModelSource(model({...asset,project_relative_path:path}),{[path]:bytes}),/file_path/)
 })
-test('model loading rejects HTML, ZIP, invalid UTF-8 and oversized data',()=>{
-  for(const payload of ['<!doctype html><title>Download</title>','PK\x03\x04archive',Buffer.from([0xc3,0x28]),new Uint8Array(64*1024*1024+1),42])
+test('model loading rejects HTML, ZIP, invalid UTF-8',()=>{
+  for(const payload of ['<!doctype html><title>Download</title>','PK\x03\x04archive',Buffer.from([0xc3,0x28]),42])
     assert.throws(()=>loadModelSource(model(asset),{[asset.project_relative_path]:payload}),/IBIS|plain|ZIP|UTF|HTML|encoded|expected/i)
 })

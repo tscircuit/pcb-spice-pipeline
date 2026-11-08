@@ -1,7 +1,7 @@
 // Was src/declarations.ts (circuitNodes, generalDeclarations, modelRunDefinition). Logic and messages unchanged.
 import { transmittedBits } from './stimulus'
 import { fail } from './diagnostics'
-import { subcircuitTree, selectPort } from '../board'
+import { subcircuitTree, boardGround } from '../board'
 import type { CircuitJson, Geometry } from '../board'
 import type { IbisModelDefinition, IbisRunConfig, IbisReferencePorts } from '@tscircuit/ibis-to-spice'
 import type { ModelRunDefinition } from '../buffers'
@@ -91,7 +91,7 @@ export function circuitNodes(circuit: CircuitJson,geometry: Pick<Geometry,'mappi
     // Keep all explicit port-to-port paths, including genuine ideal bypasses.
     union([...(trace.connected_source_port_ids??[]),...(trace.connected_source_net_ids??[]).filter(id=>!splitNets.has(id))])
   }
-  const ground=selectPort(circuit,modeling.channelReference).source_port_id
+  const ground=boardGround(circuit).port
   const groundRoot=find(ground)
   const names=new Map([[groundRoot,'0']])
   /** Names the SPICE node for a port or net ('0' for the channel reference), refusing split channel nets. */
@@ -105,7 +105,7 @@ export function circuitNodes(circuit: CircuitJson,geometry: Pick<Geometry,'mappi
   const ids=[...parents.keys()].filter(id=>!splitNets.has(id))
   for(const id of ids) node(id)
   const endpoints=geometry.mappings.flatMap(mapping=>[node(mapping.from),node(mapping.to)])
-  if(endpoints.includes('0')||new Set(endpoints).size!==endpoints.length) fail('channel_short','Extracted endpoints are shorted by another ideal source trace or reference')
+  if(endpoints.includes('0')||geometry.mappings.some(m => node(m.from) === node(m.to))) fail('channel_short','Extracted endpoints are shorted by another ideal source trace or reference')
   return {node,groundSourcePortId:ground,mapping:Object.fromEntries(ids.map(id=>[id,node(id)]))}
 }
 

@@ -1,0 +1,39 @@
+import * as converter from '@tscircuit/ibis-to-spice'
+import type { ModelRunDefinition } from './types'
+
+/** Adds all mapped pin R/L and pad-to-board-ground C around an omitted-package converter core.
+ * IBIS 7.2 §3 [Package]/[Pin]: per-pin values override corner-selected package defaults.
+ * The original admitted vendor bytes and SHA remain unchanged.
+ */
+export function convertWithPackage(bytes: Uint8Array, input: ModelRunDefinition): converter.ConvertedGeneralIbisComponent {
+  if (input.definition.packagePolicy === 'omit') return converter.convertIbisModelToSpice(bytes, input.definition, input.run)
+  const result = converter.convertIbisModelToSpice(bytes, { ...input.definition, packagePolicy: 'omit' }, input.run)
+  const document = converter.parseIbis(new TextDecoder().decode(bytes))
+  const component = document.components[input.definition.component]
+  if (component.coupledPackage) throw new converter.IbisError('unsupported_package', 'Coupled vendor package models need a package network extractor')
+  const ground = result.metadata.pins[0].references.pulldown
+  const groundTerminal = Object.entries(result.spicePinMapping).find(([, port]) => port === ground)![0]
+  const data = result.metadata.packageData.mappedPins
+  const wrapper = result.source.match(/^\.subckt\s+(\S+)\s+([^\r\n]+)\r?\n([^]*?)^\.ends[^\r\n]*/mi)!
+  let core = wrapper[3]
+  const lines: string[] = []
+  for (const [i, [terminal, port]] of Object.entries(result.spicePinMapping).entries()) {
+    const pin = data.find(p => p.port === port)!
+    let previous = terminal
+    if (pin.resistanceOhms) {
+      lines.push(`RPKG${i} ${previous} PKGR${i} ${converter.spiceNumber(pin.resistanceOhms)}`)
+      previous = `PKGR${i}`
+    }
+    if (pin.inductanceHenries) {
+      lines.push(`LPKG${i} ${previous} PKGL${i} ${converter.spiceNumber(pin.inductanceHenries)}`)
+      previous = `PKGL${i}`
+    }
+    if (pin.capacitanceFarads && terminal !== groundTerminal) lines.push(`CPKG${i} ${terminal} ${groundTerminal} ${converter.spiceNumber(pin.capacitanceFarads)}`)
+    core = core.replace(new RegExp(`\\b${terminal}\\b`, 'g'), previous)
+  }
+  result.source = result.source.replace(wrapper[0], `.subckt ${wrapper[1]} ${wrapper[2]}\n${lines.join('\n')}\n${core}.ends ${wrapper[1]}`)
+  result.metadata.packagePolicy = 'vendor'
+  result.metadata.omissions = []
+  result.warnings = []
+  return result
+}

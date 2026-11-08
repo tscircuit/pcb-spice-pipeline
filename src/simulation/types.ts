@@ -7,7 +7,6 @@ import type { WaveformRows } from '../observation'
 
 /** simulation's slice of the flat public `Modeling`. (`channelReference` is shared with board's slice.) */
 export interface SimulationModeling {
-  channelReference?: PortSelector
   supplies?: { positive: PortSelector; negative: PortSelector; voltageV: number }[]
   passiveComponents?: { sourceComponentId?: string; component?: string }[]
 }

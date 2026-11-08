@@ -1,3 +1,4 @@
+import {channelStage} from '../support/channel'
 // Golden: simulation's declarations, electrical sources and experiment deck reproduce the pre-module
 // declarations.ts/general-spice.ts. Oracle: committed digests (tests/simulation/golden.snapshot.json)
 // recorded from the pre-module flat src/ while it still existed (see tests/support/golden.ts).
@@ -23,7 +24,7 @@ test('golden: generalDeclarations, electrical sources and the experiment deck on
   const electrical = electricalSources(cj, m, current.nodes)
   see('electrical', electrical)
   const compiled = [{ source: '.subckt BUFFER P R\nRTEST P R 1000\n.ends BUFFER\n', spicePinMapping: { P: 'p0', R: 'g0' }, name: 'test' }]
-  const extraction = [{ R: [[1, 0], [0, 1]], L: [[1, 0], [0, 1]], C: [[1, 0], [0, 1]] }]
+  const extraction = [channelStage({ R: [[1, 0], [0, 1]], L: [[1, 0], [0, 1]], C: [[1, 0], [0, 1]] })]
   for (const spice_options of [undefined, { method: 'trap', reltol: '1e-4', vntol: 1e-7 }]) {
     const plan = { ...current.plans[0], experiment: { ...current.plans[0].experiment, spice_options } } as never
     see('deck', generalSimulationSpice(plan, g, m, extraction, compiled, current.nodes, electrical))

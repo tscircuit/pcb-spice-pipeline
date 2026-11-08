@@ -4,13 +4,8 @@ import type { AnyCircuitElement } from 'circuit-json'
 import type { Modeling } from '../../src/pipeline'
 
 export const modeling: Modeling = {
-  reduction: 'routed-copper', sections: 4, relativePermittivity: 4.1,
   lanes: [{ port: 'DQ', from: { component: 'TX', port: 'DQ' }, to: { component: 'RX', port: 'DQ' } }],
-  channelReference: { component: 'TX', port: 'GND' }, groundReturn: { component: 'RX', port: 'GND' },
-  viaPlatingMm: .025, viaEquivalentWidthMm: .1, omitThroughViaStubs: true,
-  extraction: { minimumHz: 1, maximumHz: 1e9, modelHz: 1e8, filaments: 3, refinementFilaments: 5,
-    convergenceTolerance: .05, capTolerance: .02, reciprocityTolerance: .025, dcResistanceTolerance: .002,
-    maxPanelLengthMm: 2, groundMeshMm: 1 },
+
 }
 
 export type ChannelOptions = { vias?: boolean; netBindings?: boolean; short?: boolean; points?: [number, number][] }
@@ -58,5 +53,10 @@ export async function nativeChannel(options: ChannelOptions = {}): Promise<AnyCi
   const circuit = new Circuit({ platform: { partsEngineDisabled: true } })
   circuit.add(<NativeChannel {...options} />)
   await circuit.renderUntilSettled()
-  return circuit.getCircuitJson()
+  const records = circuit.getCircuitJson()
+  for (const record of records) if (record.type === 'pcb_stackup') for (const layer of record.layers) {
+    if (layer.layer_type === 'copper') layer.electrical_conductivity_s_per_m = 5.8e7
+    else Object.assign(layer, { loss_tangent: .02 })
+  }
+  return records
 }

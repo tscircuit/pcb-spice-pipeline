@@ -7,7 +7,7 @@ import type { RunSolver, Solver } from '../solver'
 import { fail } from './diagnostics'
 import { contained, relativeFile } from './paths'
 
-export interface NativeSolverOptions { tools?: Partial<Record<Solver, string>>; timeoutMs?: number }
+export interface NativeSolverOptions { tools?: Partial<Record<Solver, string>> }
 const exec = promisify(execFile)
 
 /**
@@ -15,8 +15,7 @@ const exec = promisify(execFile)
  * Lifecycle: validate -> mkdtemp -> write -> spawn -> collect, with rm in `finally`.
  * Cleanup runs on every path (finally). Collects only requested outputFiles, each contained in the workdir.
  */
-export function createNativeSolver({ tools = {}, timeoutMs = 900000 }: NativeSolverOptions = {}): RunSolver {
-  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) fail('native_timeout', 'timeoutMs must be a positive integer')
+export function createNativeSolver({ tools = {} }: NativeSolverOptions = {}): RunSolver {
   return async request => {
     if (!['fasthenry', 'fastercap', 'ngspice'].includes(request.solver)) fail('native_solver', 'Unknown solver')
     for (const path of [...Object.keys(request.files), ...request.outputFiles]) relativeFile(path)
@@ -30,13 +29,10 @@ export function createNativeSolver({ tools = {}, timeoutMs = 900000 }: NativeSol
       let run: { stdout: string; stderr: string }
       try {
         run = await exec(tools[request.solver] ?? (request.solver === 'fastercap' ? 'FasterCap' : request.solver), request.args,
-          { cwd: directory, timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, env: { ...process.env, OMP_NUM_THREADS: '1' } })
+          { cwd: directory, maxBuffer: Infinity, env: { ...process.env, OMP_NUM_THREADS: '1' } })
       } catch (error) {
         const detail = error as Error & { code?: string | number | null; killed?: boolean; signal?: string; stdout?: string; stderr?: string }
-        // execFile's timeout kills with SIGTERM and no exit code. External
-        // signals are not marked killed; maxBuffer errors have a string code.
-        const timedOut = detail.killed && detail.signal === 'SIGTERM' && detail.code === null
-        fail(timedOut ? 'native_timeout' : 'native_solver', `${request.solver}: ${timedOut ? `exceeded ${timeoutMs} ms process timeout; ${detail.message}` : detail.message}\n${detail.stdout ?? ''}\n${detail.stderr ?? ''}`)
+        fail('native_solver', `${request.solver}: ${detail.message}\n${detail.stdout ?? ''}\n${detail.stderr ?? ''}`)
       }
       const files: Record<string, string> = Object.create(null)
       const root = await realpath(directory)

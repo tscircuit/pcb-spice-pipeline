@@ -59,9 +59,10 @@ await circuit.renderUntilSettled()
 export const circuitJson = [...circuit.getCircuitJson(), {
   type: "pcb_stackup", pcb_stackup_id: "example-stackup",
   pcb_board_id: circuit.getCircuitJson().find(record => record.type === "pcb_board")!.pcb_board_id,
+  plated_hole_copper_thickness: .025,
   layers: [
-    {layer_type: "copper", layer: "top", thickness: .035},
-    {layer_type: "dielectric", thickness: 1.53, relative_permittivity: 4.1},
-    {layer_type: "copper", layer: "bottom", thickness: .035},
+    {layer_type: "copper", layer: "top", thickness: .035, electrical_conductivity_s_per_m: 5.8e7},
+    {layer_type: "dielectric", thickness: 1.53, relative_permittivity: 4.1, dielectric_loss_tangent: .02},
+    {layer_type: "copper", layer: "bottom", thickness: .035, electrical_conductivity_s_per_m: 5.8e7},
   ],
 }]

@@ -21,7 +21,7 @@ test('native adapter isolates requests, captures files and logs, and cleans up s
   const entry=join(root,'solver.mjs')
   const location=join(root,'location.txt')
   await writeFile(entry,`import {readFileSync,writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(location)},process.cwd());process.stdout.write('ran');process.stderr.write('notice');if(process.argv.includes('signal'))process.kill(process.pid,'SIGTERM');if(process.argv.includes('fail'))process.exit(7);if(process.argv.includes('timeout'))setTimeout(()=>{},5000);else writeFileSync('output.dat',readFileSync('nested/input.dat','utf8'));`)
-  const solver=createNativeSolver({tools:{ngspice:process.execPath},timeoutMs:1000})
+  const solver=createNativeSolver({tools:{ngspice:process.execPath}})
   const request={solver:'ngspice' as const,files:{'nested/input.dat':'exact input\r\n'},args:[entry],outputFiles:['output.dat']}
   const output=await solver(request)
   assert.deepEqual(output.stdout,'ran')
@@ -32,15 +32,7 @@ test('native adapter isolates requests, captures files and logs, and cleans up s
   await assert.rejects(solver({...request,args:[entry,'fail']}),/native_solver.*Command failed/)
   await assert.rejects(stat(await readFile(location,'utf8')),{code:'ENOENT'})
   await assert.rejects(solver({...request,args:[entry,'signal']}),/native_solver/)
-  await assert.rejects(solver({...request,args:[entry,'timeout']}),error=>{
-    assert.equal((error as {code:string}).code,'native_timeout')
-    assert.match((error as Error).message,/ngspice.*1000 ms/)
-    assert.match((error as Error).message,/ran[\s\S]*notice/)
-    return true
-  })
-  await assert.rejects(stat(await readFile(location,'utf8')),{code:'ENOENT'})
   await assert.rejects(solver({...request,files:{'../escape':'bad'}}),/file_path/)
-  assert.throws(()=>createNativeSolver({timeoutMs:0}),/native_timeout/)
 })
 test('local IBIS loading deduplicates declarations, rejects missing files and symlink escapes',async t=>{
   const root=await temporary(t)

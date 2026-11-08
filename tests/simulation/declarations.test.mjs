@@ -1,3 +1,4 @@
+import {channelStage} from '../support/channel'
 // Copied from tests/general.test.mjs: every test exercising declarations, general-spice and stimulus.
 // (Extraction, eye-folding and runPipeline-hash tests live in tests/extraction, tests/observation, tests/buffers.)
 // The last test is copied from tests/native-channel.test.ts: the circuitNodes test tests/board/geometry/ports.test.ts left to simulation.
@@ -21,7 +22,7 @@ test('serialized arbitrary data and two eye measurements share one experiment de
   assert.equal(run.run.stimuli.p1.inverted,true)
   assert.equal(plan.eyes[0].timeOriginSeconds,2.5e-7)
   const compiled=[{source:'.subckt BUFFER P R\nRTEST P R 1000\n.ends BUFFER\n',spicePinMapping:{P:'p0',R:'g0'},name:'test'}]
-  const extraction=[{R:[[1,0],[0,1]],L:[[1,0],[0,1]],C:[[1,0],[0,1]]}]
+  const extraction=[channelStage({R:[[1,0],[0,1]],L:[[1,0],[0,1]],C:[[1,0],[0,1]]})]
   const electrical=electricalSources(cj,m,nodes)
   const deck=generalSimulationSpice(plan,g,m,extraction,compiled,nodes,electrical)
   assert.equal(deck.match(/^tran /gm).length,1)

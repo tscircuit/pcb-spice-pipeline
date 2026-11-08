@@ -1,7 +1,7 @@
 import { rootScope, type Artifact } from '../kernel'
 import { admitBoard, channelGeometry, circuitArtifact } from '../board'
 import { extractChannel } from '../extraction'
-import { assertConverter, admitBuffers, compileBuffers, ibisAssembly } from '../buffers'
+import { assertConverter, admitBuffers, compileBuffers, ibisAssembly, extractionBand } from '../buffers'
 import {
   generalDeclarations, electricalSources, safeSimulationPlans, modelRunDefinition, bindExperiments, electricalNodeMap,
   runExperiment, simulationResultCircuitJson, experimentResult,
@@ -68,7 +68,7 @@ export const bind: Stage<'declared', 'bound'> = {
 export const extract: Stage<'bound', 'extracted'> = {
   name: 'extract', from: 'bound', to: 'extracted',
   run: async (state, ctx) => {
-    const channel = await extractChannel(state.geometry, state.modeling, rootScope('extraction'), ctx)
+    const channel = await extractChannel(state.geometry, extractionBand(state.compiled.flat(), state.plans), rootScope('extraction'), ctx)
     return { state: { ...state, phase: 'extracted', channel: channel.value }, artifacts: channel.artifacts }
   },
 }

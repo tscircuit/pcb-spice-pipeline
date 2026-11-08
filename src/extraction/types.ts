@@ -1,49 +1,18 @@
-import type { ExtractionSettings } from '../board'
+import type { GeometryCell, SegmentPort } from '../board'
 import type { Matrix } from './linalg'
-import type { ImpedanceSample } from './parse'
-import type { MatrixCheck, CapacitanceCheck } from './checks'
-
-export type { ExtractionSettings, Matrix, ImpedanceSample, MatrixCheck, CapacitanceCheck }
-/** extraction's slice of the flat public `Modeling`. */
-export interface ExtractionModeling { extraction: ExtractionSettings; sections: number }
-
-export interface RefinementCheck {
-  coarseFilaments: number
-  refinedFilaments: number
-  coarseGroundMeshMm?: number
-  refinedGroundMeshMm?: number
-  frequencyHz: number
-  definition: string
-  tolerance: number
-  R: number
-  L: number
-}
-/** One stage's checked extraction: today's `stage-N/extraction.json` and one entry of PipelineResult.matrices. Key order is serialized. */
+export type { Matrix }
+/** Derived from IBIS edges and declared bit timing, never a public extraction setting. */
+export interface ExtractionModeling { riseTimeSeconds: number; bitRateHz: number }
+export interface LossFit { poles: number[]; weights: number[]; relativeRms: number; maxRelative: number }
 export interface ExtractedStage {
-  stage: number; profile: string
-  R: Matrix; L: Matrix; C: Matrix
-  units: { R: 'ohm'; L: 'H'; C: 'F' }
-  frequencyHz: number
-  primitiveOrder: string[]
-  primitiveImpedance: ImpedanceSample[]
-  modelPrimitiveImpedance: ImpedanceSample
-  primitiveCapacitance: Matrix
-  checks: {
-    R: MatrixCheck; L: MatrixCheck; C: CapacitanceCheck; primitiveC: MatrixCheck
-    convergence: RefinementCheck; capConvergence: number
-    analyticResistanceOhm: number[]; analyticResistanceRelativeErrors: number[]; analyticFrequencyHz: number
-    analyticLoopResistanceOhm: Matrix | null; dcLoopResidual: number | null
-    energyResidual: number; neutralityResidual: number
-  }
-  conversions: {
-    impedance: string; capacitance: string
-    capacitanceSolverCoordinateUnits: 'mm' | 'm'; capacitanceScaleToFarads: number; neutralityDenominatorF: number
-  }
+  stage: number; profile: string; lengthM: number; ports: SegmentPort[]; cells: number
+  R: Matrix; L: Matrix; C: Matrix; C0: Matrix; G: Matrix
+  units: { R: 'ohm'; L: 'H'; C: 'F'; G: 'S' }; frequencyHz: number
+  band: ExtractionModeling; frequenciesHz: number[]
+  spectrum: { frequencyHz: number; R: Matrix; G: Matrix }[]
+  skin: { matrix: Matrix; fit: LossFit }; dielectric: { matrix: Matrix; fit: LossFit }
+  mesh: { panels: number; residual: number | null; rawResidual: number | null }[]
+  sliceHash: string; geometry: GeometryCell
 }
-/** Today's `extracted` array (PipelineResult.matrices), in stage order. */
 export type ChannelMatrices = ExtractedStage[]
-export interface ExtractedChannel {
-  readonly matrices: ChannelMatrices
-  /** `channel.cir`: `.subckt CHANNEL IN0.. OUT0.. REF` from channelSpice(matrices, sections). */
-  readonly spice: string
-}
+export interface ExtractedChannel { readonly matrices: ChannelMatrices; readonly spice: string }

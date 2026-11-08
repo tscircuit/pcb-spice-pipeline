@@ -1,62 +1,40 @@
-import { pcb_stackup, type CircuitJson } from 'circuit-json'
+import type { CircuitJson } from 'circuit-json'
 import { fail } from './diagnostics'
 
 export const defaultCopperConductivitySm = 5.8e7
-export interface CopperLayer {
-  name: string
-  zMinMm: number
-  zMaxMm: number
-  conductivitySm: number
-}
-export interface DielectricLayer {
-  material?: string
-  zMinMm: number
-  zMaxMm: number
-  relativePermittivity?: number
-}
+export interface CopperLayer { name: string; zMinMm: number; zMaxMm: number; conductivitySm: number }
+export interface DielectricLayer { material?: string; zMinMm: number; zMaxMm: number; relativePermittivity: number; lossTangent: number }
 export interface BoardStackup {
-  pcbBoardId: string
-  copperLayers: CopperLayer[]
-  dielectrics: DielectricLayer[]
-  relativePermittivity?: number
-  viaPlatingMm?: number
+  pcbBoardId: string; copperLayers: CopperLayer[]; dielectrics: DielectricLayer[]; relativePermittivity: number; viaPlatingMm?: number
 }
-
-/** Public. Circuit JSON is top→bottom; solver z=0 is the upper face of bottom copper. */
+/** Validates a physical construction field without substituting a guessed material. */
+function field(value: unknown, code: 'stackup_permittivity' | 'stackup_loss' | 'stackup_conductivity', label: string, zero = false): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || (zero ? value < 0 : value <= 0)) fail(code, `pcb_stackup: ${label} is required`)
+  return value
+}
+/** Reads the original record: upstream schema parsers strip newer material fields. z=0 is bottom copper's upper face. */
 export function stackupFromCircuitJson(circuit: CircuitJson): BoardStackup {
-  const boards = circuit.filter(record => record.type === 'pcb_board')
-  const records = circuit.filter(record => record.type === 'pcb_stackup')
-  // Plain Error (no code), exactly as before the module split.
-  if (!records.length) throw new Error(`Board ${boards[0]?.pcb_board_id ?? '(missing pcb_board)'} has no pcb_stackup. Set fabricatorPreset (e.g. "jlcpcb_standard") on <board> so the JLC stackup template is resolved into Circuit JSON.`)
-  if (records.length !== 1) fail('stackup', 'One pcb_stackup per simulation entry is supported')
-  const stackup = pcb_stackup.parse(records[0])
-  if (boards.length !== 1 || boards[0].pcb_board_id !== stackup.pcb_board_id)
-    fail('stackup', `Expected one pcb_board referenced by ${stackup.pcb_board_id}`)
-  const layers = stackup.layers.filter(layer => layer.layer_type !== 'soldermask')
-  const copper = layers.filter(layer => layer.layer_type === 'copper')
-  if (copper.length !== boards[0].num_layers || copper[0]?.layer !== 'top' || copper.at(-1)?.layer !== 'bottom' || new Set(copper.map(layer => layer.layer)).size !== copper.length)
-    fail('stackup', 'Copper layers must be distinct, ordered top to bottom, and match pcb_board.num_layers')
-  if (layers[0]?.layer_type !== 'copper' || layers.at(-1)?.layer_type !== 'copper')
-    fail('stackup', 'Physical stack must start and end with copper (outside soldermask is ignored)')
+  const boards = circuit.filter(r => r.type === 'pcb_board')
+  const records = circuit.filter(r => r.type === 'pcb_stackup')
+  if (records.length !== 1 || boards.length !== 1 || records[0].pcb_board_id !== boards[0].pcb_board_id) fail('stackup', 'Expected one board and its pcb_stackup; set fabricatorPreset or supply physical construction')
+  const record = records[0]
+  const copper = record.layers.filter(r => r.layer_type === 'copper')
+  if (copper.length !== boards[0].num_layers || new Set(copper.map(l => l.layer)).size !== copper.length) fail('stackup', 'Distinct copper layers must match pcb_board.num_layers')
+  let z = -copper.at(-1)!.thickness
   const copperLayers: CopperLayer[] = []
   const dielectrics: DielectricLayer[] = []
-  /** Rounds to 1e-10 mm so summed layer thicknesses do not drift by float error. */
-  const round = (value: number): number => Math.round(value * 1e10) / 1e10
-  let z = -copper.at(-1)!.thickness
-  for (const layer of [...layers].reverse()) {
-    const zMinMm = round(z)
-    const zMaxMm = round(z + layer.thickness)
-    if (layer.layer_type === 'copper') copperLayers.push({ name: layer.layer, zMinMm, zMaxMm,
-      conductivitySm: layer.electrical_conductivity_s_per_m ?? defaultCopperConductivitySm })
-    else dielectrics.push({ material: layer.material_name, zMinMm, zMaxMm, relativePermittivity: layer.relative_permittivity })
-    z = zMaxMm
+  for (const layer of [...record.layers].reverse()) {
+    if (typeof layer.thickness !== 'number' || layer.thickness <= 0) fail('stackup', `${layer.layer_type}: positive physical thickness required`)
+    const lo = z
+    z = Math.round((z + layer.thickness) * 1e10) / 1e10
+    if (layer.layer_type === 'copper') copperLayers.push({ name: layer.layer, zMinMm: lo, zMaxMm: z,
+      conductivitySm: field(layer.electrical_conductivity_s_per_m, 'stackup_conductivity', `${layer.layer}.electrical_conductivity_s_per_m`) })
+    else dielectrics.push({ material: layer.layer_type === 'dielectric' ? layer.material_name : 'soldermask', zMinMm: lo, zMaxMm: z,
+      relativePermittivity: field(layer.relative_permittivity, 'stackup_permittivity', `${layer.layer_type}.relative_permittivity`),
+      lossTangent: field(Reflect.get(layer, 'dielectric_loss_tangent') ?? Reflect.get(layer, 'loss_tangent'), 'stackup_loss', `${layer.layer_type}.dielectric_loss_tangent`, true) })
   }
-  for (let i = 1; i < copperLayers.length; i++) if (copperLayers[i].zMinMm <= copperLayers[i - 1].zMaxMm)
-    fail('stackup', 'Copper layers require a positive dielectric gap')
-  // Native decks use one homogeneous dielectric. Preserve every layer above,
-  // and expose a thickness-weighted approximation only when all Dk is known.
-  const thickness = dielectrics.reduce((sum, layer) => sum + layer.zMaxMm - layer.zMinMm, 0)
-  const relativePermittivity = thickness > 0 && dielectrics.every(layer => layer.relativePermittivity !== undefined)
-    ? dielectrics.reduce((sum, layer) => sum + (layer.zMaxMm - layer.zMinMm) * layer.relativePermittivity!, 0) / thickness : undefined
-  return { pcbBoardId: stackup.pcb_board_id, copperLayers, dielectrics, relativePermittivity, viaPlatingMm: stackup.plated_hole_copper_thickness }
+  if (!dielectrics.length) fail('stackup_permittivity', 'pcb_stackup must contain dielectric construction')
+  const thickness = dielectrics.reduce((s, d) => s + d.zMaxMm - d.zMinMm, 0)
+  return { pcbBoardId: record.pcb_board_id, copperLayers, dielectrics, viaPlatingMm: record.plated_hole_copper_thickness,
+    relativePermittivity: dielectrics.reduce((s, d) => s + d.relativePermittivity * (d.zMaxMm - d.zMinMm), 0) / thickness }
 }

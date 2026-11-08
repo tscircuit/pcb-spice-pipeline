@@ -12,3 +12,5 @@
 export type { IbisSources, BufferModeling, ModelSourceRequest, ModelRunDefinition, SourceEvidence, LoadedModelSource, AdmittedBuffers, CompiledBuffer, AssemblyEntry } from './types'
 export { relativeFile, loadModelSource } from './source'
 export { assertConverter, admitBuffers, compileBuffers, ibisAssembly } from './buffers'
+
+export { extractionBand } from './edge'
