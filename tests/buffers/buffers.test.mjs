@@ -6,7 +6,7 @@ import {rootScope,sha256} from '../../src/kernel/index.js'
 import {geometryFromCircuitJson} from '../../src/board/index.js'
 import {generalDeclarations,modelRunDefinition} from '../../src/simulation/index.js'
 import {assertConverter,admitBuffers,compileBuffers,ibisAssembly} from '../../src/buffers/index.js'
-import {inMemoryInput} from '../simulation/fixtures.mjs'
+import {inMemoryInput} from '../fixtures/in-memory.mjs'
 
 const declared=input=>generalDeclarations(input.circuitJson,geometryFromCircuitJson(input.circuitJson,input.modeling),input.modeling)
 const admit=(input,modeling=input.modeling,ibisSources=input.ibisSources)=>admitBuffers(declared(input).models,ibisSources,modeling,rootScope('buffers'))

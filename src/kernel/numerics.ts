@@ -3,13 +3,18 @@
  * unit conversions and exact algebraic exponents elsewhere are definitions, not tuning knobs.
  */
 export const numerics = {
-  /** Prompt accuracy contract: every nonzero C/C0 matrix entry changes by less than 0.5%. */
+  /** Prompt accuracy contract: every nonzero C/C0/L/skin/loss matrix entry changes by less than 0.5%. */
   meshRelativeChange: .005,
-  /** Start a constant-panel BEM cheaply, then double its cosine-graded subdivisions indefinitely. */
+  /** Start a constant-panel BEM cheaply, then double its graded subdivisions indefinitely. */
   initialPanelsPerEdge: 2,
   meshRefinementRatio: 2,
   /** Galerkin constant panels have second-order capacitance error; Richardson removes that term. */
   capacitanceExtrapolationOrder: 2,
+  /** Laplace's exterior 3*pi/2 wedge gives J~r^(-1/3). Its unresolved J^2 integral
+   * scales as h^(1/3). Quartic endpoint grading h~n^-4 therefore gives n^(-4/3)
+   * leading surface-loss error. Richardson removes it; every output entry must still converge.
+   */
+  skinExtrapolationOrder: 4/3,
   /** Quartic endpoint grading resolves metal/dielectric corner charge singularities. */
   edgeGradingPower: 4,
   /** Four-point Gauss–Legendre target-panel integration (exact through degree 7). */
@@ -51,8 +56,13 @@ export const numerics = {
   dielectricRelativeStep: .001,
   /** Near-DC skin loss must scale as f², becoming sqrt(f) in the surface-current regime. */
   skinTransitionExponent: 1.5,
+  /** Standard 10–90% physical edge thresholds, used for vendor fixtures and linear PULSE edges. */
+  edgeLowFraction: .1,
+  edgeHighFraction: .9,
   /** Linear Ramp convention: 10–90 time = (0.8/0.6) * specified 20–80 time. */
   rampToRiseTime: 4 / 3,
+  /** Relative coverage roundoff for ms-to-s conversions of finite stimulus endpoints. */
+  stimulusCoverageRelativeTolerance: 1e-12,
   /** Physical constants CODATA 2018, NIST. */
   epsilon0: 8.8541878128e-12,
   mu0: 1.25663706212e-6,
@@ -66,6 +76,11 @@ export const numerics = {
   /** Matrix validation tolerances; these predate BEM and also protect SPICE passivity. */
   matrixReciprocity: .005,
   choleskyRelativeFloor: 1e-12,
+  /** Native transient accuracy retained from the existing pipeline: tighter than the 0.5% field criterion.
+   * Gear integration damps numerical ringing in the stiff IBIS/Foster network (ngspice manual, transient options).
+   */
+  spiceRelativeTolerance: 1e-5,
+  spiceAbsoluteCurrentToleranceA: 1e-12,
   /** SPICE text precision retains more digits than the extraction accuracy supports. */
   netlistDigits: 12,
   /** TI Analog Engineer's Pocket Reference eqs. 87–88, dimensions in mm.

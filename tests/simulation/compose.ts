@@ -40,7 +40,7 @@ export async function compose({ circuitJson, modeling, ibisSources, runSolver, o
     rootScope('board').json('geometry.json', geometry), electricalNodeMap(declarations.nodes, electrical, rootScope('simulation')),
   ])
   const ctx = { runSolver, progress: onProgress }
-  const extracted = await extractChannel(geometry, extractionBand(compiled.flat(), plans), rootScope('extraction'), ctx)
+  const extracted = await extractChannel(geometry, extractionBand(compiled.flat(), plans, circuitJson.filter(record=>record.type==='simulation_voltage_source')), rootScope('extraction'), ctx)
   ledger = ledger.add(extracted.artifacts)
   const runs: ExperimentRun[] = []
   const experiments = []

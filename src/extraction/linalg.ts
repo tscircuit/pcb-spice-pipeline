@@ -16,3 +16,6 @@ export const symmetrize = (a: Matrix): Matrix => a.map((r, i) => r.map((v, j) =>
 export function solve(matrix: Matrix, rhs: Matrix): Matrix {
   return solveDense(matrix,rhs)
 }
+
+/** Largest absolute matrix entry, without a JavaScript argument-list size limit. */
+export const maxAbs = (matrix: Matrix): number => matrix.reduce((largest,row)=>row.reduce((current,value)=>Math.max(current,Math.abs(value)),largest),0)

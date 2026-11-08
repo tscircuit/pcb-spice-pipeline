@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 import {selectPort,geometryFromCircuitJson} from '../../src/board/index.js'
 import {generalDeclarations,circuitNodes,modelRunDefinition,generalSimulationSpice,electricalSources,validateProbeScope,transmittedBits} from '../../src/simulation/index.js'
 
-import {fixture} from './fixtures.mjs'
+import {fixture} from '../fixtures/general.mjs'
 import {nativeChannel,modeling} from '../fixtures/native-channel.tsx'
 
 test('serialized arbitrary data and two eye measurements share one experiment deck',()=>{
@@ -26,7 +26,7 @@ test('serialized arbitrary data and two eye measurements share one experiment de
   const electrical=electricalSources(cj,m,nodes)
   const deck=generalSimulationSpice(plan,g,m,extraction,compiled,nodes,electrical)
   assert.equal(deck.match(/^tran /gm).length,1)
-  assert.match(deck,/^save all$/m,'retain internal branch currents referenced by vendor IBIS behavioral sources')
+  assert.match(deck,/^save v\(n3\) v\(n4\)$/m,'record both requested physical probe voltages; native tests cover unsaved internal branch references')
   assert.match(deck,/wrdata waveform.dat probe0 probe1/)
   assert.match(deck,/VDECLARED0 n\d+ 0 3\.3/)
   assert.equal(deck,generalSimulationSpice({...plan,eyes:[]},g,m,extraction,compiled,nodes,electrical),'eye display metadata never changes the electrical experiment')
@@ -209,14 +209,12 @@ test('canonical IBIS model and boolean pin states translate only at the converte
   assert.equal(model.source,undefined,'the external declaration has no converter-specific source union')
 })
 
-test('bits normalization enforces the schema limit before reading array entries',()=>{
-  for(const bits of ['0'.repeat(65536),Array(65536).fill(1)]) assert.equal(transmittedBits(bits).length,65536)
-  const oversized=Array(65537).fill(0)
-  Object.defineProperty(oversized,0,{get(){
-    throw new Error('must reject length before copying')
-  }})
-  for(const bits of ['0'.repeat(65537),oversized]) assert.throws(()=>transmittedBits(bits),/stimulus_pattern.*65536/)
+test('bits normalization accepts long patterns and validates every entry',()=>{
+  for(const bits of ['0'.repeat(100001),Array(100001).fill(1)]) assert.equal(transmittedBits(bits).length,100001)
   assert.throws(()=>transmittedBits(Array(2)),/stimulus_pattern/)
+  const invalid=Array(100001).fill(0)
+  invalid[invalid.length-1]=2
+  assert.throws(()=>transmittedBits(invalid),/stimulus_pattern/)
 })
 
 test('run dictionaries preserve special port names as own entries without prototypes',()=>{

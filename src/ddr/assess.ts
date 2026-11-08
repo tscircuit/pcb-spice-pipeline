@@ -163,7 +163,6 @@ export function assessDdr(rows: number[][], { config: c, data, strobe, eye }: Re
   const edges = observed.edges.filter(e => e.time >= start && e.time <= end)
   result.strobe.crossingsSeconds = edges.map(e => e.time)
   if (edges.length < 2) return unavailable('No usable received DQS train: quiet or fewer than two differential crossings in the measurement gate.')
-  if (edges.length > 10000) return unavailable('Received DQS train exceeds the 10000-edge analysis budget.')
   const tolerance = c.maximumStrobeIntervalErrorSeconds
   if (observed.ambiguities.some(a => a.end >= start && a.start <= end) || edges.some((e, i) => e.plateau || (i > 0 && Math.abs(e.time - edges[i - 1].time - ui) > tolerance)) ||
     edges[0].time - start > ui + tolerance || end - edges.at(-1)!.time > ui + tolerance) {

@@ -161,16 +161,31 @@ test('native primitive netlist executes twelve coupled-capable lanes without a d
   assert.ok(row.slice(3).every(v=>Math.abs(v)<1e-12))
 })
 
-test('native supply-pin package parasitics execute without omitting or rewriting admitted bytes',async()=>{
+test('native supply-pin package parasitics execute with a physical pulse without omitting admitted bytes',async()=>{
   const input=inMemoryInput()
   input.ibisSources['models/test.ibs']=Buffer.from(input.ibisSources['models/test.ibs'].toString().replace('[Pin]','[Package]\nR_pkg .1 .1 .1\nL_pkg 2n 2n 2n\nC_pkg .2p .2p .2p\n[Pin]'))
   for(const model of input.circuitJson.filter(r=>r.type==='simulation_ibis_model'))model.include_package_parasitics=true
   const result=await runPipeline({...input,runSolver:solver})
   const run=result.experiments[0]
   assert.ok(run.waveform.rows.length>2)
+  assert.ok(run.waveform.rows.some(row=>Math.abs(row[1])>1),'physical switching reaches the measured channel')
   for(const model of run.assembly) {
     assert.equal(model.metadata.packagePolicy,'vendor')
     assert.deepEqual(model.metadata.omissions,[])
     assert.ok(model.metadata.packageData.mappedPins.some(p=>p.inductanceHenries>0))
   }
+})
+
+test('saving requested voltages preserves internal branch-current controlled sources bit for bit',async()=>{
+  const waveforms=[]
+  for(const saved of ['all','v(out)']) {
+    const deck=['Unsaved branch control','VDRIVE in 0 PULSE(0 1 1n .1n .1n 2n 4n)',
+      'RLOAD in sense 1','VSENSE sense 0 0','BOUTPUT out 0 V={i(VSENSE)}','ROUT out 0 1000',
+      '.control','set norefvalue','set wr_singlescale','set wr_vecnames','set numdgt=17',`save ${saved}`,
+      'tran .05n 10n','wrdata result.dat v(out)','quit','.endc','.end'].join('\n')+'\n'
+    const result=await solver({solver:'ngspice',args:['-n','-b','control.cir'],files:{'control.cir':deck},outputFiles:['result.dat']})
+    waveforms.push(result.files['result.dat'])
+  }
+  assert.equal(waveforms[0],waveforms[1])
+  assert.ok(waveforms[0].split('\n').some(line=>Number(line.trim().split(/\s+/)[1])>.9))
 })

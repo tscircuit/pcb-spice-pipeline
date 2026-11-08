@@ -2,6 +2,7 @@ import { twoLayerStackup } from '../stackup'
 import React from "react"
 import { Circuit, analog } from "@tscircuit/core"
 import type { JSX } from "react"
+import type { CircuitJson } from "circuit-json"
 import { inputPad, outputPad } from "./models"
 import { BenchSupply, RoutedTrace, Sc70Pads } from "../differential-data/pcb"
 import construction from "./board-construction.json"
@@ -11,15 +12,15 @@ export { modeling }
 const pins = { pin1: "NC", pin2: "A", pin3: "GND", pin4: "Y", pin5: "VCC" }
 
 /** Explicit CMOS output-pad data; this does not simulate the inverter core. */
-function Board(): JSX.Element {
+function Board({ includePackageParasitics }: { includePackageParasitics: boolean }): JSX.Element {
   return <board width={construction.widthMm} height={construction.heightMm}
     thickness={construction.thicknessMm} layers={2} pcbStackup={twoLayerStackup} routingDisabled schematicDisabled>
     <chip name="TX" manufacturerPartNumber="SN74LVC1G04DCK" pcbX={-15} pcbY={0}
       pinLabels={pins} footprint={<Sc70Pads />}  />
     <chip name="RX" manufacturerPartNumber="SN74LVC1G04DCK" pcbX={15} pcbY={0}
       pinLabels={pins} footprint={<Sc70Pads />}  />
-    <ibismodel componentRef=".TX" {...outputPad} />
-    <ibismodel componentRef=".RX" {...inputPad} />
+    <ibismodel componentRef=".TX" {...outputPad} includePackageParasitics={includePackageParasitics} />
+    <ibismodel componentRef=".RX" {...inputPad} includePackageParasitics={includePackageParasitics} />
     <BenchSupply />
     <net name="GND" />
     <trace from=".TX > .GND" to="net.GND" />
@@ -52,7 +53,11 @@ function Board(): JSX.Element {
   </board>
 }
 
-const circuit = new Circuit()
-circuit.add(<Board />)
-await circuit.renderUntilSettled()
-export const circuitJson = circuit.getCircuitJson()
+/** Generate the actual board; package parasitics are an IBIS declaration, never an extraction control. */
+export async function makeBoard(includePackageParasitics: boolean = false): Promise<CircuitJson> {
+  const circuit = new Circuit()
+  circuit.add(<Board includePackageParasitics={includePackageParasitics} />)
+  await circuit.renderUntilSettled()
+  return circuit.getCircuitJson()
+}
+export const circuitJson = await makeBoard()

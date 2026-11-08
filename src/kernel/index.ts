@@ -10,3 +10,4 @@ export { type SafeId, safeId } from './ids'
 export { sha256 } from './hash'
 
 export { numerics } from './numerics'
+export { min, max } from './numbers'

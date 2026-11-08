@@ -54,7 +54,7 @@ export async function runExperiment(ctx: SolverContext, experiment: ArtifactScop
   const run = solve.value
   const diagnostic = (run.stdout + '\n' + run.stderr).split(/\r?\n/).find(line => /\b(?:error|fatal|aborted|timestep too small)\b/i.test(line))
   if (diagnostic) fail('native_solver', `${plan.name}: ${diagnostic.trim()}`, { subjects: [{ kind: 'experiment', id: plan.simulationExperimentId }], artifacts: run.logPaths })
-  artifacts.push(...solve.artifacts)
+  for (const artifact of solve.artifacts) artifacts.push(artifact)
   const waveformText = run.outputs['waveform.dat']
   const rows: number[][] = probeWaveformRows(waveformText, plan.probes)
   if (rows[0][0] > plan.startTimeSeconds + Math.max(plan.maxStepSeconds, plan.durationSeconds * numerics.simulationStartRelativeTolerance)) fail('simulation_start', `${plan.name}: solver output omits the beginning of the declared recording`)
@@ -73,7 +73,7 @@ export async function runExperiment(ctx: SolverContext, experiment: ArtifactScop
 export function simulationResultCircuitJson(circuitJson: CircuitJson, plans: readonly SimulationPlan[], runs: readonly ExperimentRun[]): CircuitJson {
   const pcbExperimentIds = new Set(plans.map(plan => plan.simulationExperimentId))
   const results: CircuitJson = circuitJson.filter(record => record.type !== 'simulation_transient_voltage_graph' || !pcbExperimentIds.has(record.simulation_experiment_id))
-  for (const run of runs) results.push(...run.records)
+  for (const run of runs) for (const record of run.records) results.push(record)
   for (const graph of results.filter(record => record.type === 'simulation_transient_voltage_graph')) if (pcbExperimentIds.has(graph.simulation_experiment_id) && !graph.simulation_voltage_probe_id) fail('result_schema', 'Installed Circuit JSON schema discarded the result probe ID')
   return results
 }

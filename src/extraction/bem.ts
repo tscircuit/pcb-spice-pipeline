@@ -1,13 +1,14 @@
-import { numerics } from '../kernel'
+import { numerics, max } from '../kernel'
 import type { CrossSection } from '../board'
+import { reciprocityResidual } from './checks'
 import { fail } from './diagnostics'
-import { solve, symmetrize, type Matrix } from './linalg'
+import { solve, maxAbs, symmetrize, type Matrix } from './linalg'
 
 export const epsilon0 = numerics.epsilon0
 export const mu0 = numerics.mu0
 interface Point { x: number; z: number }
 interface Panel extends Point { tx: number; tz: number; nx: number; nz: number; length: number; group: number; er: number; contrast: number; sigma: number }
-export interface BemResult { C: Matrix; C0: Matrix; loss: Matrix; surface: Matrix; steps: { panels: number; residual: number | null; rawResidual: number | null }[] }
+export interface BemResult { C: Matrix; C0: Matrix; loss: Matrix; surface: Matrix; steps: { panels: number; residual: number | null; rawResidual: number | null; entries?: Record<string,number> | null; rawEntries?: Record<string,number> | null }[] }
 /** Permittivity on the indicated side of a boundary. Coordinates are millimetres. */
 function material(slice: CrossSection, x: number, z: number): number {
   return slice.dielectrics.find(d => x > d.xMin && x < d.xMax && z > d.zMin && z < d.zMax)?.er ?? 1
@@ -42,19 +43,20 @@ function kernel(a: Panel, b: Panel): number {
   }
   return result
 }
-/** Coalesces repeated projections of one geometric corner, including arithmetic roundoff.
+/** Coalesces repeated projections of one geometric corner, at Circuit JSON topology precision.
+ * Nearly coincident optional alignment projections create sub-ULP graded slivers.
  * This changes mesh breakpoints only; it never discards a conductor or changes its boundary.
  */
 function breakpoints(cuts: number[], length: number): number[] {
   const sorted = [...cuts].sort((a,b)=>a-b)
   const result: number[] = []
   for (const cut of sorted) {
-    if (!result.length || (cut-result.at(-1)!)*length > numerics.minimumPanelLengthMm) result.push(cut)
+    if (!result.length || (cut-result.at(-1)!)*length > numerics.endpointToleranceMm) result.push(cut)
     else if (cut===1) result[result.length-1]=1
   }
   return result
 }
-/** Cosine grading resolves edge singularities; breakpoints resolve metal and layer scales. */
+/** Quartic grading resolves edge singularities; breakpoints resolve metal and layer scales. */
 function panels(slice: CrossSection, count: number, vacuum: boolean): Panel[] {
   const result: Panel[] = []
   /** Algebraic grading concentrates panels at physical metal/dielectric corners. */
@@ -64,7 +66,7 @@ function panels(slice: CrossSection, count: number, vacuum: boolean): Panel[] {
     const dx = b.x - a.x
     const dz = b.z - a.z
     const length = Math.hypot(dx, dz)
-    if (length < numerics.minimumPanelLengthMm) return
+    if (length < numerics.minimumPanelLengthMm) fail('mesh_convergence','Physical boundary is below the documented coordinate resolution')
     const cuts = [0, 1]
     if (Math.abs(dz) < numerics.minimumPanelLengthMm) for (const c of slice.conductors) for (const x of [c.xMin, c.xMax, (c.xMin + c.xMax) / 2]) {
       const t = (x - a.x) / dx
@@ -117,7 +119,7 @@ function panels(slice: CrossSection, count: number, vacuum: boolean): Panel[] {
 function capacitance(slice: CrossSection, count: number, vacuum: boolean): { C: Matrix; panels: Panel[]; charge: Matrix } {
   const p = panels(slice, count, vacuum)
   const n = p.length
-  const groups = Math.max(...slice.conductors.map(c => c.group)) + 1
+  const groups = max(slice.conductors.map(c => c.group)) + 1
   const a: Matrix = p.map((target, i) => [...p.map((source, j) => {
     const coefficient = kernel(target,source)
     const value = target.group >= -1 ? coefficient : (i === j ? 1 / target.length : 0) - 2 * target.contrast * coefficient
@@ -140,50 +142,64 @@ function reduceCapacitance(c: Matrix, active: number): Matrix {
 }
 /** Entry-wise relative convergence, with only a roundoff floor for exact symmetry zeros. */
 export function matrixResidual(a: Matrix, b: Matrix): number {
-  const scale = Math.max(...b.flat().map(Math.abs))
-  return Math.max(...b.flatMap((row, i) => row.map((v, j) => Math.abs(v - a[i][j]) / Math.max(Math.abs(v), scale * numerics.symmetryZeroRelative))))
+  const scale = Math.max(maxAbs(a),maxAbs(b))
+  if (!scale) return 0
+  return b.reduce((largest,row,i)=>row.reduce((current,v,j)=>Math.max(current,Math.abs(v-a[i][j])/Math.max(Math.abs(v),scale*numerics.symmetryZeroRelative)),largest),0)
 }
-/** Refines without a step/attempt cap; no native 3D process is invoked. */
+/** Refines all field-derived RLGC terms without an attempt cap or a 3D solver process. */
 export function solveCrossSection(slice: CrossSection, progress: (message: string) => void = () => {}): BemResult {
-  if (slice.conductors.some(c => ![c.xMin, c.xMax, c.zMin, c.zMax, c.conductivitySm].every(Number.isFinite))) fail('mesh_convergence', 'Finite physical cross-section coordinates and conductivity are required')
+  if (!slice.conductors.length || !slice.conductors.some(c=>c.group===-1) || !slice.conductors.some(c=>c.group>=0) || slice.conductors.some(c => ![c.xMin,c.xMax,c.zMin,c.zMax,c.conductivitySm].every(Number.isFinite) || c.xMin>=c.xMax || c.zMin>=c.zMax || c.conductivitySm<=0)) fail('mesh_convergence','Finite positive metal cross-sections, conductivity, signal and reference are required')
+  if (slice.dielectrics.some(d=>![d.xMin,d.xMax,d.zMin,d.zMax,d.er,d.lossTangent].every(Number.isFinite)||d.xMin>=d.xMax||d.zMin>=d.zMax||d.er<=0||d.lossTangent<0)) fail('mesh_convergence','Dielectric rectangles need finite positive extent/permittivity and nonnegative loss tangent')
   let count = numerics.initialPanelsPerEdge as number
-  let previous: { C: Matrix; C0: Matrix } | undefined
-  let previousEstimate: { C: Matrix; C0: Matrix } | undefined
+  let previous: {C:Matrix;C0:Matrix;L:Matrix;surface:Matrix;loss:Matrix} | undefined
+  let previousEstimate: {C:Matrix;C0:Matrix;L:Matrix;surface:Matrix;loss:Matrix} | undefined
   const steps: BemResult['steps'] = []
   for (;;) {
-    const normal = capacitance(slice, count, false)
-    const vacuum = capacitance(slice, count, true)
+    const normal = capacitance(slice,count,false)
+    const vacuum = capacitance(slice,count,true)
     const active = slice.activeCount ?? normal.C.length
-    const reduced = reduceCapacitance(normal.C, active)
-    const reducedVacuum = reduceCapacitance(vacuum.C, active)
-    const rawResidual = previous ? Math.max(matrixResidual(previous.C, reduced), matrixResidual(previous.C0, reducedVacuum)) : null
-    const ratio = numerics.meshRefinementRatio ** numerics.capacitanceExtrapolationOrder
-    const estimate = previous ? {
-      C: reduced.map((row, i) => row.map((v, j) => (ratio * v - previous!.C[i][j]) / (ratio - 1))),
-      C0: reducedVacuum.map((row, i) => row.map((v, j) => (ratio * v - previous!.C0[i][j]) / (ratio - 1))),
-    } : undefined
-    const residual = estimate && previousEstimate ? Math.max(matrixResidual(previousEstimate.C, estimate.C), matrixResidual(previousEstimate.C0, estimate.C0)) : null
-    steps.push({ panels: normal.panels.length, residual, rawResidual })
-    progress(`2D BEM: ${normal.panels.length} panels; entry-wise residual ${residual ?? 'initial'}; target < ${numerics.meshRelativeChange}`)
-    if (residual !== null && residual < numerics.meshRelativeChange) {
-      const inverse = solve(vacuum.C, vacuum.C.map((_, i) => vacuum.C.map((__, j) => Number(i === j))))
-      const currents = vacuum.charge.map(row => inverse[0].map((_, j) => row.reduce((s, q, i) => s + epsilon0 * q * inverse[i][j], 0)))
-      const surface = inverse.map((_, i) => inverse.map((__, j) => vacuum.panels.reduce((s, panel, k) => s + currents[k][i] * currents[k][j] / (panel.length / 1000) / Math.sqrt(panel.sigma), 0)))
-      const tangent = Math.max(0,...slice.dielectrics.map(d=>d.lossTangent))
-      let loss: Matrix = reduced.map(row => row.map(() => 0))
-      if (tangent) {
-        // Chain rule: dC/ds for eps_k(s)=eps_k*(1+s*tan(delta_k)/maxTan).
-        // One directional solve gives sum_k tan(delta_k)*eps_k*dC/d(eps_k),
-        // preserving identical materials instead of creating artificial interfaces one at a time.
-        const shifted = {...slice,dielectrics:slice.dielectrics.map(d=>({...d,er:d.er*(1+numerics.dielectricRelativeStep*d.lossTangent/tangent)}))}
-        const high = reduceCapacitance(capacitance(shifted,count,false).C,active)
-        loss = high.map((row,i)=>row.map((v,j)=>tangent*(v-reduced[i][j])/numerics.dielectricRelativeStep))
-      }
-      return { C: symmetrize(estimate!.C), C0: symmetrize(estimate!.C0), loss: symmetrize(loss), surface: symmetrize(surface.slice(0, active).map(row => row.slice(0, active))), steps }
+    const C = reduceCapacitance(normal.C,active)
+    const C0 = reduceCapacitance(vacuum.C,active)
+    const L = solve(C0,C0.map((_,i)=>C0.map((__,j)=>Number(i===j))))
+    const inverse = solve(vacuum.C,vacuum.C.map((_,i)=>vacuum.C.map((__,j)=>Number(i===j))))
+    const currents = vacuum.charge.map(row=>Array.from({length:active},(_,j)=>row.reduce((sum,q,i)=>sum+epsilon0*q*inverse[i][j],0)))
+    const surface = C.map((_,i)=>C.map((__,j)=>vacuum.panels.reduce((sum,panel,k)=>sum+currents[k][i]*currents[k][j]/(panel.length/1000)/Math.sqrt(panel.sigma),0)))
+    const tangent = Math.max(0,max(slice.dielectrics.map(d=>d.lossTangent)))
+    let loss = C.map(row=>row.map(()=>0))
+    if (tangent) {
+      // Chain rule combines every material sensitivity in one directional solve.
+      const shifted = {...slice,dielectrics:slice.dielectrics.map(d=>({...d,er:d.er*(1+numerics.dielectricRelativeStep*d.lossTangent/tangent)}))}
+      const high = reduceCapacitance(capacitance(shifted,count,false).C,active)
+      loss = high.map((row,i)=>row.map((v,j)=>tangent*(v-C[i][j])/numerics.dielectricRelativeStep))
     }
-    if (!Number.isFinite(residual ?? 0)) fail('mesh_convergence', 'Nonfinite BEM refinement; inspect cross-section geometry')
-    previousEstimate = estimate
-    previous = { C: reduced, C0: reducedVacuum }
+    const current = {C,C0,L,surface,loss}
+    const rawEntries = previous ? Object.fromEntries(Object.entries(current).map(([key,matrix])=>[key,matrixResidual(previous![key as keyof typeof current],matrix)])) : null
+    const rawResidual = rawEntries ? max(Object.values(rawEntries)) : null
+    /** Removes the leading Galerkin or convex-wedge integration error at this refinement. */
+    const extrapolate = (matrix:Matrix,old:Matrix,order:number): Matrix => {
+      const ratio = numerics.meshRefinementRatio**order
+      return matrix.map((row,i)=>row.map((v,j)=>(ratio*v-old[i][j])/(ratio-1)))
+    }
+    const estimate = previous ? {
+      C:extrapolate(C,previous.C,numerics.capacitanceExtrapolationOrder),
+      C0:extrapolate(C0,previous.C0,numerics.capacitanceExtrapolationOrder),
+      surface:extrapolate(surface,previous.surface,numerics.skinExtrapolationOrder),
+      loss:extrapolate(loss,previous.loss,numerics.capacitanceExtrapolationOrder),
+    } : undefined
+    const estimated = estimate ? {...estimate,L:solve(estimate.C0,estimate.C0.map((_,i)=>estimate.C0.map((__,j)=>Number(i===j))))} : undefined
+    const entries = estimated && previousEstimate ? Object.fromEntries(Object.entries(estimated).map(([key,matrix])=>[key,matrixResidual(previousEstimate![key as keyof typeof estimated],matrix)])) : null
+    const residual = entries ? max(Object.values(entries)) : null
+    steps.push({panels:normal.panels.length,residual,rawResidual,entries,rawEntries})
+    progress(`2D BEM: ${normal.panels.length} panels; estimated C/C0/L/skin/loss ${residual??'initial'}; raw ${rawResidual??'initial'}; target < ${numerics.meshRelativeChange}`)
+    if (residual!==null && residual<numerics.meshRelativeChange) {
+      for (const [name,matrix] of Object.entries(estimated!)) if (reciprocityResidual(matrix)>numerics.matrixReciprocity) fail('reciprocity',`BEM ${name}: antisymmetry exceeds ${numerics.matrixReciprocity} before averaging`)
+      return {
+      C:symmetrize(estimated!.C),C0:symmetrize(estimated!.C0),surface:symmetrize(estimated!.surface),loss:symmetrize(estimated!.loss),steps,
+      }
+    }
+    if (!Number.isFinite(residual??0) || !Number.isFinite(rawResidual??0)) fail('mesh_convergence','Nonfinite BEM refinement; inspect the cross-section')
+    previousEstimate = estimated
+    previous = current
     count *= numerics.meshRefinementRatio
   }
 }

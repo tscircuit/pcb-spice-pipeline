@@ -119,14 +119,14 @@ export function electricalSources(circuit: CircuitJson, modeling: SimulationMode
       changed = true
     }
   }
-  for (const source of sourceBindings) if (!grounded.has(source.positiveNode) || !grounded.has(source.negativeNode)) fail('floating_source', `${source.name}: ideal voltage source has no explicit DC connection to channelReference; wire its physical terminals to the modeled supply/reference ports`)
+  for (const source of sourceBindings) if (!grounded.has(source.positiveNode) || !grounded.has(source.negativeNode)) fail('floating_source', `${source.name}: ideal voltage source has no explicit DC connection to board ground; wire its physical terminals to the modeled supply/reference ports`)
   return { lines: [...sources, ...passives], activeNodes, grounded, sourceBindings, scope: { voltageSources: sources.length, passiveComponents: passives.length, unselectedBoardComponents: 'Excluded from this explicitly selected channel experiment' } }
 }
 
 
 /** Merges an experiment's solver options over the defaults, accepting only the options and methods this backend supports. */
 export function simulationSpiceOptions(overrides: SimulationPlan['experiment']['spice_options'] | Record<string, unknown> = {}): SimulationSpiceOptions {
-  const options: SimulationSpiceOptions = { reltol: 1e-5, abstol: 1e-12, method: 'gear' }
+  const options: SimulationSpiceOptions = { reltol: numerics.spiceRelativeTolerance, abstol: numerics.spiceAbsoluteCurrentToleranceA, method: 'gear' }
   for (const [key, input] of Object.entries<unknown>({ ...overrides })) {
     if (key === 'method') {
       if (input !== 'gear' && input !== 'trap') return fail('spice_options', 'Unsupported integration method')
@@ -166,7 +166,9 @@ export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geom
   // IBIS behavioral sources reference internal voltage-source currents. Probe-only
   // saves discard those branch vectors in upstream ngspice; preserve them all.
   // ngspice's norefvalue disables wall-clock-driven progress text only; errors remain recorded.
-  lines.push('.control', 'set norefvalue', 'set wr_singlescale', 'set wr_vecnames', `set numdgt=${numerics.ngspiceOutputDigits}`, 'save all', `tran ${num(plan.maxStepSeconds)} ${num(plan.durationSeconds)} ${num(plan.startTimeSeconds)} ${num(plan.maxStepSeconds)}`)
+  // Internal controlled-source states remain part of the solve; record only the requested voltages.
+  const saved = [...new Set(plan.probes.flatMap(probe=>[probe.signalNode,probe.referenceNode]))].filter(node=>node!=='0').map(node=>`v(${node})`).join(' ')
+  lines.push('.control', 'set norefvalue', 'set wr_singlescale', 'set wr_vecnames', `set numdgt=${numerics.ngspiceOutputDigits}`, `save ${saved}`, `tran ${num(plan.maxStepSeconds)} ${num(plan.durationSeconds)} ${num(plan.startTimeSeconds)} ${num(plan.maxStepSeconds)}`)
   for (const [i, probe] of plan.probes.entries()) lines.push(`let probe${i} = ${probe.signalNode === '0' ? '0' : `v(${probe.signalNode})`}-${probe.referenceNode === '0' ? '0' : `v(${probe.referenceNode})`}`)
   lines.push(`wrdata waveform.dat ${plan.probes.map((_, i) => `probe${i}`).join(' ')}`, 'quit', '.endc', '.end', '')
   return lines.join('\n')

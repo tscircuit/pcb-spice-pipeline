@@ -124,14 +124,22 @@ export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling
         const antipad = antipadDiameter(cj, via, ground.ids)
         const bottom = layer(b.to_layer)
         const length = Math.abs((physical.zMinMm + physical.zMaxMm - bottom.zMinMm - bottom.zMaxMm) / 2)
+        const lower = Math.min((physical.zMinMm + physical.zMaxMm) / 2, (bottom.zMinMm + bottom.zMaxMm) / 2)
+        const upper = lower + length
+        // The lumped homogeneous via formula uses the thickness-weighted material actually crossed.
+        // Exterior mask and dielectric layers outside a blind/buried via do not set its permittivity.
+        const materials = stackup.dielectrics.map(d => ({ thickness: Math.max(0, Math.min(upper, d.zMaxMm) - Math.max(lower, d.zMinMm)), er: d.relativePermittivity }))
+        const dielectricLength = materials.reduce((s, d) => s + d.thickness, 0)
+        if (!dielectricLength) fail('via_geometry', `${lane.port}: no dielectric within the physical via span`)
+        const er = materials.reduce((s, d) => s + d.thickness * d.er, 0) / dielectricLength
         cells.push({ stage: 0, profile: 'via', lengthM: length / 1000, ports: [{ lane: lane.port, from: start, to: finish }], start: [a.x, a.y], end: [b.x, b.y], via: {
-          holeMm: via.hole_diameter, padMm: via.outer_diameter, antipadMm: antipad, platingMm: plating, lengthMm: length, er: stackup.relativePermittivity, conductivitySm: physical.conductivitySm } })
+          holeMm: via.hole_diameter, padMm: via.outer_diameter, antipadMm: antipad, platingMm: plating, lengthMm: length, er, conductivitySm: physical.conductivitySm } })
         mapping.stages.push({ kind: 'via', profile: 'via', lengthMm: length, widthMm: via.outer_diameter, thicknessMm: plating })
         continue
       }
       if (b.layer !== name) fail('layer_transition', 'A physical via is required for every layer change')
       const length = Math.hypot(b.x - a.x, b.y - a.y)
-      if (length < numerics.boundaryToleranceMm) continue
+      if (!length) continue
       if (b.width_interpolation_mode || b.start_width !== undefined || b.end_width !== undefined) fail('varying_width', 'Continuous tapers require a nonuniform transmission model')
       let dx = (b.x - a.x) / length
       let dy = (b.y - a.y) / length
@@ -189,7 +197,7 @@ export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling
         else groups.push([piece])
       }
       const active = groups.map(g => g[0])
-      if (!active.length || hi - lo < 1e-7) continue
+      if (!active.length) continue
       const order = active.map(e => e.id)
       const bounds = sliceIntervals(outline, dx, dy, t)
       const slice: CrossSection = { activeCount: order.length, conductors: [], dielectrics: stackup.dielectrics.flatMap(d => bounds.map(([xMin, xMax]) => ({ xMin, xMax, zMin: d.zMinMm, zMax: d.zMaxMm, er: d.relativePermittivity, lossTangent: d.lossTangent }))) }
@@ -213,7 +221,7 @@ export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling
           if (!floating.has(key)) floating.set(key, order.length + floating.size)
           group = floating.get(key)!
         }
-        for (const [xMin, xMax] of intervals) if (xMax - xMin > numerics.boundaryToleranceMm) slice.conductors.push({ id: shape.id, group, physicalNet: shape.physicalNet ?? netForLane.get(shape.net) ?? shape.net, xMin: round(xMin), xMax: round(xMax), zMin: physical.zMinMm, zMax: physical.zMaxMm, conductivitySm: physical.conductivitySm })
+        for (const [xMin, xMax] of intervals) if (xMax > xMin) slice.conductors.push({ id: shape.id, group, physicalNet: shape.physicalNet ?? netForLane.get(shape.net) ?? shape.net, xMin: round(xMin), xMax: round(xMax), zMin: physical.zMinMm, zMax: physical.zMaxMm, conductivitySm: physical.conductivitySm })
       }
       if (!slice.conductors.some(c => c.group === -1)) fail('slice_ground', `No board ground crosses slice ${key} at ${t} mm; a 2D return cannot be determined`)
       mergeConductors(slice)

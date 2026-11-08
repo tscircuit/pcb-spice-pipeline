@@ -12,9 +12,9 @@ export const modeling = {
 }
 
 /** Three real SC70 pad links, with physical ground copper and explicit TI buffer declarations. */
-export async function makeBoard(quietMiddle: boolean = false, multilayer: boolean = false): Promise<CircuitJson> {
+export async function makeBoard(quietMiddle: boolean = false): Promise<CircuitJson> {
   const circuit = new Circuit()
-  const count = multilayer ? 1 : 3
+  const count = 3
   circuit.add(<board width={40} height={24} layers={2} thickness={1.6} pcbStackup={twoLayerStackup} routingDisabled schematicDisabled>
     <net name="GND" /><net name="VCC" />
     <voltagesource name="SUPPLY" voltage="3.3V" doNotPlace connections={{ pin1: 'net.VCC', pin2: 'net.GND' }} />
@@ -36,9 +36,7 @@ export async function makeBoard(quietMiddle: boolean = false, multilayer: boolea
         <ibismodel componentRef={`.TX${i}`} {...outputPad} />
         <ibismodel componentRef={`.RX${i}`} {...inputPad} />
         <RoutedTrace name={`D${i}`} from={`.TX${i} > .Y`} to={`.RX${i} > .A`} origin={[-14, y]} width={.15}
-          points={multilayer ? [{ x: -8, y: -.65 }, { x: -8, y: -.65, via: true, fromLayer: 'top', toLayer: 'bottom' },
-            { x: 8, y: -.65 }, { x: 8, y: -.65, via: true, fromLayer: 'bottom', toLayer: 'top' }]
-            : [{ x: -8, y: y - .65 }, { x: -5, y: i * .5 }, { x: 5, y: i * .5 }, { x: 8, y: y - .65 }]} />
+          points={[{ x: -8, y: y - .65 }, { x: -5, y: i * .5 }, { x: 5, y: i * .5 }, { x: 8, y: y - .65 }]} />
         <voltageprobe name={`NEXT${i}`} connectsTo={`.TX${i} > .Y`} referenceTo={`.TX${i} > .GND`} />
         <voltageprobe name={`FEXT${i}`} connectsTo={`.RX${i} > .A`} referenceTo={`.RX${i} > .GND`} />
         <analog.digitalstimulus name={`DATA${i}`} simulationRef=".SI" sourcePinRef={`.TX${i} > .Y`}
@@ -48,10 +46,9 @@ export async function makeBoard(quietMiddle: boolean = false, multilayer: boolea
           unitInterval="50ns" timeOrigin="0ns" startTime="200ns" endTime="1600ns" />
       </Fragment>
     })}
-    {/* A U-shaped pour has a split under the layer-changing route, joined outside the slice. */}
-    <copperpour name="GROUND" layer={multilayer ? 'top' : 'bottom'} connectsTo="net.GND" unbroken outline={multilayer
-      ? [{ x: -19, y: -11 }, { x: 19, y: -11 }, { x: 19, y: 11 }, { x: 1, y: 11 }, { x: 1, y: -8 }, { x: -1, y: -8 }, { x: -1, y: 11 }, { x: -19, y: 11 }]
-      : [{ x: -19, y: -11 }, { x: 19, y: -11 }, { x: 19, y: 11 }, { x: -19, y: 11 }]} />
+    <copperpour name="GROUND" layer="bottom" connectsTo="net.GND" unbroken outline={[
+      { x: -19, y: -11 }, { x: 19, y: -11 }, { x: 19, y: 11 }, { x: -19, y: 11 },
+    ]} />
     <analog.transientsimulation pcbSpiceChannel={{lanes:modeling.lanes.slice(0,count).map(l=>({name:l.port,from:`.${l.from.component} > .${l.from.port}`,to:`.${l.to.component} > .${l.to.port}`}))}} name="SI" spiceEngine="pcb_spice" duration="1600ns" timePerStep="50ps"
       ibisPinStates={Object.fromEntries(Array.from({ length: count }, (_, i) => [
         [`.TX${i} > .Y`, { isOutput: true, isOutputEnabled: true }], [`.RX${i} > .A`, { isOutput: false }],

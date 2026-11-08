@@ -1,5 +1,6 @@
 // Planar polygon helpers shared by board (connectivity) and extraction (meshing), mm.
 import type { CopperPoint as Point, CopperPolygon as Polygon } from './types'
+import { min, max } from '../../kernel'
 
 /** Signed shoelace area of a ring: positive when counter-clockwise, so callers can fix winding. */
 export const ringArea = (ring: Point[]): number => ring.reduce((s, p, i) => {
@@ -14,7 +15,7 @@ const ringBounds=new WeakMap<Point[],[number,number,number,number]>()
 function inRing(p: Point, ring: Point[]): boolean {
   let box=ringBounds.get(ring)
   if(!box) {
-    box=[Math.min(...ring.map(p=>p[0])),Math.min(...ring.map(p=>p[1])),Math.max(...ring.map(p=>p[0])),Math.max(...ring.map(p=>p[1]))]
+    box=[min(ring.map(p=>p[0])),min(ring.map(p=>p[1])),max(ring.map(p=>p[0])),max(ring.map(p=>p[1]))]
     ringBounds.set(ring,box)
   }
   if(p[0]<box[0]||p[1]<box[1]||p[0]>box[2]||p[1]>box[3]) return false

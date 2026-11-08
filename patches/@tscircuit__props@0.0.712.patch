@@ -669,7 +669,7 @@ index 081d54273662a96b88e901bec1d0882a8f3407e9..cc13897f890b72251f8c3476c0edf9dc
  }>;
  
 diff --git a/dist/index.js b/dist/index.js
-index 8b0feda23f0a394eb02233e347cce1a668cd0ac2..1b682d21dcd3d7c08dc0e728e127ccd6d402d81b 100644
+index 8b0feda23f0a394eb02233e347cce1a668cd0ac2..948535850001404786427318c439ee208c38d846 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -17336,6 +17336,7 @@ var boardOutlinePoint = z60.object({
@@ -740,3 +740,48 @@ index 8b0feda23f0a394eb02233e347cce1a668cd0ac2..1b682d21dcd3d7c08dc0e728e127ccd6
  expectTypesMatch(
    true
  );
+@@ -19040,7 +18994,6 @@ expectTypesMatch(true);
+ // lib/components/analogdigitalstimulus.ts
+ import { ms as ms3 } from "circuit-json";
+ import { z as z112 } from "zod";
+-var MAX_TRANSMITTED_BITS = 65536;
+ var analogDigitalStimulusProps = z112.object({
+   name: z112.string().min(1),
+   simulationRef: z112.string().min(1),
+@@ -19056,8 +19009,8 @@ var analogDigitalStimulusProps = z112.object({
+   transmittedData: z112.object({
+     transmissionType: z112.literal("bits"),
+     bits: z112.union([
+-      z112.string().regex(/^[01]+$/).max(MAX_TRANSMITTED_BITS),
+-      z112.array(z112.union([z112.literal(0), z112.literal(1)])).nonempty().max(MAX_TRANSMITTED_BITS)
++      z112.string().regex(/^[01]+$/),
++      z112.array(z112.union([z112.literal(0), z112.literal(1)])).nonempty()
+     ]),
+     repeat: z112.boolean()
+   }).strict()
+diff --git a/lib/components/analogdigitalstimulus.ts b/lib/components/analogdigitalstimulus.ts
+index 891155a9e8ad6799630720eed56726bfc5f6a316..36e41b95eeacc8fd8854cf72479741dcbe2f8019 100644
+--- a/lib/components/analogdigitalstimulus.ts
++++ b/lib/components/analogdigitalstimulus.ts
+@@ -3,7 +3,6 @@ import { expectTypesMatch } from "lib/typecheck"
+ import { z } from "zod"
+ 
+ /** Matches circuit-json's simulation_digital_stimulus pattern limit. */
+-const MAX_TRANSMITTED_BITS = 65536
+ 
+ /** Binary traffic for one external transient. Numeric times are milliseconds. */
+ export interface AnalogDigitalStimulusProps {
+@@ -43,11 +42,11 @@ export const analogDigitalStimulusProps = z
+           z
+             .string()
+             .regex(/^[01]+$/)
+-            .max(MAX_TRANSMITTED_BITS),
++            ,
+           z
+             .array(z.union([z.literal(0), z.literal(1)]))
+             .nonempty()
+-            .max(MAX_TRANSMITTED_BITS),
++            ,
+         ]),
+         repeat: z.boolean(),
+       })

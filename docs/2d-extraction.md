@@ -11,11 +11,13 @@ Extraction now walks the actual copper. It does not launch FastHenry or FasterCa
    common potential. Solve again in vacuum and calculate L = μ0 ε0 C0⁻¹. Neutral floating pads are
    eliminated with a Schur complement. Repeated geometry is cached. Dense IEEE-double elimination uses the included WebAssembly kernel;
    `scripts/build-lu.mjs` rebuilds it from the readable C source.
-3. **Model vias.** Use physical hole, pad, antipad, plating and active length. A missing dimension
+3. **Model vias.** Use physical hole, pad, antipad, plating, active length and the weighted dielectric
+   permittivity within that span. Exterior mask and layers outside a blind/buried via are excluded. A missing dimension
    raises a named diagnostic. TI's closed-form via approximation gives lumped R/L/C; it is not a
    full-wave discontinuity solution.
 4. **Build the ladder.** The fastest selected IBIS edge and the bit timing determine the frequency
-   band and number of cells. Each cell has the complete coupled inductance matrix and physical C.
+   band and number of cells. A passive experiment needs a declared finite-edge voltage pulse;
+   a simulation timestep is never used as a physical rise time. Each cell has the complete coupled inductance matrix and physical C.
    Positive-real Foster RL branches model skin/proximity loss from the solved surface-current
    distribution. Series RC branches model dielectric loss from material sensitivity. Fit residuals
    and all mesh refinement steps are artifacts. This works with native ngspice primitives.
@@ -23,9 +25,11 @@ Extraction now walks the actual copper. It does not launch FastHenry or FasterCa
    stages consume its output. No synthetic waveform replaces a native measurement.
 
 All numerical policy is in `src/kernel/numerics.ts`. There are no solver process timeouts, mesh
-attempt limits, lane caps, or maximum cell clamps. Refinement continues until every nonzero matrix
-C/C0 estimate entry meets the documented relative-change criterion; all-matrix loss convergence
-qualification is tracked explicitly in REPORT.md. Exact symmetry zeros use a roundoff floor.
+attempt limits, lane caps, or maximum cell clamps. Refinement continues until every nonzero C/C0/L, surface-current-loss and dielectric-loss
+**estimate** entry changes by less than 0.5%. Richardson extrapolation removes the leading panel error
+(second order for C/C0/loss, order 4/3 for the quartic-graded corner-current integral). Both raw and
+estimated residuals are logged; the raw skin-loss residual can exceed 0.5% at termination. Reciprocity
+is checked before averaging. Exact symmetry zeros use a documented roundoff floor.
 Physical Dk, loss tangent, copper conductivity, layer thickness and via plating come from the original
 `pcb_stackup` (the examples declare it directly with the `pcbStackup` JSX prop), including solder mask; incomplete presets fail with field-specific diagnostics.
 
@@ -53,3 +57,8 @@ References: [Hammerstad–Jensen single microstrip](https://qucs.sourceforge.net
 [coupled microstrip](https://qucs.sourceforge.net/tech/node77.html),
 [TI Analog Engineer's Pocket Reference, via formulas](https://www.ti.com/lit/eb/slyw038c/slyw038c.pdf).
 These references define validation oracles; they are not substituted for the BEM solution.
+
+IBIS package mode retains vendor R/L/C for signal, power and ground pins. The standard lumped
+capacitance is at the external pin relative to board ground; each pin’s R/L connects to the die.
+Native solver failures propagate with their logs. See REPORT.md for the real-TI switching-package
+convergence failure; the synthetic dynamic package check is narrower evidence.

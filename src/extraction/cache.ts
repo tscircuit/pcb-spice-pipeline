@@ -7,7 +7,7 @@ const solutions = new Map<string, BemResult>()
 export function cachedSlice(hash: string, slice: CrossSection, progress: (message: string) => void): BemResult {
   const cached = solutions.get(hash)
   if (cached) {
-    for (const step of cached.steps) progress(`2D BEM: ${step.panels} panels; entry-wise residual ${step.residual ?? 'initial'}; target < ${numerics.meshRelativeChange}`)
+    for (const step of cached.steps) progress(`2D BEM: ${step.panels} panels; estimated C/C0/L/skin/loss ${step.residual ?? 'initial'}; raw ${step.rawResidual ?? 'initial'}; target < ${numerics.meshRelativeChange}`)
     return structuredClone(cached)
   }
   const solved = solveCrossSection(slice, progress)

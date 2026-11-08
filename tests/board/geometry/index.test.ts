@@ -20,6 +20,8 @@ test('multilayer TSX derives actual via antipads and splits at plane edges and l
   const g = geometryFromCircuitJson(via as CircuitJson, viaModeling)
   assert.equal(g.cells.filter(c=>c.via).length,2)
   assert.ok(g.cells.filter(c=>c.via).every(c=>Math.abs(c.via!.antipadMm-.7)<.001))
+  // This board crosses FR4 (4.1), whereas its exterior solder mask has a different Dk.
+  assert.ok(g.cells.filter(c=>c.via).every(c=>Math.abs(c.via!.er-4.1)<1e-12))
   assert.ok(g.cells.some(c=>c.profile==='inner2'))
   const noHoles = structuredClone(via) as any[]
   for (const p of noHoles.filter(r=>r.type==='pcb_copper_pour')) p.brep_shape.inner_rings=[]

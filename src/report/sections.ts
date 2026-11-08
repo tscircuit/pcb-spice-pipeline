@@ -4,6 +4,7 @@ import { selectPort } from '../board'
 import type { SimulationPlan } from '../simulation'
 import type { DdrAssessment } from '../ddr'
 import type { Modeling } from '../pipeline'
+import { min } from '../kernel'
 
 export type ReportTest = Pick<SimulationPlan, 'startTimeSeconds' | 'durationSeconds' | 'maxStepSeconds' | 'stimuli' | 'states' | 'models'>
 export interface ReportContext {
@@ -113,7 +114,7 @@ export function reportContext(circuit: CircuitJson, geometry: Geometry, modeling
   const outlinePoints = circuit.filter(e => e.type === 'pcb_board').flatMap(board => board.outline ?? [])
   const outlinePaths = circuit.filter(e => e.type === 'pcb_board').flatMap(board => board.outline?.length ? [tracePath(board.outline) + ' Z'] : [])
   const allPoints = circuit.filter(e => e.type === 'pcb_trace').flatMap(trace => trace.route).flatMap(point => point.route_type === 'through_pad' ? [point.start, point.end] : [{ x: point.x, y: point.y }])
-  allPoints.push(...outlinePoints)
+  for (const point of outlinePoints) allPoints.push(point)
   for (const box of [...boardComponents, ...outlines]) for (const sign of [-1, 1]) allPoints.push({ x: box.x + sign * box.width / 2, y: box.y + sign * box.height / 2 })
   const bounds = allPoints.reduce((b, point) => ({ minX: Math.min(b.minX, point.x), maxX: Math.max(b.maxX, point.x), minY: Math.min(b.minY, point.y), maxY: Math.max(b.maxY, point.y) }),
     { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity })
@@ -246,7 +247,7 @@ function ddrFindings(eyes: ReportEye[]): string {
     /** Smallest evaluated margin of this kind across captures, in picoseconds. */
     const minimum = (key: 'setupMarginSeconds' | 'holdMarginSeconds'): string => {
       const values = d.captures.flatMap(c => c[key] === undefined ? [] : [c[key]!])
-      return values.length ? number(Math.min(...values), 'ps', 1e12) : 'Not evaluated'
+      return values.length ? number(min(values), 'ps', 1e12) : 'Not evaluated'
     }
     return `<h3>${html(d.name)} · ${html(d.status)}</h3><p>DDR compliance: ${html(d.compliance.status)}. ${html(d.compliance.reason)}</p>
       ${d.reasons.map(reason => `<p>${html(reason)}</p>`).join('')}

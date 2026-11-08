@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 import {Diagnostic} from '../../src/kernel/index.js'
 import {geometryFromCircuitJson} from '../../src/board/index.js'
 import * as current from '../../src/simulation/index.js'
-import {fixture} from './fixtures.mjs'
+import {fixture} from '../fixtures/general.mjs'
 
 const impls={
   current:{...current,geometry:geometryFromCircuitJson},

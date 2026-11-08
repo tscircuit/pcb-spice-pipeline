@@ -1384,7 +1384,7 @@ index a54ead1b4ecb9370d3b6f6cc8b2d1d7cd3940ec5..eb827375ecbe0e4d6e9ca8fedf715c97
      dc_sweep_voltage_source_id?: string | undefined;
      dc_sweep_current_source_id?: string | undefined;
 diff --git a/dist/index.mjs b/dist/index.mjs
-index f3f19a74e868722823ead748b31ae7668c002460..ca885e1e1fcf80f8961491fb93930acfa551425e 100644
+index f3f19a74e868722823ead748b31ae7668c002460..1e0e315bd51fd49f51b21d244dcc7c0f8f676dfc 100644
 --- a/dist/index.mjs
 +++ b/dist/index.mjs
 @@ -3334,12 +3334,15 @@ var nonnegative_length = length.pipe(z143.number().finite().nonnegative());
@@ -1464,3 +1464,22 @@ index f3f19a74e868722823ead748b31ae7668c002460..ca885e1e1fcf80f8961491fb93930acf
  expectTypesMatch(true);
  var simulation_experiment = z213.object({
    type: z213.literal("simulation_experiment"),
+@@ -5711,7 +5666,6 @@ var simulation_ibis_pin_state = z233.object({
+ 
+ // src/simulation/simulation_digital_stimulus.ts
+ import { z as z234 } from "zod";
+-var MAX_PATTERN_BITS = 65536;
+ var simulation_digital_stimulus = z234.object({
+   type: z234.literal("simulation_digital_stimulus"),
+   simulation_digital_stimulus_id: getZodPrefixedIdWithDefault(
+@@ -5726,8 +5680,8 @@ var simulation_digital_stimulus = z234.object({
+   inverted: z234.boolean(),
+   transmission_pattern: z234.object({
+     transmission_type: z234.literal("bits"),
+-    bits: z234.string().max(MAX_PATTERN_BITS).regex(/^[01]+$/).or(
+-      z234.array(z234.union([z234.literal(0), z234.literal(1)])).min(1).max(MAX_PATTERN_BITS)
++    bits: z234.string().regex(/^[01]+$/).or(
++      z234.array(z234.union([z234.literal(0), z234.literal(1)])).min(1)
+     ),
+     repeat: z234.boolean()
+   }).strict()

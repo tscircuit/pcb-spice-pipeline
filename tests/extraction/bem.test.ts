@@ -70,3 +70,12 @@ test('isolated stripline matches Wheeler thin-strip limit within 2%',()=>{
   assert.ok(Math.abs(z/expected-1)<.02,`${z} vs ${expected}`)
   assert.ok(Math.abs(r.C[0][0]/r.C0[0][0]/4-1)<.02)
 })
+
+test('actual TSX crosstalk slice converges despite nearly coincident optional alignment projections',async()=>{
+  const {circuitJson,modeling}=await import('../../examples/crosstalk/index.circuit')
+  const {geometryFromCircuitJson}=await import('../../src/board')
+  const slice=geometryFromCircuitJson(circuitJson,modeling).cells[179].slice!
+  const result=solveCrossSection(slice)
+  assert.ok(result.steps.at(-1)!.residual!<.005)
+  for(const value of Object.values(result.steps.at(-1)!.entries!))assert.ok(value<.005)
+})

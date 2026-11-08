@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {compose} from './compose.ts'
-import {inMemoryInput,fixtureSolver} from './fixtures.mjs'
+import {inMemoryInput,fixtureSolver} from '../fixtures/in-memory.mjs'
 
 test('transient diagnostics and missing, truncated or nonfinite samples fail even after valid matrices',async()=>{
   const input=inMemoryInput()

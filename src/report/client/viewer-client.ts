@@ -85,8 +85,8 @@ export function viewerClient(): void {
   /** Zooms back out to the full time range of the current view and redraws. */
   const reset = (): void => {
     const curves = series()
-    fullMin = mode === 'eye' ? 0 : Math.min(...curves.map(({ run }) => run.rows[0][0]))
-    fullMax = mode === 'eye' ? 2 * selectedEye().unitIntervalSeconds : Math.max(...curves.map(({ run }) => run.rows.at(-1)![0]))
+    fullMin = mode === 'eye' ? 0 : curves.reduce((value, { run }) => Math.min(value, run.rows[0][0]), Infinity)
+    fullMax = mode === 'eye' ? 2 * selectedEye().unitIntervalSeconds : curves.reduce((value, { run }) => Math.max(value, run.rows.at(-1)![0]), -Infinity)
     xMin = fullMin
     xMax = fullMax
     draw()

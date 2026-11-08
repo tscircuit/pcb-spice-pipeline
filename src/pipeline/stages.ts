@@ -68,7 +68,7 @@ export const bind: Stage<'declared', 'bound'> = {
 export const extract: Stage<'bound', 'extracted'> = {
   name: 'extract', from: 'bound', to: 'extracted',
   run: async (state, ctx) => {
-    const channel = await extractChannel(state.geometry, extractionBand(state.compiled.flat(), state.plans), rootScope('extraction'), ctx)
+    const channel = await extractChannel(state.geometry, extractionBand(state.compiled.flat(), state.plans, state.board.circuitJson.filter(record=>record.type==='simulation_voltage_source')), rootScope('extraction'), ctx)
     return { state: { ...state, phase: 'extracted', channel: channel.value }, artifacts: channel.artifacts }
   },
 }
@@ -90,7 +90,7 @@ export const simulate: Stage<'extracted', 'simulated'> = {
           : { request: eye, alignment: { kind: 'stimulus-clock' } }
       })
       const eyes = foldEyes(run.value.rows, inputs, { sha256: run.value.waveformCsvSha256 }, scope.handTo('observation'))
-      artifacts.push(...assembly.artifacts, ...run.artifacts, ...eyes.artifacts)
+      for (const group of [assembly.artifacts, run.artifacts, eyes.artifacts]) for (const artifact of group) artifacts.push(artifact)
       runs.push({ run: run.value, eyes: eyes.value as EyeDescriptor[], assembly: assembly.value })
     }
     return { state: { ...state, phase: 'simulated', runs }, artifacts }

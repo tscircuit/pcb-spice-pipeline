@@ -1,7 +1,13 @@
 // Reciprocity / passivity / reference reduction (was matrices.mjs validateMatrix/loopImpedance/referenceCapacitance).
 import { numerics } from '../kernel'
 import { fail } from './diagnostics'
-import { sum, symmetrize, type Matrix } from './linalg'
+import { sum, symmetrize, maxAbs, type Matrix } from './linalg'
+
+/** Measures antisymmetry before any averaging, without hiding a discretization error. */
+export function reciprocityResidual(matrix: Matrix): number {
+  const norm = maxAbs(matrix)
+  return norm ? matrix.reduce((largest,row,i)=>row.reduce((current,v,j)=>Math.max(current,Math.abs(v-matrix[j][i])),largest),0)/norm : 0
+}
 
 export interface MatrixCheck { matrix: Matrix; reciprocityResidual: number; cholesky: Matrix }
 
@@ -9,9 +15,9 @@ export interface MatrixCheck { matrix: Matrix; reciprocityResidual: number; chol
 export function validateMatrix(a: Matrix, name: string, tolerance: number = numerics.matrixReciprocity): MatrixCheck {
   const n=a.length
   if (!n || a.some(r => r.length!==n || r.some(v => !Number.isFinite(v)))) fail('matrix_format', `${name}: finite square matrix required`)
-  const norm=Math.max(...a.flat().map(Math.abs))
+  const norm=maxAbs(a)
   if (!norm) fail('matrix_zero',name)
-  const residual=Math.max(...a.flatMap((r,i) => r.map((v,j) => Math.abs(v-a[j][i]))))/norm
+  const residual=reciprocityResidual(a)
   if (residual>tolerance) fail('reciprocity', `${name}: residual ${residual} > ${tolerance}`)
   const m=symmetrize(a)
   const l: Matrix=m.map(() => Array(n).fill(0))

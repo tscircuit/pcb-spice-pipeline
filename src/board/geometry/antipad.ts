@@ -1,4 +1,4 @@
-import { numerics } from '../../kernel'
+import { numerics, min, max } from '../../kernel'
 import type { CircuitJson } from '../schema'
 import { fail } from '../diagnostics'
 
@@ -12,10 +12,10 @@ export function antipadDiameter(circuit: CircuitJson, via: Extract<CircuitJson[n
     for (const ring of pour.brep_shape.inner_rings) {
       const distances = ring.vertices.map(p=>Math.hypot(p.x-via.x,p.y-via.y))
       const radius = distances.reduce((s,r)=>s+r,0)/distances.length
-      if (radius > via.outer_diameter/2 && Math.max(...distances)-Math.min(...distances) < radius*numerics.meshRelativeChange) diameters.push(2*radius)
+      if (radius > via.outer_diameter/2 && max(distances)-min(distances) < radius*numerics.meshRelativeChange) diameters.push(2*radius)
     }
   }
   if (!diameters.length) fail('via_antipad',`${via.pcb_via_id}: record a circular antipad or provide its actual circular ground-pour void; a split-plane edge is insufficient`)
-  if (Math.max(...diameters)/Math.min(...diameters)-1 > numerics.meshRelativeChange) fail('via_antipad','Different antipad sizes require a layered via model')
+  if (max(diameters)/min(diameters)-1 > numerics.meshRelativeChange) fail('via_antipad','Different antipad sizes require a layered via model')
   return diameters[0]
 }

@@ -1,4 +1,4 @@
-import { numerics } from '../kernel'
+import { numerics, max } from '../kernel'
 import { fail } from './diagnostics'
 import { validateMatrix } from './checks'
 import { scale, sum, type Matrix } from './linalg'
@@ -58,7 +58,7 @@ export function channelSpice(extracted: readonly ExtractedStage[], lanes: number
       /** Realizes a positive-definite shunt by an exact ideal-transformer congruence. */
       const modal = (matrix: Matrix, pole: number | undefined, branch: string): void => {
         if (!matrix.some(row=>row.some(v=>v!==0))) return
-        const unit = Math.max(...matrix.map((row,i)=>row[i]))
+        const unit = max(matrix.map((row,i)=>row[i]))
         const factor = validateMatrix(scale(matrix,1/unit),'dielectric shunt',numerics.matrixReciprocity).cholesky
         for (let mode=0;mode<n;mode++) {
           const label = `${g}${side}${branch}_${mode}`

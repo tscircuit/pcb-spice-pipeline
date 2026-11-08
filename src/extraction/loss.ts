@@ -1,5 +1,5 @@
 import { fail } from './diagnostics'
-import { numerics } from '../kernel'
+import { numerics, max } from '../kernel'
 import type { LossFit } from './types'
 
 /** Four nonnegative Foster branches fitted over the automatically derived frequency band. */
@@ -9,7 +9,8 @@ export function fitLoss(frequencies: number[], target: number[]): LossFit {
   if (target.every(v => v === 0)) return {poles, weights:poles.map(() => 0), relativeRms:0, maxRelative:0}
   const basis = frequencies.map(f => poles.map(p => (2 * Math.PI * f) ** 2 / ((2 * Math.PI * f) ** 2 + p ** 2)))
   const weights = poles.map(() => 0)
-  const scale = target.map(v => Math.max(v, Math.max(...target) * numerics.fitZeroRelative))
+  const floor = max(target) * numerics.fitZeroRelative
+  const scale = target.map(v => Math.max(v, floor))
   let previous = Infinity
   for (;;) {
     for (let j = 0; j < poles.length; j++) {
@@ -23,15 +24,22 @@ export function fitLoss(frequencies: number[], target: number[]): LossFit {
       weights[j] = Math.max(0, numerator / denominator)
     }
     const error = target.reduce((s, v, i) => s + ((basis[i].reduce((a, b, j) => a + b * weights[j], 0) - v) / scale[i]) ** 2, 0)
+    if (error > previous * (1 + numerics.fitRelativeChange)) fail('loss_fit', 'Foster coordinate descent increased the objective beyond roundoff')
     if (!Number.isFinite(error)) fail('loss_fit', 'Nonfinite Foster fit objective')
     if (previous - error <= numerics.fitRelativeChange * Math.max(1, previous) && Number.isFinite(previous)) break
     previous = error
   }
   const errors = target.map((v, i) => Math.abs(basis[i].reduce((s, b, j) => s + b * weights[j], 0) - v) / scale[i])
-  return { poles, weights, relativeRms: Math.sqrt(errors.reduce((s, e) => s + e * e, 0) / errors.length), maxRelative: Math.max(...errors) }
+  return { poles, weights, relativeRms: Math.sqrt(errors.reduce((s, e) => s + e * e, 0) / errors.length), maxRelative: max(errors) }
 }
 /** Real part of a fitted positive-real Foster impedance/admittance. */
 export function fittedLoss(fit: LossFit, frequency: number): number {
   const omega = 2 * Math.PI * frequency
   return fit.weights.reduce((s, w, i) => s + w * omega ** 2 / (omega ** 2 + fit.poles[i] ** 2), 0)
+}
+
+/** Imaginary part divided by angular frequency of the same causal Foster branch. */
+export function fittedStorage(fit: LossFit, frequency: number): number {
+  const omega = 2 * Math.PI * frequency
+  return fit.weights.reduce((sum, weight, i) => sum + weight * fit.poles[i] / (omega ** 2 + fit.poles[i] ** 2), 0)
 }

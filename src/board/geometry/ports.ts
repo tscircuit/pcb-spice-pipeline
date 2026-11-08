@@ -1,5 +1,6 @@
 import type { CircuitJson } from '../schema'
 import { fail } from '../diagnostics'
+import { numerics } from '../../kernel'
 import type { PcbTrace, PortSelector, RoutedPoint, SourcePort } from './types'
 
 /** Native pcbPath keeps via dimensions on the associated physical record. */
@@ -12,7 +13,7 @@ export function resolveRouteVias(circuit: CircuitJson, trace: PcbTrace): RoutedP
       (via.pcb_trace_id===undefined||via.pcb_trace_id===trace.pcb_trace_id)&&
       (via.source_trace_id===undefined||via.source_trace_id===trace.source_trace_id)&&
       via.subcircuit_id===trace.subcircuit_id&&
-      Math.hypot(via.x-point.x,via.y-point.y)<1e-5)
+      Math.hypot(via.x-point.x,via.y-point.y)<numerics.endpointToleranceMm)
     if(matches.length>1) fail('via_geometry',`${trace.pcb_trace_id}: ambiguous native via at ${point.x},${point.y}`)
     if(matches[0]&&(!matches[0].layers.includes(point.from_layer)||!matches[0].layers.includes(point.to_layer)))
       fail('via_geometry',`${trace.pcb_trace_id}: physical via layers disagree at ${point.x},${point.y}`)

@@ -1,12 +1,12 @@
 import type { Artifact, ArtifactScope, Produced } from '../kernel'
-import { sha256, numerics } from '../kernel'
+import { sha256, numerics, max } from '../kernel'
 import type { SolverContext } from '../solver'
 import type { Geometry } from '../board'
 import { fail } from './diagnostics'
 import { validateMatrix } from './checks'
 import { solve, scale, type Matrix } from './linalg'
 import { epsilon0, mu0, type BemResult } from './bem'
-import { fitLoss, fittedLoss } from './loss'
+import { fitLoss, fittedLoss, fittedStorage } from './loss'
 import { cachedSlice } from './cache'
 import { viaRlc } from './via'
 import { channelSpice } from './rlgc'
@@ -61,15 +61,26 @@ export async function extractChannel(geometry: Geometry, band: ExtractionModelin
       const groundArea = metal.filter(c => c.group === -1).reduce((s, c) => s + (c.xMax - c.xMin) * (c.zMax - c.zMin) * 1e-6 * c.conductivitySm, 0)
       const groundR = cell.lengthM / groundArea
       R = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => groundR + (i === j ? cell.lengthM / metal.filter(c => c.group === i).reduce((s, c) => s + (c.xMax - c.xMin) * (c.zMax - c.zMin) * 1e-6 * c.conductivitySm, 0) : 0)))
-      skinFrequency = Math.max(...metal.map(c => 1 / (Math.PI * mu0 * c.conductivitySm * ((c.zMax - c.zMin) / 1000) ** 2)))
+      skinFrequency = max(metal.map(c => 1 / (Math.PI * mu0 * c.conductivitySm * ((c.zMax - c.zMin) / 1000) ** 2)))
     }
     for (const [name, matrix] of Object.entries({ R, L, C, C0 })) validateMatrix(matrix, `${cell.stage} ${name}`, numerics.matrixReciprocity)
     const skinTarget = frequenciesHz.map(f => Math.sqrt(Math.PI * mu0 * f) * (1 - Math.exp(-((f / skinFrequency) ** numerics.skinTransitionExponent))))
     const skinFit = fitLoss(frequenciesHz, skinTarget)
     const dielectricFit = fitLoss(frequenciesHz, frequenciesHz.map(f => 2 * Math.PI * f))
+    // Tabulate the causal realization, including its reactive skin/dielectric storage.
+    /** Capacitance of the realized dielectric network at this frequency. */
+    const capacitanceAt = (frequency: number): Matrix => C.map((row,i)=>row.map((v,j)=>v-dielectric[i][j]*(fittedStorage(dielectricFit,0)-fittedStorage(dielectricFit,frequency))))
+    /** Inductance of the realized skin-loss network at this frequency. */
+    const inductanceAt = (frequency: number): Matrix => L.map((row,i)=>row.map((v,j)=>v+skin[i][j]*fittedStorage(skinFit,frequency)))
     const spectrum = frequenciesHz.map(f => ({ frequencyHz: f,
-      R: R.map((row, i) => row.map((v, j) => v + skin[i][j] * fittedLoss(skinFit, f))), G: scale(dielectric, fittedLoss(dielectricFit, f)) }))
-    const delay = Math.sqrt(Math.max(...L.map((row, i) => row.reduce((s, v) => s + Math.abs(v), 0) * C[i].reduce((s, v) => s + Math.abs(v), 0))))
+      R: R.map((row, i) => row.map((v, j) => v + skin[i][j] * fittedLoss(skinFit, f))),
+      L: inductanceAt(f), C: capacitanceAt(f), G: scale(dielectric, fittedLoss(dielectricFit, f)) }))
+    // Row norms bound the largest LC eigenvalue. Convexity bounds all Foster frequencies
+    // by the DC and infinite-frequency endpoints, including off-diagonal sign changes.
+    /** Conservative matrix infinity norm across the two storage endpoints. */
+    const rowBound = (matrices: Matrix[]): number => max(matrices.flatMap(matrix=>matrix.map(row=>row.reduce((sum,v)=>sum+Math.abs(v),0))))
+    const instantC = C.map((row,i)=>row.map((v,j)=>v-dielectric[i][j]*fittedStorage(dielectricFit,0)))
+    const delay = Math.sqrt(rowBound([L,inductanceAt(0)])*rowBound([C,instantC]))
     const result: ExtractedStage = { stage: cell.stage, profile: cell.profile, lengthM: cell.lengthM, ports: cell.ports,
       cells: Math.max(1, Math.ceil(numerics.cellsPerRiseTime * delay / band.riseTimeSeconds)), R, L, C, C0, G: scale(dielectric, fittedLoss(dielectricFit, frequencyHz)),
       units: { R: 'ohm', L: 'H', C: 'F', G: 'S' }, frequencyHz, band, frequenciesHz, spectrum,

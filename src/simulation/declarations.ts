@@ -1,3 +1,4 @@
+import { numerics } from '../kernel'
 // Was src/declarations.ts (circuitNodes, generalDeclarations, modelRunDefinition). Logic and messages unchanged.
 import { transmittedBits } from './stimulus'
 import { fail } from './diagnostics'
@@ -204,7 +205,7 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Pick<Geometry
       milliseconds(stimulus.start_time_ms,`${stimulus.name} start_time_ms`)
       if(![0,1].includes(stimulus.initial_state)||(stimulus.inverted!==undefined&&typeof stimulus.inverted!=='boolean')||stimulus.transmission_pattern?.transmission_type!=='bits'||typeof stimulus.transmission_pattern.repeat!=='boolean') fail('stimulus_pattern',`${stimulus.name}: explicit binary bits, inversion/repeat booleans and initial state required`)
       if(stimulus.start_time_ms/1000>=durationSeconds) fail('stimulus_coverage',`${stimulus.name}: stimulus starts after the experiment ends`)
-      if(!stimulus.transmission_pattern.repeat&&(stimulus.start_time_ms+stimulus.transmission_pattern.bits.length*stimulus.bit_duration_ms)/1000<durationSeconds-1e-12*durationSeconds) fail('stimulus_coverage',`${stimulus.name}: nonrepeating bits do not cover the complete run`)
+      if(!stimulus.transmission_pattern.repeat&&(stimulus.start_time_ms+stimulus.transmission_pattern.bits.length*stimulus.bit_duration_ms)/1000<durationSeconds-numerics.stimulusCoverageRelativeTolerance*durationSeconds) fail('stimulus_coverage',`${stimulus.name}: nonrepeating bits do not cover the complete run`)
     }
     for(const state of states) if(state.is_output&&state.is_output_enabled&&!stimulusIds.has(state.source_port_id)) fail('stimulus_missing',`${experiment.name}: enabled output requires one explicit digital stimulus`)
     const eyeRecords=circuit.filter(e=>e.type==='simulation_eye_diagram').filter(e=>e.simulation_experiment_id===id)
