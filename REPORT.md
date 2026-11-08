@@ -34,8 +34,8 @@ Shared junction nodes preserve routed folds and termination stubs; no CPL lane-l
 ## What the convergence check certifies
 
 Each refinement logs C/C0/L/surface-loss/dielectric-loss entry residuals. Termination requires all
-**estimated** nonzero entries to change by less than 0.5%. Richardson orders are 2 for capacitance
-then 4 for capacitance and dielectric sensitivity, and 4/3 then 2 for the quartic-graded rectangular-corner surface-current integral.
+**estimated** nonzero entries to change by less than 0.5%. Richardson orders are 2 then 4 for capacitance/dielectric sensitivity,
+and 4/3 then 2 for the quartic-graded rectangular-corner surface-current integral.
 Raw residuals are logged separately: they are not required to be below 0.5%. For example the coupled
 stripline stops at 6,912 panels with estimated maximum 0.1672% and raw maximum 2.0378%.
 The entry-wise check compares the published reciprocal matrices; unprojected estimates must also pass
@@ -117,6 +117,13 @@ The four-branch fits have measured relative RMS residuals: CMOS skin 14.834%, di
 RS-485 skin 6.018%, dielectric 1.470%. These are fit errors for the added loss terms, not total line
 impedance errors. Skin transition uses the documented DC/f^2/high-frequency sqrt(f) approximation;
 frequency-resolved eddy-current accuracy is not established. Via RLC is frequency-independent.
+
+The default examples explicitly declare bare copper without solder mask. A separate actual TSX
+variant verifies mask retention, the bottom-copper coordinate origin and via-span permittivity.
+A layered FR4/mask parallel-plate energy check gives C=7.136980 nF/m versus 7.088589 nF/m
+(+0.6827%), and dielectric-loss coefficient D=0.146714 nF/m versus 0.146071 nF/m (+0.4404%).
+Positive finite-plate fringing is included in the numerical result; the reference is infinite width.
+These layered/mask checks are unit-only, not native masked-board qualification.
 Native complex multiport tests validate the implemented causal networks against independent
 complex algebra; they do not establish the accuracy of the physical skin/dielectric approximation.
 
@@ -151,6 +158,7 @@ pending. Height barely changes; single-ended width increases 5.033 ns and RS-485
 not an isolated attribution of the improvement. Single-ended also adds real bottom ground copper
 at x=-18..18, y=-5..0.3 mm. The multilayer board is now four layers with actual circular antipad voids
 and split inner/bottom ground pours; its earlier two-layer reproduction was not a qualified board.
+Blind-via fabrication is explicitly enabled; its physical geometry equals the earlier saved copper.
 
 ## Package parasitics and model boundaries
 
@@ -176,8 +184,8 @@ requires distinct two-endpoint PCB routes meeting at shared junctions. These lim
 
 ## Checks and remaining qualification
 
-- `pnpm build`: passed. `pnpm test`: **242 passed, zero failed**, 157.475 s, including actual-TSX
-  hole rejection and 250000-element numeric reductions. The previous first-extrapolation checkpoint
+- `pnpm build`: passed. `pnpm test`: **244 passed, zero failed**, 167.470 s, including actual-TSX
+  hole rejection, masked via geometry, layered dielectric energy and 250000-element numeric reductions. The previous first-extrapolation checkpoint
   passed 242/242 in 881.928 s; one obsolete timeout test was replaced by the hole regression.
 - `pnpm test:native`: **6 passed / 1 vendor-gated skip, zero failed**, 2.791 s. Includes dynamic
   synthetic supply-pin packages, twelve lanes and bit-identical internal-branch save restriction.

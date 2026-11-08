@@ -33,7 +33,8 @@ of the unprojected estimates must also pass. The entry-wise check compares the p
 matrices, including arbitrarily small mutual terms. No matrix-norm floor relaxes their relative
 criterion. Two exact zeros count as unchanged; arrival at zero from a nonzero entry is a full change.
 Physical Dk, loss tangent, copper conductivity, layer thickness and via plating come from the original
-`pcb_stackup` (the examples declare it directly with the `pcbStackup` JSX prop), including solder mask; incomplete presets fail with field-specific diagnostics.
+`pcb_stackup` (the examples declare it directly with the `pcbStackup` JSX prop), including solder mask; incomplete presets fail with field-specific diagnostics. The default example construction is
+explicitly bare copper. A masked TSX variant and a layered dielectric energy check are unit-tested.
 
 The model has explicit limits. Cross-sections are local quasi-TEM models, excluding radiation and
 bend fringing. Magnetic coupling is distributed between parallel, co-propagating route pieces;

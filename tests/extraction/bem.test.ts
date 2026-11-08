@@ -82,3 +82,29 @@ test('actual TSX crosstalk slice converges despite nearly coincident optional al
   assert.ok(result.steps.at(-1)!.residual!<.005)
   for(const value of Object.values(result.steps.at(-1)!.entries!))assert.ok(value<.005)
 })
+
+test('FR4 and solder-mask layers approach series-dielectric capacitance and loss within 2%', () => {
+  // Parallel-plate energy: C'=epsilon0*w/sum(h/er), D'=C'*sum(h*tan(delta)/er)/sum(h/er).
+  // Finite 40-mm plates add positive edge fringing to the infinite-width analytic reference.
+  const width = 40
+  const h1 = .18
+  const h2 = .02
+  const e1 = 4.1
+  const e2 = 3.3
+  const t1 = .02
+  const t2 = .025
+  const metal = { xMin:-width/2, xMax:width/2, conductivitySm:5.8e7 }
+  const slice: CrossSection = { conductors:[
+    { id:'signal', group:0, ...metal, zMin:h1+h2, zMax:h1+h2+.035 },
+    { id:'ground', group:-1, ...metal, zMin:-.035, zMax:0 },
+  ], dielectrics:[
+    { xMin:-width/2, xMax:width/2, zMin:0, zMax:h1, er:e1, lossTangent:t1 },
+    { xMin:-width/2, xMax:width/2, zMin:h1, zMax:h1+h2, er:e2, lossTangent:t2 },
+  ] }
+  const result = solveCrossSection(slice)
+  const electrical = h1/e1+h2/e2
+  const C = epsilon0*width/electrical
+  const loss = C*(h1/e1*t1+h2/e2*t2)/electrical
+  assert.ok(Math.abs(result.C[0][0]/C-1)<.02)
+  assert.ok(Math.abs(result.loss[0][0]/loss-1)<.02)
+})

@@ -12,6 +12,11 @@ function field(value: unknown, code: 'stackup_permittivity' | 'stackup_loss' | '
   if (typeof value !== 'number' || !Number.isFinite(value) || (zero ? value < 0 : value <= 0)) fail(code, `pcb_stackup: ${label} is required`)
   return value
 }
+/** Validates thickness before it contributes to the physical coordinate origin or any layer boundary. */
+function layerThickness(layer: { layer_type:string; thickness?:number }): number {
+  if (typeof layer.thickness !== 'number' || !Number.isFinite(layer.thickness) || layer.thickness <= 0) fail('stackup', `${layer.layer_type}: positive finite physical thickness required`)
+  return layer.thickness
+}
 /** Reads the original record: upstream schema parsers strip newer material fields. z=0 is bottom copper's upper face. */
 export function stackupFromCircuitJson(circuit: CircuitJson): BoardStackup {
   const boards = circuit.filter(r => r.type === 'pcb_board')
@@ -20,13 +25,14 @@ export function stackupFromCircuitJson(circuit: CircuitJson): BoardStackup {
   const record = records[0]
   const copper = record.layers.filter(r => r.layer_type === 'copper')
   if (copper.length !== boards[0].num_layers || new Set(copper.map(l => l.layer)).size !== copper.length) fail('stackup', 'Distinct copper layers must match pcb_board.num_layers')
-  let z = -copper.at(-1)!.thickness
+  const bottom = record.layers.findLastIndex(layer => layer.layer_type === 'copper')
+  let z = -record.layers.slice(bottom).reduce((sum, layer) => sum + layerThickness(layer), 0)
   const copperLayers: CopperLayer[] = []
   const dielectrics: DielectricLayer[] = []
   for (const layer of [...record.layers].reverse()) {
-    if (typeof layer.thickness !== 'number' || layer.thickness <= 0) fail('stackup', `${layer.layer_type}: positive physical thickness required`)
+    const thicknessMm = layerThickness(layer)
     const lo = z
-    z = Math.round((z + layer.thickness) * 10 ** numerics.stackupCoordinateDigits) / 10 ** numerics.stackupCoordinateDigits
+    z = Math.round((z + thicknessMm) * 10 ** numerics.stackupCoordinateDigits) / 10 ** numerics.stackupCoordinateDigits
     if (layer.layer_type === 'copper') copperLayers.push({ name: layer.layer, zMinMm: lo, zMaxMm: z,
       conductivitySm: field(layer.electrical_conductivity_s_per_m, 'stackup_conductivity', `${layer.layer}.electrical_conductivity_s_per_m`) })
     if (layer.layer_type === 'copper' && layer.layer !== 'top' && layer.layer !== 'bottom') dielectrics.push({material:'etched-layer fill',zMinMm:lo,zMaxMm:z,
