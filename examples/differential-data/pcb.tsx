@@ -1,5 +1,5 @@
 import type { TraceProps } from "@tscircuit/props"
-import { Fragment, type JSX } from "react"
+import React, { Fragment, type JSX } from "react"
 
 /** Global board millimetres; convert once to the selected port's component coordinate frame. */
 export function RoutedTrace({ from, to, origin, points, width = 0.25, name }: {

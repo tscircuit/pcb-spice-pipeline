@@ -1,3 +1,4 @@
+import React from "react"
 import { Circuit, analog } from "@tscircuit/core"
 import type { JSX } from "react"
 import { rs485Pads } from "./models"
