@@ -52,6 +52,7 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
     "@tscircuit/core": "0.0.2217",
     "@tscircuit/props": "0.0.712",
     "@types/node": "22.20.5",
