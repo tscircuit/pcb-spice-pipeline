@@ -1,8 +1,26 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import React from 'react'
+import Board from '../fixtures/escape-via-plane'
+import { renderCoreSignals } from '../support/core-render'
+import { modeling as channelModeling } from '../fixtures/native-channel'
 import { geometryFromCircuitJson } from '../../src/board'
 import { fastHenryDeck, fasterCapDeck, groundMesh, copperFasterCapDeck, panelAspectLimit, meshPolygon } from '../../src/extraction'
 import { groundPlaneFixture, routedGroundPlaneFixture } from '../fixtures/ground-plane'
+
+test('FastHenry plane refinement scales with the TSX trace footprint, retaining distant copper', async () => {
+  const counts: number[] = []
+  for (const planeScale of [1, 4]) {
+    const circuit = await renderCoreSignals(React.createElement(Board, { planeScale }))
+    const settings = { ...channelModeling, lanes: [{ port: 'DATA', from: { component: 'TX', port: 'Y' }, to: { component: 'RX', port: 'A' } }] }
+    const cell = geometryFromCircuitJson(circuit, settings).cells[0]
+    const deck = fastHenryDeck(cell, { ...settings.extraction, groundMeshMm: .715, filaments: 7 })
+    counts.push((deck.match(/^Eg/gm) ?? []).length)
+    const [x, y] = cell.routedCopper!.pours[0].polygon[0][0]
+    assert.ok(deck.split('\n').some(line => /^Np0_/.test(line) && line.includes(`x=${x / 1000} y=${y / 1000} `)), 'full plane corner remains in the native deck')
+  }
+  assert.ok(counts[1] < counts[0] * 3, `16x board area must not require 16x fine plane edges: ${counts}`)
+})
 
 /** Join material-specific files for the same physical conductor before checking its closed surface. */
 const conductorSurface = (files: Record<string, string>, name: string): string => '* Closed copper surface; millimetres\n' + Object.entries(files)
