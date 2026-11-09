@@ -7,8 +7,9 @@ import { solve, symmetrize, type Matrix } from './linalg'
 export const epsilon0 = numerics.epsilon0
 export const mu0 = numerics.mu0
 interface Point { x: number; z: number }
-interface Panel extends Point { tx: number; tz: number; nx: number; nz: number; length: number; group: number; er: number; contrast: number; sigma: number }
-export interface BemResult { C: Matrix; C0: Matrix; loss: Matrix; surface: Matrix; steps: { panels: number; residual: number | null; rawResidual: number | null; entries?: Record<string,number> | null; rawEntries?: Record<string,number> | null }[] }
+interface Panel extends Point { tx: number; tz: number; nx: number; nz: number; length: number; group: number; er: number; contrast: number; sigma: number; thickness: number }
+export interface BemSurface { thicknessM: number; conductivitySm: number; matrix: Matrix }
+export interface BemResult { surfaces?: BemSurface[]; C: Matrix; C0: Matrix; loss: Matrix; surface: Matrix; steps: { panels: number; residual: number | null; rawResidual: number | null; entries?: Record<string,number> | null; rawEntries?: Record<string,number> | null }[] }
 /** Permittivity on the indicated side of a boundary. Coordinates are millimetres. */
 function material(slice: CrossSection, x: number, z: number): number {
   return slice.dielectrics.find(d => x > d.xMin && x < d.xMax && z > d.zMin && z < d.zMax)?.er ?? 1
@@ -62,7 +63,7 @@ function panels(slice: CrossSection, count: number, vacuum: boolean): Panel[] {
   /** Algebraic grading concentrates panels at physical metal/dielectric corners. */
   const grade = (i: number): number => i ** numerics.edgeGradingPower / (i ** numerics.edgeGradingPower + (count - i) ** numerics.edgeGradingPower)
   /** Adds a directed boundary, interior on the left. */
-  const edge = (a: Point, b: Point, group: number, er: number, contrast: number, sigma: number): void => {
+  const edge = (a: Point, b: Point, group: number, er: number, contrast: number, sigma: number, thickness: number = 0): void => {
     const dx = b.x - a.x
     const dz = b.z - a.z
     const length = Math.hypot(dx, dz)
@@ -71,6 +72,12 @@ function panels(slice: CrossSection, count: number, vacuum: boolean): Panel[] {
     if (Math.abs(dz) < numerics.minimumPanelLengthMm) for (const c of slice.conductors) for (const x of [c.xMin, c.xMax, (c.xMin + c.xMax) / 2]) {
       const t = (x - a.x) / dx
       if (t > numerics.panelEndFractionTolerance && t < 1 - numerics.panelEndFractionTolerance) cuts.push(t)
+    }
+    // Split rectangle-union seams and suppress metal faces buried in another rectangle.
+    if (group >= -1) for (const c of slice.conductors) {
+      if (Math.abs(dz) < numerics.minimumPanelLengthMm ? a.z < c.zMin - numerics.boundaryToleranceMm || a.z > c.zMax + numerics.boundaryToleranceMm : a.x < c.xMin - numerics.boundaryToleranceMm || a.x > c.xMax + numerics.boundaryToleranceMm) continue
+      const values = Math.abs(dz) < numerics.minimumPanelLengthMm ? [(c.xMin - a.x) / dx, (c.xMax - a.x) / dx] : [(c.zMin - a.z) / dz, (c.zMax - a.z) / dz]
+      for (const t of values) if (t > 0 && t < 1) cuts.push(t)
     }
     const ordered = breakpoints(cuts,length)
     for (let k = 1; k < ordered.length; k++) for (let i = 0; i < count; i++) {
@@ -81,14 +88,15 @@ function panels(slice: CrossSection, count: number, vacuum: boolean): Panel[] {
       const z = a.z + dz * (lo + hi) / 2
       const nx = dz / length
       const nz = -dx / length
+      if (group >= -1 && slice.conductors.some(c => x + nx * numerics.interfaceProbeMm > c.xMin && x + nx * numerics.interfaceProbeMm < c.xMax && z + nz * numerics.interfaceProbeMm > c.zMin && z + nz * numerics.interfaceProbeMm < c.zMax)) continue
       const adjacent = vacuum ? 1 : material(slice, x + nx * numerics.interfaceProbeMm, z + nz * numerics.interfaceProbeMm)
       result.push({ x, z, tx: dx / length, tz: dz / length, nx, nz, length: length * (hi - lo), group,
-        er: group >= -1 ? adjacent : er, contrast, sigma })
+        er: group >= -1 ? adjacent : er, contrast, sigma, thickness })
     }
   }
   for (const c of slice.conductors) {
     const corners = [{ x: c.xMin, z: c.zMin }, { x: c.xMax, z: c.zMin }, { x: c.xMax, z: c.zMax }, { x: c.xMin, z: c.zMax }]
-    for (let i = 0; i < 4; i++) edge(corners[i], corners[(i + 1) % 4], c.group, 1, 0, c.conductivitySm)
+    for (let i = 0; i < 4; i++) edge(corners[i], corners[(i + 1) % 4], c.group, 1, 0, c.conductivitySm, (c.penetrationMm ?? Number((c.zMax - c.zMin).toFixed(numerics.stackupCoordinateDigits))) / 1000)
   }
   if (!vacuum) for (const d of slice.dielectrics) {
     const corners = [{ x: d.xMin, z: d.zMin }, { x: d.xMax, z: d.zMin }, { x: d.xMax, z: d.zMax }, { x: d.xMin, z: d.zMax }]
@@ -151,9 +159,9 @@ export function solveCrossSection(slice: CrossSection, progress: (message: strin
   if (!slice.conductors.length || !slice.conductors.some(c=>c.group===-1) || !slice.conductors.some(c=>c.group>=0) || slice.conductors.some(c => ![c.xMin,c.xMax,c.zMin,c.zMax,c.conductivitySm].every(Number.isFinite) || c.xMin>=c.xMax || c.zMin>=c.zMax || c.conductivitySm<=0)) fail('mesh_convergence','Finite positive metal cross-sections, conductivity, signal and reference are required')
   if (slice.dielectrics.some(d=>![d.xMin,d.xMax,d.zMin,d.zMax,d.er,d.lossTangent].every(Number.isFinite)||d.xMin>=d.xMax||d.zMin>=d.zMax||d.er<=0||d.lossTangent<0)) fail('mesh_convergence','Dielectric rectangles need finite positive extent/permittivity and nonnegative loss tangent')
   let count = numerics.initialPanelsPerEdge as number
-  let previous: {C:Matrix;C0:Matrix;L:Matrix;surface:Matrix;loss:Matrix} | undefined
-  let previousEstimate: {C:Matrix;C0:Matrix;L:Matrix;surface:Matrix;loss:Matrix} | undefined
-  let previousFirst: {C:Matrix;C0:Matrix;surface:Matrix;loss:Matrix} | undefined
+  let previous: Record<string, Matrix> | undefined
+  let previousEstimate: Record<string, Matrix> | undefined
+  let previousFirst: Record<string, Matrix> | undefined
   const steps: BemResult['steps'] = []
   for (;;) {
     const normal = capacitance(slice,count,false)
@@ -173,7 +181,12 @@ export function solveCrossSection(slice: CrossSection, progress: (message: strin
       const high = reduceCapacitance(capacitance(shifted,count,false).C,active)
       loss = high.map((row,i)=>row.map((v,j)=>tangent*(v-C[i][j])/numerics.dielectricRelativeStep))
     }
-    const current = {C,C0,L,surface,loss}
+    const faces = [...new Set(vacuum.panels.map(p => `${p.thickness},${p.sigma}`))].map(key => {
+      const [thicknessM, conductivitySm] = key.split(',').map(Number)
+      const matrix = C.map((_, i) => C.map((__, j) => vacuum.panels.reduce((sum, panel, k) => sum + (panel.thickness === thicknessM && panel.sigma === conductivitySm ? currents[k][i] * currents[k][j] / (panel.length / 1000) / Math.sqrt(panel.sigma) : 0), 0)))
+      return { thicknessM, conductivitySm, matrix }
+    })
+    const current: Record<string, Matrix> = { C, C0, L, surface, loss, ...Object.fromEntries(faces.map((f, i) => [`face${i}`, f.matrix])) }
     const rawEntries = previous ? Object.fromEntries(Object.entries(current).map(([key,matrix])=>[key,matrixResidual(previous![key as keyof typeof current],matrix)])) : null
     const rawResidual = rawEntries ? max(Object.values(rawEntries)) : null
     /** Removes the leading Galerkin or convex-wedge integration error at this refinement. */
@@ -181,20 +194,10 @@ export function solveCrossSection(slice: CrossSection, progress: (message: strin
       const ratio = numerics.meshRefinementRatio**order
       return matrix.map((row,i)=>row.map((v,j)=>(ratio*v-old[i][j])/(ratio-1)))
     }
-    const estimate = previous ? {
-      C:extrapolate(C,previous.C,numerics.capacitanceExtrapolationOrder),
-      C0:extrapolate(C0,previous.C0,numerics.capacitanceExtrapolationOrder),
-      surface:extrapolate(surface,previous.surface,numerics.skinExtrapolationOrder),
-      loss:extrapolate(loss,previous.loss,numerics.capacitanceExtrapolationOrder),
-    } : undefined
-    const corrected = estimate && previousFirst ? {
-      C:extrapolate(estimate.C,previousFirst.C,numerics.capacitanceCorrectionOrder),
-      C0:extrapolate(estimate.C0,previousFirst.C0,numerics.capacitanceCorrectionOrder),
-      surface:extrapolate(estimate.surface,previousFirst.surface,numerics.skinCorrectionOrder),
-      loss:extrapolate(estimate.loss,previousFirst.loss,numerics.capacitanceCorrectionOrder),
-    } : undefined
-    const physical = corrected ? { C:symmetrize(corrected.C), C0:symmetrize(corrected.C0), surface:symmetrize(corrected.surface), loss:symmetrize(corrected.loss) } : undefined
-    const estimated = physical ? {...physical,L:solve(physical.C0,physical.C0.map((_,i)=>physical.C0.map((__,j)=>Number(i===j))))} : undefined
+    const estimate = previous ? Object.fromEntries(Object.entries(current).map(([key, matrix]) => [key, extrapolate(matrix, previous![key], key.startsWith('face') || key === 'surface' ? numerics.skinExtrapolationOrder : numerics.capacitanceExtrapolationOrder)])) : undefined
+    const corrected = estimate && previousFirst ? Object.fromEntries(Object.entries(estimate).map(([key, matrix]) => [key, extrapolate(matrix, previousFirst![key], key.startsWith('face') || key === 'surface' ? numerics.skinCorrectionOrder : numerics.capacitanceCorrectionOrder)])) : undefined
+    const estimated = corrected ? Object.fromEntries(Object.entries(corrected).map(([key, matrix]) => [key, symmetrize(matrix)])) : undefined
+    if (estimated) estimated.L = solve(estimated.C0, estimated.C0.map((row, i) => row.map((_, j) => Number(i === j))))
     const entries = estimated && previousEstimate ? Object.fromEntries(Object.entries(estimated).map(([key,matrix])=>[key,matrixResidual(previousEstimate![key as keyof typeof estimated],matrix)])) : null
     const residual = entries ? max(Object.values(entries)) : null
     steps.push({panels:normal.panels.length,residual,rawResidual,entries,rawEntries})
@@ -203,6 +206,7 @@ export function solveCrossSection(slice: CrossSection, progress: (message: strin
       for (const [name,matrix] of Object.entries(corrected!)) if (reciprocityResidual(matrix)>numerics.matrixReciprocity) fail('reciprocity',`BEM ${name}: unprojected antisymmetry exceeds ${numerics.matrixReciprocity}`)
       return {
       C:estimated!.C,C0:estimated!.C0,surface:estimated!.surface,loss:estimated!.loss,steps,
+      surfaces: faces.map((f, i) => ({ ...f, matrix: estimated![`face${i}`] })),
       }
     }
     if (!Number.isFinite(residual??0) || !Number.isFinite(rawResidual??0)) fail('mesh_convergence','Nonfinite BEM refinement; inspect the cross-section')

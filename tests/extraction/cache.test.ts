@@ -13,6 +13,9 @@ test('cached field solutions are isolated from caller mutation', () => {
   restoreSlices([entry])
   entry[1].C[0][0] = -2
   assert.equal(cachedSlice(entry[0],slice,()=>{}).C[0][0],value)
+  const old = snapshotSlices().find(([hash]) => hash === 'vacuum-cache-test')!
+  delete old[1].surfaces
+  assert.throws(() => restoreSlices([old]), { code: 'loss_fit' })
   const invalid = structuredClone(entry)
   invalid[1].steps = []
   assert.throws(()=>restoreSlices([invalid]),{code:'mesh_convergence'})

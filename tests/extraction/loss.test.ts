@@ -47,3 +47,36 @@ test('review 9: tiny nonzero loss samples retain the same maximum relative-error
 test('review 9: a continuous-pole certificate rejects nonconcave loss without a branch cap', () => {
   assert.throws(() => fitLoss([1, 2, 4], [1, 1.01, 4]), error => error instanceof Error && /loss_fit: Continuous-pole dual certificate/.test(error.message))
 })
+
+test('review 8: finite slab remains accurate from DC through the skin regime without a shared transition', async () => {
+  const { slabExcess } = await import('../../src/extraction')
+  const t = 35e-6
+  const sigma = 5.8e7
+  const f0 = 1 / (Math.PI * 1.25663706212e-6 * sigma * t * t)
+  for (const x of [.001, .1, 1, 10, 100]) {
+    const actual = 1 + slabExcess(f0 * x * x, t, sigma) * Math.sqrt(sigma) * t
+    const expected = x > 20 ? x : x * (Math.sinh(2*x) + Math.sin(2*x)) / (Math.cosh(2*x) - Math.cos(2*x))
+    assert.ok(Math.abs(actual / expected - 1) < .02)
+  }
+  assert.equal(slabExcess(0, t, sigma), 0)
+  assert.throws(() => slabExcess(1, 0, sigma), { code: 'loss_fit' })
+})
+
+test('review 8: actual TSX opposing strips reproduce the published one-face proximity loss within 2%', async () => {
+  const { slabBoard } = await import('../fixtures/slab')
+  const { geometryFromCircuitJson } = await import('../../src/board')
+  const { solveCrossSection, slabExcess } = await import('../../src/extraction')
+  const { circuitJson, modeling } = await slabBoard()
+  const slice = geometryFromCircuitJson(circuitJson, modeling).cells.find(c => c.start[0] <= 0 && c.end[0] > 0)!.slice!
+  const result = solveCrossSection(slice)
+  const sigma = 5.8e7
+  const t = 35e-6
+  const width = .02
+  const f = 100 / (Math.PI * 1.25663706212e-6 * sigma * t * t)
+  // NBS J. Res. 84 (1979), 247, eq. 3.3: two wide strips, current on facing surfaces, Z'=2*Zs/w+j*omega*mu0*s/w.
+  // At t/delta=10, Re[(1+j)*10*coth((1+j)*10)] = 10 to the precision needed here.
+  const expected = 2 * 10 / (sigma * t * width)
+  const actual = 2 / (sigma * t * width) + result.surfaces!.reduce((sum, face) => sum + face.matrix[0][0] * slabExcess(f, face.thicknessM, face.conductivitySm), 0)
+  assert.ok(Math.abs(actual / expected - 1) < .02, `${actual} vs ${expected}`)
+  assert.ok(result.steps.at(-1)!.residual! < .005)
+})

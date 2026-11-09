@@ -21,7 +21,7 @@ export function measureMutual(stages,laneA,laneB,indexA,indexB,frequencyHz) {
   // The optional frequency includes the internal storage of the realized Foster network.
   let total=0
   for(const stage of stages)for(const [i,a] of stage.ports.entries())if(a.lane===laneA)for(const [j,b] of stage.ports.entries())if(b.lane===laneB) {
-    const inductance=stage.L[i][j]+(frequencyHz===undefined?0:stage.skin.matrix[i][j]*fittedStorage(stage.skin.fit,frequencyHz))
+    const inductance=stage.L[i][j]+(frequencyHz===undefined?0:(stage.skin.terms??[stage.skin]).reduce((sum,term)=>sum+term.matrix[i][j]*fittedStorage(term.fit,frequencyHz),0))
     total+=inductance*signs.get(`${stage.stage}:${i}`)*signs.get(`${stage.stage}:${j}`)
   }
   return total

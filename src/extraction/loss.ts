@@ -68,3 +68,14 @@ export function fittedStorage(fit: LossFit, frequency: number): number {
   const omega = 2 * Math.PI * frequency
   return fit.weights.reduce((sum, weight, i) => sum + weight * fit.poles[i] / (omega ** 2 + fit.poles[i] ** 2), 0)
 }
+
+/** Finite-thickness one-face slab excess impedance, normalized to the BEM 1/sqrt(sigma) surface matrix.
+ * NBS J. Res. 84 (1979), 247, eq. 2.3: Zs=gamma*coth(gamma*t)/sigma.
+ * Removing its exact DC term leaves a positive-real Foster target; there is no empirical transition.
+ */
+export function slabExcess(frequency: number, thickness: number, sigma: number): number {
+  if (![frequency, thickness, sigma].every(Number.isFinite) || frequency < 0 || thickness <= 0 || sigma <= 0) fail('loss_fit', 'Finite nonnegative frequency, positive conductor thickness and conductivity required')
+  const x = thickness * Math.sqrt(Math.PI * numerics.mu0 * sigma * frequency)
+  const excess = x < .1 ? 4 * x ** 4 / 45 - 16 * x ** 8 / 4725 : x > 20 ? x - 1 : x * (Math.sinh(2 * x) + Math.sin(2 * x)) / (Math.cosh(2 * x) - Math.cos(2 * x)) - 1
+  return excess / (Math.sqrt(sigma) * thickness)
+}

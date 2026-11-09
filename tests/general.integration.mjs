@@ -115,7 +115,7 @@ test('native Foster RL and general passive RC modes reproduce independently calc
   const pole=2*Math.PI*1e7
   const omega=2*Math.PI*1e8
   const stage=channelStage({R,L,C})
-  stage.skin={matrix:S,fit:{poles:[pole],weights:[1]}}
+  stage.skin={terms:[{matrix:S,fit:{poles:[pole],weights:[1]}}]}
   stage.dielectric={matrix:D,fit:{poles:[pole],weights:[pole]}}
   const voltage=[1,2,3]
   const deck=['General passive modes',channelSpice([stage],3),...voltage.map((v,i)=>`V${i} in${i} 0 AC ${v}`),

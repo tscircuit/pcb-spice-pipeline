@@ -27,16 +27,31 @@ export function wirePolygon(a: CopperPoint, b: CopperPoint, width: number): Copp
 }
 /** Unions touching metal on the same electrical net, rejecting physical shorts. */
 export function mergeConductors(slice: CrossSection): void {
-  const sorted = [...slice.conductors].sort((a, b) => a.zMin - b.zMin || a.group - b.group || (a.physicalNet??'').localeCompare(b.physicalNet??'') || a.xMin - b.xMin)
-  const merged: SliceConductor[] = []
-  for (const c of sorted) {
-    const previous = merged.at(-1)
-    if (previous && c.zMin === previous.zMin && c.zMax === previous.zMax && c.group === previous.group && c.physicalNet === previous.physicalNet && c.xMin <= previous.xMax + numerics.boundaryToleranceMm) previous.xMax = Math.max(previous.xMax, c.xMax)
-    else merged.push({ ...c })
+  const source = slice.conductors.map(c => ({ ...c, penetrationMm: c.penetrationMm ?? Number((c.zMax - c.zMin).toFixed(numerics.stackupCoordinateDigits)) }))
+  for (let i = 0; i < source.length; i++) for (const b of source.slice(i + 1)) {
+    const a = source[i]
+    if ((a.group !== b.group || a.physicalNet !== b.physicalNet) && Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin) > numerics.boundaryToleranceMm && Math.min(a.zMax, b.zMax) - Math.max(a.zMin, b.zMin) > numerics.boundaryToleranceMm) fail('conductor_overlap', `${a.id} overlaps ${b.id} on different nets`)
   }
-  for (let i = 0; i < merged.length; i++) for (const b of merged.slice(i + 1)) {
-    const a = merged[i]
-    if ((a.group !== b.group || a.physicalNet !== b.physicalNet) && Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin) > numerics.boundaryToleranceMm && Math.min(a.zMax, b.zMax) - Math.max(a.zMin, b.zMin) > numerics.boundaryToleranceMm) fail('conductor_overlap', `${a.id} (group ${a.group}, x=${a.xMin}..${a.xMax}) overlaps ${b.id} (group ${b.group}, x=${b.xMin}..${b.xMax}) on different nets`)
+  const heights = [...new Set(source.flatMap(c => [c.zMin, c.zMax]))].sort((a, b) => a - b)
+  const merged: SliceConductor[] = []
+  for (let i = 1; i < heights.length; i++) {
+    const zMin = heights[i - 1]
+    const zMax = heights[i]
+    const row = source.filter(c => c.zMin <= zMin && c.zMax >= zMax).sort((a, b) => a.group - b.group || (a.physicalNet ?? '').localeCompare(b.physicalNet ?? '') || a.xMin - b.xMin)
+    const spans: SliceConductor[] = []
+    for (const c of row) {
+      const last = spans.at(-1)
+      if (last && last.group === c.group && last.physicalNet === c.physicalNet && c.xMin <= last.xMax + numerics.boundaryToleranceMm) {
+        if (last.conductivitySm !== c.conductivitySm) fail('slice_conductor', 'Touching copper with different conductivities needs a material-interface model')
+        last.xMax = Math.max(last.xMax, c.xMax)
+        last.id = [last.id, c.id].sort()[0]
+      } else spans.push({ ...c, zMin, zMax })
+    }
+    for (const c of spans) {
+      const below = merged.find(b => b.group === c.group && b.physicalNet === c.physicalNet && b.conductivitySm === c.conductivitySm && b.penetrationMm === c.penetrationMm && b.xMin === c.xMin && b.xMax === c.xMax && b.zMax === c.zMin)
+      if (below) below.zMax = c.zMax
+      else merged.push(c)
+    }
   }
   slice.conductors = merged
 }

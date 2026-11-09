@@ -21,7 +21,7 @@ export interface LaneMapping {
 }
 /** Rectangles in the transverse (x,z) plane, in millimetres. The ground is group -1. */
 export interface SliceConductor {
-  id: string; group: number; physicalNet?: string; xMin: number; xMax: number; zMin: number; zMax: number; conductivitySm: number
+  id: string; group: number; physicalNet?: string; penetrationMm?: number; xMin: number; xMax: number; zMin: number; zMax: number; conductivitySm: number
 }
 export interface SliceDielectric { xMin: number; xMax: number; zMin: number; zMax: number; er: number; lossTangent: number }
 export interface CrossSection { activeCount?: number; conductors: SliceConductor[]; dielectrics: SliceDielectric[] }
@@ -31,7 +31,9 @@ export interface GeometryCell {
   stage: number; profile: string; lengthM: number; ports: SegmentPort[]
   start: CopperPoint; end: CopperPoint; slice?: CrossSection; via?: ViaModel
 }
+export interface ReferenceVia { id: string; physicalNet: string; x: number; y: number; holeMm: number; padMm: number; platingMm: number; layers: string[]; pads: { zMin: number; zMax: number }[]; zMin: number; zMax: number; conductivitySm: number }
 export interface Geometry {
+  referenceVias?: ReferenceVia[]
   stackup: BoardStackup; cells: GeometryCell[]; mappings: LaneMapping[]; groundSourcePortId: string
   units: { circuitJson: 'mm'; geometry: 'm'; conductivity: 'S/m' }; approximations: string[]
 }

@@ -24,17 +24,17 @@ test('actual JSX drilled holes raise a named diagnostic instead of losing physic
   assert.equal(holes.length, 1)
   assert.throws(() => geometryFromCircuitJson([...circuitJson, ...holes], modeling), { code: 'slice_conductor' })
 })
-test('multilayer TSX validates selected antipads and diagnoses unmodelled reference vias', () => {
-  assert.throws(() => geometryFromCircuitJson(via as CircuitJson, viaModeling), { code: 'reference_via' })
+test('multilayer TSX retains selected antipads and diagnoses varying polygon slices', () => {
+  assert.throws(() => geometryFromCircuitJson(via as CircuitJson, viaModeling), { code: 'varying_cross_section' })
   assert.ok(via.some(r => r.type === 'pcb_via' && r.layers.includes('inner2')))
   const noHoles = structuredClone(via) as any[]
   for (const p of noHoles.filter(r=>r.type==='pcb_copper_pour')) p.brep_shape.inner_rings=[]
   assert.throws(()=>geometryFromCircuitJson(noHoles as CircuitJson,viaModeling),{code:'via_antipad'})
 })
-test('actual JSX mask construction stays intact when reference-via extraction is rejected', async () => {
+test('actual JSX mask construction stays intact when varying slices are rejected', async () => {
   const mask = { layer_type:'soldermask', thickness:.02, relative_permittivity:3.3, dielectric_loss_tangent:.025 }
   const masked = await makeBoard({ ...fourLayerStackup, layers:[mask, ...fourLayerStackup.layers, mask] })
-  assert.throws(() => geometryFromCircuitJson(masked, viaModeling), { code: 'reference_via' })
+  assert.throws(() => geometryFromCircuitJson(masked, viaModeling), { code: 'varying_cross_section' })
   const g = { stackup: stackupFromCircuitJson(masked) }
   assert.equal(g.stackup.dielectrics.filter(d=>d.material==='soldermask').length, 2)
   assert.ok(Math.abs(g.stackup.copperLayers.find(c=>c.name==='bottom')!.zMaxMm)<1e-12)
@@ -52,10 +52,7 @@ test('review 5: sloping return boundaries never become one midpoint extrusion', 
   const { circuitJson, modeling } = await reviewBoard({ slopingPour: true })
   assert.throws(() => geometryFromCircuitJson(circuitJson, modeling), { code: 'varying_cross_section' })
 })
-test('review 6: unselected reference via is never omitted', async () => {
-  const { circuitJson, modeling } = await reviewBoard({ via: true })
-  assert.throws(() => geometryFromCircuitJson(circuitJson, modeling), { code: 'reference_via' })
-})
+
 test('review 7: endpoint pads include connected open overhangs', async () => {
   const { circuitJson, modeling } = await reviewBoard({ padWidth: 2 })
   const g = geometryFromCircuitJson(circuitJson, modeling)

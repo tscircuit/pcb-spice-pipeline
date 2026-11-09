@@ -11,8 +11,8 @@ test('real TSX reproductions include SC70 pads, three distinct routes and a laye
   assert.ok(multilayer.some(r => r.type === 'pcb_copper_pour'))
 })
 
-test('reviewed examples refuse omitted reference-via geometry for every lane order', () => {
-  for (const lanes of [modeling.lanes, [...modeling.lanes].reverse()]) assert.throws(() => geometryFromCircuitJson(circuitJson as CircuitJson, { ...modeling, lanes }), { code: 'reference_via' })
+test('reviewed crosstalk refuses driven oblique copper for every lane order', () => {
+  for (const lanes of [modeling.lanes, [...modeling.lanes].reverse()]) assert.throws(() => geometryFromCircuitJson(circuitJson as CircuitJson, { ...modeling, lanes }), { code: 'oblique_coupling' })
 })
 
 import { makeGapBoard } from '../fixtures/rs485-gap'

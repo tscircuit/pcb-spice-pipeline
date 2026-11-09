@@ -37,8 +37,9 @@ export function channelSpice(extracted: readonly ExtractedStage[], lanes: number
         lines.push(`H${g}_${i}_${j} ${tail} ${next} VS${g}_${j} ${num(R[i][j])}`)
         tail = next
       }
-      for (let b = 0; b < e.skin.fit.weights.length; b++) {
-        const matrix = scale(e.skin.matrix, e.skin.fit.weights[b] / e.cells)
+      for (const [index, term] of e.skin.terms.entries()) for (let branch = 0; branch < term.fit.weights.length; branch++) {
+        const b = `${index}_${branch}`
+        const matrix = scale(term.matrix, term.fit.weights[branch] / e.cells)
         if (!matrix.some(row => row.some(v => v !== 0))) continue
         const factor = validateMatrix(matrix, 'skin branch', numerics.matrixReciprocity).cholesky
         for (let mode = 0; mode < n; mode++) if (factor[i][mode]) {
@@ -47,7 +48,7 @@ export function channelSpice(extracted: readonly ExtractedStage[], lanes: number
           tail = next
         }
         if (i === 0) for (let mode = 0; mode < n; mode++) {
-          lines.push(`RF${g}B${b}_${mode} M${g}B${b}_${mode} REF 1`, `LF${g}B${b}_${mode} M${g}B${b}_${mode} REF ${num(1 / e.skin.fit.poles[b])}`)
+          lines.push(`RF${g}B${b}_${mode} M${g}B${b}_${mode} REF 1`, `LF${g}B${b}_${mode} M${g}B${b}_${mode} REF ${num(1 / term.fit.poles[branch])}`)
           for (let j = 0; j < n; j++) if (factor[j][mode]) lines.push(`FF${g}B${b}_${mode}_${j} REF M${g}B${b}_${mode} VS${g}_${j} ${num(factor[j][mode])}`)
         }
       }

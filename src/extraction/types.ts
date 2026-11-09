@@ -11,7 +11,7 @@ export interface ExtractedStage {
   units: { R: 'ohm'; L: 'H'; C: 'F'; G: 'S' }; frequencyHz: number
   band: ExtractionModeling; frequenciesHz: number[]
   spectrum: { frequencyHz: number; R: Matrix; L: Matrix; C: Matrix; G: Matrix }[]
-  skin: { matrix: Matrix; fit: LossFit }; dielectric: { matrix: Matrix; fit: LossFit }
+  skin: { terms: { matrix: Matrix; fit: LossFit; thicknessM?: number; conductivitySm?: number }[] }; dielectric: { matrix: Matrix; fit: LossFit }
   mesh: BemResult['steps']
   sliceHash: string; geometry: GeometryCell
 }

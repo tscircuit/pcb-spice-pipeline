@@ -44,7 +44,7 @@ try {
   assert.equal(manifest.types,'./dist/index.d.ts')
   assert.equal(manifest.scripts.prepare,undefined)
   assert.ok(Object.values(manifest.peerDependenciesMeta).every(peer=>peer.optional))
-  await writeFile(join(consumer,'tsx.json'),JSON.stringify((await reviewBoard({via:true})).circuitJson))
+  await writeFile(join(consumer,'tsx.json'),JSON.stringify((await reviewBoard({oblique:true})).circuitJson))
   const input=inMemoryInput()
   input.ibisSources=Object.fromEntries(Object.entries(input.ibisSources).map(([path,bytes])=>[path,bytes.toString('utf8')]))
   await writeFile(join(consumer,'input.json'),JSON.stringify(input))
@@ -54,7 +54,7 @@ import {runPipeline,generateReport} from '@tscircuit/signal-integrity-pipeline';
 import {createNativeSolver,loadIbisSources,writePipelineOutput} from '@tscircuit/signal-integrity-pipeline/node';
 import {fixtureSolver} from './solver.mjs';
 const result=await runPipeline({...JSON.parse(readFileSync('input.json','utf8')),runSolver:fixtureSolver});
-await assert.rejects(runPipeline({circuitJson:JSON.parse(readFileSync('tsx.json','utf8')),runSolver:fixtureSolver}),{code:'reference_via'});
+await assert.rejects(runPipeline({circuitJson:JSON.parse(readFileSync('tsx.json','utf8')),runSolver:fixtureSolver}),{code:'oblique_coupling'});
 assert.equal(result.experiments.length,1);assert.ok(generateReport(result)['results.html']);
 assert.equal(typeof createNativeSolver,'function');assert.equal(typeof loadIbisSources,'function');assert.equal(typeof writePipelineOutput,'function');`
   await writeFile(join(consumer,'smoke.mjs'),smoke)

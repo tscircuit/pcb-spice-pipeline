@@ -7,7 +7,7 @@ export function channelStage(matrices: StageMatrices): ExtractedStage {
   const ports = Array.from({length:n}, (_,i)=>({lane:`D${i}`,from:`IN${i}`,to:`OUT${i}`}))
   return {...matrices,stage:0,profile:'declared-test-matrix',lengthM:.01,ports,cells:1,C0:matrices.C,G:zero,
     units:{R:'ohm',L:'H',C:'F',G:'S'},frequencyHz:1e8,band:{riseTimeSeconds:1e-9,bitRateHz:1e8},frequenciesHz:[],spectrum:[],
-    skin:{matrix:zero,fit},dielectric:{matrix:zero,fit},mesh:[],sliceHash:'declared-test-matrix',
+    skin:{terms:[]},dielectric:{matrix:zero,fit},mesh:[],sliceHash:'declared-test-matrix',
     geometry:{stage:0,profile:'declared-test-matrix',lengthM:.01,ports,start:[0,0],end:[10,0]},
   }
 }

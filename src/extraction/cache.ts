@@ -1,6 +1,6 @@
 import type { CrossSection } from '../board'
 import { numerics } from '../kernel'
-import { solveCrossSection, type BemResult } from './bem'
+import { solveCrossSection, matrixResidual, type BemResult } from './bem'
 import { validateMatrix, reciprocityResidual } from './checks'
 import { fail } from './diagnostics'
 
@@ -14,11 +14,14 @@ export function restoreSlices(entries: [string, BemResult][]): void {
   for (const [hash,result] of entries) {
     const residual = result.steps.at(-1)?.residual
     if (typeof hash!=='string' || typeof residual!=='number' || !Number.isFinite(residual) || residual>=numerics.meshRelativeChange) fail('mesh_convergence','Slice checkpoint lacks a converged entry-wise estimate')
-    for (const [name,matrix] of Object.entries({C:result.C,C0:result.C0,surface:result.surface,loss:result.loss})) {
+    if (!result.surfaces?.length || result.surfaces.some(f => ![f.thicknessM, f.conductivitySm].every(v => Number.isFinite(v) && v > 0))) fail('loss_fit', 'Slice checkpoint lacks physical finite-thickness surface terms; re-extract')
+    for (const [name,matrix] of Object.entries({C:result.C,C0:result.C0,surface:result.surface,loss:result.loss, ...Object.fromEntries(result.surfaces.map((f, i) => [`face${i}`, f.matrix]))})) {
       if (matrix.length!==result.C.length || matrix.some(row=>row.length!==matrix.length || row.some(v=>!Number.isFinite(v)))) fail('matrix_format',`checkpoint ${name}: finite matching square matrix required`)
       if (name==='C' || name==='C0') validateMatrix(matrix,`checkpoint ${name}`,numerics.matrixReciprocity)
       else if (reciprocityResidual(matrix)>numerics.matrixReciprocity) fail('reciprocity',`checkpoint ${name}: nonreciprocal matrix`)
     }
+    const total = result.surface.map((row, i) => row.map((_, j) => result.surfaces!.reduce((sum, f) => sum + f.matrix[i][j], 0)))
+    if (matrixResidual(total, result.surface) > numerics.meshRelativeChange) fail('loss_fit', 'Slice checkpoint surface terms do not sum to its surface-current matrix')
     solutions.set(hash,structuredClone(result))
   }
 }

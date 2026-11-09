@@ -1,6 +1,7 @@
 // Geometry recovered from si-api-review/iter1/e2e/boards.tsx; no hand-authored Circuit JSON.
 import { Circuit } from '@tscircuit/core'
 import type { CircuitJson } from 'circuit-json'
+import type { BoardProps } from '@tscircuit/props'
 import React from 'react'
 import { RoutedTrace as Route } from '../../examples/differential-data/pcb'
 
@@ -13,6 +14,14 @@ function GroundVia({ chip, via }: { chip: string; at: [number, number]; via: [nu
   </>
 }
 
+// The historical preset omits loss tangent and via plating. These explicit material
+// completions preserve all original copper, layer thicknesses, Dk and ports. Loss tangent
+// affects G only; it is not used for the external mutual-inductance comparison.
+const construction: NonNullable<BoardProps['pcbStackup']> = { plated_hole_copper_thickness: .025, layers: [
+  { layer_type: 'copper', layer: 'top', thickness: .03, electrical_conductivity_s_per_m: 5.8e7 },
+  { layer_type: 'dielectric', thickness: 1.43, relative_permittivity: 4.42, loss_tangent: .02 },
+  { layer_type: 'copper', layer: 'bottom', thickness: .03, electrical_conductivity_s_per_m: 5.8e7 },
+] }
 const HVD = { pin1:'R', pin2:'RE_N', pin3:'DE', pin4:'D', pin5:'GND', pin6:'A', pin7:'B', pin8:'VCC' }
 /** Original ideal board supply. */
 const Supply = (): React.JSX.Element => <>
@@ -27,7 +36,7 @@ const Pour = ({ w, h }: { w: number; h: number }): React.JSX.Element => (
 
 /** Original routed differential pair and termination. */
 const Board = (): React.JSX.Element => (
-  <board width={44} height={12} layers={2} thickness={1.6} fabricatorPreset="jlcpcb_standard" routingDisabled schematicDisabled>
+  <board width={44} height={12} layers={2} thickness={1.6} fabricatorPreset="jlcpcb_standard" pcbStackup={construction} routingDisabled schematicDisabled>
     <chip name="TX" manufacturerPartNumber="SN65HVD72D" footprint="soic8" pinLabels={HVD}
       pcbX={-15} pcbY={0} connections={{ VCC: "net.VCC", GND: "net.GND" }} />
     <chip name="RX" manufacturerPartNumber="SN65HVD72D" footprint="soic8" pinLabels={HVD}

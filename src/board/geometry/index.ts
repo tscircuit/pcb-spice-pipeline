@@ -7,6 +7,7 @@ import { connectedSourceIds } from '../connectivity'
 import { stackupFromCircuitJson } from '../stackup'
 import { selectPort, resolveRouteVias } from './ports'
 import { antipadDiameter } from './antipad'
+import { referenceVias, viaCuts, sliceVias } from './reference'
 import { sliceIntervals, wirePolygon, mergeConductors, type CopperShape } from './slices'
 import type { BoardModeling, CopperPoint, CrossSection, Geometry, GeometryCell, LaneMapping } from './types'
 
@@ -159,9 +160,9 @@ export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling
   }
   for (const pour of cj.filter(r => r.type === 'pcb_copper_pour')) {
     if (pour.shape !== 'brep' || [pour.brep_shape.outer_ring, ...pour.brep_shape.inner_rings].some(r => r.vertices.some(v => v.bulge))) fail('ground_geometry', 'Copper pours require straight BREP boundaries')
-    const net = ground.ids.has(pour.source_net_id ?? '') ? 'GROUND' : laneNets.get(pour.source_net_id ?? '')
+    const net = ground.ids.has(pour.source_net_id ?? '') || rails.has(pour.source_net_id ?? '') ? 'GROUND' : laneNets.get(pour.source_net_id ?? '')
     if (!net) fail('slice_conductor', `${pour.pcb_copper_pour_id}: unselected driven copper needs an electrical channel binding`)
-    shapes.push({ id: pour.pcb_copper_pour_id, net, layer: pour.layer, polygon: [pour.brep_shape.outer_ring, ...pour.brep_shape.inner_rings].map(r => r.vertices.map(v => [v.x, v.y])) })
+    shapes.push({ id: pour.pcb_copper_pour_id, net, physicalNet: ground.ids.has(pour.source_net_id ?? '') ? 'GROUND' : [...connectedSourceIds(cj, pour.source_net_id ?? '')].sort()[0], layer: pour.layer, polygon: [pour.brep_shape.outer_ring, ...pour.brep_shape.inner_rings].map(r => r.vertices.map(v => [v.x, v.y])) })
   }
   for (const trace of cj.filter(r => r.type === 'pcb_trace').filter(r => !selected.has(r.source_trace_id ?? ''))) {
     const source = cj.find(r => r.type === 'source_trace' && r.source_trace_id === trace.source_trace_id)
@@ -202,12 +203,11 @@ export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling
     mapping.stages.push({ kind: 'wire', profile: 'pad-stub', lengthMm: Math.abs(tip - at), widthMm: Math.max(...across) - Math.min(...across), thicknessMm: layer(pad.layer).zMaxMm - layer(pad.layer).zMinMm })
   }
   const selectedPcbTraces = new Set(mappings.map(m => m.pcbTraceId))
-  const unmodelledVia = cj.find(r => r.type === 'pcb_via' && !selectedPcbTraces.has(r.pcb_trace_id ?? ''))
-  if (unmodelledVia) fail('reference_via', `${unmodelledVia.type === 'pcb_via' ? unmodelledVia.pcb_via_id : ''}: reference/unselected via barrels, pads, clearances and return connectivity require a qualified discontinuity model`)
+  const references = referenceVias(cj, stackup, ground.ids, rails, selectedPcbTraces)
   const directions = new Map(edges.map(e => [`${round(e.dx)},${round(e.dy)}`, [e.dx, e.dy]]))
   for (const [key, [dx, dy]] of [...directions].sort(([a], [b]) => a.localeCompare(b))) {
     const parallel = edges.filter(e => `${round(e.dx)},${round(e.dy)}` === key)
-    const cuts = [...new Set([...parallel.flatMap(e => [round(e.lo), round(e.hi)]), ...shapes.flatMap(s => s.polygon.flat().map(p => round(p[0] * dx + p[1] * dy)))])].sort((a, b) => a - b)
+    const cuts = [...new Set([...parallel.flatMap(e => [round(e.lo), round(e.hi)]), ...shapes.flatMap(s => s.polygon.flat().map(p => round(p[0] * dx + p[1] * dy))), ...references.flatMap(v => viaCuts(v, dx, dy).map(round))])].sort((a, b) => a - b)
     for (let k = 1; k < cuts.length; k++) {
       const lo = cuts[k - 1]
       const hi = cuts[k]
@@ -250,6 +250,7 @@ export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling
         if (before.length !== after.length || before.some((v, i) => v.some((x, j) => Math.abs(x - after[i][j]) > numerics.endpointToleranceMm))) fail('varying_cross_section', `${shape.id}: cross-section varies within ${lo}..${hi} mm in direction ${key}; a converged nonuniform model is required`)
         for (const [xMin, xMax] of intervals) if (xMax > xMin) slice.conductors.push({ id: shape.id, group, physicalNet: shape.physicalNet ?? netForLane.get(shape.net) ?? shape.net, xMin: round(xMin), xMax: round(xMax), zMin: physical.zMinMm, zMax: physical.zMaxMm, conductivitySm: physical.conductivitySm })
       }
+      sliceVias(slice, references, dx, dy, t)
       if (!slice.conductors.some(c => c.group === -1)) fail('slice_ground', `No board ground crosses slice ${key} at ${t} mm; a 2D return cannot be determined`)
       mergeConductors(slice)
       const ports = active.map(e => {
@@ -263,11 +264,12 @@ export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling
   cells.forEach((c, i) => {
     c.stage = i
   })
-  return { stackup, mappings, cells, groundSourcePortId: ground.port, units: { circuitJson: 'mm', geometry: 'm', conductivity: 'S/m' }, approximations: [
+  return { stackup, mappings, cells, referenceVias: references, groundSourcePortId: ground.port, units: { circuitJson: 'mm', geometry: 'm', conductivity: 'S/m' }, approximations: [
     'Declared ideal DC source rails are AC equipotential; their physical copper is included with reference surfaces. Distributed rail impedance is outside this model.',
     'Connected transverse bend legs belong to their own propagation segment; including them in a prismatic 2D extrusion would create a nonphysical short. Bend fringing is excluded.',
     'Local quasi-TEM cross-sections at segment midpoints; radiation and bend fringing require a 3D full-wave model and are excluded.',
-    'Driven oblique copper, continuously varying slices and unselected reference vias raise named diagnostics before extraction.',
+    'Driven oblique copper and continuously varying polygon slices raise named diagnostics before extraction. Reference vias tie their physical reference net across the recorded copper layers; circular barrels/pads are sampled within their longitudinal extent.',
+    'Finite-thickness one-face slab excess impedances are weighted by the PEC surface-current distribution and added to the exact area-based DC resistance. This perturbative loss model does not solve frequency-dependent bulk current redistribution.',
     'Floating pads are neutral conductors, eliminated by a Schur complement; inner copper etch gaps have no inferred resin fill.',
     'Vias use cited lumped barrel/pad/antipad formulas; a missing circular antipad is a named error. Ground is the connected board ground net.',
   ] }

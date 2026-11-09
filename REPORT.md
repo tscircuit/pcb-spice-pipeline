@@ -1,214 +1,204 @@
-# Round-1 remediation report
+# Round-2 implementation report
 
-This is a **partial local implementation**, not a completed or qualified replacement pipeline.
-Both blocker failure modes now have regressions and safe behavior. Findings 3, 8, 10 and 11
-remain operationally unresolved. The current examples reject unsupported reference vias before
-extraction; no new example eyes, crosstalk voltages or native determinism pass is claimed.
-Nothing was pushed and no PR was opened. No subagents, dependency admission patches, solver
-limits, lane caps, or new truncations were introduced.
+**The overriding end-to-end/speed goal is NOT achieved.** This is a tested local increment on
+`si-2d/fix`, with no push, PR, merge, dependency patch, subagent, pipeline timeout, attempt limit,
+lane limit or numerical-tolerance relaxation. Reference vias now enter the physical slices;
+finite-thickness losses replace the heuristic. Further geometry diagnostics and dense-mesh cost
+still prevent all five requested native example runs. No new board eyes, NEXT/FEXT voltages,
+native waveform determinism, or identical-board 2D mutual inductance are claimed.
 
-## Branches
+The reproduction branch remains `f2b3bb0`. This round starts from `4ea0eef`; the final response
+provides the resulting head SHA. Earlier evidence remains under `runs/review-round1/`, with the
+reviewed historical report available at `65fb57f:REPORT.md`. New local evidence is under
+`runs/review-round2/` (ignored execution artifacts, available in this checkout).
 
-- `si-2d/repro` remains at `f2b3bb0ee3eeefdfe0016e68baa4f4b1ae8156ad`.
-- All remediation commits are on `si-2d/fix`, above reviewed head `65fb57f`.
-  The implementation snapshot is `4882761b2339ce2b7a4c13b36308242aa5f38c6f`; later changes only update this report/docs.
-  The final delivery gives the resulting head (a report cannot contain its own commit hash).
-- The original `tests/fixtures/rs485-gap.tsx` is restored byte-for-byte from the reproduction
-  branch. New API regressions belong on the fix branch; the stack was not rebased.
+## A–E status
 
-## Findings and regression status
-
-All names below are actual test titles or their unambiguous `review N:` prefixes. The three
-remaining red tests execute as TODOs, rather than being silently skipped or treated as fixed.
-Their ordinary failing runs are preserved in `runs/review-round1/open-red.log`.
-
-| Finding | Status | Regression / evidence |
+| Item | Result | Actual regression/evidence |
 |---|---|---|
-| 1, blocker: oblique driven copper floats | Fixed by explicit rejection, unit-only | `review 1: oblique driven lanes never become neutral floating copper`: `oblique_coupling` rejects driven copper without a propagation port. No approximation notice or zero-crosstalk result is returned. |
-| 2, blocker: clean-package admission | Fixed, packed consumer verified | `review 2: actual settings-free TSX is admitted with an unpatched circuit-json peer`; `pnpm test:package` renders actual TSX, feeds its output to the installed package, and reaches the expected physical-geometry diagnostic. The existing complete in-memory consumer still runs. |
-| 3: TI switching with supply L | Documented unsupported case; requested switching operation NOT DONE | Native-suite `review 3: real TI switching with inductive die supplies requires missing power-aware data` uses real vendor bytes and TSX electrical declarations. `ibis_supply_dynamics` refuses enabled output models with inductive reference pins. The synthetic buffer diagnostic also runs in the unit suite. This is not a native TI switching success. |
-| 4: invalid/missing vendor package | Fixed, unit-only; input-buffer package still tested natively | `review 4: vendor policy rejects missing and negative R/L/C on every mapped TSX pin`; `review 4: explicit zero package values are valid rather than missing`. Each resolved metadata value is checked for presence, finiteness and nonnegativity before being emitted. |
-| 5: sloping return geometry | Fixed by explicit rejection, unit-only | `review 5: sloping return boundaries never become one midpoint extrusion`: interval endpoint motion inside each vertex-bounded longitudinal interval raises `varying_cross_section`. A nonuniform approximation is not emitted. |
-| 6: reference vias disappear | Fixed by explicit rejection, unit-only | `review 6: unselected reference via is never omitted`: every via outside selected signal-route models raises `reference_via`. This intentionally invalidates the examples' former incomplete geometry. |
-| 7: pad overhang omitted | Fixed, unit-only | `review 7: endpoint pads include connected open overhangs`: the reviewer's 2 mm pads at +/-5 mm span -6..6 mm with connected open stubs and unchanged physical IN/OUT nodes. Added pad length is accounted for in segment metadata. |
-| 8: finite-thickness skin transition | NOT DONE, executing red TODO | `review 8: skin transition agrees with the one-face finite slab at delta = thickness`: actual TSX copper drives the current extraction path; normalized result 1.628041175 versus independent slab 1.085635705, +49.96%. Improving the Foster fit does not fix its incorrect physical target. |
-| 9: inaccurate fixed Foster fits | Fixed for supplied excitation-band samples, unit-only | `review 9: loss accuracy is contractual across the excitation band, with adaptive branch count`; `review 9: a non-Foster loss target fails explicitly instead of returning a bad fit`. Nonnegative pole intervals bisect until maximum sampled relative error <=2%, with strict weighting for every nonzero sample. Monotonicity/slope violations, a continuous-pole infeasibility certificate, or exhausted floating-point pole resolution raise `loss_fit`. Branch counts, maximum and RMS errors are logged and serialized. No branch ceiling exists. Continuous-band and physical eddy-current accuracy are not established by this test. |
-| 10: RS-485 comparison | Fixture restored; numerical qualification NOT DONE, executing red TODO | `review 10: original 44 by 12 mm RS-485 comparison TSX stays reproducible`; `review 10: identical original RS-485 copper can be extracted for a qualified mutual-L comparison`. The original preset lacks loss tangent, and after material completion its unmodelled reference vias would still be rejected. No changed-board value is presented as an identical-geometry comparison. |
-| 11: cold speed | NOT DONE, executing red TODO | `review 11: cold extraction of the original crosstalk TSX completes in seconds`. The full pipeline currently rejects geometry, so no cold-extraction speed pass exists. An optional-mesh-alignment experiment was measured and reverted; caching was not counted as a fix. |
+| A: reference vias | Implemented, unit-only; full-board qualification incomplete | `review 6: reference stitching via records its net/layers and only changes intersecting slices`; `review 6: an electrically unclassified non-route via still raises reference_via`; `review 6: all four examples classify reference vias without reference_via rejection` |
+| B: seconds / no solve over one minute | NOT DONE | CPU profile, three reverted mesh/window candidates, bounded single-ended attempts below; `review 11: cold extraction of the original crosstalk TSX completes in seconds` remains an executing failing TODO |
+| C: finite thickness | Implemented and unit-verified in the stated slab/proximity limits; no board waveform qualification | `review 8: skin transition agrees with the one-face finite slab at delta = thickness`; `review 8: finite slab remains accurate from DC through the skin regime without a shared transition`; `review 8: actual TSX opposing strips reproduce the published one-face proximity loss within 2%` |
+| D: identical original RS-485 | Material completion done; numerical comparison NOT DONE | `review 10: original 44 by 12 mm RS-485 comparison TSX stays reproducible`; `review 10: identical original RS-485 copper can be extracted for a qualified mutual-L comparison` remains an executing failing TODO, now failing on `varying_cross_section` |
+| E: TI inductive supply package | Bounded native failure reproduced; sound fix not established | `review 3: real TI switching with inductive die supplies requires missing power-aware data`; two isolated native supply experiments below; `ibis_supply_dynamics` retained |
 
-The additional fitter regressions cover a known positive-real branch across twelve decades and a
-nonconcave monotone target that satisfies the elementary slope bounds. The first exposed and fixed
-premature coarse-grid rejection. The latter now gets a continuous-pole separating certificate:
-normalized Foster columns have log-pole derivative in [-2,0], bounding the residual weighted-mean
-interpolation error by range(residual)*log-gap/4. Explicit endpoint bounds cover poles outside the
-grid; a separating dual vector proves when every positive Foster fit exceeds the 2% sampled error.
-The declared pole interval is not treated as a proof of infeasibility. Tiny nonzero targets have
-no peak-relative normalization floor. This certifies the sampled numerical fit, not a physical skin law.
+Findings 1/2/4/5/7/9 retain their earlier protections. The former broad reference-via rejection is
+replaced by electrical classification. Tests that previously expected that broad rejection now
+expect the actual next geometry diagnostic; this does not qualify those boards for extraction.
 
-## Precise limitations and closest sound alternatives
+## Reference geometry and physical loss model
 
-For finding 3, the wrapper connects classic IBIS dependent current sources to die supply inductors,
-while C_comp is emitted only between PAD and the pulldown rail. The external C_pkg does not provide
-a die-side supply storage path. At zero/negative switching coefficients the supplied voltage-clamp
-model is not a qualified power-delivery model. The supplied TI file is IBIS 3.2 and provides neither
-a power-aware supply-current model nor the split die capacitances needed to justify a new rail
-storage network. The review already demonstrated that coefficient clamping, smoothing and moving
-package capacitance do not qualify a fix. This work does not establish the unique physical cause
-of the vendor abort and does not invent damping, capacitance allocation or new vendor data.
-The closest sound implemented alternative is `ibis_supply_dynamics`; explicitly omitted package
-parasitics remain an ideal-supply experiment. Input-buffer package operation is a narrower native
-check. Full switching support requires additional model data and a qualified converter.
+Reference vias are identified through the source trace or electrical connectivity key. Ground and
+ideal-DC supply copper remain equipotential references, while their distinct physical net identities
+are retained for short detection. `geometry.referenceVias` records each stitch's physical net,
+layer/pad spans, drill, plating and barrel span. Cuts include circular pad/barrel/drill tangencies
+and centre. At each intersecting slice, exact circular chords form hollow barrel and pad rectangles;
+the drill removes actual copper and dielectric, and existing polygon voids retain their antipads.
+Copper unions prevent double-counting area and suppress internal pad/barrel/pour BEM faces.
+Unclassified non-route vias still raise `reference_via`.
 
-For findings 1, 5 and 6, connected nonparallel current paths, continuously changing cross-sections,
-and reference-via return connectivity are not determined by the present independent prismatic
-slice assembly. A local floating-neutral Schur reduction cannot replace a driven port. Vertex
-cuts cannot make a sloping boundary constant. A lumped signal-via formula cannot account for the
-longitudinal network formed by reference vias, planes and clearance holes. Diagnostics are the
-implemented sound alternative explicitly permitted by the review. Supporting the existing examples
-again requires a connected nonuniform/discontinuity model; deleting their copper to obtain a run
-would change the requested experiment and was not done.
+This remains a **local midpoint quasi-TEM model**. Longitudinal integration of changing circular
+chords has not been independently converged, and no 3D via-fringing accuracy is established.
+The via field regression verifies a nonzero capacitance change and the unchanged 0.5% entry-wise
+BEM convergence requirement. It does not establish a native complete-board return-path result.
 
-Finding 8 is **not physically impossible**; its implementation is incomplete. A validated
-finite-thickness surface-impedance or eddy-current solve must account for individual conductor
-thickness/conductivity and opposing-face/proximity currents. Replacing the global transition
-frequency with another scalar blend cannot establish that accuracy. The known bad loss law
-remains in the existing extractor, explicitly exposed by the red TODO. It must not be used for
-qualified finite-thickness predictions. The closest sound analytical reference for the reproduced
-case is Re[(1+j)coth(1+j)] = 1.085635705. A general passive multi-conductor replacement has not
-been implemented; this report does not label that task infeasible or fixed.
+The skin target is now the finite slab surface impedance
+`Zs = gamma*coth(gamma*t)/sigma`, `gamma=(1+j)/delta`, from
+[NBS J. Res. 84 (1979), 247, eq. 2.3](https://nvlpubs.nist.gov/nistpubs/jres/84/jresv84n3p247_A1b.pdf).
+Its exact DC term is subtracted, then its excess is weighted by the PEC surface-current covariance
+and added to the area-based DC resistance. Each physical thickness/conductivity class has its own
+Foster fit and convergence entries; the shared maximum transition frequency and empirical blend
+are removed. Stable low-frequency series evaluation avoids cancellation. Identical material fits
+and the common dielectric fit are reused within extraction. Netlists and spectra consume every
+`skin.terms` entry; no aggregate matrix/first-fit alias misrepresents mixed materials. Old field
+checkpoints without the physical surface terms are rejected. The existing numerical fit contract
+still requires <=2% maximum relative error over every supplied excitation-band sample.
 
-For finding 11, the candidate limited optional panel projections to active conductors and a wide
-reference while retaining every physical boundary and the 0.5% entry-wise convergence test.
-A historical TSX-derived slice fell from 1,600 to 1,088 panels and solved in 1.367 s. That did not
-qualify the algorithm: the difficult historical slice 214 remained unconverged at 4,352 panels
-(estimated residual 2.360%) and its next refinement was still running after five minutes. The
-experimental solve was manually interrupted, with no result used or cached; the candidate mesh
-change was reverted. This is a bounded failed experiment, not a production timeout or a hidden
-attempt cap. `src/extraction/bem.ts` is unchanged from the reviewed branch. Adaptive local field
-refinement or a layered Green-function method remains necessary. No speed claim is made.
+This is a perturbative one-face surface-impedance treatment, not a bulk eddy-current solve.
+General frequency-dependent redistribution between opposing faces and arbitrary proximity geometry
+has not been independently qualified. The added proximity benchmark uses actual TSX opposing wide
+strips and NBS eq. 3.3's facing-current limit, rather than claiming a general coupled-strip data set.
 
-## Verification commands
-
-Final command outcomes are recorded below and in ignored `runs/review-round1/` logs. The command
-with pinned vendor assets intentionally exercises the currently unsupported real examples.
-
-| Command | Result | Evidence / scope |
-|---|---|---|
-| `pnpm build` | PASS | `build-verified.log` |
-| `pnpm test` | PASS with open work | 261 tests: 258 pass, 0 ordinary failures, 3 executing failing TODOs; 157.640 s. `test-final-verified.log`. The TODOs are findings 8, 10 and 11. |
-| `pnpm test:native` | PASS, limited | 6 pass, 2 skip; 5.027 s. No vendor directory was supplied for this command; its two vendor-dependent tests are skipped. `native-basic-verified.log`. |
-| `PCB_SPICE_TEST_MODEL_DIR=runs/2d-models pnpm test:native` | FAIL | 7 pass, 1 fail; 6.462 s. The actual vendor-example test raises `reference_via`. The isolated real-TI converter diagnostic passes, without claiming a switching waveform. `native-vendor-verified.log`. |
-| `pnpm test:package` | PASS | Clean, unpatched circuit-json@0.0.541 consumer: Node/Bun imports, complete in-memory run, actual settings-free TSX admission, denied-host run, NodeNext declarations. `package-verified.log`. |
-| `pnpm lint` | PASS | `lint-verified.log` |
-| `pnpm check:modules` | PASS | `modules-verified.log` |
-| `pnpm check:vocabulary` | PASS | 89.8% overall versus 85% contract; `vocabulary-verified.log` |
-| `pnpm typecheck` | PASS | Production and test types; `typecheck-verified.log` |
-| `node --import tsx scripts/verify-review.mjs` | All ten attempts rejected | Fresh processes, five cases twice, zero native example invocations. `cold-attempts.json` / `cold-attempts.log`. |
-
-Logs are under `runs/review-round1/`. The fit metrics are `fit-metrics.jsonl`; initial failing
-regressions are `si-review-red.log`, `si-package-red.log`, `supply-red.log`, `loss-red.log`,
-`loss-tiny-red.log` and `open-red.log`. The failed mesh experiment is `scaling-worst.log`;
-it has no final numerical result. Golden artifact hashes were deliberately regenerated for the
-new fit networks and revised geometry-qualification notices. Earlier aborted/failed intermediate
-test logs are retained separately and are not the final command results.
-
-Admission now owns its electrical channel schema, including strict rejection of removed settings,
-and its unlimited bit-pattern schema inside this package. The `circuit-json` patch and workspace
-entry are removed. Validation keeps the upstream experiment refinements by validating a copy
-without channel intent, then validating the package-owned intent separately; input bytes are not
-rewritten. Remaining core/props/converter patches predate this remediation and are not admission
-schema patches.
-
-The geometry success tests now use a supported parallel TSX fixture for lengths and lane-order
-invariance. The old example assertions explicitly test the new diagnostic. The source-net-binding
-unit test derives its mapping from actual TSX ports/traces and tests electrical connectivity alone;
-it no longer conflates that check with unsupported reference-via field extraction. These changes
-do not turn an unsupported board into a qualified field result.
-
-## Cold timings and native example attempts
-
-Each new attempt is a separate process, without restored or process-local field caches. Timing
-starts after TSX rendering and vendor-asset loading. Every example was attempted twice with an
-actual native ngspice adapter configured. All ten attempts reject `reference_via` before extraction,
-and invoke ngspice zero times. Their diagnostic codes/messages agree across repeats. This is
-**not** native waveform determinism and the short rejection times are **not extraction times**.
-Reproduce with `node --import tsx scripts/verify-review.mjs`.
-
-| Board | Historical 65fb57f cold extraction s | Current cold extraction s | Current pre-extraction rejection s, first / repeat | Native runs completed |
-|---|---:|---|---:|---:|
-| single-ended | 52.356 | N/A | .142826 / .041495 | 0 / 2 attempted |
-| differential-data | 1609.389 | N/A | .026814 / .033837 | 0 / 2 attempted |
-| crosstalk, active | 4144.831 shared geometry | N/A | .033930 / .027160 | 0 / 2 attempted |
-| crosstalk, quiet | 4144.831 first quiet solve | N/A | .035988 / .026040 | 0 / 2 attempted |
-| multilayer | 653.178 | N/A | .021005 / .023407 | 0 / 2 attempted |
-
-Historical rows are retained from the reviewed report, not rerun as if they were new results.
-The original native 3D BEFORE extraction was 89.113 / 11.603 / 234.089 / 491.585 s for single,
-differential, crosstalk and multilayer respectively; those comparisons changed model/return choices.
-
-## Accuracy and loss checks
-
-C/L closed-form checks retain the original independent 2% tolerances and oracles. BEM was restored
-unchanged after the failed speed experiment. Historical numerical errors below are provided for
-context; the latest tests establish the same <2% bounds rather than a new board-level validation.
-These are unit-only cross-section checks, not native full-board qualifications.
-
-| Configuration | Historical Z/effective-er error | Historical L12 / C12 error | Current qualification |
-|---|---|---|---|
-| single microstrip | -.2155% / +.1246% | N/A | independent 2% unit test |
-| single stripline | +.1059% / ~0% | N/A | independent 2% unit test |
-| coupled microstrip | Ze -.1580%, Zo -.1949%; ee +.2824%, eo -.1915% | +.3322% / -.3022% | independent 2% unit test |
-| coupled stripline | Ze -.1555%, Zo -.2634%; er ~0% | +.1329% / +.5537% | independent 2% unit test |
-| one-face slab at delta=t | expected R/Rdc 1.085635705; implemented normalized transition 1.628041175 | +49.96% | FAIL, red TODO 8 |
-
-Adaptive-fit regression: 161 logarithmic samples, 2 MHz..1 GHz. These targets test the numerical
-network approximation independently of the unqualified skin-transition law.
-
-| Target | Adaptive branches | Maximum relative error | Relative RMS | Status |
-|---|---:|---:|---:|---|
-| sqrt(f) | 13 | .150078% | .079674% | unit-only, passes 2% sampled criterion |
-| 2*pi*f | 13 | .210414% | .111611% | unit-only, passes 2% sampled criterion |
-
-References retained by the tests: Hammerstad–Jensen microstrip/coupled microstrip, Wheeler stripline,
-Cohn coupled stripline and TI via formulas. The review's finite-thickness reference is
-[NBS conductor-loss analysis](https://pmc.ncbi.nlm.nih.gov/articles/PMC6752653/).
-
-## Mutual inductance on identical geometry
-
-| Geometry and method | External mutual L | Realized mutual L at 777240.733 Hz | Status |
+| Loss check | Independent target | Current result | Scope |
 |---|---:|---:|---|
-| Original restored 44x12 mm TSX, old straightened 3D | 11.716323 nH | N/A | historical native baseline |
-| Same original TSX and ports, old routed real-copper 3D | 4.169378 nH | N/A | historical native baseline |
-| Same original TSX and ports, current 2D | N/A | N/A | NOT DONE; material/reference-via diagnostics |
-| Different default-board geometry at reviewed 65fb57f, 2D | 1.504064 nH | 1.565388 nH | historical, unqualified; not the original geometry |
+| One-face slab, delta=t, R/Rdc | 1.085635705 | 1.085539898 (-0.00883%) | fitted target; 25 branches, max sampled excess-loss fit error 0.651705% |
+| Opposing strips, t/delta=10, R per metre | 0.492610837 ohm/m | 0.497970017 ohm/m (+1.08791%) | TSX-derived surface-current solve, 2% oracle / 0.5% mesh criterion |
+| Single/coupled microstrip and stripline C/L/modes | Hammerstad–Jensen, Wheeler, Cohn | existing 2% assertions pass | independent unit cross-section checks; tolerances unchanged |
 
-The last row's -62.73% comparison to 4.2 nH does not isolate geometry from method. A quantitative
-same-geometry explanation remains open. Restoring the fixture prevents losing that work list.
+Numbers are in `loss-metrics.json`. Finite width/fringing is present in the second row's actual
+geometry and absent from the wide-strip oracle. Neither row is a native waveform measurement.
 
-## Eye height and width
+## Bounded speed work
 
-No new eye was produced by the current examples. Values from the earlier reviewed candidate are
-explicitly historical and cannot be used to claim the new code completes native simulation.
+Before changing the solver, a fresh historical crosstalk slice took 3.9564 s and 1,696 panels.
+The V8 profile sampled approximately 37% in WebAssembly LU, 35% in the logarithmic primitive and
+18% in the remaining panel kernel. LU was already IEEE-double WebAssembly; replacing JS arrays
+alone would not address the panel explosion.
 
-| Board | Historical BEFORE height / width | Reviewed 65fb57f height / width | Current candidate |
+| Experiment | Measured result | Disposition |
+|---|---|---|
+| Restrict optional projection alignment | first benchmark still running after 69 s | manually stopped, reverted |
+| Exact Galerkin panel primitive | 5.3477 s versus 3.9564 s; same final panel count | reverted |
+| Converged growing lateral windows on the same slice | 10.9855 s, finally 0.1072% entry change; no useful panel reduction | reverted |
+| Cost-selected windows on new via-heavy single-ended slice | did not reduce this first slice; still unconverged at 4,832 panels | manually stopped, reverted |
+
+No failed candidate, truncated field, cached result, fixed window, or relaxed criterion is shipped.
+The retained fit reuse avoids repeating identical fitting work, but is **not a demonstrated fix
+for whole-board cold extraction**. Local panel refinement / a layered Green-function or higher-order
+field discretization is still required. New reference-via rectangles make the first single-ended
+slice especially expensive; merely allowing the geometry is not a speed success.
+
+## Cold attempts and determinism
+
+All workers are fresh Node processes with real pinned vendor bytes and a native-ngspice adapter.
+The four geometry-rejecting cases were attempted twice by `scripts/verify-review.mjs`. Single-ended
+was also attempted twice and manually stopped as a bounded measurement after exceeding the target;
+there is no such stop rule in the pipeline. Verification shared CPU with the repeat, so **no
+qualified cold-extraction wall-time table exists**. The progress/rejection figures below are raw
+evidence, not successful extraction timings. No example reached native ngspice (0/10 attempts).
+
+| Board | Completed cold extraction, first / repeat | Raw progress or rejection seconds, first / repeat | Outcome |
+|---|---|---:|---|
+| single-ended | N/A / N/A | >63.845 / >35.241 (last logged field steps, not interruption times) | first slice unconverged; 4,832 / 2,416 panels at last log |
+| differential-data | N/A / N/A | .027673 / .024197 | `varying_cross_section` |
+| crosstalk, active | N/A / N/A | .021792 / .025249 | `oblique_coupling` |
+| crosstalk, quiet | N/A / N/A | .024750 / .024732 | `oblique_coupling` |
+| multilayer | N/A / N/A | .016615 / .014579 | `varying_cross_section` |
+
+The rejection code/message is identical across each of the eight completed attempts. The initial
+single-ended mesh coefficients/residuals also agree at matching refinements, but no completed
+extraction or native byte-determinism pass is claimed. `cold-attempts.json`, `cold-progress.log`,
+`single-attempt.log` and `single-repeat-attempt.log` retain these distinctions.
+
+After A, the actual blockers are the sloping termination/interconnect cross-section in RS-485,
+a driven oblique crosstalk route, and a varying multilayer slice. Their diagnostics were not bypassed,
+and no trace, pad, pour or port was deleted or rerouted to manufacture a successful example.
+
+## Eyes, crosstalk and identical-board mutual L
+
+Historical baseline values below are retained evidence, not reruns of main in this round.
+
+| Board | Historical main/before eye height / width | Current eye height / width | Current change |
 |---|---|---|---|
-| single-ended | 3.299992 V / .832434 UI | 3.299976 V / .933093 UI | N/A, rejected before ngspice |
-| differential-data | 4.470763 V / .785567 UI | 4.471156 V / .785584 UI | N/A, rejected before ngspice |
+| single-ended | 3.299992 V / .832434 UI | N/A / N/A | not measurable |
+| differential-data | 4.470763 V / .785567 UI | N/A / N/A | not measurable |
 
-The previous width changes were 5.033 ns and 66.8 ps respectively, with geometry, segmentation and
-loss laws changed together. They do not attribute an improvement to this remediation.
+| Crosstalk experiment | NEXT | FEXT | Lane permutation / native determinism |
+|---|---|---|---|
+| active middle line | N/A | N/A | geometry rejection stable; no native result |
+| quiet middle line | N/A | N/A | geometry rejection stable; no native result |
 
-## Code size
+| Identical original 44x12 mm RS-485 copper/ports | External mutual L | Current difference vs 4.2 nH |
+|---|---:|---|
+| Historical routed real-copper 3D | 4.169378 nH (reported rounded as 4.2 nH) | historical baseline |
+| Historical straightened 3D | 11.716323 nH | historical comparison |
+| Current 2D | N/A | NOT DONE: `varying_cross_section` |
 
-| Comparison, production `src/` only | Added | Removed | Net |
+The original TSX copper and ports remain intact. Its explicit stackup completes the original preset:
+30 um outer copper, 1.43 mm core, Dk 4.42, sigma 5.8e7 S/m, plus declared loss tangent .02 and via
+plating .025 mm. Only the last two fields complete missing physical data. Loss tangent affects G,
+not the vacuum C0-derived external mutual L. There is no missing-loss-tangent excuse for the absent
+L comparison: the remaining execution blocker is the changing geometry. The historical changed-board
+1.504/1.565 nH values are not presented as the original-board comparison or attributed to this round.
+
+## E: bounded native supply experiment
+
+The admitted TI CMOS file SHA-256 is
+`03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00`, IBIS 3.2. It supplies neither
+split rail-referenced C_comp values nor `[Composite Current]`; the actual example declares no board
+decoupling capacitor. Nodal die storage cannot be inferred from external C_pkg or assigned by guess.
+The existing simulation already selects Gear. No capacitance, damping, coefficient clamping, tighter
+reltol or altered vendor bytes were introduced as a purported fix.
+
+Two native experiments use the previously generated TI output wrapper, a 1 kohm / 5 pF signal load
+and 3.3 V supply, isolating package behavior from board extraction. This is diagnostic evidence,
+not an end-to-end example or a new power-aware IBIS converter.
+
+| Native ngspice case | Samples | Last time | Result |
+|---|---:|---:|---|
+| Vendor supply R/L/C, method=gear | 2,016 | 100.0000000004 ns | `Timestep too small`, aborted |
+| Explicit ideal-supply-L control | 54,874 | 1.6 us | completes, -0.150..3.339 V switching |
+
+Ngspice returned process code zero even for the truncated vendor run; the abort message and final
+time were inspected. `supply/data-audit.json`, `supply/results.json` and the two native logs preserve
+this. The production `ibis_supply_dynamics` guard remains. Additional physical supply-current/die-rail
+storage data and a qualified converter remain necessary; these experiments do not prove a unique
+cause or justify inventing that data.
+
+## Verification
+
+The full-suite exit status includes two executing red TODOs, rather than silently skipped
+requirements. New artifact hashes were deliberately regenerated for the via metadata/unions,
+finite-thickness terms, primitive labels and explicit approximation notices. The golden suite
+still asserts byte determinism across repeated in-memory runs; that is synthetic-solver evidence.
+
+| Command | Result | Evidence and scope |
+|---|---|---|
+| `pnpm build` | PASS | `build.log`; production bundle/declarations |
+| `pnpm test` | PASS, two open TODOs | 266 tests: 264 pass, 0 ordinary failures, 2 executing failing TODOs; 183.865 s. `test-final.log` |
+| `pnpm test:native` | PASS, limited | 6 pass, 2 vendor skips, 14.596 s; `native-basic-final.log`. Primitive multiports, fitted branches and in-memory extraction execute native ngspice; no example qualification. |
+| `PCB_SPICE_TEST_MODEL_DIR=runs/2d-models pnpm test:native` | MANUALLY INTERRUPTED, not PASS | `native-vendor.log`: two native fixture tests completed; slow single-ended field extraction was interrupted before its native invocation. No vendor example success. |
+| Vendor-enabled focused `review 3` native test | PASS | `native-vendor-guard-final.log`: real admitted TI bytes produce the expected safe diagnostic; 3.256 s, not a switching-output success |
+| Two isolated native TI supply decks | vendor abort / ideal-supply control completes | `supply/results.json`; exact final times inspected, not merely process exit status |
+| `pnpm test:package` | PASS | `package-final.log`: packed Node/Bun imports and complete in-memory runs, actual settings-free TSX admission, unpatched circuit-json peer, denied-host run, NodeNext declarations |
+| `pnpm lint` | PASS | `lint-final.log` |
+| `pnpm check:modules` | PASS | `modules-final.log` |
+| `pnpm check:vocabulary` | PASS | `vocabulary-final.log`, overall above the unchanged 85% contract |
+| `pnpm typecheck` | PASS | `typecheck-final.log`, production and tests |
+| Fresh-process five-case/two-attempt exercise | 8 geometry rejections, 2 manually interrupted fields | `cold-attempts.json`; 0/10 native example invocations, no qualified cold timing or native determinism pass |
+
+The last small safety regression, `reference-via plating conductivity is never guessed from mixed
+copper materials`, uses an actual TSX material variant and rejects ambiguous barrel conductivity
+with `via_geometry`. Its focused run is in `mixed-material.log`.
+
+## Production source size
+
+| `git diff --numstat REF -- src/`, including new files | Added | Removed | Net |
 |---|---:|---:|---:|
-| Current candidate versus `main` | 1325 | 1752 | -427 |
-| Current candidate versus `si-2d/repro` | 1325 | 1752 | -427 |
-| This remediation versus reviewed `65fb57f` | 117 | 53 | +64 |
+| Versus `main` | 1,432 | 1,752 | -320 |
+| This round versus `4ea0eef` | 171 | 64 | +107 |
 
-Counts are standard `git diff --numstat REF -- src/` sums, including the generated diagnostic union.
-The unsuccessful BEM optimization is absent. Removing the circuit-json patch additionally deletes
-1,485 lines outside `src/`.
-
-The archived report and its detailed native measurements remain available in Git at `65fb57f:REPORT.md`.
-This report supersedes their operational status for the current branch.
+No source from the failed speed experiments remains. The net production-source reduction against
+main is preserved. The end-to-end goal remains open; the next useful increment needs a converged
+nonuniform/oblique connection model plus a field discretization that resolves local singularities
+without global dense-panel doubling.

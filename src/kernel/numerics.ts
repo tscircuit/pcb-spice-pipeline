@@ -60,8 +60,6 @@ export const numerics = {
   fitRelativeChange: 1e-11,
   /** Differential dielectric sensitivity step; truncation O(step) is below mesh tolerance. */
   dielectricRelativeStep: .001,
-  /** Near-DC skin loss must scale as f², becoming sqrt(f) in the surface-current regime. */
-  skinTransitionExponent: 1.5,
   /** Standard 10–90% physical edge thresholds, used for vendor fixtures and linear PULSE edges. */
   edgeLowFraction: .1,
   edgeHighFraction: .9,
