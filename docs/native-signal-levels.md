@@ -1,5 +1,7 @@
 # Native signal API evidence
 
+This document preserves the `1eacbdd` baseline. The local grounded-reference experiment is reported separately in [Option A](grounded-capacitance-option-a.md); its changed physical convention requires the RFC wording recorded there.
+
 **No full-plane RFC-board channel is accepted.** Ground-plane rendering and the differential autorouter workaround now work, and native R/L refinement passes for Levels 1 and 2. Layered capacitance still fails the unchanged primitive-matrix reciprocity criterion; Level 3 refinement reaches its bounded deadline. No rejected extraction is used for a transient. Eyes, NEXT/FEXT and timestep/section convergence deltas are unavailable for every RFC case, never zero.
 
 Earlier strip-fixture eyes and FEXT figures retained in Git history at `f79e808` remain superseded and were not reused.

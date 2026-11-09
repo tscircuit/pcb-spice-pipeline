@@ -28,7 +28,9 @@ const timeoutMs = Number(process.env.SI_NATIVE_TIMEOUT_MS ?? 180000)
 const replayTransients = process.env.SI_REPLAY_COMPLETE_NATIVE === '1'
 /** Reads one exact archived solver output, including losslessly compressed files. */
 const readArchive = async (path: string): Promise<string> => {
-  try { return await readFile(path, 'utf8') }
+  try {
+    return await readFile(path, 'utf8')
+  }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     return gunzipSync(await readFile(`${path}.gz`)).toString()

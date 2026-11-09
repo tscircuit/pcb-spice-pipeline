@@ -1,0 +1,4916 @@
+{
+  "experiment": "A: raw grounded signal block, no averaging",
+  "base_head": "1eacbdd",
+  "acceptance": {
+    "R_L_mesh": 0.05,
+    "C_auto": 0.02,
+    "reciprocity": 0.025,
+    "transient": "1% + 1 mV; integrated RMS and signed extrema, independent timestep and section refinements"
+  },
+  "binaries_sha256": {
+    "/opt/homebrew/bin/fasthenry": "211cdb2b30dbd6f7bcef16e78f4a56e2f6cbcfffe9b8de398386dd90b89ff0b7",
+    "/opt/homebrew/bin/FasterCap": "7bc18e61a66a9814d7a893cd1e7a7ffbf9246607a6f1128028870a467165c101",
+    "/opt/homebrew/bin/ngspice": "9ccc39c9b87a717db0244770596eeb01fc51e635f39dc32d77b3dc9ce4e17922"
+  },
+  "overlays": {
+    "IBIS_MODEL_DIR": "models (vendor symlink, uncommitted)",
+    "SI_CORE_MODULE": "/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si-cap-a/../core/dist/index.js",
+    "TSX_TSCONFIG_PATH": "examples/tsconfig.json",
+    "NGSPICE_BIN": "/opt/homebrew/bin/ngspice"
+  },
+  "analytic": {
+    "source": "https://qucs.sourceforge.net/tech/node77.html",
+    "single_source": "https://qucs.sourceforge.net/tech/node75.html",
+    "model": "Hammerstad/Jensen, zero thickness, infinite ground, quasi-static homogeneous mode impedance divided by sqrt(mode effective permittivity)",
+    "width_mm": 0.15,
+    "height_mm": 1.43,
+    "edge_gap_mm": 0.6,
+    "er": 4.42,
+    "u": 0.1048951048951049,
+    "g": 0.4195804195804196,
+    "single_C_pf_per_m": 37.565932869000406,
+    "even_epsilon": 3.0575562406154186,
+    "odd_epsilon": 2.7274311284154247,
+    "even_Z_ohm": 196.37096001146156,
+    "odd_Z_ohm": 107.63560227460997,
+    "even_C_pf_per_m": 29.70224396128064,
+    "odd_C_pf_per_m": 51.179996074059765,
+    "diagonal_C_pf_per_m": 40.4411200176702,
+    "mutual_C_pf_per_m": 10.738876056389563
+  },
+  "fixtures": [
+    {
+      "accepted": true,
+      "coupled": false,
+      "refinement": 0,
+      "seconds": 11.696,
+      "request_sha256": "39c7caeee512638f5a9031e58697137eddbf0ed89e33f165c2325bd557135d2b",
+      "matrix": [
+        [
+          1.5212e-12,
+          -1.06686e-12
+        ],
+        [
+          -1.4511000000000001e-12,
+          2.8781e-12
+        ]
+      ],
+      "reciprocity": 0.13350474271220603,
+      "signal_reciprocity": 0,
+      "grounded_diagonal_pf_per_m": [
+        38.029999999999994
+      ],
+      "auto_residual": 0.0125243,
+      "dielectric_panels": 9606,
+      "primitive_C_f": [
+        [
+          1.5212e-12,
+          -1.06686e-12
+        ],
+        [
+          -1.4511000000000001e-12,
+          2.8781e-12
+        ]
+      ],
+      "signal_C_f": [
+        [
+          1.5212e-12
+        ]
+      ],
+      "full_reciprocity": 0.13350474271220603,
+      "asymmetric_pairs": [
+        {
+          "row": 0,
+          "column": 1,
+          "signal_return": true,
+          "Cij_f": -1.06686e-12,
+          "Cji_f": -1.4511000000000001e-12,
+          "difference_f": 3.842400000000002e-13
+        }
+      ],
+      "grounded_total_charge_per_signal_charge": [
+        0.046082040494346485
+      ],
+      "raw_formal_neutral_C_f": [
+        [
+          1.50427098451104e-12
+        ]
+      ],
+      "raw_formal_neutral_diagonal_fraction": [
+        0.01112872435508807
+      ],
+      "neutral_diagnostic_note": "Algebra only on the unvalidated nonreciprocal primitive: Css-(C1)s*(1^T C)s/(1^T C1). Not an accepted floating model or a physical error estimate.",
+      "mutual_C_pf_per_m": null,
+      "diagonal_vs_analytic_fraction": [
+        0.01235340361752435
+      ],
+      "mutual_vs_analytic_fraction": null
+    },
+    {
+      "accepted": true,
+      "coupled": true,
+      "refinement": 0,
+      "seconds": 28.194,
+      "request_sha256": "1423de525da1e241bad24d9265163764f2162789c17f3a0c62d92abfddb7d631",
+      "matrix": [
+        [
+          1.6432200000000001e-12,
+          -4.56784e-13,
+          -8.13225e-13
+        ],
+        [
+          -4.55981e-13,
+          1.6442399999999999e-12,
+          -8.09127e-13
+        ],
+        [
+          -1.15161e-12,
+          -1.14928e-12,
+          3.4528900000000002e-12
+        ]
+      ],
+      "reciprocity": 0.09851255035636812,
+      "signal_reciprocity": 0.0004883715272709407,
+      "grounded_diagonal_pf_per_m": [
+        41.0805,
+        41.106
+      ],
+      "auto_residual": 0.0099034,
+      "dielectric_panels": 14416,
+      "primitive_C_f": [
+        [
+          1.6432200000000001e-12,
+          -4.56784e-13,
+          -8.13225e-13
+        ],
+        [
+          -4.55981e-13,
+          1.6442399999999999e-12,
+          -8.09127e-13
+        ],
+        [
+          -1.15161e-12,
+          -1.14928e-12,
+          3.4528900000000002e-12
+        ]
+      ],
+      "signal_C_f": [
+        [
+          1.6432200000000001e-12,
+          -4.56784e-13
+        ],
+        [
+          -4.55981e-13,
+          1.6442399999999999e-12
+        ]
+      ],
+      "full_reciprocity": 0.09851255035636812,
+      "asymmetric_pairs": [
+        {
+          "row": 0,
+          "column": 1,
+          "signal_return": false,
+          "Cij_f": -4.56784e-13,
+          "Cji_f": -4.55981e-13,
+          "difference_f": -8.029999999999714e-16
+        },
+        {
+          "row": 0,
+          "column": 2,
+          "signal_return": true,
+          "Cij_f": -8.13225e-13,
+          "Cji_f": -1.15161e-12,
+          "difference_f": 3.38385e-13
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "signal_return": true,
+          "Cij_f": -8.09127e-13,
+          "Cji_f": -1.14928e-12,
+          "difference_f": 3.4015299999999993e-13
+        }
+      ],
+      "grounded_total_charge_per_signal_charge": [
+        0.02168242840277026,
+        0.02321802169999517
+      ],
+      "raw_formal_neutral_C_f": [
+        [
+          1.6362374686393156e-12,
+          -4.642656895569758e-13
+        ],
+        [
+          -4.630743093607613e-13,
+          1.6366396132881522e-12
+        ]
+      ],
+      "raw_formal_neutral_diagonal_fraction": [
+        0.00424929793982822,
+        0.004622431464900266
+      ],
+      "neutral_diagnostic_note": "Algebra only on the unvalidated nonreciprocal primitive: Css-(C1)s*(1^T C)s/(1^T C1). Not an accepted floating model or a physical error estimate.",
+      "mutual_C_pf_per_m": [
+        11.419599999999999,
+        11.399524999999999
+      ],
+      "diagonal_vs_analytic_fraction": [
+        0.015810145269231635,
+        0.016440691603973656
+      ],
+      "mutual_vs_analytic_fraction": [
+        0.06338875130283395,
+        0.061519375039006396
+      ]
+    }
+  ],
+  "levels": [
+    {
+      "name": "single",
+      "rendering": "real_core_without_adapter",
+      "core_module": "/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si-cap-a/../core/dist/index.js",
+      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
+      "example_sha256": "093f3e7e71183158635ed1b002bd6d5b2f87331caaf044704b1e247de4a8597b",
+      "large_artifacts": "gzip_level_1_above_2_MB",
+      "runner_sha256": "3cb8aafad69a80a6ce96d581bb2dafb00b57077bc4fc9ee3770efbaf737916bc",
+      "native_timeout_ms": 600000,
+      "implementation_head": "87a3bf4a1e5c55ac7f5480661c6bb5e072eaf002",
+      "sources": {
+        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+      },
+      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+      "status": "verified_native",
+      "seconds": 747.645,
+      "native_execution": [
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "fasthenry",
+          "request_sha256": "f16460314993baa73357590b4d0a86a616c7d5540f0b789ccf39c80997bca3db"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "fasthenry",
+          "request_sha256": "7104760a2e8877d47cb3823f913f2a26cbfeaf0280ecc89a7888be0d1a7d5364"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "fastercap",
+          "request_sha256": "4fefd3c34b72f84a704304a1cdc59b1bfd52cf6a2b1d8ccbc45f78f27e30f919"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "5a6046d80b9788fada3a36164c7c3113d97d2da0f154b81e5845eb9911aedb3c"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "a8e68ed19b82c1382ddac4bc16c72d53afac926f0898818e963cdc0dcbbbda1a"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "e9f4f5485b48c0900e6cd36972ee71b29dd7ae4676d8ef22cbed95a3666f70b5"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "20c68e312d455c0ea40b0f8d5333b9feeda80217dfcc1446705a0e5f942b0e81"
+        }
+      ],
+      "native_requests": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "f16460314993baa73357590b4d0a86a616c7d5540f0b789ccf39c80997bca3db",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "7104760a2e8877d47cb3823f913f2a26cbfeaf0280ecc89a7888be0d1a7d5364",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "4fefd3c34b72f84a704304a1cdc59b1bfd52cf6a2b1d8ccbc45f78f27e30f919",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-ap",
+            "-e"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "5a6046d80b9788fada3a36164c7c3113d97d2da0f154b81e5845eb9911aedb3c",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "a8e68ed19b82c1382ddac4bc16c72d53afac926f0898818e963cdc0dcbbbda1a",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "e9f4f5485b48c0900e6cd36972ee71b29dd7ae4676d8ef22cbed95a3666f70b5",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "20c68e312d455c0ea40b0f8d5333b9feeda80217dfcc1446705a0e5f942b0e81",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        }
+      ],
+      "transient_convergence": {
+        "blocks/simulation_signal_integrity_0/experiments/simulation_signal_integrity_0/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "7b0a1d9d7ec8d45cdd0f274e925c3f9742222d7d0ce967c37701986a2d33b1be",
+              "waveform_csv_sha256": "9465400306a43e93a1a4d866b57ab179e376a4ddb02126364226ad0f6c378be5",
+              "dimension": "time",
+              "sections": 4,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 2988347,
+                  "rms_v": 0.0000681473408191616,
+                  "scale_v": 5.879883690590129,
+                  "peak_change_v": 0.00003383737206252846,
+                  "positive_v": 1.682714251644132,
+                  "negative_v": -4.197117518329224,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "9465400306a43e93a1a4d866b57ab179e376a4ddb02126364226ad0f6c378be5",
+              "waveform_csv_sha256": "3f34ed012ede6fe14a07e8b90e79cd3ce37f223c2e0129a5e35a96b7447b54c3",
+              "dimension": "space",
+              "sections": 8,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 2982798,
+                  "rms_v": 0.001539440090797278,
+                  "scale_v": 5.879831769973356,
+                  "peak_change_v": 0.0019681797034722948,
+                  "positive_v": 1.6826636303077978,
+                  "negative_v": -4.195149338625752,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "name": "simulation_signal_integrity_0",
+          "duration_s": 0.0000072000000000000005,
+          "numericalSettings": {
+            "measurementGate": 8e-7,
+            "reduction": "routed-copper",
+            "allowIdeal": false,
+            "simplifyParallel": true,
+            "sections": 8,
+            "lanes": [
+              {
+                "port": "DATA_source_trace_4",
+                "from": {
+                  "sourcePortId": "source_port_3"
+                },
+                "to": {
+                  "sourcePortId": "source_port_6"
+                },
+                "sourceTraceId": "source_trace_4"
+              }
+            ],
+            "channelReference": {
+              "sourcePortId": "source_port_2"
+            },
+            "groundReturn": {
+              "sourcePortId": "source_port_7"
+            },
+            "relativePermittivity": 4.42,
+            "extraction": {
+              "minimumHz": 0.858,
+              "modelHz": 858000000,
+              "maximumHz": 858000000,
+              "filaments": 3,
+              "refinementFilaments": 7,
+              "convergenceTolerance": 0.05,
+              "capTolerance": 0.02,
+              "reciprocityTolerance": 0.025,
+              "dcResistanceTolerance": 0.002,
+              "maxPanelLengthMm": 2.86,
+              "groundMeshMm": 1.43
+            },
+            "passiveComponents": [],
+            "viaPlatingMm": 0.018,
+            "viaEquivalentWidthMm": 0.23600000000000002,
+            "omitThroughViaStubs": true,
+            "supplies": [
+              {
+                "positive": {
+                  "sourcePortId": "source_port_4"
+                },
+                "negative": {
+                  "sourcePortId": "source_port_2"
+                },
+                "voltageV": 3.3
+              }
+            ]
+          },
+          "extraction": [
+            {
+              "stage": 0,
+              "profile": "routed-copper",
+              "R": [
+                [
+                  0.958938
+                ]
+              ],
+              "L": [
+                [
+                  2.4984729131624206e-8
+                ]
+              ],
+              "C": [
+                [
+                  1.06734e-12
+                ]
+              ],
+              "G": [
+                [
+                  0
+                ]
+              ],
+              "units": {
+                "R": "ohm",
+                "L": "H",
+                "C": "F",
+                "G": "S"
+              },
+              "frequencyHz": 858000000,
+              "primitiveOrder": [
+                "sig0",
+                "return"
+              ],
+              "primitiveImpedance": [
+                {
+                  "frequencyHz": 0.858,
+                  "R": [
+                    [
+                      0.107734,
+                      6.9918e-14
+                    ],
+                    [
+                      6.99569e-14,
+                      0.010179
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.478425883861924e-8,
+                      1.01184702771025e-8
+                    ],
+                    [
+                      1.0105188815651009e-8,
+                      1.3889997239728414e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 8.58,
+                  "R": [
+                    [
+                      0.107734,
+                      6.9918e-12
+                    ],
+                    [
+                      6.99569e-12,
+                      0.010179
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.4784258838619235e-8,
+                      1.0118470277102499e-8
+                    ],
+                    [
+                      1.0105188815651007e-8,
+                      1.3889997239728413e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 85.8,
+                  "R": [
+                    [
+                      0.107734,
+                      6.99178e-10
+                    ],
+                    [
+                      6.99568e-10,
+                      0.010179
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.4784258838619235e-8,
+                      1.0118470277102499e-8
+                    ],
+                    [
+                      1.0105188815651006e-8,
+                      1.3889997239728413e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 858,
+                  "R": [
+                    [
+                      0.107734,
+                      6.9902e-8
+                    ],
+                    [
+                      6.99426e-8,
+                      0.010179
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.478351685753256e-8,
+                      1.0118284781830829e-8
+                    ],
+                    [
+                      1.0105021869906505e-8,
+                      1.3889923041619746e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 8580,
+                  "R": [
+                    [
+                      0.10776,
+                      0.00000682486
+                    ],
+                    [
+                      0.00000682812,
+                      0.0101817
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.4708205777235e-8,
+                      1.0098956174522932e-8
+                    ],
+                    [
+                      1.0085637614017109e-8,
+                      1.3883653301437338e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 85800,
+                  "R": [
+                    [
+                      0.108567,
+                      0.00021501
+                    ],
+                    [
+                      0.000214878,
+                      0.0102959
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.252288598170397e-8,
+                      9.54708919178086e-9
+                    ],
+                    [
+                      9.533529487421865e-9,
+                      1.3671483809702477e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 858000,
+                  "R": [
+                    [
+                      0.109805,
+                      0.00088864
+                    ],
+                    [
+                      0.000886985,
+                      0.0111934
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.1321247611832997e-8,
+                      9.17227744584673e-9
+                    ],
+                    [
+                      9.159849262644916e-9,
+                      1.3349130126596305e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 8580000,
+                  "R": [
+                    [
+                      0.127771,
+                      0.00240314
+                    ],
+                    [
+                      0.00239754,
+                      0.0157259
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.099292098097909e-8,
+                      9.036550555566614e-9
+                    ],
+                    [
+                      9.024159471419133e-9,
+                      1.3120525753791583e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 85800000,
+                  "R": [
+                    [
+                      0.281633,
+                      0.00478602
+                    ],
+                    [
+                      0.00473684,
+                      0.036834
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.039247278658693e-8,
+                      9.019225297192741e-9
+                    ],
+                    [
+                      9.007075356898429e-9,
+                      1.302315928569259e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 858000000,
+                  "R": [
+                    [
+                      0.859298,
+                      0.0124956
+                    ],
+                    [
+                      0.0123508,
+                      0.111644
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.0052830944161226e-8,
+                      9.014383870602183e-9
+                    ],
+                    [
+                      9.002289578889373e-9,
+                      1.2979234005361398e-8
+                    ]
+                  ]
+                }
+              ],
+              "modelPrimitiveImpedance": {
+                "frequencyHz": 858000000,
+                "R": [
+                  [
+                    0.871338,
+                    0.0129035
+                  ],
+                  [
+                    0.0126605,
+                    0.113164
+                  ]
+                ],
+                "L": [
+                  [
+                    3.004021726568774e-8,
+                    9.058012358498702e-9
+                  ],
+                  [
+                    9.042263809934015e-9,
+                    1.304478803436918e-8
+                  ]
+                ]
+              },
+              "primitiveCapacitance": [
+                [
+                  1.06734e-12,
+                  -7.446290000000001e-13
+                ],
+                [
+                  -1.0253400000000002e-12,
+                  2.62252e-12
+                ]
+              ],
+              "checks": {
+                "R": {
+                  "matrix": [
+                    [
+                      0.958938
+                    ]
+                  ],
+                  "reciprocityResidual": 0,
+                  "cholesky": [
+                    [
+                      0.9792537975417813
+                    ]
+                  ]
+                },
+                "L": {
+                  "matrix": [
+                    [
+                      2.4984729131624206e-8
+                    ]
+                  ],
+                  "reciprocityResidual": 0,
+                  "cholesky": [
+                    [
+                      0.0001580655849058365
+                    ]
+                  ]
+                },
+                "C": {
+                  "matrix": [
+                    [
+                      1.06734e-12
+                    ]
+                  ],
+                  "reciprocityResidual": 0,
+                  "convention": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+                  "positiveEnergy": "Strict row and column diagonal dominance with Maxwell signs; residual asymmetry retained"
+                },
+                "primitiveC": {
+                  "reciprocityResidual": 0.1070386498482376,
+                  "checked": false
+                },
+                "convergence": {
+                  "R": 0.01339231524874384,
+                  "L": 0.001227244379769905,
+                  "coarseFilaments": 3,
+                  "refinedFilaments": 7,
+                  "coarseGroundMeshMm": 1.43,
+                  "refinedGroundMeshMm": 0.715,
+                  "frequencyHz": 858000000,
+                  "definition": "max(abs(refined-coarse))/max(abs(refined)) for full referenced matrix; routed copper also halves ground mesh spacing",
+                  "tolerance": 0.05
+                },
+                "capConvergence": 0.0172399,
+                "analyticResistanceOhm": [
+                  0.10773372752587901
+                ],
+                "analyticResistanceRelativeErrors": [
+                  0.0000025291440965968803
+                ],
+                "analyticFrequencyHz": 0.858,
+                "analyticLoopResistanceOhm": null,
+                "dcLoopResidual": null,
+                "energyResidual": 0,
+                "neutralityResidual": 0.039350160211366475
+              },
+              "conversions": {
+                "impedance": "R=Re(Z), L=Im(Z)/(2*pi*f); A=[I;-ones]; loop=A^T primitive A",
+                "capacitance": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+                "capacitanceSolverCoordinateUnits": "mm",
+                "capacitanceScaleToFarads": 0.001,
+                "neutralityDenominatorF": null
+              },
+              "per_length": [
+                {
+                  "length_m": 0.028118502884254444,
+                  "L_h_per_m": 8.885511876101675e-7,
+                  "C_f_per_m": 3.795863543637239e-11
+                }
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_0_0",
+              "simulation_signal_id": "simulation_signal_0",
+              "source_port_id": "source_port_6",
+              "eye_height_v": 3.299981094521953,
+              "eye_width_s": 4.802204837029289e-8,
+              "mask_margin_v": 0.7999811062910374
+            },
+            {
+              "type": "simulation_signal_integrity_rlgc",
+              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_0",
+              "simulation_signal_integrity_id": "simulation_signal_integrity_0",
+              "conductors": [
+                {
+                  "simulation_signal_id": "simulation_signal_0",
+                  "leg": "single"
+                }
+              ],
+              "matrices": [
+                {
+                  "frequency_hz": 858000000,
+                  "r_ohm": [
+                    [
+                      0.958938
+                    ]
+                  ],
+                  "l_h": [
+                    [
+                      2.4984729131624206e-8
+                    ]
+                  ],
+                  "c_f": [
+                    [
+                      1.06734e-12
+                    ]
+                  ],
+                  "g_s": [
+                    [
+                      0
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "limitations": [
+            "Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup",
+            "FastHenry ground polygons discretized into an adaptive rectangular conductor mesh; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; finite reference contact areas resolved locally; ground mesh and filaments refined together",
+            "FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential",
+            "Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted",
+            "Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded",
+            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted",
+            "Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
+            "Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
+            "Maximum solver integration step and display resolution are separate settings"
+          ]
+        }
+      ],
+      "run_directory": "runs/option-a/levels/single",
+      "replay_used": false,
+      "matrix_evidence": {
+        "primitive_C_f": [
+          [
+            1.06734e-12,
+            -7.446290000000001e-13
+          ],
+          [
+            -1.0253400000000002e-12,
+            2.62252e-12
+          ]
+        ],
+        "signal_C_f": [
+          [
+            1.06734e-12
+          ]
+        ],
+        "full_reciprocity": 0.1070386498482376,
+        "signal_reciprocity": 0,
+        "asymmetric_pairs": [
+          {
+            "row": 0,
+            "column": 1,
+            "signal_return": true,
+            "Cij_f": -7.446290000000001e-13,
+            "Cji_f": -1.0253400000000002e-12,
+            "difference_f": 2.807110000000001e-13
+          }
+        ],
+        "grounded_total_charge_per_signal_charge": [
+          0.039350160211366406
+        ],
+        "raw_formal_neutral_C_f": [
+          [
+            1.060280296089726e-12
+          ]
+        ],
+        "raw_formal_neutral_diagonal_fraction": [
+          0.006614297140811777
+        ],
+        "neutral_diagnostic_note": "Algebra only on the unvalidated nonreciprocal primitive: Css-(C1)s*(1^T C)s/(1^T C1). Not an accepted floating model or a physical error estimate."
+      },
+      "extraction_accepted": true,
+      "cap_auto_residual": 0.0172399,
+      "accepted_extraction": [
+        {
+          "stage": 0,
+          "profile": "routed-copper",
+          "R": [
+            [
+              0.958938
+            ]
+          ],
+          "L": [
+            [
+              2.4984729131624206e-8
+            ]
+          ],
+          "C": [
+            [
+              1.06734e-12
+            ]
+          ],
+          "G": [
+            [
+              0
+            ]
+          ],
+          "units": {
+            "R": "ohm",
+            "L": "H",
+            "C": "F",
+            "G": "S"
+          },
+          "frequencyHz": 858000000,
+          "primitiveOrder": [
+            "sig0",
+            "return"
+          ],
+          "primitiveImpedance": [
+            {
+              "frequencyHz": 0.858,
+              "R": [
+                [
+                  0.107734,
+                  6.9918e-14
+                ],
+                [
+                  6.99569e-14,
+                  0.010179
+                ]
+              ],
+              "L": [
+                [
+                  3.478425883861924e-8,
+                  1.01184702771025e-8
+                ],
+                [
+                  1.0105188815651009e-8,
+                  1.3889997239728414e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 8.58,
+              "R": [
+                [
+                  0.107734,
+                  6.9918e-12
+                ],
+                [
+                  6.99569e-12,
+                  0.010179
+                ]
+              ],
+              "L": [
+                [
+                  3.4784258838619235e-8,
+                  1.0118470277102499e-8
+                ],
+                [
+                  1.0105188815651007e-8,
+                  1.3889997239728413e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 85.8,
+              "R": [
+                [
+                  0.107734,
+                  6.99178e-10
+                ],
+                [
+                  6.99568e-10,
+                  0.010179
+                ]
+              ],
+              "L": [
+                [
+                  3.4784258838619235e-8,
+                  1.0118470277102499e-8
+                ],
+                [
+                  1.0105188815651006e-8,
+                  1.3889997239728413e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 858,
+              "R": [
+                [
+                  0.107734,
+                  6.9902e-8
+                ],
+                [
+                  6.99426e-8,
+                  0.010179
+                ]
+              ],
+              "L": [
+                [
+                  3.478351685753256e-8,
+                  1.0118284781830829e-8
+                ],
+                [
+                  1.0105021869906505e-8,
+                  1.3889923041619746e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 8580,
+              "R": [
+                [
+                  0.10776,
+                  0.00000682486
+                ],
+                [
+                  0.00000682812,
+                  0.0101817
+                ]
+              ],
+              "L": [
+                [
+                  3.4708205777235e-8,
+                  1.0098956174522932e-8
+                ],
+                [
+                  1.0085637614017109e-8,
+                  1.3883653301437338e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 85800,
+              "R": [
+                [
+                  0.108567,
+                  0.00021501
+                ],
+                [
+                  0.000214878,
+                  0.0102959
+                ]
+              ],
+              "L": [
+                [
+                  3.252288598170397e-8,
+                  9.54708919178086e-9
+                ],
+                [
+                  9.533529487421865e-9,
+                  1.3671483809702477e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 858000,
+              "R": [
+                [
+                  0.109805,
+                  0.00088864
+                ],
+                [
+                  0.000886985,
+                  0.0111934
+                ]
+              ],
+              "L": [
+                [
+                  3.1321247611832997e-8,
+                  9.17227744584673e-9
+                ],
+                [
+                  9.159849262644916e-9,
+                  1.3349130126596305e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 8580000,
+              "R": [
+                [
+                  0.127771,
+                  0.00240314
+                ],
+                [
+                  0.00239754,
+                  0.0157259
+                ]
+              ],
+              "L": [
+                [
+                  3.099292098097909e-8,
+                  9.036550555566614e-9
+                ],
+                [
+                  9.024159471419133e-9,
+                  1.3120525753791583e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 85800000,
+              "R": [
+                [
+                  0.281633,
+                  0.00478602
+                ],
+                [
+                  0.00473684,
+                  0.036834
+                ]
+              ],
+              "L": [
+                [
+                  3.039247278658693e-8,
+                  9.019225297192741e-9
+                ],
+                [
+                  9.007075356898429e-9,
+                  1.302315928569259e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 858000000,
+              "R": [
+                [
+                  0.859298,
+                  0.0124956
+                ],
+                [
+                  0.0123508,
+                  0.111644
+                ]
+              ],
+              "L": [
+                [
+                  3.0052830944161226e-8,
+                  9.014383870602183e-9
+                ],
+                [
+                  9.002289578889373e-9,
+                  1.2979234005361398e-8
+                ]
+              ]
+            }
+          ],
+          "modelPrimitiveImpedance": {
+            "frequencyHz": 858000000,
+            "R": [
+              [
+                0.871338,
+                0.0129035
+              ],
+              [
+                0.0126605,
+                0.113164
+              ]
+            ],
+            "L": [
+              [
+                3.004021726568774e-8,
+                9.058012358498702e-9
+              ],
+              [
+                9.042263809934015e-9,
+                1.304478803436918e-8
+              ]
+            ]
+          },
+          "primitiveCapacitance": [
+            [
+              1.06734e-12,
+              -7.446290000000001e-13
+            ],
+            [
+              -1.0253400000000002e-12,
+              2.62252e-12
+            ]
+          ],
+          "checks": {
+            "R": {
+              "matrix": [
+                [
+                  0.958938
+                ]
+              ],
+              "reciprocityResidual": 0,
+              "cholesky": [
+                [
+                  0.9792537975417813
+                ]
+              ]
+            },
+            "L": {
+              "matrix": [
+                [
+                  2.4984729131624206e-8
+                ]
+              ],
+              "reciprocityResidual": 0,
+              "cholesky": [
+                [
+                  0.0001580655849058365
+                ]
+              ]
+            },
+            "C": {
+              "matrix": [
+                [
+                  1.06734e-12
+                ]
+              ],
+              "reciprocityResidual": 0,
+              "convention": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+              "positiveEnergy": "Strict row and column diagonal dominance with Maxwell signs; residual asymmetry retained"
+            },
+            "primitiveC": {
+              "reciprocityResidual": 0.1070386498482376,
+              "checked": false
+            },
+            "convergence": {
+              "R": 0.01339231524874384,
+              "L": 0.001227244379769905,
+              "coarseFilaments": 3,
+              "refinedFilaments": 7,
+              "coarseGroundMeshMm": 1.43,
+              "refinedGroundMeshMm": 0.715,
+              "frequencyHz": 858000000,
+              "definition": "max(abs(refined-coarse))/max(abs(refined)) for full referenced matrix; routed copper also halves ground mesh spacing",
+              "tolerance": 0.05
+            },
+            "capConvergence": 0.0172399,
+            "analyticResistanceOhm": [
+              0.10773372752587901
+            ],
+            "analyticResistanceRelativeErrors": [
+              0.0000025291440965968803
+            ],
+            "analyticFrequencyHz": 0.858,
+            "analyticLoopResistanceOhm": null,
+            "dcLoopResidual": null,
+            "energyResidual": 0,
+            "neutralityResidual": 0.039350160211366475
+          },
+          "conversions": {
+            "impedance": "R=Re(Z), L=Im(Z)/(2*pi*f); A=[I;-ones]; loop=A^T primitive A",
+            "capacitance": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+            "capacitanceSolverCoordinateUnits": "mm",
+            "capacitanceScaleToFarads": 0.001,
+            "neutralityDenominatorF": null
+          },
+          "per_length": [
+            {
+              "length_m": 0.028118502884254444,
+              "L_h_per_m": 8.885511876101675e-7,
+              "C_f_per_m": 3.795863543637239e-11
+            }
+          ]
+        }
+      ],
+      "input_sha256": "3f169f74061911884765f6d8ef0ce304ef6bd1f5de914928d5eb6e144da22251",
+      "baseline_input_sha256": "3f169f74061911884765f6d8ef0ce304ef6bd1f5de914928d5eb6e144da22251",
+      "extraction_requests_match_baseline": true,
+      "R_mesh_delta": 0.01339231524874384,
+      "L_mesh_delta": 0.001227244379769905,
+      "raw_loop_R_ohm": [
+        [
+          0.958938
+        ]
+      ],
+      "raw_loop_L_h": [
+        [
+          2.4984729131624206e-8
+        ]
+      ],
+      "per_length": [
+        {
+          "length_m": 0.028118502884254444,
+          "L_h_per_m": 8.885511876101675e-7,
+          "C_f_per_m": 3.795863543637239e-11
+        }
+      ],
+      "eyes": [
+        {
+          "type": "simulation_signal_eye",
+          "simulation_signal_eye_id": "simulation_signal_0_0",
+          "simulation_signal_id": "simulation_signal_0",
+          "source_port_id": "source_port_6",
+          "eye_height_v": 3.299981094521953,
+          "eye_width_s": 4.802204837029289e-8,
+          "mask_margin_v": 0.7999811062910374
+        }
+      ],
+      "quiet_NEXT_FEXT": null,
+      "quiet_NEXT_FEXT_note": "Not applicable: these three boards declare switching signals, no quiet victim. No quiet scenario was invented.",
+      "timestep_section_deltas": {
+        "blocks/simulation_signal_integrity_0/experiments/simulation_signal_integrity_0/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "7b0a1d9d7ec8d45cdd0f274e925c3f9742222d7d0ce967c37701986a2d33b1be",
+              "waveform_csv_sha256": "9465400306a43e93a1a4d866b57ab179e376a4ddb02126364226ad0f6c378be5",
+              "dimension": "time",
+              "sections": 4,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 2988347,
+                  "rms_v": 0.0000681473408191616,
+                  "scale_v": 5.879883690590129,
+                  "peak_change_v": 0.00003383737206252846,
+                  "positive_v": 1.682714251644132,
+                  "negative_v": -4.197117518329224,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "9465400306a43e93a1a4d866b57ab179e376a4ddb02126364226ad0f6c378be5",
+              "waveform_csv_sha256": "3f34ed012ede6fe14a07e8b90e79cd3ce37f223c2e0129a5e35a96b7447b54c3",
+              "dimension": "space",
+              "sections": 8,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 2982798,
+                  "rms_v": 0.001539440090797278,
+                  "scale_v": 5.879831769973356,
+                  "peak_change_v": 0.0019681797034722948,
+                  "positive_v": 1.6826636303077978,
+                  "negative_v": -4.195149338625752,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "differential",
+      "rendering": "real_core_without_adapter",
+      "core_module": "/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si-cap-a/../core/dist/index.js",
+      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
+      "example_sha256": "b3cb14ebd181f54bd05a3fffb875a45590cc16233ffde8b0974c5cd7d63247be",
+      "large_artifacts": "gzip_level_1_above_2_MB",
+      "runner_sha256": "a942d41f02c1971e04cb84089b396020712b635520f077abf55483286b1ff363",
+      "native_timeout_ms": 900000,
+      "implementation_head": "0109dd8d092d8ab7fa0df37fd4c3a44717716c6a",
+      "sources": {
+        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+      },
+      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+      "status": "verified_native",
+      "seconds": 202.807,
+      "native_execution": [
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "fasthenry",
+          "request_sha256": "9afba4f51f2e6deae438c2cfdf4610d67a532c868d40c505ba85e88e5253c9ad"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "fasthenry",
+          "request_sha256": "36df4d3aeafa1c657ab8adb58474fca677330a2d14a4519692747f61d1238bb4"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "fastercap",
+          "request_sha256": "06c685e0a3d098b9d8bf4a5f21c9515d75d627a5db98e068ef34ab96d2038ad3"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "ec77881c2896a744188fdae83ca70ab689ee04cfdb148d96a12c87621995e4d1"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "e12edd9e4971d5556ad55be88e823ecced952a2125cec0b662aa3914bf402640"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "987568d9564a483e07b18d3e81989ddd133c74bd54792a3bd4b5a67d236ed480"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "c0cf0a10ce354ef633c54e6689530ac08654903ea1ed33404601d2e598d6d2e5"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "9a588850824e0212e636d632a50b34f7d192fe4b06bffec7fdd553a2638e5984"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "94c86c07cd3e88fdffae7cf44a062349c641db1802262070ccf2112143367ebf"
+        }
+      ],
+      "native_requests": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "9afba4f51f2e6deae438c2cfdf4610d67a532c868d40c505ba85e88e5253c9ad",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/option-a/levels/differential/native-0-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "36df4d3aeafa1c657ab8adb58474fca677330a2d14a4519692747f61d1238bb4",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/option-a/levels/differential/native-1-fasthenry"
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "06c685e0a3d098b9d8bf4a5f21c9515d75d627a5db98e068ef34ab96d2038ad3",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-ap",
+            "-e"
+          ],
+          "exact_native_extraction_replay_from": "runs/option-a/levels/differential/native-2-fastercap"
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "ec77881c2896a744188fdae83ca70ab689ee04cfdb148d96a12c87621995e4d1",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ],
+          "exact_native_transient_replay_from": "runs/option-a/levels/differential/native-3-ngspice"
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "e12edd9e4971d5556ad55be88e823ecced952a2125cec0b662aa3914bf402640",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ],
+          "exact_native_transient_replay_from": "runs/option-a/levels/differential/native-4-ngspice"
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "987568d9564a483e07b18d3e81989ddd133c74bd54792a3bd4b5a67d236ed480",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ],
+          "exact_native_transient_replay_from": "runs/option-a/levels/differential/native-5-ngspice"
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "c0cf0a10ce354ef633c54e6689530ac08654903ea1ed33404601d2e598d6d2e5",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ],
+          "exact_native_transient_replay_from": "runs/option-a/levels/differential/native-6-ngspice"
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "9a588850824e0212e636d632a50b34f7d192fe4b06bffec7fdd553a2638e5984",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ],
+          "exact_native_transient_replay_from": "runs/option-a/levels/differential/native-7-ngspice"
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "94c86c07cd3e88fdffae7cf44a062349c641db1802262070ccf2112143367ebf",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        }
+      ],
+      "transient_convergence": {
+        "blocks/simulation_signal_integrity_0/experiments/simulation_signal_integrity_0/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "8f8dae8edc19a05c887b21af981fc8197520e44a1019b9b71022adec43859138",
+              "waveform_csv_sha256": "bf36b4dec3c4d21d8b8621954741204aed2af1fb213d18d45b95ab285f8952f0",
+              "dimension": "time",
+              "sections": 2,
+              "step_s": 1.4807339854159875e-8,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 4018892,
+                  "rms_v": 1.2000587239817744e-7,
+                  "scale_v": 4.458896328985806,
+                  "peak_change_v": 1.320054985320951e-7,
+                  "positive_v": 0.001038391222859314,
+                  "negative_v": -4.457857937762947,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "bf36b4dec3c4d21d8b8621954741204aed2af1fb213d18d45b95ab285f8952f0",
+              "waveform_csv_sha256": "8e137e1176f3a20abce87b83ec833f1eb63e6b7ec31aa714f9d8a5e30ddf90c9",
+              "dimension": "space",
+              "sections": 4,
+              "step_s": 1.4807339854159875e-8,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 4060851,
+                  "rms_v": 1.919641543953156e-7,
+                  "scale_v": 4.458896441806418,
+                  "peak_change_v": 1.1282061240791563e-7,
+                  "positive_v": 0.001038390060394967,
+                  "negative_v": -4.457858050583559,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "name": "simulation_signal_integrity_0",
+          "duration_s": 0.000576,
+          "numericalSettings": {
+            "measurementGate": 0.000064,
+            "reduction": "routed-copper",
+            "allowIdeal": false,
+            "simplifyParallel": true,
+            "sections": 4,
+            "lanes": [
+              {
+                "port": "BUS_source_trace_4",
+                "from": {
+                  "sourcePortId": "source_port_13"
+                },
+                "to": {
+                  "sourcePortId": "source_port_16"
+                },
+                "sourceTraceId": "source_trace_4"
+              },
+              {
+                "port": "BUS_source_trace_5",
+                "from": {
+                  "sourcePortId": "source_port_14"
+                },
+                "to": {
+                  "sourcePortId": "source_port_17"
+                },
+                "sourceTraceId": "source_trace_5"
+              },
+              {
+                "port": "BUS_source_trace_2",
+                "from": {
+                  "sourcePortId": "source_port_5"
+                },
+                "to": {
+                  "sourcePortId": "source_port_13"
+                },
+                "sourceTraceId": "source_trace_2"
+              },
+              {
+                "port": "BUS_source_trace_3",
+                "from": {
+                  "sourcePortId": "source_port_6"
+                },
+                "to": {
+                  "sourcePortId": "source_port_14"
+                },
+                "sourceTraceId": "source_trace_3"
+              }
+            ],
+            "channelReference": {
+              "sourcePortId": "source_port_4"
+            },
+            "groundReturn": {
+              "sourcePortId": "source_port_12"
+            },
+            "relativePermittivity": 4.42,
+            "extraction": {
+              "minimumHz": 0.844,
+              "modelHz": 844000,
+              "maximumHz": 844000,
+              "filaments": 3,
+              "refinementFilaments": 7,
+              "convergenceTolerance": 0.05,
+              "capTolerance": 0.02,
+              "reciprocityTolerance": 0.025,
+              "dcResistanceTolerance": 0.002,
+              "maxPanelLengthMm": 2.86,
+              "groundMeshMm": 1.43
+            },
+            "passiveComponents": [
+              {
+                "sourceComponentId": "source_component_2"
+              }
+            ],
+            "viaPlatingMm": 0.018,
+            "viaEquivalentWidthMm": 0.23600000000000002,
+            "omitThroughViaStubs": true,
+            "supplies": [
+              {
+                "positive": {
+                  "sourcePortId": "source_port_7"
+                },
+                "negative": {
+                  "sourcePortId": "source_port_4"
+                },
+                "voltageV": 3.3
+              },
+              {
+                "positive": {
+                  "sourcePortId": "source_port_15"
+                },
+                "negative": {
+                  "sourcePortId": "source_port_12"
+                },
+                "voltageV": 3.3
+              }
+            ]
+          },
+          "extraction": [
+            {
+              "stage": 0,
+              "profile": "routed-copper",
+              "R": [
+                [
+                  0.24076513,
+                  0.019309945000000002
+                ],
+                [
+                  0.019309945000000002,
+                  0.24075400000000002
+                ]
+              ],
+              "L": [
+                [
+                  4.8015669753710406e-8,
+                  2.2244939309632393e-8
+                ],
+                [
+                  2.2244939309632393e-8,
+                  4.813035937028445e-8
+                ]
+              ],
+              "C": [
+                [
+                  2.75259e-12,
+                  -1.19178e-12
+                ],
+                [
+                  -1.1908799999999999e-12,
+                  2.73279e-12
+                ]
+              ],
+              "G": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  0
+                ]
+              ],
+              "units": {
+                "R": "ohm",
+                "L": "H",
+                "C": "F",
+                "G": "S"
+              },
+              "frequencyHz": 844000,
+              "primitiveOrder": [
+                "sig0",
+                "sig1",
+                "return"
+              ],
+              "primitiveImpedance": [
+                {
+                  "frequencyHz": 0.844,
+                  "R": [
+                    [
+                      0.21997,
+                      4.08333e-13,
+                      1.2714e-13
+                    ],
+                    [
+                      4.08261e-13,
+                      0.21997,
+                      1.31574e-13
+                    ],
+                    [
+                      1.26287e-13,
+                      1.30798e-13,
+                      0.0180384
+                    ]
+                  ],
+                  "L": [
+                    [
+                      6.819223594865351e-8,
+                      4.10812096828694e-8,
+                      1.9603212398176624e-8
+                    ],
+                    [
+                      4.107404393898611e-8,
+                      6.81797901829615e-8,
+                      1.9584166605223687e-8
+                    ],
+                    [
+                      1.9568892256419842e-8,
+                      1.9554560768653277e-8,
+                      2.3186084339818822e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 8.44,
+                  "R": [
+                    [
+                      0.21997,
+                      4.08333e-11,
+                      1.2714e-11
+                    ],
+                    [
+                      4.08261e-11,
+                      0.21997,
+                      1.31574e-11
+                    ],
+                    [
+                      1.26287e-11,
+                      1.30798e-11,
+                      0.0180384
+                    ]
+                  ],
+                  "L": [
+                    [
+                      6.819223594865351e-8,
+                      4.108120968286939e-8,
+                      1.9603212398176624e-8
+                    ],
+                    [
+                      4.107404393898611e-8,
+                      6.81797901829615e-8,
+                      1.9584166605223687e-8
+                    ],
+                    [
+                      1.9568892256419846e-8,
+                      1.9554560768653277e-8,
+                      2.318608433981882e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 84.4,
+                  "R": [
+                    [
+                      0.21997,
+                      4.08333e-9,
+                      1.27139e-9
+                    ],
+                    [
+                      4.08261e-9,
+                      0.21997,
+                      1.31573e-9
+                    ],
+                    [
+                      1.26286e-9,
+                      1.30797e-9,
+                      0.0180384
+                    ]
+                  ],
+                  "L": [
+                    [
+                      6.81922359486535e-8,
+                      4.108120968286939e-8,
+                      1.960302382596917e-8
+                    ],
+                    [
+                      4.107404393898611e-8,
+                      6.817979018296147e-8,
+                      1.9584166605223684e-8
+                    ],
+                    [
+                      1.9568892256419842e-8,
+                      1.9554560768653274e-8,
+                      2.3186084339818816e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 844,
+                  "R": [
+                    [
+                      0.21997,
+                      4.08345e-7,
+                      1.27108e-7
+                    ],
+                    [
+                      4.08288e-7,
+                      0.21997,
+                      1.31542e-7
+                    ],
+                    [
+                      1.26246e-7,
+                      1.30751e-7,
+                      0.0180385
+                    ]
+                  ],
+                  "L": [
+                    [
+                      6.819072737099386e-8,
+                      4.108083253845448e-8,
+                      1.9602835253761715e-8
+                    ],
+                    [
+                      4.10736667945712e-8,
+                      6.817828160530184e-8,
+                      1.9583789460808774e-8
+                    ],
+                    [
+                      1.956832653979748e-8,
+                      1.955399505203091e-8,
+                      2.3185895767611366e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 8440,
+                  "R": [
+                    [
+                      0.22002,
+                      0.0000399562,
+                      0.0000124226
+                    ],
+                    [
+                      0.0000399481,
+                      0.22002,
+                      0.0000128408
+                    ],
+                    [
+                      0.0000123387,
+                      0.0000127645,
+                      0.0180434
+                    ]
+                  ],
+                  "L": [
+                    [
+                      6.804250961593436e-8,
+                      4.096938636384867e-8,
+                      1.9567760823175116e-8
+                    ],
+                    [
+                      4.0962032047757925e-8,
+                      6.802968670582744e-8,
+                      1.9547017880355083e-8
+                    ],
+                    [
+                      1.9533629253625784e-8,
+                      1.9517600615992123e-8,
+                      2.3174015718541713e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 84400,
+                  "R": [
+                    [
+                      0.221548,
+                      0.00128708,
+                      0.00040341
+                    ],
+                    [
+                      0.00128668,
+                      0.221544,
+                      0.000412874
+                    ],
+                    [
+                      0.000400413,
+                      0.000410147,
+                      0.0182498
+                    ]
+                  ],
+                  "L": [
+                    [
+                      6.386280663769756e-8,
+                      3.758696667873098e-8,
+                      1.8544473739421358e-8
+                    ],
+                    [
+                      3.758055522367752e-8,
+                      6.385488660498445e-8,
+                      1.8494916963302223e-8
+                    ],
+                    [
+                      1.8518017058715443e-8,
+                      1.8472401441732113e-8,
+                      2.2777259794056703e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 844000,
+                  "R": [
+                    [
+                      0.224609,
+                      0.0033424,
+                      0.00186136
+                    ],
+                    [
+                      0.00333991,
+                      0.224593,
+                      0.00185613
+                    ],
+                    [
+                      0.00185777,
+                      0.00185507,
+                      0.0197398
+                    ]
+                  ],
+                  "L": [
+                    [
+                      6.144229378280706e-8,
+                      3.559394701814065e-8,
+                      1.7772289407114483e-8
+                    ],
+                    [
+                      3.5588289851917e-8,
+                      6.144040806073252e-8,
+                      1.7712134872936386e-8
+                    ],
+                    [
+                      1.774928359780499e-8,
+                      1.7692146218946172e-8,
+                      2.2174771591238445e-8
+                    ]
+                  ]
+                }
+              ],
+              "modelPrimitiveImpedance": {
+                "frequencyHz": 844000,
+                "R": [
+                  [
+                    0.224844,
+                    0.00337212,
+                    0.001971
+                  ],
+                  [
+                    0.00337964,
+                    0.224807,
+                    0.00195703
+                  ],
+                  [
+                    0.00197137,
+                    0.00195947,
+                    0.0198635
+                  ]
+                ],
+                "L": [
+                  [
+                    6.145077953214254e-8,
+                    3.562449571574833e-8,
+                    1.7856788613275003e-8
+                  ],
+                  [
+                    3.562091284380669e-8,
+                    6.145077953214254e-8,
+                    1.7798463229509215e-8
+                  ],
+                  [
+                    1.7836064527675714e-8,
+                    1.777970029486746e-8,
+                    2.225774336251858e-8
+                  ]
+                ]
+              },
+              "primitiveCapacitance": [
+                [
+                  2.75259e-12,
+                  -1.19178e-12,
+                  -1.11918e-12
+                ],
+                [
+                  -1.1908799999999999e-12,
+                  2.73279e-12,
+                  -1.08273e-12
+                ],
+                [
+                  -1.51474e-12,
+                  -1.5093699999999999e-12,
+                  4.491130000000001e-12
+                ]
+              ],
+              "checks": {
+                "R": {
+                  "matrix": [
+                    [
+                      0.24076513,
+                      0.019309945000000002
+                    ],
+                    [
+                      0.019309945000000002,
+                      0.24075400000000002
+                    ]
+                  ],
+                  "reciprocityResidual": 0.0000398313493320245,
+                  "cholesky": [
+                    [
+                      0.4906782346915339,
+                      0
+                    ],
+                    [
+                      0.039353579667415345,
+                      0.4890861843963295
+                    ]
+                  ]
+                },
+                "L": {
+                  "matrix": [
+                    [
+                      4.8015669753710406e-8,
+                      2.2244939309632393e-8
+                    ],
+                    [
+                      2.2244939309632393e-8,
+                      4.813035937028445e-8
+                    ]
+                  ],
+                  "reciprocityResidual": 0.00003369434604949298,
+                  "cholesky": [
+                    [
+                      0.00021912478124053064,
+                      0
+                    ],
+                    [
+                      0.00010151722312600687,
+                      0.00019448550788958284
+                    ]
+                  ]
+                },
+                "C": {
+                  "matrix": [
+                    [
+                      2.75259e-12,
+                      -1.19178e-12
+                    ],
+                    [
+                      -1.1908799999999999e-12,
+                      2.73279e-12
+                    ]
+                  ],
+                  "reciprocityResidual": 0.00032696478589260567,
+                  "convention": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+                  "positiveEnergy": "Strict row and column diagonal dominance with Maxwell signs; residual asymmetry retained"
+                },
+                "primitiveC": {
+                  "reciprocityResidual": 0.0949961368297065,
+                  "checked": false
+                },
+                "convergence": {
+                  "R": 0.0005626230010965621,
+                  "L": 0.0016733552555539238,
+                  "coarseFilaments": 3,
+                  "refinedFilaments": 7,
+                  "coarseGroundMeshMm": 1.43,
+                  "refinedGroundMeshMm": 0.715,
+                  "frequencyHz": 844000,
+                  "definition": "max(abs(refined-coarse))/max(abs(refined)) for full referenced matrix; routed copper also halves ground mesh spacing",
+                  "tolerance": 0.05
+                },
+                "capConvergence": 0.0179571,
+                "analyticResistanceOhm": [
+                  0.21996993212820826,
+                  0.21996993212820823
+                ],
+                "analyticResistanceRelativeErrors": [
+                  3.085503144095725e-7,
+                  3.085503146316171e-7
+                ],
+                "analyticFrequencyHz": 0.844,
+                "analyticLoopResistanceOhm": null,
+                "dcLoopResidual": null,
+                "energyResidual": 0,
+                "neutralityResidual": 0.008270019920944678
+              },
+              "conversions": {
+                "impedance": "R=Re(Z), L=Im(Z)/(2*pi*f); A=[I;-ones]; loop=A^T primitive A",
+                "capacitance": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+                "capacitanceSolverCoordinateUnits": "mm",
+                "capacitanceScaleToFarads": 0.001,
+                "neutralityDenominatorF": null
+              },
+              "per_length": [
+                {
+                  "length_m": 0.05741215228546241,
+                  "L_h_per_m": 8.363328640767343e-7,
+                  "C_f_per_m": 4.7944379202397466e-11
+                },
+                {
+                  "length_m": 0.05741215228546241,
+                  "L_h_per_m": 8.383305180926261e-7,
+                  "C_f_per_m": 4.7599504481422865e-11
+                }
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_0_0",
+              "simulation_signal_id": "simulation_signal_0",
+              "source_port_id": "source_port_13",
+              "eye_height_v": 4.454710396440068,
+              "eye_width_s": 0.000003932656924787817,
+              "mask_margin_v": 2.027353036453731
+            },
+            {
+              "type": "simulation_signal_integrity_rlgc",
+              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_0",
+              "simulation_signal_integrity_id": "simulation_signal_integrity_0",
+              "conductors": [
+                {
+                  "simulation_signal_id": "simulation_signal_0",
+                  "leg": "p"
+                },
+                {
+                  "simulation_signal_id": "simulation_signal_0",
+                  "leg": "n"
+                }
+              ],
+              "matrices": [
+                {
+                  "frequency_hz": 844000,
+                  "r_ohm": [
+                    [
+                      0.24076513,
+                      0.019309945000000002
+                    ],
+                    [
+                      0.019309945000000002,
+                      0.24075400000000002
+                    ]
+                  ],
+                  "l_h": [
+                    [
+                      4.8015669753710406e-8,
+                      2.2244939309632393e-8
+                    ],
+                    [
+                      2.2244939309632393e-8,
+                      4.813035937028445e-8
+                    ]
+                  ],
+                  "c_f": [
+                    [
+                      2.75259e-12,
+                      -1.19178e-12
+                    ],
+                    [
+                      -1.1908799999999999e-12,
+                      2.73279e-12
+                    ]
+                  ],
+                  "g_s": [
+                    [
+                      0,
+                      0
+                    ],
+                    [
+                      0,
+                      0
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "limitations": [
+            "Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup",
+            "FastHenry ground polygons discretized into an adaptive rectangular conductor mesh; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; finite reference contact areas resolved locally; ground mesh and filaments refined together",
+            "FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential",
+            "Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted",
+            "Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded",
+            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted",
+            "Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
+            "Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
+            "Maximum solver integration step and display resolution are separate settings"
+          ]
+        }
+      ],
+      "run_directory": "runs/option-a/resume/differential",
+      "replay_used": true,
+      "matrix_evidence": {
+        "primitive_C_f": [
+          [
+            2.75259e-12,
+            -1.19178e-12,
+            -1.11918e-12
+          ],
+          [
+            -1.1908799999999999e-12,
+            2.73279e-12,
+            -1.08273e-12
+          ],
+          [
+            -1.51474e-12,
+            -1.5093699999999999e-12,
+            4.491130000000001e-12
+          ]
+        ],
+        "signal_C_f": [
+          [
+            2.75259e-12,
+            -1.19178e-12
+          ],
+          [
+            -1.1908799999999999e-12,
+            2.73279e-12
+          ]
+        ],
+        "full_reciprocity": 0.0949961368297065,
+        "signal_reciprocity": 0.00032696478589260567,
+        "asymmetric_pairs": [
+          {
+            "row": 0,
+            "column": 1,
+            "signal_return": false,
+            "Cij_f": -1.19178e-12,
+            "Cji_f": -1.1908799999999999e-12,
+            "difference_f": -9.000000000001274e-16
+          },
+          {
+            "row": 0,
+            "column": 2,
+            "signal_return": true,
+            "Cij_f": -1.11918e-12,
+            "Cji_f": -1.51474e-12,
+            "difference_f": 3.9556e-13
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "signal_return": true,
+            "Cij_f": -1.08273e-12,
+            "Cji_f": -1.5093699999999999e-12,
+            "difference_f": 4.266399999999999e-13
+          }
+        ],
+        "grounded_total_charge_per_signal_charge": [
+          0.01706392888152618,
+          0.011577911218937517
+        ],
+        "raw_formal_neutral_C_f": [
+          [
+            2.7438295057499907e-12,
+            -1.197681256931452e-12
+          ],
+          [
+            -1.1999886288289276e-12,
+            2.7266542321450443e-12
+          ]
+        ],
+        "raw_formal_neutral_diagonal_fraction": [
+          0.003182636807519291,
+          0.0022452394274554035
+        ],
+        "neutral_diagnostic_note": "Algebra only on the unvalidated nonreciprocal primitive: Css-(C1)s*(1^T C)s/(1^T C1). Not an accepted floating model or a physical error estimate."
+      },
+      "extraction_accepted": true,
+      "cap_auto_residual": 0.0179571,
+      "accepted_extraction": [
+        {
+          "stage": 0,
+          "profile": "routed-copper",
+          "R": [
+            [
+              0.24076513,
+              0.019309945000000002
+            ],
+            [
+              0.019309945000000002,
+              0.24075400000000002
+            ]
+          ],
+          "L": [
+            [
+              4.8015669753710406e-8,
+              2.2244939309632393e-8
+            ],
+            [
+              2.2244939309632393e-8,
+              4.813035937028445e-8
+            ]
+          ],
+          "C": [
+            [
+              2.75259e-12,
+              -1.19178e-12
+            ],
+            [
+              -1.1908799999999999e-12,
+              2.73279e-12
+            ]
+          ],
+          "G": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "units": {
+            "R": "ohm",
+            "L": "H",
+            "C": "F",
+            "G": "S"
+          },
+          "frequencyHz": 844000,
+          "primitiveOrder": [
+            "sig0",
+            "sig1",
+            "return"
+          ],
+          "primitiveImpedance": [
+            {
+              "frequencyHz": 0.844,
+              "R": [
+                [
+                  0.21997,
+                  4.08333e-13,
+                  1.2714e-13
+                ],
+                [
+                  4.08261e-13,
+                  0.21997,
+                  1.31574e-13
+                ],
+                [
+                  1.26287e-13,
+                  1.30798e-13,
+                  0.0180384
+                ]
+              ],
+              "L": [
+                [
+                  6.819223594865351e-8,
+                  4.10812096828694e-8,
+                  1.9603212398176624e-8
+                ],
+                [
+                  4.107404393898611e-8,
+                  6.81797901829615e-8,
+                  1.9584166605223687e-8
+                ],
+                [
+                  1.9568892256419842e-8,
+                  1.9554560768653277e-8,
+                  2.3186084339818822e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 8.44,
+              "R": [
+                [
+                  0.21997,
+                  4.08333e-11,
+                  1.2714e-11
+                ],
+                [
+                  4.08261e-11,
+                  0.21997,
+                  1.31574e-11
+                ],
+                [
+                  1.26287e-11,
+                  1.30798e-11,
+                  0.0180384
+                ]
+              ],
+              "L": [
+                [
+                  6.819223594865351e-8,
+                  4.108120968286939e-8,
+                  1.9603212398176624e-8
+                ],
+                [
+                  4.107404393898611e-8,
+                  6.81797901829615e-8,
+                  1.9584166605223687e-8
+                ],
+                [
+                  1.9568892256419846e-8,
+                  1.9554560768653277e-8,
+                  2.318608433981882e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 84.4,
+              "R": [
+                [
+                  0.21997,
+                  4.08333e-9,
+                  1.27139e-9
+                ],
+                [
+                  4.08261e-9,
+                  0.21997,
+                  1.31573e-9
+                ],
+                [
+                  1.26286e-9,
+                  1.30797e-9,
+                  0.0180384
+                ]
+              ],
+              "L": [
+                [
+                  6.81922359486535e-8,
+                  4.108120968286939e-8,
+                  1.960302382596917e-8
+                ],
+                [
+                  4.107404393898611e-8,
+                  6.817979018296147e-8,
+                  1.9584166605223684e-8
+                ],
+                [
+                  1.9568892256419842e-8,
+                  1.9554560768653274e-8,
+                  2.3186084339818816e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 844,
+              "R": [
+                [
+                  0.21997,
+                  4.08345e-7,
+                  1.27108e-7
+                ],
+                [
+                  4.08288e-7,
+                  0.21997,
+                  1.31542e-7
+                ],
+                [
+                  1.26246e-7,
+                  1.30751e-7,
+                  0.0180385
+                ]
+              ],
+              "L": [
+                [
+                  6.819072737099386e-8,
+                  4.108083253845448e-8,
+                  1.9602835253761715e-8
+                ],
+                [
+                  4.10736667945712e-8,
+                  6.817828160530184e-8,
+                  1.9583789460808774e-8
+                ],
+                [
+                  1.956832653979748e-8,
+                  1.955399505203091e-8,
+                  2.3185895767611366e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 8440,
+              "R": [
+                [
+                  0.22002,
+                  0.0000399562,
+                  0.0000124226
+                ],
+                [
+                  0.0000399481,
+                  0.22002,
+                  0.0000128408
+                ],
+                [
+                  0.0000123387,
+                  0.0000127645,
+                  0.0180434
+                ]
+              ],
+              "L": [
+                [
+                  6.804250961593436e-8,
+                  4.096938636384867e-8,
+                  1.9567760823175116e-8
+                ],
+                [
+                  4.0962032047757925e-8,
+                  6.802968670582744e-8,
+                  1.9547017880355083e-8
+                ],
+                [
+                  1.9533629253625784e-8,
+                  1.9517600615992123e-8,
+                  2.3174015718541713e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 84400,
+              "R": [
+                [
+                  0.221548,
+                  0.00128708,
+                  0.00040341
+                ],
+                [
+                  0.00128668,
+                  0.221544,
+                  0.000412874
+                ],
+                [
+                  0.000400413,
+                  0.000410147,
+                  0.0182498
+                ]
+              ],
+              "L": [
+                [
+                  6.386280663769756e-8,
+                  3.758696667873098e-8,
+                  1.8544473739421358e-8
+                ],
+                [
+                  3.758055522367752e-8,
+                  6.385488660498445e-8,
+                  1.8494916963302223e-8
+                ],
+                [
+                  1.8518017058715443e-8,
+                  1.8472401441732113e-8,
+                  2.2777259794056703e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 844000,
+              "R": [
+                [
+                  0.224609,
+                  0.0033424,
+                  0.00186136
+                ],
+                [
+                  0.00333991,
+                  0.224593,
+                  0.00185613
+                ],
+                [
+                  0.00185777,
+                  0.00185507,
+                  0.0197398
+                ]
+              ],
+              "L": [
+                [
+                  6.144229378280706e-8,
+                  3.559394701814065e-8,
+                  1.7772289407114483e-8
+                ],
+                [
+                  3.5588289851917e-8,
+                  6.144040806073252e-8,
+                  1.7712134872936386e-8
+                ],
+                [
+                  1.774928359780499e-8,
+                  1.7692146218946172e-8,
+                  2.2174771591238445e-8
+                ]
+              ]
+            }
+          ],
+          "modelPrimitiveImpedance": {
+            "frequencyHz": 844000,
+            "R": [
+              [
+                0.224844,
+                0.00337212,
+                0.001971
+              ],
+              [
+                0.00337964,
+                0.224807,
+                0.00195703
+              ],
+              [
+                0.00197137,
+                0.00195947,
+                0.0198635
+              ]
+            ],
+            "L": [
+              [
+                6.145077953214254e-8,
+                3.562449571574833e-8,
+                1.7856788613275003e-8
+              ],
+              [
+                3.562091284380669e-8,
+                6.145077953214254e-8,
+                1.7798463229509215e-8
+              ],
+              [
+                1.7836064527675714e-8,
+                1.777970029486746e-8,
+                2.225774336251858e-8
+              ]
+            ]
+          },
+          "primitiveCapacitance": [
+            [
+              2.75259e-12,
+              -1.19178e-12,
+              -1.11918e-12
+            ],
+            [
+              -1.1908799999999999e-12,
+              2.73279e-12,
+              -1.08273e-12
+            ],
+            [
+              -1.51474e-12,
+              -1.5093699999999999e-12,
+              4.491130000000001e-12
+            ]
+          ],
+          "checks": {
+            "R": {
+              "matrix": [
+                [
+                  0.24076513,
+                  0.019309945000000002
+                ],
+                [
+                  0.019309945000000002,
+                  0.24075400000000002
+                ]
+              ],
+              "reciprocityResidual": 0.0000398313493320245,
+              "cholesky": [
+                [
+                  0.4906782346915339,
+                  0
+                ],
+                [
+                  0.039353579667415345,
+                  0.4890861843963295
+                ]
+              ]
+            },
+            "L": {
+              "matrix": [
+                [
+                  4.8015669753710406e-8,
+                  2.2244939309632393e-8
+                ],
+                [
+                  2.2244939309632393e-8,
+                  4.813035937028445e-8
+                ]
+              ],
+              "reciprocityResidual": 0.00003369434604949298,
+              "cholesky": [
+                [
+                  0.00021912478124053064,
+                  0
+                ],
+                [
+                  0.00010151722312600687,
+                  0.00019448550788958284
+                ]
+              ]
+            },
+            "C": {
+              "matrix": [
+                [
+                  2.75259e-12,
+                  -1.19178e-12
+                ],
+                [
+                  -1.1908799999999999e-12,
+                  2.73279e-12
+                ]
+              ],
+              "reciprocityResidual": 0.00032696478589260567,
+              "convention": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+              "positiveEnergy": "Strict row and column diagonal dominance with Maxwell signs; residual asymmetry retained"
+            },
+            "primitiveC": {
+              "reciprocityResidual": 0.0949961368297065,
+              "checked": false
+            },
+            "convergence": {
+              "R": 0.0005626230010965621,
+              "L": 0.0016733552555539238,
+              "coarseFilaments": 3,
+              "refinedFilaments": 7,
+              "coarseGroundMeshMm": 1.43,
+              "refinedGroundMeshMm": 0.715,
+              "frequencyHz": 844000,
+              "definition": "max(abs(refined-coarse))/max(abs(refined)) for full referenced matrix; routed copper also halves ground mesh spacing",
+              "tolerance": 0.05
+            },
+            "capConvergence": 0.0179571,
+            "analyticResistanceOhm": [
+              0.21996993212820826,
+              0.21996993212820823
+            ],
+            "analyticResistanceRelativeErrors": [
+              3.085503144095725e-7,
+              3.085503146316171e-7
+            ],
+            "analyticFrequencyHz": 0.844,
+            "analyticLoopResistanceOhm": null,
+            "dcLoopResidual": null,
+            "energyResidual": 0,
+            "neutralityResidual": 0.008270019920944678
+          },
+          "conversions": {
+            "impedance": "R=Re(Z), L=Im(Z)/(2*pi*f); A=[I;-ones]; loop=A^T primitive A",
+            "capacitance": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+            "capacitanceSolverCoordinateUnits": "mm",
+            "capacitanceScaleToFarads": 0.001,
+            "neutralityDenominatorF": null
+          },
+          "per_length": [
+            {
+              "length_m": 0.05741215228546241,
+              "L_h_per_m": 8.363328640767343e-7,
+              "C_f_per_m": 4.7944379202397466e-11
+            },
+            {
+              "length_m": 0.05741215228546241,
+              "L_h_per_m": 8.383305180926261e-7,
+              "C_f_per_m": 4.7599504481422865e-11
+            }
+          ]
+        }
+      ],
+      "input_sha256": "1f7630b325da2c742bb64c1c73ddc2568f950d1548705b3355e5d0126b685898",
+      "baseline_input_sha256": "1f7630b325da2c742bb64c1c73ddc2568f950d1548705b3355e5d0126b685898",
+      "extraction_requests_match_baseline": true,
+      "R_mesh_delta": 0.0005626230010965621,
+      "L_mesh_delta": 0.0016733552555539238,
+      "raw_loop_R_ohm": [
+        [
+          0.24076513,
+          0.01930515
+        ],
+        [
+          0.01931474,
+          0.24075400000000002
+        ]
+      ],
+      "raw_loop_L_h": [
+        [
+          4.8015669753710406e-8,
+          2.224575017012445e-8
+        ],
+        [
+          2.224412844914034e-8,
+          4.813035937028445e-8
+        ]
+      ],
+      "per_length": [
+        {
+          "length_m": 0.05741215228546241,
+          "L_h_per_m": 8.363328640767343e-7,
+          "C_f_per_m": 4.7944379202397466e-11
+        },
+        {
+          "length_m": 0.05741215228546241,
+          "L_h_per_m": 8.383305180926261e-7,
+          "C_f_per_m": 4.7599504481422865e-11
+        }
+      ],
+      "eyes": [
+        {
+          "type": "simulation_signal_eye",
+          "simulation_signal_eye_id": "simulation_signal_0_0",
+          "simulation_signal_id": "simulation_signal_0",
+          "source_port_id": "source_port_13",
+          "eye_height_v": 4.454710396440068,
+          "eye_width_s": 0.000003932656924787817,
+          "mask_margin_v": 2.027353036453731
+        }
+      ],
+      "quiet_NEXT_FEXT": null,
+      "quiet_NEXT_FEXT_note": "Not applicable: these three boards declare switching signals, no quiet victim. No quiet scenario was invented.",
+      "timestep_section_deltas": {
+        "blocks/simulation_signal_integrity_0/experiments/simulation_signal_integrity_0/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "8f8dae8edc19a05c887b21af981fc8197520e44a1019b9b71022adec43859138",
+              "waveform_csv_sha256": "bf36b4dec3c4d21d8b8621954741204aed2af1fb213d18d45b95ab285f8952f0",
+              "dimension": "time",
+              "sections": 2,
+              "step_s": 1.4807339854159875e-8,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 4018892,
+                  "rms_v": 1.2000587239817744e-7,
+                  "scale_v": 4.458896328985806,
+                  "peak_change_v": 1.320054985320951e-7,
+                  "positive_v": 0.001038391222859314,
+                  "negative_v": -4.457857937762947,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "bf36b4dec3c4d21d8b8621954741204aed2af1fb213d18d45b95ab285f8952f0",
+              "waveform_csv_sha256": "8e137e1176f3a20abce87b83ec833f1eb63e6b7ec31aa714f9d8a5e30ddf90c9",
+              "dimension": "space",
+              "sections": 4,
+              "step_s": 1.4807339854159875e-8,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 4060851,
+                  "rms_v": 1.919641543953156e-7,
+                  "scale_v": 4.458896441806418,
+                  "peak_change_v": 1.1282061240791563e-7,
+                  "positive_v": 0.001038390060394967,
+                  "negative_v": -4.457858050583559,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "two",
+      "rendering": "real_core_without_adapter",
+      "core_module": "/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si-cap-a/../core/dist/index.js",
+      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
+      "example_sha256": "7b78e046f3bcbe934a2e376cfaa49345ed5fc36a4475c7fa77d98b738a11f3b4",
+      "large_artifacts": "gzip_level_1_above_2_MB",
+      "runner_sha256": "a942d41f02c1971e04cb84089b396020712b635520f077abf55483286b1ff363",
+      "native_timeout_ms": 900000,
+      "implementation_head": "0109dd8d092d8ab7fa0df37fd4c3a44717716c6a",
+      "sources": {
+        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+      },
+      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+      "status": "verified_native",
+      "seconds": 891.017,
+      "native_execution": [
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "fasthenry",
+          "request_sha256": "dde23efc3d9e433081abe548523bafe5ecbb6548c3758f282fd7b2514f68f13a"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "fasthenry",
+          "request_sha256": "db873f83c869d289ff5d67f1ec0c64ddc6ad0b73ec4c926e60469c235dd9cabb"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "fastercap",
+          "request_sha256": "972c838a0bd28247ae11ebe06e69f5da4b21078d19fbb678d047bec608fe870a"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "6cffae87b09ab25cd9946d5a289b759d51ed854e9f766923a2923a2c2d52ba22"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "42f16cab9fcde00f1ee1cc3c7d5febdc3243e9495b61423f7c07c0825dc8aedf"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "f818d787f3da119a9ff8bce2b3d205457595e0ef76e4039764d9f319fa5c5564"
+        },
+        {
+          "block": "simulation_signal_integrity_0",
+          "solver": "ngspice",
+          "request_sha256": "0f1044c0c73c3d311966d8433f4f5077e8622026cbaad5b7f8b4a8731d648c07"
+        }
+      ],
+      "native_requests": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "dde23efc3d9e433081abe548523bafe5ecbb6548c3758f282fd7b2514f68f13a",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/option-a/retry/two/native-0-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "db873f83c869d289ff5d67f1ec0c64ddc6ad0b73ec4c926e60469c235dd9cabb",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "972c838a0bd28247ae11ebe06e69f5da4b21078d19fbb678d047bec608fe870a",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-ap",
+            "-e"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "6cffae87b09ab25cd9946d5a289b759d51ed854e9f766923a2923a2c2d52ba22",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "42f16cab9fcde00f1ee1cc3c7d5febdc3243e9495b61423f7c07c0825dc8aedf",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "f818d787f3da119a9ff8bce2b3d205457595e0ef76e4039764d9f319fa5c5564",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "0f1044c0c73c3d311966d8433f4f5077e8622026cbaad5b7f8b4a8731d648c07",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        }
+      ],
+      "transient_convergence": {
+        "blocks/simulation_signal_integrity_0/experiments/simulation_signal_integrity_0/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "7b4becc1e6b3e6c32194c812220acf40d8b3a70439c8ce507209b5510fc24197",
+              "waveform_csv_sha256": "50caaa67fd2454d3efe3118e9dfb9f052a745fc763c5a369fd1562897ea0d8a1",
+              "dimension": "time",
+              "sections": 4,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 4954375,
+                  "rms_v": 0.00006551801143470893,
+                  "scale_v": 6.051956315239038,
+                  "peak_change_v": 0.00004377727198079384,
+                  "positive_v": 1.8367677334667905,
+                  "negative_v": -4.215133784991757,
+                  "accepted": true
+                },
+                {
+                  "column": 2,
+                  "samples": 4954375,
+                  "rms_v": 0.00006957317919494376,
+                  "scale_v": 6.105660197959798,
+                  "peak_change_v": 0.000051013428639556935,
+                  "positive_v": 5.182582075918408,
+                  "negative_v": -0.9230271086127518,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "50caaa67fd2454d3efe3118e9dfb9f052a745fc763c5a369fd1562897ea0d8a1",
+              "waveform_csv_sha256": "cd538379b01a4b28c32828c6270d185a7afaf4604490db055c86ac9a7ce9498d",
+              "dimension": "space",
+              "sections": 8,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 4866500,
+                  "rms_v": 0.0015926186368275406,
+                  "scale_v": 6.052533251005127,
+                  "peak_change_v": 0.0036206855190599185,
+                  "positive_v": 1.8373994660133706,
+                  "negative_v": -4.211513099472697,
+                  "accepted": true
+                },
+                {
+                  "column": 2,
+                  "samples": 4866500,
+                  "rms_v": 0.0016518229131276027,
+                  "scale_v": 6.106256440203415,
+                  "peak_change_v": 0.004772957043825188,
+                  "positive_v": 5.183229331590664,
+                  "negative_v": -0.9182541515689266,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "name": "simulation_signal_integrity_0",
+          "duration_s": 0.0000072000000000000005,
+          "numericalSettings": {
+            "measurementGate": 8e-7,
+            "reduction": "routed-copper",
+            "allowIdeal": false,
+            "simplifyParallel": true,
+            "sections": 8,
+            "lanes": [
+              {
+                "port": "D0_source_trace_8",
+                "from": {
+                  "sourcePortId": "source_port_3"
+                },
+                "to": {
+                  "sourcePortId": "source_port_11"
+                },
+                "sourceTraceId": "source_trace_8"
+              },
+              {
+                "port": "D1_source_trace_9",
+                "from": {
+                  "sourcePortId": "source_port_8"
+                },
+                "to": {
+                  "sourcePortId": "source_port_16"
+                },
+                "sourceTraceId": "source_trace_9"
+              }
+            ],
+            "channelReference": {
+              "sourcePortId": "source_port_2"
+            },
+            "groundReturn": {
+              "sourcePortId": "source_port_12"
+            },
+            "relativePermittivity": 4.42,
+            "extraction": {
+              "minimumHz": 0.858,
+              "modelHz": 858000000,
+              "maximumHz": 858000000,
+              "filaments": 3,
+              "refinementFilaments": 7,
+              "convergenceTolerance": 0.05,
+              "capTolerance": 0.02,
+              "reciprocityTolerance": 0.025,
+              "dcResistanceTolerance": 0.002,
+              "maxPanelLengthMm": 2.86,
+              "groundMeshMm": 1.43
+            },
+            "passiveComponents": [],
+            "viaPlatingMm": 0.018,
+            "viaEquivalentWidthMm": 0.23600000000000002,
+            "omitThroughViaStubs": true,
+            "supplies": [
+              {
+                "positive": {
+                  "sourcePortId": "source_port_4"
+                },
+                "negative": {
+                  "sourcePortId": "source_port_2"
+                },
+                "voltageV": 3.3
+              }
+            ]
+          },
+          "extraction": [
+            {
+              "stage": 0,
+              "profile": "routed-copper",
+              "R": [
+                [
+                  0.9769872,
+                  0.11959005
+                ],
+                [
+                  0.11959005,
+                  0.9777970999999999
+                ]
+              ],
+              "L": [
+                [
+                  2.5200645627846772e-8,
+                  4.083511460045797e-9
+                ],
+                [
+                  4.083511460045797e-9,
+                  2.5913244263489927e-8
+                ]
+              ],
+              "C": [
+                [
+                  1.06013e-12,
+                  -2.1533099999999998e-14
+                ],
+                [
+                  -2.16981e-14,
+                  1.05466e-12
+                ]
+              ],
+              "G": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  0
+                ]
+              ],
+              "units": {
+                "R": "ohm",
+                "L": "H",
+                "C": "F",
+                "G": "S"
+              },
+              "frequencyHz": 858000000,
+              "primitiveOrder": [
+                "sig0",
+                "sig1",
+                "return"
+              ],
+              "primitiveImpedance": [
+                {
+                  "frequencyHz": 0.858,
+                  "R": [
+                    [
+                      0.107734,
+                      8.40167e-14,
+                      6.3813e-14
+                    ],
+                    [
+                      8.26511e-14,
+                      0.107734,
+                      6.59045e-14
+                    ],
+                    [
+                      6.33662e-14,
+                      6.57075e-14,
+                      0.0129235
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.477071768378741e-8,
+                      9.830989705070077e-9,
+                      1.0215521403239656e-8
+                    ],
+                    [
+                      9.829153301880555e-9,
+                      3.4772016150689094e-8,
+                      9.871520421929724e-9
+                    ],
+                    [
+                      1.0201089871103817e-8,
+                      9.85510409038703e-9,
+                      1.4398476878427135e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 8.58,
+                  "R": [
+                    [
+                      0.107734,
+                      8.40167e-12,
+                      6.3813e-12
+                    ],
+                    [
+                      8.26511e-12,
+                      0.107734,
+                      6.59045e-12
+                    ],
+                    [
+                      6.33662e-12,
+                      6.57075e-12,
+                      0.0129235
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.477071768378741e-8,
+                      9.830989705070075e-9,
+                      1.0215521403239654e-8
+                    ],
+                    [
+                      9.829153301880553e-9,
+                      3.477201615068909e-8,
+                      9.871520421929724e-9
+                    ],
+                    [
+                      1.0201089871103815e-8,
+                      9.85510409038703e-9,
+                      1.4398476878427135e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 85.8,
+                  "R": [
+                    [
+                      0.107734,
+                      8.40165e-10,
+                      6.38129e-10
+                    ],
+                    [
+                      8.26508e-10,
+                      0.107734,
+                      6.59043e-10
+                    ],
+                    [
+                      6.33661e-10,
+                      6.57074e-10,
+                      0.0129235
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.477071768378741e-8,
+                      9.830989705070073e-9,
+                      1.0215521403239654e-8
+                    ],
+                    [
+                      9.829153301880553e-9,
+                      3.477201615068909e-8,
+                      9.871520421929724e-9
+                    ],
+                    [
+                      1.0201089871103815e-8,
+                      9.85510409038703e-9,
+                      1.4398476878427135e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 858,
+                  "R": [
+                    [
+                      0.107734,
+                      8.39985e-8,
+                      6.37988e-8
+                    ],
+                    [
+                      8.26304e-8,
+                      0.107734,
+                      6.58891e-8
+                    ],
+                    [
+                      6.33552e-8,
+                      6.56953e-8,
+                      0.0129236
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.4769790207429064e-8,
+                      9.830804209798405e-9,
+                      1.0215354457495152e-8
+                    ],
+                    [
+                      9.828949257081718e-9,
+                      3.4771274169602415e-8,
+                      9.871334926658055e-9
+                    ],
+                    [
+                      1.0200960024413647e-8,
+                      9.854955694169694e-9,
+                      1.4398402680318465e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 8580,
+                  "R": [
+                    [
+                      0.107762,
+                      0.00000842782,
+                      0.00000624614
+                    ],
+                    [
+                      0.00000829661,
+                      0.107761,
+                      0.00000642933
+                    ],
+                    [
+                      0.00000620339,
+                      0.0000064095,
+                      0.0129264
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.467945401012632e-8,
+                      9.815222606978222e-9,
+                      1.0198678432572122e-8
+                    ],
+                    [
+                      9.813868491495037e-9,
+                      3.468687382099308e-8,
+                      9.853156390034506e-9
+                    ],
+                    [
+                      1.0184413846180784e-8,
+                      9.836758608018977e-9,
+                      1.4391687751484054e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 85800,
+                  "R": [
+                    [
+                      0.108544,
+                      0.000281297,
+                      0.000212269
+                    ],
+                    [
+                      0.00027861,
+                      0.10854,
+                      0.000208507
+                    ],
+                    [
+                      0.000211687,
+                      0.000207357,
+                      0.0130451
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.251101428431717e-8,
+                      9.019893080170748e-9,
+                      9.685413015864341e-9
+                    ],
+                    [
+                      9.028926699901022e-9,
+                      3.256666286581782e-8,
+                      9.335235042007837e-9
+                    ],
+                    [
+                      9.67458009199888e-9,
+                      9.320710762236164e-9,
+                      1.416714572512888e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 858000,
+                  "R": [
+                    [
+                      0.109828,
+                      0.000802139,
+                      0.000927225
+                    ],
+                    [
+                      0.000799923,
+                      0.109869,
+                      0.000922019
+                    ],
+                    [
+                      0.000927838,
+                      0.000920224,
+                      0.0139549
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.1321247611832997e-8,
+                      8.680381084435207e-9,
+                      9.294203487914682e-9
+                    ],
+                    [
+                      8.689804244235985e-9,
+                      3.136706494393521e-8,
+                      8.954969735086643e-9
+                    ],
+                    [
+                      9.282220493364872e-9,
+                      8.942337507085991e-9,
+                      1.3836778646286612e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 8580000,
+                  "R": [
+                    [
+                      0.127957,
+                      0.00223519,
+                      0.00254507
+                    ],
+                    [
+                      0.00223497,
+                      0.128131,
+                      0.00258364
+                    ],
+                    [
+                      0.00253767,
+                      0.00257595,
+                      0.0189282
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.098346072212398e-8,
+                      8.565763556071008e-9,
+                      9.152930289011667e-9
+                    ],
+                    [
+                      8.575427859724956e-9,
+                      3.101777734738272e-8,
+                      8.811433493869268e-9
+                    ],
+                    [
+                      9.141206987842194e-9,
+                      8.79902386019462e-9,
+                      1.3606189474075033e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 85800000,
+                  "R": [
+                    [
+                      0.28242,
+                      0.00574068,
+                      0.00559513
+                    ],
+                    [
+                      0.00576492,
+                      0.282678,
+                      0.00557906
+                    ],
+                    [
+                      0.00554176,
+                      0.00553401,
+                      0.0442786
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.0378560641211765e-8,
+                      8.542613746166732e-9,
+                      9.131338639389409e-9
+                    ],
+                    [
+                      8.552148203130512e-9,
+                      3.04117642948405e-8,
+                      8.78965634897534e-9
+                    ],
+                    [
+                      9.119893581127438e-9,
+                      8.777469309626695e-9,
+                      1.349040332549932e-8
+                    ]
+                  ]
+                },
+                {
+                  "frequencyHz": 858000000,
+                  "R": [
+                    [
+                      0.860813,
+                      0.014873,
+                      0.0140084
+                    ],
+                    [
+                      0.0149453,
+                      0.861403,
+                      0.0139446
+                    ],
+                    [
+                      0.0138611,
+                      0.0138173,
+                      0.130543
+                    ]
+                  ],
+                  "L": [
+                    [
+                      3.0038362312971054e-8,
+                      8.536826293690663e-9,
+                      9.125885078402344e-9
+                    ],
+                    [
+                      8.546323651600109e-9,
+                      3.0071380471328116e-8,
+                      8.784276986096944e-9
+                    ],
+                    [
+                      9.114514218249042e-9,
+                      8.772127045802631e-9,
+                      1.3438835639975373e-8
+                    ]
+                  ]
+                }
+              ],
+              "modelPrimitiveImpedance": {
+                "frequencyHz": 858000000,
+                "R": [
+                  [
+                    0.872709,
+                    0.0150942,
+                    0.0140915
+                  ],
+                  [
+                    0.0150946,
+                    0.873084,
+                    0.0138511
+                  ],
+                  [
+                    0.0138523,
+                    0.0136578,
+                    0.132222
+                  ]
+                ],
+                "L": [
+                  [
+                    3.002166773852085e-8,
+                    8.566338591413181e-9,
+                    9.167324722093172e-9
+                  ],
+                  [
+                    8.57093887415057e-9,
+                    3.006247669828801e-8,
+                    8.832134766187513e-9
+                  ],
+                  [
+                    9.155323178016195e-9,
+                    8.818723458045853e-9,
+                    1.3501625789435288e-8
+                  ]
+                ]
+              },
+              "primitiveCapacitance": [
+                [
+                  1.06013e-12,
+                  -2.1533099999999998e-14,
+                  -6.96907e-13
+                ],
+                [
+                  -2.16981e-14,
+                  1.05466e-12,
+                  -6.844159999999999e-13
+                ],
+                [
+                  -1.00662e-12,
+                  -1.00224e-12,
+                  3.2848899999999997e-12
+                ]
+              ],
+              "checks": {
+                "R": {
+                  "matrix": [
+                    [
+                      0.9769872,
+                      0.11959005
+                    ],
+                    [
+                      0.11959005,
+                      0.9777970999999999
+                    ]
+                  ],
+                  "reciprocityResidual": 0.0000473513370002827,
+                  "cholesky": [
+                    [
+                      0.9884266285364837,
+                      0
+                    ],
+                    [
+                      0.12099031586904059,
+                      0.9814063600088954
+                    ]
+                  ]
+                },
+                "L": {
+                  "matrix": [
+                    [
+                      2.5200645627846772e-8,
+                      4.083511460045797e-9
+                    ],
+                    [
+                      4.083511460045797e-9,
+                      2.5913244263489927e-8
+                    ]
+                  ],
+                  "reciprocityResidual": 0.00012312308872882062,
+                  "cholesky": [
+                    [
+                      0.0001587471121874246,
+                      0
+                    ],
+                    [
+                      0.000025723374767438942,
+                      0.0001589073700432545
+                    ]
+                  ]
+                },
+                "C": {
+                  "matrix": [
+                    [
+                      1.06013e-12,
+                      -2.1533099999999998e-14
+                    ],
+                    [
+                      -2.16981e-14,
+                      1.05466e-12
+                    ]
+                  ],
+                  "reciprocityResidual": 0.00015564128927584512,
+                  "convention": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+                  "positiveEnergy": "Strict row and column diagonal dominance with Maxwell signs; residual asymmetry retained"
+                },
+                "primitiveC": {
+                  "reciprocityResidual": 0.09675331594056424,
+                  "checked": false
+                },
+                "convergence": {
+                  "R": 0.013922111243733364,
+                  "L": 0.0015655243898250247,
+                  "coarseFilaments": 3,
+                  "refinedFilaments": 7,
+                  "coarseGroundMeshMm": 1.43,
+                  "refinedGroundMeshMm": 0.715,
+                  "frequencyHz": 858000000,
+                  "definition": "max(abs(refined-coarse))/max(abs(refined)) for full referenced matrix; routed copper also halves ground mesh spacing",
+                  "tolerance": 0.05
+                },
+                "capConvergence": 0.0137133,
+                "analyticResistanceOhm": [
+                  0.10773372752587901,
+                  0.10773372752587901
+                ],
+                "analyticResistanceRelativeErrors": [
+                  0.0000025291440965968803,
+                  0.0000025291440965968803
+                ],
+                "analyticFrequencyHz": 0.858,
+                "analyticLoopResistanceOhm": null,
+                "dcLoopResidual": null,
+                "energyResidual": 0,
+                "neutralityResidual": 0.012859753636565071
+              },
+              "conversions": {
+                "impedance": "R=Re(Z), L=Im(Z)/(2*pi*f); A=[I;-ones]; loop=A^T primitive A",
+                "capacitance": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+                "capacitanceSolverCoordinateUnits": "mm",
+                "capacitanceScaleToFarads": 0.001,
+                "neutralityDenominatorF": null
+              },
+              "per_length": [
+                {
+                  "length_m": 0.028118502884254444,
+                  "L_h_per_m": 8.962299924566187e-7,
+                  "C_f_per_m": 3.7702220646805574e-11
+                },
+                {
+                  "length_m": 0.028118502884254444,
+                  "L_h_per_m": 9.215726872144605e-7,
+                  "C_f_per_m": 3.750768681893727e-11
+                }
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_0_0",
+              "simulation_signal_id": "simulation_signal_0",
+              "source_port_id": "source_port_11",
+              "eye_height_v": 3.2770050632828394,
+              "eye_width_s": 4.7739509848519326e-8,
+              "mask_margin_v": 0.7954896434589019
+            },
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_1_0",
+              "simulation_signal_id": "simulation_signal_1",
+              "source_port_id": "source_port_16",
+              "eye_height_v": 3.2742770106413954,
+              "eye_width_s": 4.768952670978788e-8,
+              "mask_margin_v": 0.7949016843091573
+            },
+            {
+              "type": "simulation_signal_integrity_rlgc",
+              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_0",
+              "simulation_signal_integrity_id": "simulation_signal_integrity_0",
+              "conductors": [
+                {
+                  "simulation_signal_id": "simulation_signal_0",
+                  "leg": "single"
+                },
+                {
+                  "simulation_signal_id": "simulation_signal_1",
+                  "leg": "single"
+                }
+              ],
+              "matrices": [
+                {
+                  "frequency_hz": 858000000,
+                  "r_ohm": [
+                    [
+                      0.9769872,
+                      0.11959005
+                    ],
+                    [
+                      0.11959005,
+                      0.9777970999999999
+                    ]
+                  ],
+                  "l_h": [
+                    [
+                      2.5200645627846772e-8,
+                      4.083511460045797e-9
+                    ],
+                    [
+                      4.083511460045797e-9,
+                      2.5913244263489927e-8
+                    ]
+                  ],
+                  "c_f": [
+                    [
+                      1.06013e-12,
+                      -2.1533099999999998e-14
+                    ],
+                    [
+                      -2.16981e-14,
+                      1.05466e-12
+                    ]
+                  ],
+                  "g_s": [
+                    [
+                      0,
+                      0
+                    ],
+                    [
+                      0,
+                      0
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "limitations": [
+            "Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup",
+            "FastHenry ground polygons discretized into an adaptive rectangular conductor mesh; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; finite reference contact areas resolved locally; ground mesh and filaments refined together",
+            "FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential",
+            "Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted",
+            "Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded",
+            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted",
+            "Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
+            "Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
+            "Maximum solver integration step and display resolution are separate settings"
+          ]
+        }
+      ],
+      "run_directory": "runs/option-a/resume/two",
+      "replay_used": true,
+      "matrix_evidence": {
+        "primitive_C_f": [
+          [
+            1.06013e-12,
+            -2.1533099999999998e-14,
+            -6.96907e-13
+          ],
+          [
+            -2.16981e-14,
+            1.05466e-12,
+            -6.844159999999999e-13
+          ],
+          [
+            -1.00662e-12,
+            -1.00224e-12,
+            3.2848899999999997e-12
+          ]
+        ],
+        "signal_C_f": [
+          [
+            1.06013e-12,
+            -2.1533099999999998e-14
+          ],
+          [
+            -2.16981e-14,
+            1.05466e-12
+          ]
+        ],
+        "full_reciprocity": 0.09675331594056424,
+        "signal_reciprocity": 0.00015564128927584512,
+        "asymmetric_pairs": [
+          {
+            "row": 0,
+            "column": 1,
+            "signal_return": false,
+            "Cij_f": -2.1533099999999998e-14,
+            "Cji_f": -2.16981e-14,
+            "difference_f": 1.650000000000017e-16
+          },
+          {
+            "row": 0,
+            "column": 2,
+            "signal_return": true,
+            "Cij_f": -6.96907e-13,
+            "Cji_f": -1.00662e-12,
+            "difference_f": 3.09713e-13
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "signal_return": true,
+            "Cij_f": -6.844159999999999e-13,
+            "Cji_f": -1.00224e-12,
+            "difference_f": 3.1782400000000004e-13
+          }
+        ],
+        "grounded_total_charge_per_signal_charge": [
+          0.030007546244328647,
+          0.029286120645516195
+        ],
+        "raw_formal_neutral_C_f": [
+          [
+            1.0546018537393013e-12,
+            -2.69005034163184e-14
+          ],
+          [
+            -2.733716838852105e-14,
+            1.049184899757342e-12
+          ]
+        ],
+        "raw_formal_neutral_diagonal_fraction": [
+          0.005214592795882445,
+          0.005191341515424836
+        ],
+        "neutral_diagnostic_note": "Algebra only on the unvalidated nonreciprocal primitive: Css-(C1)s*(1^T C)s/(1^T C1). Not an accepted floating model or a physical error estimate."
+      },
+      "extraction_accepted": true,
+      "cap_auto_residual": 0.0137133,
+      "accepted_extraction": [
+        {
+          "stage": 0,
+          "profile": "routed-copper",
+          "R": [
+            [
+              0.9769872,
+              0.11959005
+            ],
+            [
+              0.11959005,
+              0.9777970999999999
+            ]
+          ],
+          "L": [
+            [
+              2.5200645627846772e-8,
+              4.083511460045797e-9
+            ],
+            [
+              4.083511460045797e-9,
+              2.5913244263489927e-8
+            ]
+          ],
+          "C": [
+            [
+              1.06013e-12,
+              -2.1533099999999998e-14
+            ],
+            [
+              -2.16981e-14,
+              1.05466e-12
+            ]
+          ],
+          "G": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "units": {
+            "R": "ohm",
+            "L": "H",
+            "C": "F",
+            "G": "S"
+          },
+          "frequencyHz": 858000000,
+          "primitiveOrder": [
+            "sig0",
+            "sig1",
+            "return"
+          ],
+          "primitiveImpedance": [
+            {
+              "frequencyHz": 0.858,
+              "R": [
+                [
+                  0.107734,
+                  8.40167e-14,
+                  6.3813e-14
+                ],
+                [
+                  8.26511e-14,
+                  0.107734,
+                  6.59045e-14
+                ],
+                [
+                  6.33662e-14,
+                  6.57075e-14,
+                  0.0129235
+                ]
+              ],
+              "L": [
+                [
+                  3.477071768378741e-8,
+                  9.830989705070077e-9,
+                  1.0215521403239656e-8
+                ],
+                [
+                  9.829153301880555e-9,
+                  3.4772016150689094e-8,
+                  9.871520421929724e-9
+                ],
+                [
+                  1.0201089871103817e-8,
+                  9.85510409038703e-9,
+                  1.4398476878427135e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 8.58,
+              "R": [
+                [
+                  0.107734,
+                  8.40167e-12,
+                  6.3813e-12
+                ],
+                [
+                  8.26511e-12,
+                  0.107734,
+                  6.59045e-12
+                ],
+                [
+                  6.33662e-12,
+                  6.57075e-12,
+                  0.0129235
+                ]
+              ],
+              "L": [
+                [
+                  3.477071768378741e-8,
+                  9.830989705070075e-9,
+                  1.0215521403239654e-8
+                ],
+                [
+                  9.829153301880553e-9,
+                  3.477201615068909e-8,
+                  9.871520421929724e-9
+                ],
+                [
+                  1.0201089871103815e-8,
+                  9.85510409038703e-9,
+                  1.4398476878427135e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 85.8,
+              "R": [
+                [
+                  0.107734,
+                  8.40165e-10,
+                  6.38129e-10
+                ],
+                [
+                  8.26508e-10,
+                  0.107734,
+                  6.59043e-10
+                ],
+                [
+                  6.33661e-10,
+                  6.57074e-10,
+                  0.0129235
+                ]
+              ],
+              "L": [
+                [
+                  3.477071768378741e-8,
+                  9.830989705070073e-9,
+                  1.0215521403239654e-8
+                ],
+                [
+                  9.829153301880553e-9,
+                  3.477201615068909e-8,
+                  9.871520421929724e-9
+                ],
+                [
+                  1.0201089871103815e-8,
+                  9.85510409038703e-9,
+                  1.4398476878427135e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 858,
+              "R": [
+                [
+                  0.107734,
+                  8.39985e-8,
+                  6.37988e-8
+                ],
+                [
+                  8.26304e-8,
+                  0.107734,
+                  6.58891e-8
+                ],
+                [
+                  6.33552e-8,
+                  6.56953e-8,
+                  0.0129236
+                ]
+              ],
+              "L": [
+                [
+                  3.4769790207429064e-8,
+                  9.830804209798405e-9,
+                  1.0215354457495152e-8
+                ],
+                [
+                  9.828949257081718e-9,
+                  3.4771274169602415e-8,
+                  9.871334926658055e-9
+                ],
+                [
+                  1.0200960024413647e-8,
+                  9.854955694169694e-9,
+                  1.4398402680318465e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 8580,
+              "R": [
+                [
+                  0.107762,
+                  0.00000842782,
+                  0.00000624614
+                ],
+                [
+                  0.00000829661,
+                  0.107761,
+                  0.00000642933
+                ],
+                [
+                  0.00000620339,
+                  0.0000064095,
+                  0.0129264
+                ]
+              ],
+              "L": [
+                [
+                  3.467945401012632e-8,
+                  9.815222606978222e-9,
+                  1.0198678432572122e-8
+                ],
+                [
+                  9.813868491495037e-9,
+                  3.468687382099308e-8,
+                  9.853156390034506e-9
+                ],
+                [
+                  1.0184413846180784e-8,
+                  9.836758608018977e-9,
+                  1.4391687751484054e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 85800,
+              "R": [
+                [
+                  0.108544,
+                  0.000281297,
+                  0.000212269
+                ],
+                [
+                  0.00027861,
+                  0.10854,
+                  0.000208507
+                ],
+                [
+                  0.000211687,
+                  0.000207357,
+                  0.0130451
+                ]
+              ],
+              "L": [
+                [
+                  3.251101428431717e-8,
+                  9.019893080170748e-9,
+                  9.685413015864341e-9
+                ],
+                [
+                  9.028926699901022e-9,
+                  3.256666286581782e-8,
+                  9.335235042007837e-9
+                ],
+                [
+                  9.67458009199888e-9,
+                  9.320710762236164e-9,
+                  1.416714572512888e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 858000,
+              "R": [
+                [
+                  0.109828,
+                  0.000802139,
+                  0.000927225
+                ],
+                [
+                  0.000799923,
+                  0.109869,
+                  0.000922019
+                ],
+                [
+                  0.000927838,
+                  0.000920224,
+                  0.0139549
+                ]
+              ],
+              "L": [
+                [
+                  3.1321247611832997e-8,
+                  8.680381084435207e-9,
+                  9.294203487914682e-9
+                ],
+                [
+                  8.689804244235985e-9,
+                  3.136706494393521e-8,
+                  8.954969735086643e-9
+                ],
+                [
+                  9.282220493364872e-9,
+                  8.942337507085991e-9,
+                  1.3836778646286612e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 8580000,
+              "R": [
+                [
+                  0.127957,
+                  0.00223519,
+                  0.00254507
+                ],
+                [
+                  0.00223497,
+                  0.128131,
+                  0.00258364
+                ],
+                [
+                  0.00253767,
+                  0.00257595,
+                  0.0189282
+                ]
+              ],
+              "L": [
+                [
+                  3.098346072212398e-8,
+                  8.565763556071008e-9,
+                  9.152930289011667e-9
+                ],
+                [
+                  8.575427859724956e-9,
+                  3.101777734738272e-8,
+                  8.811433493869268e-9
+                ],
+                [
+                  9.141206987842194e-9,
+                  8.79902386019462e-9,
+                  1.3606189474075033e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 85800000,
+              "R": [
+                [
+                  0.28242,
+                  0.00574068,
+                  0.00559513
+                ],
+                [
+                  0.00576492,
+                  0.282678,
+                  0.00557906
+                ],
+                [
+                  0.00554176,
+                  0.00553401,
+                  0.0442786
+                ]
+              ],
+              "L": [
+                [
+                  3.0378560641211765e-8,
+                  8.542613746166732e-9,
+                  9.131338639389409e-9
+                ],
+                [
+                  8.552148203130512e-9,
+                  3.04117642948405e-8,
+                  8.78965634897534e-9
+                ],
+                [
+                  9.119893581127438e-9,
+                  8.777469309626695e-9,
+                  1.349040332549932e-8
+                ]
+              ]
+            },
+            {
+              "frequencyHz": 858000000,
+              "R": [
+                [
+                  0.860813,
+                  0.014873,
+                  0.0140084
+                ],
+                [
+                  0.0149453,
+                  0.861403,
+                  0.0139446
+                ],
+                [
+                  0.0138611,
+                  0.0138173,
+                  0.130543
+                ]
+              ],
+              "L": [
+                [
+                  3.0038362312971054e-8,
+                  8.536826293690663e-9,
+                  9.125885078402344e-9
+                ],
+                [
+                  8.546323651600109e-9,
+                  3.0071380471328116e-8,
+                  8.784276986096944e-9
+                ],
+                [
+                  9.114514218249042e-9,
+                  8.772127045802631e-9,
+                  1.3438835639975373e-8
+                ]
+              ]
+            }
+          ],
+          "modelPrimitiveImpedance": {
+            "frequencyHz": 858000000,
+            "R": [
+              [
+                0.872709,
+                0.0150942,
+                0.0140915
+              ],
+              [
+                0.0150946,
+                0.873084,
+                0.0138511
+              ],
+              [
+                0.0138523,
+                0.0136578,
+                0.132222
+              ]
+            ],
+            "L": [
+              [
+                3.002166773852085e-8,
+                8.566338591413181e-9,
+                9.167324722093172e-9
+              ],
+              [
+                8.57093887415057e-9,
+                3.006247669828801e-8,
+                8.832134766187513e-9
+              ],
+              [
+                9.155323178016195e-9,
+                8.818723458045853e-9,
+                1.3501625789435288e-8
+              ]
+            ]
+          },
+          "primitiveCapacitance": [
+            [
+              1.06013e-12,
+              -2.1533099999999998e-14,
+              -6.96907e-13
+            ],
+            [
+              -2.16981e-14,
+              1.05466e-12,
+              -6.844159999999999e-13
+            ],
+            [
+              -1.00662e-12,
+              -1.00224e-12,
+              3.2848899999999997e-12
+            ]
+          ],
+          "checks": {
+            "R": {
+              "matrix": [
+                [
+                  0.9769872,
+                  0.11959005
+                ],
+                [
+                  0.11959005,
+                  0.9777970999999999
+                ]
+              ],
+              "reciprocityResidual": 0.0000473513370002827,
+              "cholesky": [
+                [
+                  0.9884266285364837,
+                  0
+                ],
+                [
+                  0.12099031586904059,
+                  0.9814063600088954
+                ]
+              ]
+            },
+            "L": {
+              "matrix": [
+                [
+                  2.5200645627846772e-8,
+                  4.083511460045797e-9
+                ],
+                [
+                  4.083511460045797e-9,
+                  2.5913244263489927e-8
+                ]
+              ],
+              "reciprocityResidual": 0.00012312308872882062,
+              "cholesky": [
+                [
+                  0.0001587471121874246,
+                  0
+                ],
+                [
+                  0.000025723374767438942,
+                  0.0001589073700432545
+                ]
+              ]
+            },
+            "C": {
+              "matrix": [
+                [
+                  1.06013e-12,
+                  -2.1533099999999998e-14
+                ],
+                [
+                  -2.16981e-14,
+                  1.05466e-12
+                ]
+              ],
+              "reciprocityResidual": 0.00015564128927584512,
+              "convention": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+              "positiveEnergy": "Strict row and column diagonal dominance with Maxwell signs; residual asymmetry retained"
+            },
+            "primitiveC": {
+              "reciprocityResidual": 0.09675331594056424,
+              "checked": false
+            },
+            "convergence": {
+              "R": 0.013922111243733364,
+              "L": 0.0015655243898250247,
+              "coarseFilaments": 3,
+              "refinedFilaments": 7,
+              "coarseGroundMeshMm": 1.43,
+              "refinedGroundMeshMm": 0.715,
+              "frequencyHz": 858000000,
+              "definition": "max(abs(refined-coarse))/max(abs(refined)) for full referenced matrix; routed copper also halves ground mesh spacing",
+              "tolerance": 0.05
+            },
+            "capConvergence": 0.0137133,
+            "analyticResistanceOhm": [
+              0.10773372752587901,
+              0.10773372752587901
+            ],
+            "analyticResistanceRelativeErrors": [
+              0.0000025291440965968803,
+              0.0000025291440965968803
+            ],
+            "analyticFrequencyHz": 0.858,
+            "analyticLoopResistanceOhm": null,
+            "dcLoopResidual": null,
+            "energyResidual": 0,
+            "neutralityResidual": 0.012859753636565071
+          },
+          "conversions": {
+            "impedance": "R=Re(Z), L=Im(Z)/(2*pi*f); A=[I;-ones]; loop=A^T primitive A",
+            "capacitance": "Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero",
+            "capacitanceSolverCoordinateUnits": "mm",
+            "capacitanceScaleToFarads": 0.001,
+            "neutralityDenominatorF": null
+          },
+          "per_length": [
+            {
+              "length_m": 0.028118502884254444,
+              "L_h_per_m": 8.962299924566187e-7,
+              "C_f_per_m": 3.7702220646805574e-11
+            },
+            {
+              "length_m": 0.028118502884254444,
+              "L_h_per_m": 9.215726872144605e-7,
+              "C_f_per_m": 3.750768681893727e-11
+            }
+          ]
+        }
+      ],
+      "input_sha256": "28c0a21eedc2058b3c391cd8b564bb10b30b6a54d56a6c0e5bfd5fb7936a3ddb",
+      "baseline_input_sha256": "28c0a21eedc2058b3c391cd8b564bb10b30b6a54d56a6c0e5bfd5fb7936a3ddb",
+      "extraction_requests_match_baseline": true,
+      "R_mesh_delta": 0.013922111243733364,
+      "L_mesh_delta": 0.0015655243898250247,
+      "raw_loop_R_ohm": [
+        [
+          0.9769872,
+          0.1195669
+        ],
+        [
+          0.1196132,
+          0.9777970999999999
+        ]
+      ],
+      "raw_loop_L_h": [
+        [
+          2.5200645627846772e-8,
+          4.081916200709444e-9
+        ],
+        [
+          4.0851067193821495e-9,
+          2.5913244263489927e-8
+        ]
+      ],
+      "per_length": [
+        {
+          "length_m": 0.028118502884254444,
+          "L_h_per_m": 8.962299924566187e-7,
+          "C_f_per_m": 3.7702220646805574e-11
+        },
+        {
+          "length_m": 0.028118502884254444,
+          "L_h_per_m": 9.215726872144605e-7,
+          "C_f_per_m": 3.750768681893727e-11
+        }
+      ],
+      "eyes": [
+        {
+          "type": "simulation_signal_eye",
+          "simulation_signal_eye_id": "simulation_signal_0_0",
+          "simulation_signal_id": "simulation_signal_0",
+          "source_port_id": "source_port_11",
+          "eye_height_v": 3.2770050632828394,
+          "eye_width_s": 4.7739509848519326e-8,
+          "mask_margin_v": 0.7954896434589019
+        },
+        {
+          "type": "simulation_signal_eye",
+          "simulation_signal_eye_id": "simulation_signal_1_0",
+          "simulation_signal_id": "simulation_signal_1",
+          "source_port_id": "source_port_16",
+          "eye_height_v": 3.2742770106413954,
+          "eye_width_s": 4.768952670978788e-8,
+          "mask_margin_v": 0.7949016843091573
+        }
+      ],
+      "quiet_NEXT_FEXT": null,
+      "quiet_NEXT_FEXT_note": "Not applicable: these three boards declare switching signals, no quiet victim. No quiet scenario was invented.",
+      "timestep_section_deltas": {
+        "blocks/simulation_signal_integrity_0/experiments/simulation_signal_integrity_0/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "7b4becc1e6b3e6c32194c812220acf40d8b3a70439c8ce507209b5510fc24197",
+              "waveform_csv_sha256": "50caaa67fd2454d3efe3118e9dfb9f052a745fc763c5a369fd1562897ea0d8a1",
+              "dimension": "time",
+              "sections": 4,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 4954375,
+                  "rms_v": 0.00006551801143470893,
+                  "scale_v": 6.051956315239038,
+                  "peak_change_v": 0.00004377727198079384,
+                  "positive_v": 1.8367677334667905,
+                  "negative_v": -4.215133784991757,
+                  "accepted": true
+                },
+                {
+                  "column": 2,
+                  "samples": 4954375,
+                  "rms_v": 0.00006957317919494376,
+                  "scale_v": 6.105660197959798,
+                  "peak_change_v": 0.000051013428639556935,
+                  "positive_v": 5.182582075918408,
+                  "negative_v": -0.9230271086127518,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "50caaa67fd2454d3efe3118e9dfb9f052a745fc763c5a369fd1562897ea0d8a1",
+              "waveform_csv_sha256": "cd538379b01a4b28c32828c6270d185a7afaf4604490db055c86ac9a7ce9498d",
+              "dimension": "space",
+              "sections": 8,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 4866500,
+                  "rms_v": 0.0015926186368275406,
+                  "scale_v": 6.052533251005127,
+                  "peak_change_v": 0.0036206855190599185,
+                  "positive_v": 1.8373994660133706,
+                  "negative_v": -4.211513099472697,
+                  "accepted": true
+                },
+                {
+                  "column": 2,
+                  "samples": 4866500,
+                  "rms_v": 0.0016518229131276027,
+                  "scale_v": 6.106256440203415,
+                  "peak_change_v": 0.004772957043825188,
+                  "positive_v": 5.183229331590664,
+                  "negative_v": -0.9182541515689266,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "interruption": {
+    "event": "machine_reboot",
+    "boot_utc": "2026-11-09T14:23:11+00:00",
+    "binaries_unchanged_after_reboot": true,
+    "cases": [
+      {
+        "name": "differential",
+        "directory": "runs/option-a/levels/differential",
+        "last_request": {
+          "solver": "ngspice",
+          "request_sha256": "94c86c07cd3e88fdffae7cf44a062349c641db1802262070ccf2112143367ebf",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        "approx_seconds_from_archived_input_to_reboot": 1319.1544432640076,
+        "native_calls": [
+          {
+            "solver": "fasthenry",
+            "request_sha256": "9afba4f51f2e6deae438c2cfdf4610d67a532c868d40c505ba85e88e5253c9ad",
+            "args": [
+              "-p",
+              "seg",
+              "channel.inp"
+            ]
+          },
+          {
+            "solver": "fasthenry",
+            "request_sha256": "36df4d3aeafa1c657ab8adb58474fca677330a2d14a4519692747f61d1238bb4",
+            "args": [
+              "-p",
+              "seg",
+              "channel.inp"
+            ]
+          },
+          {
+            "solver": "fastercap",
+            "request_sha256": "06c685e0a3d098b9d8bf4a5f21c9515d75d627a5db98e068ef34ab96d2038ad3",
+            "args": [
+              "channel.lst",
+              "-b",
+              "-a0.02",
+              "-ap",
+              "-e"
+            ]
+          },
+          {
+            "solver": "ngspice",
+            "request_sha256": "ec77881c2896a744188fdae83ca70ab689ee04cfdb148d96a12c87621995e4d1",
+            "args": [
+              "-n",
+              "-b",
+              "simulation.cir"
+            ]
+          },
+          {
+            "solver": "ngspice",
+            "request_sha256": "e12edd9e4971d5556ad55be88e823ecced952a2125cec0b662aa3914bf402640",
+            "args": [
+              "-n",
+              "-b",
+              "simulation.cir"
+            ]
+          },
+          {
+            "solver": "ngspice",
+            "request_sha256": "987568d9564a483e07b18d3e81989ddd133c74bd54792a3bd4b5a67d236ed480",
+            "args": [
+              "-n",
+              "-b",
+              "simulation.cir"
+            ]
+          },
+          {
+            "solver": "ngspice",
+            "request_sha256": "c0cf0a10ce354ef633c54e6689530ac08654903ea1ed33404601d2e598d6d2e5",
+            "args": [
+              "-n",
+              "-b",
+              "simulation.cir"
+            ]
+          },
+          {
+            "solver": "ngspice",
+            "request_sha256": "9a588850824e0212e636d632a50b34f7d192fe4b06bffec7fdd553a2638e5984",
+            "args": [
+              "-n",
+              "-b",
+              "simulation.cir"
+            ]
+          },
+          {
+            "solver": "ngspice",
+            "request_sha256": "94c86c07cd3e88fdffae7cf44a062349c641db1802262070ccf2112143367ebf",
+            "args": [
+              "-n",
+              "-b",
+              "simulation.cir"
+            ]
+          }
+        ],
+        "note": "External reboot interrupted the final request; no solver failure or completion was reported. Complete outputs may be replayed only for byte-identical requests."
+      },
+      {
+        "name": "two",
+        "directory": "runs/option-a/retry/two",
+        "last_request": {
+          "solver": "fasthenry",
+          "request_sha256": "db873f83c869d289ff5d67f1ec0c64ddc6ad0b73ec4c926e60469c235dd9cabb",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        "approx_seconds_from_archived_input_to_reboot": 586.4570424556732,
+        "native_calls": [
+          {
+            "solver": "fasthenry",
+            "request_sha256": "dde23efc3d9e433081abe548523bafe5ecbb6548c3758f282fd7b2514f68f13a",
+            "args": [
+              "-p",
+              "seg",
+              "channel.inp"
+            ]
+          },
+          {
+            "solver": "fasthenry",
+            "request_sha256": "db873f83c869d289ff5d67f1ec0c64ddc6ad0b73ec4c926e60469c235dd9cabb",
+            "args": [
+              "-p",
+              "seg",
+              "channel.inp"
+            ]
+          }
+        ],
+        "note": "External reboot interrupted the final request; no solver failure or completion was reported. Complete outputs may be replayed only for byte-identical requests."
+      }
+    ]
+  },
+  "initial_level2_attempt": {
+    "status": "failed_native",
+    "seconds": 702.456,
+    "error": "native_timeout: fasthenry: exceeded 600000 ms process timeout; Command failed: /opt/homebrew/bin/fasthenry -p seg channel.inp",
+    "code": "native_timeout",
+    "native_execution": [
+      {
+        "solver": "fasthenry",
+        "request_sha256": "dde23efc3d9e433081abe548523bafe5ecbb6548c3758f282fd7b2514f68f13a",
+        "args": [
+          "-p",
+          "seg",
+          "channel.inp"
+        ]
+      },
+      {
+        "solver": "fasthenry",
+        "request_sha256": "db873f83c869d289ff5d67f1ec0c64ddc6ad0b73ec4c926e60469c235dd9cabb",
+        "args": [
+          "-p",
+          "seg",
+          "channel.inp"
+        ]
+      }
+    ],
+    "note": "Fresh 600 s process-bound attempt stopped in refined FastHenry before C; one fresh 900 s retry is reported above."
+  },
+  "verification": {
+    "npm-test-final": {
+      "log": "runs/option-a/npm-test-final.log",
+      "sha256": "36c8b73acedbb58159b6f100065d3ff69d8203b5c8329ee9b1fd6ac809f340ae",
+      "tail": "✔ independent audit expands canonical string bits (4.364542ms)\n✔ independent audit expands canonical array bits (0.359625ms)\n✔ independent audit rejects malformed canonical bits (2.093458ms)\nℹ tests 238\nℹ suites 9\nℹ pass 234\nℹ fail 0\nℹ cancelled 0\nℹ skipped 4\nℹ todo 0\nℹ duration_ms 22857.253\n"
+    },
+    "typecheck-final": {
+      "log": "runs/option-a/typecheck-final.log",
+      "sha256": "cd7403bc3127f707d54c016a1c18453cde16116dd793032e19dbd5c6653847c1",
+      "tail": "\n> @tscircuit/signal-integrity-pipeline@0.1.0 pretypecheck\n> node scripts/build-client.mjs\n\n\n> @tscircuit/signal-integrity-pipeline@0.1.0 typecheck\n> tsc --noEmit && tsc -p tests/tsconfig.json && tsc -p examples/tsconfig.json --noEmit\n\n"
+    },
+    "lint-final": {
+      "log": "runs/option-a/lint-final.log",
+      "sha256": "0c59a19fae8ecb6cb08bcde81ad6dda24ab2860e92ef96382fbc90e99f2a6c21",
+      "tail": "\n> @tscircuit/signal-integrity-pipeline@0.1.0 lint\n> eslint .\n\n\n/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si-cap-a/src/extraction/mesh.ts\n  1:1  warning  This file has 523 lines (limit 500). Split it into smaller files. If it is important to keep it as one file, add this line at the top with the reason: /* eslint-disable local/max-file-lines -- <why this file stays whole> */  local/max-file-lines\n\n✖ 1 problem (0 errors, 1 warning)\n\n"
+    },
+    "check-modules": {
+      "log": "runs/option-a/check-modules.log",
+      "sha256": "308758e29afdb43dd045051a401fef6b2acdb0f699de2a9d001a5bd48a31a0f9",
+      "tail": "\n> @tscircuit/signal-integrity-pipeline@0.1.0 check:modules\n> tsx scripts/check-modules.ts\n\n"
+    },
+    "check-vocabulary": {
+      "log": "runs/option-a/check-vocabulary.log",
+      "sha256": "724b0f3f31eb830b953952cd784bab4907d8941c82faacd0a8fe5043fb1601ec",
+      "tail": "  settled         2 names   e.g. settled, settledVoltages\n  topology        2 names   e.g. topology, signalTopology\n  tris            2 names   avoid: use \"triangle\"\n  valid           2 names   e.g. valid, validIntervals\n  adjacent        1 name    e.g. adjacent\n  ak              1 name    e.g. ak\n  allow           1 name    e.g. allowIdeal\n  attempt         1 name    e.g. attempt\n  ax              1 name    e.g. ax\n  ay              1 name    e.g. ay\n  baseline        1 name    e.g. baseline\n"
+    },
+    "native-fixture-tests": {
+      "log": "runs/option-a/native-fixture-tests.log",
+      "sha256": "07a520271bc2f03d63596e638a33c6b6290bb0942d8979c2b4c8a4844e2457b6",
+      "tail": "✔ layered TSX coupled microstrip ground-referenced signal block is reciprocal without averaging (15668.492958ms)\n✔ TSX dielectric and contact faces form one closed FR-4 boundary with consistent reference sides (532.546667ms)\n✔ recorded TSX microstrip asymmetry is confined to return entries; retain every signal coefficient (55.811167ms)\nℹ tests 4\nℹ suites 0\nℹ pass 4\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 40698.455375\n"
+    },
+    "script-typecheck": {
+      "log": "runs/option-a/script-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    }
+  }
+}
