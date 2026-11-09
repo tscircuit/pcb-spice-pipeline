@@ -68,7 +68,7 @@ test('RS485 thresholds and the placed termination are derived from real vendor d
   assert.ok(prepared.settings.passiveComponents?.some(p => p.sourceComponentId === resistor.source_component_id))
 })
 
-test('power and ground packages remain present; quiet-off rejects output-only buffers', { skip: !modelDir }, async () => {
+test('signal packages and vendor reference evidence remain present; quiet-off rejects output-only buffers', { skip: !modelDir }, async () => {
   const circuit = await renderSignals(<Single />)
   const signal = circuit.find(r => r.type === 'simulation_signal')!
   if (signal.type !== 'simulation_signal') throw new Error('missing signal')

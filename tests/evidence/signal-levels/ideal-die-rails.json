@@ -1,0 +1,1855 @@
+{
+  "implementation_head": "37f2392263453b59dcdca63842638cd26b6c7f0d",
+  "runner_sha256": "82f459214d95848dc1918b414006f6ecda3ca0cf3ca5f25375a685855696c161",
+  "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+  "sources": {
+    "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+    "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+  },
+  "native_timeout_ms": 180000,
+  "model_policy": "pdn=ideal: direct ideal die POWER/GND references, no POWER/GND package R/L/C; vendor signal-pin R/L/C retained",
+  "coefficient_origin": "@tscircuit/ibis-to-spice ad1ec9e640a92a4d370fc76acbbd8db245563317: switchingWeights and bitWeights",
+  "converter_chunk_sha256": "ee3a231794315b19b5977e79f4f95e5231b4c8e51bad62a5be5e9b6c674d91d7",
+  "generated_coefficient_ranges": {
+    "KU": {
+      "minimum": -0.0657680079208,
+      "maximum": 1.00741880404
+    },
+    "KD": {
+      "minimum": -0.172649925905,
+      "maximum": 1.00324434607
+    }
+  },
+  "coefficients_clipped": false,
+  "acceptance": "Unchanged: independent timestep and section refinements; all probes pass integrated RMS and both signed extrema on the union of native timestamps at 1% + 1 mV",
+  "runtime_context": "Concurrent native cases and the local test suite overlapped; elapsed times are not controlled performance comparisons. Only exact-hash native extraction outputs were replayed; every idle and switching transient was freshly executed in ngspice. Level 3 isolation retains the full-board planned seeds and copper. Vendor assets are not redistributed.",
+  "cases": [
+    {
+      "case": "single",
+      "status": "verified_native",
+      "seconds": 89.948,
+      "command": "SI_NATIVE_TIMEOUT_MS=180000 SI_EXTRACTION_CACHE=runs/rfc-final/single SI_RUN_ROOT=runs/ideal-die-rails node --import tsx scripts/run-signal-levels.tsx single",
+      "raw_summary_sha256": "40623f235b17b7341dfcde9dd8d492e2789f6c5867dec8278fc1f10a7c5718a3",
+      "input_sha256": "861c06b1bf82109c112ea50afe751fb865ec40d0d6e68fb0a13c33a14377149f",
+      "native_requests": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "87e4d8a72b55452ea4ece1af99a9fb566af6e4d85b3f2d8d6e5edfddbab9199b",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/single/native-0-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "88de8593abba04471eccac9682c94cf62963041497febf00ded3aa55ab82c08e",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/single/native-1-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "81c3d2d3cfd34b4af7301d0a0457feb18ed2c8e97b65fd415c97f3be28e0cfad",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/single/native-2-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "2cf982ebf3bb1fac37afcaafe33b81b659f70b6af5b6620a7a139233765468fe",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/single/native-3-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "724a04b2b8026f53a4ddbc9e4eabf3f13fa90d6262e697f7e5af6b7544420317",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/single/native-4-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "5ec5efbe27c36f4eaac787a888ca7cd4da41d296e3b66b296a269fad6bdb39aa",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/single/native-5-fasthenry"
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "f8a1a453e83982eb0f4b887a806aeff2bf61bd9bdeb4d1d9cf5efd7add9ade1b",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-e"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/single/native-6-fastercap"
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "349d6cb2384f4da699f408ecf9a0d0efb82d3e02d56bccb757cd133904be27b5",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "89150a0df9fb066786b46422784fa9d6ca4619f370c280eaba48a2eaf5ea274a",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "ceb5aa779fcdcdf0eb1c871c3cb4d39bccaa949b43d9cb4bbb1f00e1a18edc86",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "eb137da5f35c6ecc365722c27b4767906fe7de597aa9ae7f685623dea22e4d1c",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        }
+      ],
+      "transient_convergence": {
+        "blocks/simulation_signal_integrity_0/experiments/simulation_signal_integrity_0/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "4c6c9c450f4959c6ac1c0afad5c067603f0ee16a68f203a7aae30c60465ca74e",
+              "waveform_csv_sha256": "574f35d664e90bbea0ef14f69b86eb083b9c2bcfd5f36bb7d096b833674e5dc8",
+              "dimension": "time",
+              "sections": 2,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 556449,
+                  "rms_v": 4.4274951624235606e-05,
+                  "scale_v": 4.807062743204158,
+                  "peak_change_v": 0.00018697678913959237,
+                  "positive_v": 0.8116123032527542,
+                  "negative_v": -3.9953417238797466,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "574f35d664e90bbea0ef14f69b86eb083b9c2bcfd5f36bb7d096b833674e5dc8",
+              "waveform_csv_sha256": "10bbb32f049e4b3a5a2dde42b8f412e7647c9d1336fe39e99dc1773d0249a3a0",
+              "dimension": "space",
+              "sections": 4,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 581385,
+                  "rms_v": 0.0009989796333783752,
+                  "scale_v": 4.806954027132501,
+                  "peak_change_v": 0.0027764891796326907,
+                  "positive_v": 0.8088358140731216,
+                  "negative_v": -3.993828027128914,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "name": "SINGLE",
+          "duration_s": 2.4e-06,
+          "numericalSettings": {
+            "measurementGate": 8e-07,
+            "reduction": "routed-copper",
+            "allowIdeal": false,
+            "simplifyParallel": true,
+            "sections": 4,
+            "lanes": [
+              {
+                "port": "DATA_source_trace_6",
+                "from": {
+                  "sourcePortId": "source_port_2"
+                },
+                "to": {
+                  "sourcePortId": "source_port_4"
+                },
+                "sourceTraceId": "source_trace_6"
+              }
+            ],
+            "channelReference": {
+              "sourcePortId": "source_port_1"
+            },
+            "groundReturn": {
+              "sourcePortId": "source_port_5"
+            },
+            "relativePermittivity": 4.37654051099877,
+            "extraction": {
+              "minimumHz": 0.858,
+              "modelHz": 858000000,
+              "maximumHz": 8580000000,
+              "filaments": 13,
+              "refinementFilaments": 17,
+              "convergenceTolerance": 0.05,
+              "capTolerance": 0.02,
+              "reciprocityTolerance": 0.025,
+              "dcResistanceTolerance": 0.002,
+              "maxPanelLengthMm": 0.2,
+              "groundMeshMm": 0.1
+            },
+            "passiveComponents": [],
+            "supplies": [
+              {
+                "positive": {
+                  "sourcePortId": "source_port_3"
+                },
+                "negative": {
+                  "sourcePortId": "source_port_1"
+                },
+                "voltageV": 3.3
+              }
+            ]
+          },
+          "results": [
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_0_0",
+              "simulation_signal_id": "simulation_signal_0",
+              "source_port_id": "source_port_4",
+              "eye_height_v": 3.2999811174617397,
+              "eye_width_s": 4.9740514404828524e-08,
+              "mask_margin_v": 0.7999811175335501
+            },
+            {
+              "type": "simulation_signal_integrity_rlgc",
+              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_0",
+              "simulation_signal_integrity_id": "simulation_signal_integrity_0",
+              "conductors": [
+                {
+                  "simulation_signal_id": "simulation_signal_0",
+                  "leg": "single"
+                }
+              ],
+              "matrices": [
+                {
+                  "frequency_hz": 858000000,
+                  "r_ohm": [
+                    [
+                      0.330663944
+                    ]
+                  ],
+                  "l_h": [
+                    [
+                      1.2855230416250756e-08
+                    ]
+                  ],
+                  "c_f": [
+                    [
+                      3.8865394253580127e-13
+                    ]
+                  ],
+                  "g_s": [
+                    [
+                      0
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "limitations": [
+            "Automatically verified straight parallel traces and rectangular return with matching endpoints; bar dimensions and positions are the actual routed copper coordinates",
+            "Uniform current injection across each return end; finite pad contact crowding omitted by the automatic parallel-bar reduction",
+            "Homogeneous stackup-weighted dielectric, constant-frequency R/L and uniform pi sections; dielectric loss, roughness and frequency dispersion are not fitted",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
+            "Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
+            "Maximum solver integration step and display resolution are separate settings"
+          ]
+        }
+      ],
+      "accepted_results": true
+    },
+    {
+      "case": "differential",
+      "status": "verified_native",
+      "seconds": 253.166,
+      "command": "SI_NATIVE_TIMEOUT_MS=180000 SI_EXTRACTION_CACHE=runs/rfc-final/differential SI_RUN_ROOT=runs/ideal-die-rails node --import tsx scripts/run-signal-levels.tsx differential",
+      "raw_summary_sha256": "77574189c81b4e1f4d740dd217bd4e728a7e459c4c5d768841a893acda369bad",
+      "input_sha256": "0d52171ade4cb6fa28200e32df74c6b94f380ce33ab144e1dfa89d9cad6fd1e9",
+      "native_requests": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "ced640018cff8b26213fee6f15b9c9dc8f82e741f219503e1cc7d79d82e1685a",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/differential/native-0-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "1fcb65d030bc86af8de261a63fead5823917e571e3c2f963b03d9b9ceec4336e",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/differential/native-1-fasthenry"
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "e19905422dbecb7aebf5239b4c76d4e38a123a36d71d44cc29b6c58ee137e9fb",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-e"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/differential/native-2-fastercap"
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "10078409b0eab973a8e0551f6b83fb7f7c5272273fbdef1a361c8af18d7f38de",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "260ba61f0604dec933b27514ecca6cafed7211952606032a5bd8ac7fc4522e2a",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "55d0efae71c63278cc8e54378fe5d3c85f12b283bd30cdf5dde7564b0ca37431",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "2f573f1f874127e13f069bcf7bb7537b939d022a104a18f7b72e37065b2e90b8",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        }
+      ],
+      "transient_convergence": {
+        "blocks/simulation_signal_integrity_0/experiments/simulation_signal_integrity_0/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "507ad9aec7bda42d2e5ef550ead7afebb4d6a57ff443cbabd2afdb68691202cc",
+              "waveform_csv_sha256": "d32f94f1cc039a4996a9d7280df1fe71aa5495b4a7a4c4ab29bb5e798230b644",
+              "dimension": "time",
+              "sections": 2,
+              "step_s": 1.4807339854159875e-08,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 1042440,
+                  "rms_v": 2.25384506219896e-07,
+                  "scale_v": 4.470612004479952,
+                  "peak_change_v": 1.6409840686293364e-07,
+                  "positive_v": 0.0010438108650867584,
+                  "negative_v": -4.469568193614865,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "d32f94f1cc039a4996a9d7280df1fe71aa5495b4a7a4c4ab29bb5e798230b644",
+              "waveform_csv_sha256": "c08f22ef8098deeb0da3bc3e7c02e40bdcfa6c2b206d3f8bf9361f043f81a462",
+              "dimension": "space",
+              "sections": 4,
+              "step_s": 1.4807339854159875e-08,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 1046270,
+                  "rms_v": 2.1663367199493782e-07,
+                  "scale_v": 4.470612004479952,
+                  "peak_change_v": 7.90402534533996e-08,
+                  "positive_v": 0.001043731824833305,
+                  "negative_v": -4.469568169818942,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "name": "RS485",
+          "duration_s": 0.000192,
+          "numericalSettings": {
+            "measurementGate": 6.4e-05,
+            "reduction": "routed-copper",
+            "allowIdeal": false,
+            "simplifyParallel": true,
+            "sections": 4,
+            "lanes": [
+              {
+                "port": "BUS_source_trace_6",
+                "from": {
+                  "sourcePortId": "source_port_1"
+                },
+                "to": {
+                  "sourcePortId": "source_port_5"
+                },
+                "sourceTraceId": "source_trace_6"
+              },
+              {
+                "port": "BUS_source_trace_7",
+                "from": {
+                  "sourcePortId": "source_port_2"
+                },
+                "to": {
+                  "sourcePortId": "source_port_6"
+                },
+                "sourceTraceId": "source_trace_7"
+              }
+            ],
+            "channelReference": {
+              "sourcePortId": "source_port_0"
+            },
+            "groundReturn": {
+              "sourcePortId": "source_port_4"
+            },
+            "relativePermittivity": 4.37654051099877,
+            "extraction": {
+              "minimumHz": 0.844,
+              "modelHz": 844000,
+              "maximumHz": 8440000,
+              "filaments": 3,
+              "refinementFilaments": 7,
+              "convergenceTolerance": 0.05,
+              "capTolerance": 0.02,
+              "reciprocityTolerance": 0.025,
+              "dcResistanceTolerance": 0.002,
+              "maxPanelLengthMm": 0.8,
+              "groundMeshMm": 0.4
+            },
+            "passiveComponents": [
+              {
+                "sourceComponentId": "source_component_3"
+              }
+            ],
+            "supplies": [
+              {
+                "positive": {
+                  "sourcePortId": "source_port_3"
+                },
+                "negative": {
+                  "sourcePortId": "source_port_0"
+                },
+                "voltageV": 3.3
+              }
+            ]
+          },
+          "results": [
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_0_0",
+              "simulation_signal_id": "simulation_signal_0",
+              "source_port_id": "source_port_5",
+              "eye_height_v": 4.466423778879712,
+              "eye_width_s": 3.932799340231134e-06,
+              "mask_margin_v": 2.0332097198561074
+            },
+            {
+              "type": "simulation_signal_integrity_rlgc",
+              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_0",
+              "simulation_signal_integrity_id": "simulation_signal_integrity_0",
+              "conductors": [
+                {
+                  "simulation_signal_id": "simulation_signal_0",
+                  "leg": "p"
+                },
+                {
+                  "simulation_signal_id": "simulation_signal_0",
+                  "leg": "n"
+                }
+              ],
+              "matrices": [
+                {
+                  "frequency_hz": 844000,
+                  "r_ohm": [
+                    [
+                      0.03337865418,
+                      0.008571722559999998
+                    ],
+                    [
+                      0.008571722559999998,
+                      0.03336520634
+                    ]
+                  ],
+                  "l_h": [
+                    [
+                      1.3751779086411067e-08,
+                      8.771323086437982e-09
+                    ],
+                    [
+                      8.771323086437982e-09,
+                      1.3273955969941217e-08
+                    ]
+                  ],
+                  "c_f": [
+                    [
+                      6.873446540232212e-13,
+                      -4.62687831517031e-13
+                    ],
+                    [
+                      -4.62687831517031e-13,
+                      7.130966420650409e-13
+                    ]
+                  ],
+                  "g_s": [
+                    [
+                      0,
+                      0
+                    ],
+                    [
+                      0,
+                      0
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "limitations": [
+            "Automatically verified straight parallel traces and rectangular return with matching endpoints; bar dimensions and positions are the actual routed copper coordinates",
+            "Uniform current injection across each return end; finite pad contact crowding omitted by the automatic parallel-bar reduction",
+            "Homogeneous stackup-weighted dielectric, constant-frequency R/L and uniform pi sections; dielectric loss, roughness and frequency dispersion are not fitted",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
+            "Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
+            "Maximum solver integration step and display resolution are separate settings"
+          ]
+        }
+      ],
+      "accepted_results": true
+    },
+    {
+      "case": "TRAFFIC",
+      "status": "verified_native",
+      "seconds": 434.928,
+      "command": "SI_NATIVE_TIMEOUT_MS=180000 SI_EXTRACTION_CACHE=runs/rfc-final/three SI_RUN_ROOT=runs/ideal-die-rails-TRAFFIC SI_BLOCK=TRAFFIC node --import tsx scripts/run-signal-levels.tsx three",
+      "raw_summary_sha256": "0fa6bed2fbc568d9901f10ec0a5f817c4f6e6192ed489f755f8cb70d0a7ac3c3",
+      "input_sha256": "103dd6beec122d56de9b81df13cd981e203df0876173a6cefad9b59c2488162d",
+      "native_requests": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "905bebe5778c24c2b56f807a7e2b2ff658bbb803225e856936d8629cc81ffdf5",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-0-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "63802411e00d4faa6584a210059752bf0b2721491f2f376e39356511ab2ee6e5",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-1-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "b7cc6b7bae7c69b0dc0d04fb575fea59ee6e807a2b61506c0a90f776911f1df7",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-2-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "cfc24ec2fbbdf2e3e6af6c0031b1f4e794aa0dc59073e93703a733e127d89e19",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-3-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "4d7a330734135a05ace20691631789acf553c8f9f82c693a611d009b3d661a5b",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-4-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "85185246527efcc71384f702ba3e299bd936f92a735dbb5cc56cd066f4337cc1",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-5-fasthenry"
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "02c42784305313e6cf2d2b8d6c1b15fc2090cd78e892fb657d9aeb73e9d758bc",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-e"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-6-fastercap"
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "1462d2262cedc49e919e1306f4043c03332d96362155b4fb10b5d6f4065bc3fa",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "2025f74d607d8b6efc520fd69a48ac0ad12a318439f07c45b424d4e3cbd9dcf6",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "9f7635eca7979ae01ed866ab255903ac02c5d5c8eb36ed494551ae5dcc62ca78",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "cfcc9db9f2f9732238a76485628bb635ba82b5c4c7e06424991ce750f5285f40",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        }
+      ],
+      "transient_convergence": {
+        "blocks/simulation_signal_integrity_0/experiments/simulation_signal_integrity_0/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "d1c14c40691c9d7362f5d2b2fc975d2c7540607ba2fcd34c39dca6b05cb78c22",
+              "waveform_csv_sha256": "834b594b4d17fc908c9f2b3de339c035d3e5c824434eeb84417f75fafc2b35d3",
+              "dimension": "time",
+              "sections": 2,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 1099989,
+                  "rms_v": 4.100806409107481e-05,
+                  "scale_v": 5.974850891090457,
+                  "peak_change_v": 0.0001099975718759083,
+                  "positive_v": 1.778157804197761,
+                  "negative_v": -4.1965830893208205,
+                  "accepted": true
+                },
+                {
+                  "column": 2,
+                  "samples": 1099989,
+                  "rms_v": 4.4120809788259903e-05,
+                  "scale_v": 6.138784442969898,
+                  "peak_change_v": 0.00011668346633086912,
+                  "positive_v": 5.2177614604037,
+                  "negative_v": -0.9209062990998663,
+                  "accepted": true
+                },
+                {
+                  "column": 3,
+                  "samples": 1099989,
+                  "rms_v": 4.307847361784553e-05,
+                  "scale_v": 6.084894615151942,
+                  "peak_change_v": 0.00011383955987476213,
+                  "positive_v": 5.171349980318042,
+                  "negative_v": -0.913430795274026,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "834b594b4d17fc908c9f2b3de339c035d3e5c824434eeb84417f75fafc2b35d3",
+              "waveform_csv_sha256": "3b2484b0f3c20194cf4c07557c05b52b6f471f79a9a03cf9d212daee11bde50c",
+              "dimension": "space",
+              "sections": 4,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 1089946,
+                  "rms_v": 0.001116501569958966,
+                  "scale_v": 5.9747408935185815,
+                  "peak_change_v": 0.00256552580585101,
+                  "positive_v": 1.7773997944188968,
+                  "negative_v": -4.1940175635149695,
+                  "accepted": true
+                },
+                {
+                  "column": 2,
+                  "samples": 1089946,
+                  "rms_v": 0.0011956379687042427,
+                  "scale_v": 6.1386677595035675,
+                  "peak_change_v": 0.002447457120434815,
+                  "positive_v": 5.216899229563266,
+                  "negative_v": -0.9184588419794315,
+                  "accepted": true
+                },
+                {
+                  "column": 3,
+                  "samples": 1089946,
+                  "rms_v": 0.0011744152493478619,
+                  "scale_v": 6.084780775592067,
+                  "peak_change_v": 0.003606621250197395,
+                  "positive_v": 5.170492322205795,
+                  "negative_v": -0.9098241740238286,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "name": "TRAFFIC",
+          "duration_s": 2.4e-06,
+          "numericalSettings": {
+            "measurementGate": 8e-07,
+            "reduction": "routed-copper",
+            "allowIdeal": false,
+            "simplifyParallel": true,
+            "sections": 4,
+            "lanes": [
+              {
+                "port": "D1_source_trace_9",
+                "from": {
+                  "sourcePortId": "source_port_10"
+                },
+                "to": {
+                  "sourcePortId": "source_port_12"
+                },
+                "sourceTraceId": "source_trace_9"
+              },
+              {
+                "port": "D2_source_trace_14",
+                "from": {
+                  "sourcePortId": "source_port_18"
+                },
+                "to": {
+                  "sourcePortId": "source_port_20"
+                },
+                "sourceTraceId": "source_trace_14"
+              },
+              {
+                "port": "D0_source_trace_4",
+                "from": {
+                  "sourcePortId": "source_port_2"
+                },
+                "to": {
+                  "sourcePortId": "source_port_4"
+                },
+                "sourceTraceId": "source_trace_4"
+              }
+            ],
+            "channelReference": {
+              "sourcePortId": "source_port_9"
+            },
+            "groundReturn": {
+              "sourcePortId": "source_port_13"
+            },
+            "relativePermittivity": 4.37654051099877,
+            "extraction": {
+              "minimumHz": 0.858,
+              "modelHz": 858000000,
+              "maximumHz": 8580000000,
+              "filaments": 13,
+              "refinementFilaments": 17,
+              "convergenceTolerance": 0.05,
+              "capTolerance": 0.02,
+              "reciprocityTolerance": 0.025,
+              "dcResistanceTolerance": 0.002,
+              "maxPanelLengthMm": 0.2,
+              "groundMeshMm": 0.1
+            },
+            "passiveComponents": [],
+            "supplies": [
+              {
+                "positive": {
+                  "sourcePortId": "source_port_3"
+                },
+                "negative": {
+                  "sourcePortId": "source_port_1"
+                },
+                "voltageV": 3.3
+              }
+            ]
+          },
+          "results": [
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_0_0",
+              "simulation_signal_id": "simulation_signal_0",
+              "source_port_id": "source_port_4",
+              "eye_height_v": 3.28610246805979,
+              "eye_width_s": 4.7644184587422595e-08,
+              "mask_margin_v": 0.7931354411521968
+            },
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_1_0",
+              "simulation_signal_id": "simulation_signal_1",
+              "source_port_id": "source_port_12",
+              "eye_height_v": 3.281171719722686,
+              "eye_width_s": 4.76002195803203e-08,
+              "mask_margin_v": 0.7918913968793583
+            },
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_2_0",
+              "simulation_signal_id": "simulation_signal_2",
+              "source_port_id": "source_port_20",
+              "eye_height_v": 3.284260744708369,
+              "eye_width_s": 4.757399602342648e-08,
+              "mask_margin_v": 0.7916727838818615
+            },
+            {
+              "type": "simulation_signal_integrity_rlgc",
+              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_0",
+              "simulation_signal_integrity_id": "simulation_signal_integrity_0",
+              "conductors": [
+                {
+                  "simulation_signal_id": "simulation_signal_1",
+                  "leg": "single"
+                },
+                {
+                  "simulation_signal_id": "simulation_signal_2",
+                  "leg": "single"
+                },
+                {
+                  "simulation_signal_id": "simulation_signal_0",
+                  "leg": "single"
+                }
+              ],
+              "matrices": [
+                {
+                  "frequency_hz": 858000000,
+                  "r_ohm": [
+                    [
+                      0.344768613,
+                      0.09880129299999998,
+                      0.09679214549999998
+                    ],
+                    [
+                      0.09880129299999998,
+                      0.341390423,
+                      0.09023804899999999
+                    ],
+                    [
+                      0.09679214549999998,
+                      0.09023804899999999,
+                      0.337337745
+                    ]
+                  ],
+                  "l_h": [
+                    [
+                      1.3218782599194585e-08,
+                      9.111740136461234e-09,
+                      8.716330068084633e-09
+                    ],
+                    [
+                      9.111740136461234e-09,
+                      1.3612921097483896e-08,
+                      7.657345909414247e-09
+                    ],
+                    [
+                      8.716330068084633e-09,
+                      7.657345909414247e-09,
+                      1.282130333106252e-08
+                    ]
+                  ],
+                  "c_f": [
+                    [
+                      8.751659453937166e-13,
+                      -3.7637811769512836e-13,
+                      -3.6762263130379214e-13
+                    ],
+                    [
+                      -3.7637811769512836e-13,
+                      7.064317653944197e-13,
+                      -1.625318608770413e-13
+                    ],
+                    [
+                      -3.6762263130379214e-13,
+                      -1.625318608770413e-13,
+                      7.332159284943759e-13
+                    ]
+                  ],
+                  "g_s": [
+                    [
+                      0,
+                      0,
+                      0
+                    ],
+                    [
+                      0,
+                      0,
+                      0
+                    ],
+                    [
+                      0,
+                      0,
+                      0
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "limitations": [
+            "Automatically verified straight parallel traces and rectangular return with matching endpoints; bar dimensions and positions are the actual routed copper coordinates",
+            "Uniform current injection across each return end; finite pad contact crowding omitted by the automatic parallel-bar reduction",
+            "Homogeneous stackup-weighted dielectric, constant-frequency R/L and uniform pi sections; dielectric loss, roughness and frequency dispersion are not fitted",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
+            "Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
+            "Maximum solver integration step and display resolution are separate settings"
+          ]
+        }
+      ],
+      "accepted_results": true
+    },
+    {
+      "case": "QUIET_LOW",
+      "status": "verified_native",
+      "seconds": 395.066,
+      "command": "SI_NATIVE_TIMEOUT_MS=180000 SI_EXTRACTION_CACHE=runs/rfc-final/three SI_RUN_ROOT=runs/ideal-die-rails-QUIET_LOW SI_BLOCK=QUIET_LOW node --import tsx scripts/run-signal-levels.tsx three",
+      "raw_summary_sha256": "21159444f0007050478d0976297cd6a821cb444b0c33068dc37b967bd7065db4",
+      "input_sha256": "26f406f135163880464b27a990c7b81b9aa3ab5448bae98fe9ebf632b7d0281f",
+      "native_requests": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "905bebe5778c24c2b56f807a7e2b2ff658bbb803225e856936d8629cc81ffdf5",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-0-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "63802411e00d4faa6584a210059752bf0b2721491f2f376e39356511ab2ee6e5",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-1-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "b7cc6b7bae7c69b0dc0d04fb575fea59ee6e807a2b61506c0a90f776911f1df7",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-2-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "cfc24ec2fbbdf2e3e6af6c0031b1f4e794aa0dc59073e93703a733e127d89e19",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-3-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "4d7a330734135a05ace20691631789acf553c8f9f82c693a611d009b3d661a5b",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-4-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "85185246527efcc71384f702ba3e299bd936f92a735dbb5cc56cd066f4337cc1",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-5-fasthenry"
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "02c42784305313e6cf2d2b8d6c1b15fc2090cd78e892fb657d9aeb73e9d758bc",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-e"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-6-fastercap"
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "dce6fdb34ee36d2ae71b47ab0c5c3d9c27bbf731f5182129355361a7baec7da7",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "c1d5480570f0d87ae1333256f667ece206352fa2af8775491e20eec96d25792e",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "990c080233e164fc800c7d0c244ba9cae653bd13fc70cf89163642df8706cfa4",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "87233d246576a6b086ae01ea231a2c0f3ed0478922d103dff1a09af077d834a5",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        }
+      ],
+      "transient_convergence": {
+        "blocks/simulation_signal_integrity_1/experiments/simulation_signal_integrity_1/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "a0beedc868a5370cbd482f21a6692226330d2b4408b3dfecb8e1340d2f050725",
+              "waveform_csv_sha256": "bbdcc16d3f2a16952a8f228937d2c048d2cdef3434f1c17e8b5ad15a4d06fd74",
+              "dimension": "time",
+              "sections": 2,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 1029258,
+                  "rms_v": 2.0411488369226723e-05,
+                  "scale_v": 5.1954764870537415,
+                  "peak_change_v": 4.043778580253843e-05,
+                  "positive_v": 1.0834662395369667,
+                  "negative_v": -4.111943705968811,
+                  "accepted": true
+                },
+                {
+                  "column": 2,
+                  "samples": 1029258,
+                  "rms_v": 2.0189908680429068e-05,
+                  "scale_v": 2.15337273350281,
+                  "peak_change_v": 6.118841657420937e-05,
+                  "positive_v": 1.2906513926250638,
+                  "negative_v": -0.862616082109892,
+                  "accepted": true
+                },
+                {
+                  "column": 3,
+                  "samples": 1029258,
+                  "rms_v": 4.21324316637473e-06,
+                  "scale_v": 0.3049835041361823,
+                  "peak_change_v": 1.2692797117797028e-05,
+                  "positive_v": 0.1454817323892642,
+                  "negative_v": -0.1594799707793916,
+                  "accepted": true
+                },
+                {
+                  "column": 4,
+                  "samples": 1029258,
+                  "rms_v": 2.143245914186889e-05,
+                  "scale_v": 5.268192836406726,
+                  "peak_change_v": 4.28996185313224e-05,
+                  "positive_v": 4.440350384001436,
+                  "negative_v": -0.8277704142404773,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "bbdcc16d3f2a16952a8f228937d2c048d2cdef3434f1c17e8b5ad15a4d06fd74",
+              "waveform_csv_sha256": "536c34ba6fd142bdaf99cbb23aacbee6aba365f8bcf7335114770c31cd2768d7",
+              "dimension": "space",
+              "sections": 4,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 1023716,
+                  "rms_v": 0.000832425222760887,
+                  "scale_v": 5.1964135134024945,
+                  "peak_change_v": 0.000616274206119094,
+                  "positive_v": 1.0840825137430858,
+                  "negative_v": -4.112330999659409,
+                  "accepted": true
+                },
+                {
+                  "column": 2,
+                  "samples": 1023716,
+                  "rms_v": 0.000879801320761933,
+                  "scale_v": 2.155311692140062,
+                  "peak_change_v": 0.0020442174051061857,
+                  "positive_v": 1.2902576566783184,
+                  "negative_v": -0.8646602995149982,
+                  "accepted": true
+                },
+                {
+                  "column": 3,
+                  "samples": 1023716,
+                  "rms_v": 0.0001491772698370479,
+                  "scale_v": 0.3049617031686558,
+                  "peak_change_v": 0.0002600120681753859,
+                  "positive_v": 0.14522172032108882,
+                  "negative_v": -0.1593804227068931,
+                  "accepted": true
+                },
+                {
+                  "column": 4,
+                  "samples": 1023716,
+                  "rms_v": 0.0008736598572929706,
+                  "scale_v": 5.268789882192327,
+                  "peak_change_v": 0.000847428632468783,
+                  "positive_v": 4.44101946795185,
+                  "negative_v": -0.8269229856080085,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "name": "QUIET_LOW",
+          "duration_s": 2.4e-06,
+          "numericalSettings": {
+            "measurementGate": 8e-07,
+            "reduction": "routed-copper",
+            "allowIdeal": false,
+            "simplifyParallel": true,
+            "sections": 4,
+            "lanes": [
+              {
+                "port": "D1_source_trace_9",
+                "from": {
+                  "sourcePortId": "source_port_10"
+                },
+                "to": {
+                  "sourcePortId": "source_port_12"
+                },
+                "sourceTraceId": "source_trace_9"
+              },
+              {
+                "port": "D2_source_trace_14",
+                "from": {
+                  "sourcePortId": "source_port_18"
+                },
+                "to": {
+                  "sourcePortId": "source_port_20"
+                },
+                "sourceTraceId": "source_trace_14"
+              },
+              {
+                "port": "D0_source_trace_4",
+                "from": {
+                  "sourcePortId": "source_port_2"
+                },
+                "to": {
+                  "sourcePortId": "source_port_4"
+                },
+                "sourceTraceId": "source_trace_4"
+              }
+            ],
+            "channelReference": {
+              "sourcePortId": "source_port_9"
+            },
+            "groundReturn": {
+              "sourcePortId": "source_port_13"
+            },
+            "relativePermittivity": 4.37654051099877,
+            "extraction": {
+              "minimumHz": 0.858,
+              "modelHz": 858000000,
+              "maximumHz": 8580000000,
+              "filaments": 13,
+              "refinementFilaments": 17,
+              "convergenceTolerance": 0.05,
+              "capTolerance": 0.02,
+              "reciprocityTolerance": 0.025,
+              "dcResistanceTolerance": 0.002,
+              "maxPanelLengthMm": 0.2,
+              "groundMeshMm": 0.1
+            },
+            "passiveComponents": [],
+            "supplies": [
+              {
+                "positive": {
+                  "sourcePortId": "source_port_3"
+                },
+                "negative": {
+                  "sourcePortId": "source_port_1"
+                },
+                "voltageV": 3.3
+              }
+            ]
+          },
+          "results": [
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_3_0",
+              "simulation_signal_id": "simulation_signal_3",
+              "source_port_id": "source_port_4",
+              "eye_height_v": 3.2867926775051854,
+              "eye_width_s": 4.9543261228925506e-08,
+              "mask_margin_v": 0.7933829347566553
+            },
+            {
+              "type": "simulation_signal_crosstalk",
+              "simulation_signal_crosstalk_id": "simulation_signal_4_0",
+              "simulation_signal_id": "simulation_signal_4",
+              "end": "far",
+              "source_port_id": "source_port_12",
+              "idle_voltage_v": 0.0016569400730276505,
+              "peak_positive_v": 1.2902576566783184,
+              "peak_negative_v": -0.8646602995149982
+            },
+            {
+              "type": "simulation_signal_crosstalk",
+              "simulation_signal_crosstalk_id": "simulation_signal_4_1",
+              "simulation_signal_id": "simulation_signal_4",
+              "end": "near",
+              "source_port_id": "source_port_10",
+              "idle_voltage_v": 0.0016569322747815242,
+              "peak_positive_v": 0.14522172032108882,
+              "peak_negative_v": -0.1593804227068931
+            },
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_5_0",
+              "simulation_signal_id": "simulation_signal_5",
+              "source_port_id": "source_port_20",
+              "eye_height_v": 3.2933625890897935,
+              "eye_width_s": 4.954498490711811e-08,
+              "mask_margin_v": 0.7999810552040577
+            },
+            {
+              "type": "simulation_signal_integrity_rlgc",
+              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_1",
+              "simulation_signal_integrity_id": "simulation_signal_integrity_1",
+              "conductors": [
+                {
+                  "simulation_signal_id": "simulation_signal_4",
+                  "leg": "single"
+                },
+                {
+                  "simulation_signal_id": "simulation_signal_5",
+                  "leg": "single"
+                },
+                {
+                  "simulation_signal_id": "simulation_signal_3",
+                  "leg": "single"
+                }
+              ],
+              "matrices": [
+                {
+                  "frequency_hz": 858000000,
+                  "r_ohm": [
+                    [
+                      0.344768613,
+                      0.09880129299999998,
+                      0.09679214549999998
+                    ],
+                    [
+                      0.09880129299999998,
+                      0.341390423,
+                      0.09023804899999999
+                    ],
+                    [
+                      0.09679214549999998,
+                      0.09023804899999999,
+                      0.337337745
+                    ]
+                  ],
+                  "l_h": [
+                    [
+                      1.3218782599194585e-08,
+                      9.111740136461234e-09,
+                      8.716330068084633e-09
+                    ],
+                    [
+                      9.111740136461234e-09,
+                      1.3612921097483896e-08,
+                      7.657345909414247e-09
+                    ],
+                    [
+                      8.716330068084633e-09,
+                      7.657345909414247e-09,
+                      1.282130333106252e-08
+                    ]
+                  ],
+                  "c_f": [
+                    [
+                      8.751659453937166e-13,
+                      -3.7637811769512836e-13,
+                      -3.6762263130379214e-13
+                    ],
+                    [
+                      -3.7637811769512836e-13,
+                      7.064317653944197e-13,
+                      -1.625318608770413e-13
+                    ],
+                    [
+                      -3.6762263130379214e-13,
+                      -1.625318608770413e-13,
+                      7.332159284943759e-13
+                    ]
+                  ],
+                  "g_s": [
+                    [
+                      0,
+                      0,
+                      0
+                    ],
+                    [
+                      0,
+                      0,
+                      0
+                    ],
+                    [
+                      0,
+                      0,
+                      0
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "limitations": [
+            "Automatically verified straight parallel traces and rectangular return with matching endpoints; bar dimensions and positions are the actual routed copper coordinates",
+            "Uniform current injection across each return end; finite pad contact crowding omitted by the automatic parallel-bar reduction",
+            "Homogeneous stackup-weighted dielectric, constant-frequency R/L and uniform pi sections; dielectric loss, roughness and frequency dispersion are not fitted",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
+            "Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
+            "Maximum solver integration step and display resolution are separate settings"
+          ]
+        }
+      ],
+      "accepted_results": true
+    },
+    {
+      "case": "QUIET_HIGH",
+      "status": "verified_native",
+      "seconds": 378.16,
+      "command": "SI_NATIVE_TIMEOUT_MS=180000 SI_EXTRACTION_CACHE=runs/rfc-final/three SI_RUN_ROOT=runs/ideal-die-rails-QUIET_HIGH SI_BLOCK=QUIET_HIGH node --import tsx scripts/run-signal-levels.tsx three",
+      "raw_summary_sha256": "bc059c52bf50f000d46a20cdc0b0e2b5fd98e3d0f188590506a36e16202b374a",
+      "input_sha256": "a0cabd6dbaf05ed916e54e5a66d5a230567a43d464398cdb450bcda9fd58f423",
+      "native_requests": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "905bebe5778c24c2b56f807a7e2b2ff658bbb803225e856936d8629cc81ffdf5",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-0-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "63802411e00d4faa6584a210059752bf0b2721491f2f376e39356511ab2ee6e5",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-1-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "b7cc6b7bae7c69b0dc0d04fb575fea59ee6e807a2b61506c0a90f776911f1df7",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-2-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "cfc24ec2fbbdf2e3e6af6c0031b1f4e794aa0dc59073e93703a733e127d89e19",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-3-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "4d7a330734135a05ace20691631789acf553c8f9f82c693a611d009b3d661a5b",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-4-fasthenry"
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "85185246527efcc71384f702ba3e299bd936f92a735dbb5cc56cd066f4337cc1",
+          "args": [
+            "channel.inp"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-5-fasthenry"
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "02c42784305313e6cf2d2b8d6c1b15fc2090cd78e892fb657d9aeb73e9d758bc",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-e"
+          ],
+          "exact_native_extraction_replay_from": "runs/rfc-final/three/native-6-fastercap"
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "fd83cc30970688d847c234d02cd1decadb334dc41bd04aad401437e1fbfaf1c2",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "41c57fc90cccaa4c1ebac8695c827254a238e0b9c7ad3b4098e305ece6f65d94",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "6a7f52588afe04d575014ae98c57bc60c82c0209b79e89886a571a8d7b04bcb2",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "eb5ce178d0a057bda733c5cb66335a7ef20255e24acb783b72b4146d4d1f2fcb",
+          "args": [
+            "-n",
+            "-b",
+            "simulation.cir"
+          ]
+        }
+      ],
+      "transient_convergence": {
+        "blocks/simulation_signal_integrity_2/experiments/simulation_signal_integrity_2/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "6f58819b1b66857665dc3cfb7057adb80452bbbe3112c1fc49b3fd5af11dc7de",
+              "waveform_csv_sha256": "ed7fdb2608eb0a0b207baadb9a946e07d695f5ff915a13cbc0d95ed68cd26ae4",
+              "dimension": "time",
+              "sections": 2,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 989239,
+                  "rms_v": 4.147101442016237e-05,
+                  "scale_v": 5.246526421139617,
+                  "peak_change_v": 5.169640428093203e-05,
+                  "positive_v": 1.1183137102099292,
+                  "negative_v": -4.128161014525406,
+                  "accepted": true
+                },
+                {
+                  "column": 2,
+                  "samples": 989239,
+                  "rms_v": 4.5843266071162825e-05,
+                  "scale_v": 2.500157176570062,
+                  "peak_change_v": 7.241006039260256e-05,
+                  "positive_v": 1.3240715788853943,
+                  "negative_v": -1.1760210627720857,
+                  "accepted": true
+                },
+                {
+                  "column": 3,
+                  "samples": 989239,
+                  "rms_v": 5.801042567451453e-06,
+                  "scale_v": 0.2740058731039148,
+                  "peak_change_v": 1.3384660028759043e-05,
+                  "positive_v": 0.12891020265213626,
+                  "negative_v": -0.14508200398006377,
+                  "accepted": true
+                },
+                {
+                  "column": 4,
+                  "samples": 989239,
+                  "rms_v": 4.349542067384813e-05,
+                  "scale_v": 5.319933647009677,
+                  "peak_change_v": 5.4922088652098466e-05,
+                  "positive_v": 4.4770765356594024,
+                  "negative_v": -0.8428021892616222,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "ed7fdb2608eb0a0b207baadb9a946e07d695f5ff915a13cbc0d95ed68cd26ae4",
+              "waveform_csv_sha256": "e8239014097d2a9eee1e2adc54c1646590e7c7b74ee28e15e6e98a04e5980199",
+              "dimension": "space",
+              "sections": 4,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 986380,
+                  "rms_v": 0.0009729441886625227,
+                  "scale_v": 5.246881848689432,
+                  "peak_change_v": 0.0004071239540968108,
+                  "positive_v": 1.1179150805290692,
+                  "negative_v": -4.128568138479503,
+                  "accepted": true
+                },
+                {
+                  "column": 2,
+                  "samples": 986380,
+                  "rms_v": 0.0010500923862933696,
+                  "scale_v": 2.50009264165748,
+                  "peak_change_v": 0.0015020896563306962,
+                  "positive_v": 1.3225694892290636,
+                  "negative_v": -1.1749049774181652,
+                  "accepted": true
+                },
+                {
+                  "column": 3,
+                  "samples": 986380,
+                  "rms_v": 0.0001377424537745742,
+                  "scale_v": 0.2740117867861853,
+                  "peak_change_v": 5.042820946465909e-05,
+                  "positive_v": 0.12892978280612155,
+                  "negative_v": -0.1450315757705991,
+                  "accepted": true
+                },
+                {
+                  "column": 4,
+                  "samples": 986380,
+                  "rms_v": 0.0010218115456750798,
+                  "scale_v": 5.319878724921025,
+                  "peak_change_v": 0.0004074377444194255,
+                  "positive_v": 4.476669097914983,
+                  "negative_v": -0.8425205653305612,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "name": "QUIET_HIGH",
+          "duration_s": 2.4e-06,
+          "numericalSettings": {
+            "measurementGate": 8e-07,
+            "reduction": "routed-copper",
+            "allowIdeal": false,
+            "simplifyParallel": true,
+            "sections": 4,
+            "lanes": [
+              {
+                "port": "D1_source_trace_9",
+                "from": {
+                  "sourcePortId": "source_port_10"
+                },
+                "to": {
+                  "sourcePortId": "source_port_12"
+                },
+                "sourceTraceId": "source_trace_9"
+              },
+              {
+                "port": "D2_source_trace_14",
+                "from": {
+                  "sourcePortId": "source_port_18"
+                },
+                "to": {
+                  "sourcePortId": "source_port_20"
+                },
+                "sourceTraceId": "source_trace_14"
+              },
+              {
+                "port": "D0_source_trace_4",
+                "from": {
+                  "sourcePortId": "source_port_2"
+                },
+                "to": {
+                  "sourcePortId": "source_port_4"
+                },
+                "sourceTraceId": "source_trace_4"
+              }
+            ],
+            "channelReference": {
+              "sourcePortId": "source_port_9"
+            },
+            "groundReturn": {
+              "sourcePortId": "source_port_13"
+            },
+            "relativePermittivity": 4.37654051099877,
+            "extraction": {
+              "minimumHz": 0.858,
+              "modelHz": 858000000,
+              "maximumHz": 8580000000,
+              "filaments": 13,
+              "refinementFilaments": 17,
+              "convergenceTolerance": 0.05,
+              "capTolerance": 0.02,
+              "reciprocityTolerance": 0.025,
+              "dcResistanceTolerance": 0.002,
+              "maxPanelLengthMm": 0.2,
+              "groundMeshMm": 0.1
+            },
+            "passiveComponents": [],
+            "supplies": [
+              {
+                "positive": {
+                  "sourcePortId": "source_port_3"
+                },
+                "negative": {
+                  "sourcePortId": "source_port_1"
+                },
+                "voltageV": 3.3
+              }
+            ]
+          },
+          "results": [
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_6_0",
+              "simulation_signal_id": "simulation_signal_6",
+              "source_port_id": "source_port_4",
+              "eye_height_v": 3.285862431488344,
+              "eye_width_s": 4.954271309584448e-08,
+              "mask_margin_v": 0.7930250568604954
+            },
+            {
+              "type": "simulation_signal_crosstalk",
+              "simulation_signal_crosstalk_id": "simulation_signal_7_0",
+              "simulation_signal_id": "simulation_signal_7",
+              "end": "far",
+              "source_port_id": "source_port_12",
+              "idle_voltage_v": 3.2997416549377117,
+              "peak_positive_v": 1.3225694892290636,
+              "peak_negative_v": -1.1749049774181652
+            },
+            {
+              "type": "simulation_signal_crosstalk",
+              "simulation_signal_crosstalk_id": "simulation_signal_7_1",
+              "simulation_signal_id": "simulation_signal_7",
+              "end": "near",
+              "source_port_id": "source_port_10",
+              "idle_voltage_v": 3.2997416532029473,
+              "peak_positive_v": 0.12892978280612155,
+              "peak_negative_v": -0.1450315757705991
+            },
+            {
+              "type": "simulation_signal_eye",
+              "simulation_signal_eye_id": "simulation_signal_8_0",
+              "simulation_signal_id": "simulation_signal_8",
+              "source_port_id": "source_port_20",
+              "eye_height_v": 3.292833271488422,
+              "eye_width_s": 4.954434915698819e-08,
+              "mask_margin_v": 0.7999809317008297
+            },
+            {
+              "type": "simulation_signal_integrity_rlgc",
+              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_2",
+              "simulation_signal_integrity_id": "simulation_signal_integrity_2",
+              "conductors": [
+                {
+                  "simulation_signal_id": "simulation_signal_7",
+                  "leg": "single"
+                },
+                {
+                  "simulation_signal_id": "simulation_signal_8",
+                  "leg": "single"
+                },
+                {
+                  "simulation_signal_id": "simulation_signal_6",
+                  "leg": "single"
+                }
+              ],
+              "matrices": [
+                {
+                  "frequency_hz": 858000000,
+                  "r_ohm": [
+                    [
+                      0.344768613,
+                      0.09880129299999998,
+                      0.09679214549999998
+                    ],
+                    [
+                      0.09880129299999998,
+                      0.341390423,
+                      0.09023804899999999
+                    ],
+                    [
+                      0.09679214549999998,
+                      0.09023804899999999,
+                      0.337337745
+                    ]
+                  ],
+                  "l_h": [
+                    [
+                      1.3218782599194585e-08,
+                      9.111740136461234e-09,
+                      8.716330068084633e-09
+                    ],
+                    [
+                      9.111740136461234e-09,
+                      1.3612921097483896e-08,
+                      7.657345909414247e-09
+                    ],
+                    [
+                      8.716330068084633e-09,
+                      7.657345909414247e-09,
+                      1.282130333106252e-08
+                    ]
+                  ],
+                  "c_f": [
+                    [
+                      8.751659453937166e-13,
+                      -3.7637811769512836e-13,
+                      -3.6762263130379214e-13
+                    ],
+                    [
+                      -3.7637811769512836e-13,
+                      7.064317653944197e-13,
+                      -1.625318608770413e-13
+                    ],
+                    [
+                      -3.6762263130379214e-13,
+                      -1.625318608770413e-13,
+                      7.332159284943759e-13
+                    ]
+                  ],
+                  "g_s": [
+                    [
+                      0,
+                      0,
+                      0
+                    ],
+                    [
+                      0,
+                      0,
+                      0
+                    ],
+                    [
+                      0,
+                      0,
+                      0
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "limitations": [
+            "Automatically verified straight parallel traces and rectangular return with matching endpoints; bar dimensions and positions are the actual routed copper coordinates",
+            "Uniform current injection across each return end; finite pad contact crowding omitted by the automatic parallel-bar reduction",
+            "Homogeneous stackup-weighted dielectric, constant-frequency R/L and uniform pi sections; dielectric loss, roughness and frequency dispersion are not fitted",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Vendor signal-pin package RLC as a pi network with split shunt C; pdn=\"ideal\" connects die POWER/GND references directly to perfect rails",
+            "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
+            "Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
+            "Maximum solver integration step and display resolution are separate settings"
+          ]
+        }
+      ],
+      "accepted_results": true
+    }
+  ]
+}

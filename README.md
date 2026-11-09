@@ -32,6 +32,8 @@ and limitations. `simulationResultCircuitJson` retains the input and appends onl
 the RFC's five new result record kinds. Re-running replaces prior SI results. A board with no SI blocks returns an empty block/result collection without invoking a solver. Automatic duration stays absent in source records and is reported on each result block.
 
 The draft explicitly rejects extracted PDN, branched routes and coupled package matrices; the RFC lists these as not implemented yet.
+Under `pdn="ideal"`, die POWER/GND references connect directly to perfect rails;
+vendor package R/L/C remains enabled on signal pins. See the [model rationale](docs/native-signal-levels.md).
 
 See [the TSX levels](examples/levels) and [native evidence](docs/native-signal-levels.md).
 The installed core predates the sibling intrinsic-element PRs: the native runner
@@ -60,7 +62,7 @@ flowchart TD
   q -->|"no"| s3
   s2b --> s3["3. Measure the wires: R, L, C, refining the mesh until it converges<br/><small>extraction</small>"]
   s3 <-->|"runSolver"| fs{{"FastHenry + FasterCap"}}
-  s3 --> s4["4. Build one circuit per block: wires + chip buffers + packages<br/><small>buffers, simulation</small>"]
+  s3 --> s4["4. Build one circuit per block: wires + chip buffers + signal packages + ideal die rails<br/><small>buffers, simulation</small>"]
   s4 --> s5["5. Solve undisturbed idle, then signals; independently refine sections and timestep until RMS and signed peaks converge<br/><small>simulation</small>"]
   s5 <-->|"runSolver"| ng{{"ngspice"}}
   s5 --> s6["6. Measure: eyes, NEXT/FEXT, strobe margins<br/><small>observation</small>"]

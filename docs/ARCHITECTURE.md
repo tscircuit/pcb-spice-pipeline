@@ -14,7 +14,7 @@ flowchart LR
   check -->|"yes"| bars["board: extra 2D bar reduction<br/>(cross-section extruded, real coordinates)"]
   check -->|"no"| extract
   bars --> extract["extraction: native R/L/C and convergence"]
-  derive --> buffers["buffers: selected vendor models and package networks"]
+  derive --> buffers["buffers: vendor models, signal packages and ideal die rails"]
   buffers --> simulate["simulation: undisturbed idle, then native transient<br/>independent section and timestep refinement"]
   extract --> simulate
   simulate --> observe["observation: finite eyes and timing"]

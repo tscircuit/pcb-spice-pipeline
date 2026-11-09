@@ -1,82 +1,86 @@
 # Native signal API evidence
 
-The prior RMS-only snapshots have been withdrawn: they did not establish convergence of narrow NEXT/FEXT peaks and used a waveform-mean baseline. Fresh evidence is generated from the final RFC implementation, not relabeled from those runs.
+The runner renders the actual TSX examples through the temporary adapter for unpublished core#5286 and calls public `runPipeline` with real TI IBIS bytes and `/opt/homebrew/bin/{fasthenry,FasterCap,ngspice}`. Vendor files and complete native decks remain local and ignored. Committed summaries under `tests/evidence/signal-levels` distinguish accepted results from failed or interrupted solves.
 
-The runner renders the real TSX fixtures through the temporary adapter for unpublished core#5286. It calls the public `runPipeline` with real TI IBIS bytes and `/opt/homebrew/bin/{fasthenry,FasterCap,ngspice}`. Vendor files are local, ignored, and never redistributed. `runs/rfc-final/<case>` stores exact requests, input Circuit JSON, native outputs and success/failure summaries. Committed summaries under `tests/evidence/signal-levels` are the compact evidence; an interrupted or failed solve has no accepted eye/NEXT/FEXT result.
+## Ideal die rails
 
-Extraction uses native FastHenry R/L and FasterCap Maxwell C, with mesh, reciprocity, passivity, DC resistance and neutral-charge/energy checks. A 3D copper model is built first. Only straight parallel signals and a rectangular return contacted at opposite ends may use the extra 2D bar reduction.
+Under `pdn="ideal"`, IBIS die-side POWER/GND references connect directly to the ideal rails, with no package R/L/C on POWER/GND pins. Vendor signal-pin package R/L/C remains enabled as a pi network with split shunt capacitance. `pdn="extracted"` remains explicitly unimplemented.
 
-Transient convergence independently halves timestep and doubles sections. Each probe must meet both time-integrated RMS and signed peak tolerances (1% + 1 mV). Comparison uses every timestamp from both adaptive native traces, without a sparse display grid. The current deck forces first-order Gear and tight IBIS tolerances; neither numerical setting establishes physical validity on its own. NEXT/FEXT retain both signs and use a separate constant-drive, settled idle solve; disabled victims also undergo an alternate-initial-charge check.
+Non-power-aware IBIS models assume ideal die rail voltages. These models lack `[Composite Current]`, ISSO and split C_comp power-aware data; on-die decoupling is not described. Feeding their die rails through bare package inductance is therefore unphysical. The user-approved interpretation follows the RFC's `pdn="ideal"` promise of perfect rails; it supersedes the earlier implementation's inclusion of scalar POWER/GND package leads.
 
-The final-RFC differential run at `a5e85f3` completed in 329.910 s (see the committed summary for the exact time). Eye height is 4.464708 V, width 3.932765 µs, mask margin 2.032352 V. The timestep check at 2 sections had 2.30 nV peak change; the independent section check at 4 sections had 1.79 µV peak change. Both passed the per-probe RMS and peak criteria. This case has no quiet victim, so no NEXT/FEXT record is applicable.
+KU/KD coefficients are computed by `switchingWeights` in the pinned `@tscircuit/ibis-to-spice` tarball `ad1ec9e640a92a4d370fc76acbbd8db245563317`, then scheduled by its `bitWeights`. This repo only inserts package networks. The inverter's generated KU range is −0.0657680079208…1.00741880404 and KD is −0.172649925905…1.00324434607. No coefficient is clipped or otherwise modified. The separate upstream investigation owns any coefficient correction.
 
-Level 1 SE did not converge spatially. The last complete 16-section trace has an independently calculated candidate eye height of 3.298106 V, width 45.185682 ns and margin 0.798106 V; these are **unconverged**, not accepted result records. Its output ranges from −2.667553 V to 6.995626 V after settling. The 32-section solve exceeded the 600 s native-process limit near 2.29547 µs of 2.4 µs. The whole attempt took 3581.672 s. `single-unconverged.json` records every completed check and exact request digests.
+## Fresh native verification
 
-| SE refinement | Sections | Maximum step (ps) | RMS change (V) | Signed peak change (V) | Accepted check |
-| --- | ---: | ---: | ---: | ---: | --- |
-| Time | 2 | 14.576129 | 0.000062814 | 0.000397360 | Yes |
-| Space | 4 | 14.576129 | 0.116311341 | 0.050512530 | No |
-| Time | 4 | 7.288065 | 0.000052853 | 0.000128915 | Yes |
-| Space | 8 | 7.288065 | 0.255166969 | 3.485882777 | No |
-| Time | 8 | 3.644032 | 0.000249018 | 0.000087576 | Yes |
-| Space | 16 | 3.644032 | 0.241300819 | 2.045053266 | No |
-| Time | 16 | 1.822016 | 0.000209904 | 0.001769507 | Yes |
+The ideal-rail implementation is committed at `37f2392263453b59dcdca63842638cd26b6c7f0d`. Each native process has a 180 s limit. Only exact-request-hash native extraction outputs may be replayed; every idle and switching transient is fresh ngspice execution. The three Level 3 blocks are isolated from the full rendered board while retaining its planned seeds and copper. Concurrent runs and local tests make elapsed times unsuitable as performance comparisons.
 
-All three Level 3 blocks were attempted natively. TRAFFIC failed with `native_timeout` after 1043.880 s including extraction, at a last reported transient time of 0.655883 µs. QUIET_LOW returned `native_solver` after 601.781 s at 0.676601 µs; QUIET_HIGH returned `native_timeout` after 601.760 s at 0.729304 µs. Each stopped before the 0.8 µs settling gate, so **signed NEXT/FEXT and Level 3 eyes are unavailable**, not zero. The isolated quiet-block attempts preserved the full board's planned seeds and copper; only exact-request native extraction outputs were replayed. Their committed `three-*-failed.json` files identify that replay and every native ngspice request.
+Extraction uses native FastHenry R/L and FasterCap Maxwell C with mesh, reciprocity, passivity, DC resistance and neutral-charge/energy checks. A 3D copper model is built first. Only verified straight parallel signals over a rectangular return contacted at opposite ends may use the extra 2D bar reduction.
 
-The native evidence records its actual implementation head (`a5e85f3` for SE, differential and TRAFFIC; `ad46600` for isolated quiet blocks). Subsequent changes strengthen idle completion/charge checks, routing admission, artifact retention and evidence storage; the failed attempts have not been relabeled as final-head successes. No old RMS-only numerical claim remains valid evidence. Resolving the native stiffness/spatial nonconvergence remains necessary before calling these fixtures verified.
+Transient convergence independently halves timestep and doubles sections. Every probe must pass both time-integrated RMS and signed-peak tolerances (1% + 1 mV), comparing every timestamp in both adaptive native traces. First-order Gear and IBIS tolerances are unchanged. Quiet peaks retain both signs and use an independent settled constant-drive idle solve; disabled victims also require alternate-initial-charge checks. Numerical settings alone do not establish physical validity.
 
-## Bounded section investigation (2026-11-09)
+All five cases converge at four sections in `ideal-die-rails.json`. The table gives the largest peak change over all probes; every probe also passes its RMS check. The full per-probe values, native requests, extraction-replay provenance, model/schema/converter hashes and accepted results are committed in that file. Raw requests and losslessly archived native outputs remain under `runs/ideal-die-rails*`.
 
-`section-investigation.json` records commands, native deck/log hashes and numbers at base head `1a20782`. Production netlists and convergence criteria are unchanged. The reproducible harness is `scripts/investigate-signal-sections.mjs`; it reads decks generated from the existing actual TSX examples by `scripts/run-signal-levels.tsx`. Complete decks and vendor bytes remain ignored. These are bounded diagnostics, not a successful single-ended or Level 3 fix.
+| Case | Total elapsed (s) | Timestep peak delta (mV) | Section peak delta (mV) | Result |
+| --- | ---: | ---: | ---: | --- |
+| Single | 89.948 | 0.186977 | 2.776489 | Converged |
+| Differential | 253.166 | 0.000164 | 0.000079 | Converged |
+| TRAFFIC | 434.928 | 0.116683 | 3.606621 | Converged |
+| QUIET_LOW | 395.066 | 0.061188 | 2.044217 | Converged |
+| QUIET_HIGH | 378.160 | 0.072410 | 1.502090 | Converged |
 
-Hypothesis 1 was insufficient edge resolution. Typical-corner 10–90% edges are interpolated from each selected vendor waveform, taking the fastest rising/falling fixture. The inverter rises in 0.670–0.934 ns and falls in 0.583–0.925 ns; the fastest RS485 leg edge is 592.294 ns. For coupled lines, `sqrt(eigenvalues(L*C))` gives modal delays from the total extracted matrices. Thus `v = length/delay` and `N = ceil(10*delay/edge)` implement `section_length <= v*edge/10` without a per-metre/total conversion error.
+The final maximum timestep is 14.576129 ps for single/three and 14.807340 ns for differential. Every recording completes: 2.4 us for single/three, 192 us for differential, with measurement gates of 0.8 us and 64 us respectively.
 
-| Fixture (all 10 mm) | Fastest edge | Modal delay | Modal velocity (m/s) | Maximum section length | Required sections |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Single | 0.583045 ns | 70.6841 ps | 1.41475e8 | 8.24861 mm | 2 |
-| Differential | 592.294 ns | 72.7322–74.2367 ps | 1.34704e8–1.37491e8 | 7.97845–8.14349 m | 1 |
-| Three | 0.583045 ns | 69.9822–70.9229 ps | 1.40998e8–1.42894e8 | 8.22083–8.33134 mm | 2 |
+| Eye | Height (V) | Width (ns) | Mask margin (V) |
+| --- | ---: | ---: | ---: |
+| Single DATA | 3.299981 | 49.740514 | 0.799981 |
+| Differential BUS | 4.466424 | 3932.799340 | 2.033210 |
+| TRAFFIC D0 | 3.286102 | 47.644185 | 0.793135 |
+| TRAFFIC D1 | 3.281172 | 47.600220 | 0.791891 |
+| TRAFFIC D2 | 3.284261 | 47.573996 | 0.791673 |
+| QUIET_LOW D0 | 3.286793 | 49.543261 | 0.793383 |
+| QUIET_LOW D2 | 3.293363 | 49.544985 | 0.799981 |
+| QUIET_HIGH D0 | 3.285862 | 49.542713 | 0.793025 |
+| QUIET_HIGH D2 | 3.292833 | 49.544349 | 0.799981 |
 
-The implementation already starts at two sections. Single-ended N=2 and N=4 each exhausted a 120 s bound at 2.15406 and 1.90676 us, respectively; neither produced a complete new waveform. The earlier complete 2-vs-4 comparison still rejects convergence (RMS 0.116311341 V, peak delta 0.050512530 V). Increasing the count beyond the edge requirement is not justified as a demonstrated fix.
+Quiet D1 has no eye. Its signed noise is measured relative to the separate idle solve:
 
-Hypothesis 2 was a bad stitch or half-shunt. A 4-vs-8 comparison records driver board/die/ground/power, quarter/half/three-quarter line, receiver board/die/ground over 349–360 ns. Both native solves finished (7.982 / 14.100 s). The first difference above 10 mV occurs at driver power around 352.5635 ns, then driver board at 352.5639 ns, and receiver board at 352.6309 ns. The 4-section die power rail spans −39.7727 to +45.7685 V; the receiver peak delta is 3.71990 V. This points to active-buffer/package behavior, without proving its root cause. R/L/C scaling, loop/Maxwell signs, shunt halves and terminal references were inspected; no defect in `channelSpice` was demonstrated.
+| Block | End | Idle (V) | Positive peak (V) | Negative peak (V) |
+| --- | --- | ---: | ---: | ---: |
+| QUIET_LOW | NEXT | 0.001657 | +0.145222 | −0.159380 |
+| QUIET_LOW | FEXT | 0.001657 | +1.290258 | −0.864660 |
+| QUIET_HIGH | NEXT | 3.299742 | +0.128930 | −0.145032 |
+| QUIET_HIGH | FEXT | 3.299742 | +1.322569 | −1.174905 |
 
-A native regression independently checks a 100 ps, 50 ohm line at 1 GHz: 8/16 sections and two half-stages with four sections each agree with analytic delay and input impedance within 0.1%, and complex voltage within 0.5 mV. A driven 1.7 V reference checks reference-node wiring. R=1 nOhm is the lossless limit because the current validator requires positive-definite R. Run `NGSPICE_BIN=/opt/homebrew/bin/ngspice node --import tsx --test tests/extraction/rlgc.test.ts` (4 passed). This is an analytic native guard, not vendor-device validation.
+The large crosstalk excursions remain in the accepted model results. The single-ended receiver also retains overshoot/undershoot (approximately −0.694…4.109 V after settling). Convergence does not establish the accuracy of the upstream coefficient reconstruction or assign these residual excursions to it. KU/KD remains outside [0,1] and unchanged. No further Level 3 divergence investigation was needed because every probe passed both refinements.
 
-Two bounded A/B diagnostics isolate the package interaction. Generated KU/KD coefficients reach −0.065768 / −0.172650. Clipping coefficients to [0,1] reduces the first-edge receiver section delta to 13.625 mV; replacing die supply/ground leads with ideal rails reduces it to 0.9003 mV. Both alter required IBIS/package physics, and neither is adopted. Default second-order Gear completed N=2 in 85.187 s, but N=4/8 hit 90 s bounds, so that change is also unverified and not adopted.
-
-Hypothesis 3 was that distributed lines avoid the problem. The bounded prototype uses the same total RLGC with length=1, lossless G=0, LTRA for single-ended and full upper-triangular R/L/C for CPL. The [ngspice manual](https://ngspice.sourceforge.io/docs/ngspice-46-manual.pdf) describes these devices; current [CPL source](https://github.com/ngspice/ngspice/blob/master/src/spicelib/devices/cpl/cplsetup.c) consumes full triangular R despite the manual's diagonal-R guidance. Each prototype hit 90 s: single stopped near 0.352575 us, differential 0.164198 us, three 0.0109077 us. All are before their measurement gates (0.8 / 64 / 0.8 us). No comparison against a converged single-ended ladder or complete differential distributed waveform exists. The ladder stays in production; there is no evidence supporting adoption.
-
-Reproduce the diagnostics after generating `runs/rfc-final/{single,differential,three}` with the native runner:
+Reproduce the actual TSX runs (omit `SI_EXTRACTION_CACHE` for fresh extraction):
 
 ```sh
-node --import tsx scripts/investigate-signal-sections.mjs edge
-SI_NATIVE_TIMEOUT_MS=120000 node --import tsx scripts/investigate-signal-sections.mjs ladder
-SI_NATIVE_TIMEOUT_MS=30000 node --import tsx scripts/investigate-signal-sections.mjs nodes
-SI_NATIVE_TIMEOUT_MS=45000 node --import tsx scripts/investigate-signal-sections.mjs package
-SI_NATIVE_TIMEOUT_MS=90000 node --import tsx scripts/investigate-signal-sections.mjs gear
-SI_NATIVE_TIMEOUT_MS=90000 node --import tsx scripts/investigate-signal-sections.mjs distributed
+IBIS_MODEL_DIR=models SI_NATIVE_TIMEOUT_MS=180000 SI_RUN_ROOT=runs/ideal-die-rails node --import tsx scripts/run-signal-levels.tsx single
+IBIS_MODEL_DIR=models SI_NATIVE_TIMEOUT_MS=180000 SI_RUN_ROOT=runs/ideal-die-rails node --import tsx scripts/run-signal-levels.tsx differential
+IBIS_MODEL_DIR=models SI_NATIVE_TIMEOUT_MS=180000 SI_BLOCK=TRAFFIC SI_RUN_ROOT=runs/ideal-die-rails-TRAFFIC node --import tsx scripts/run-signal-levels.tsx three
+IBIS_MODEL_DIR=models SI_NATIVE_TIMEOUT_MS=180000 SI_BLOCK=QUIET_LOW SI_RUN_ROOT=runs/ideal-die-rails-QUIET_LOW node --import tsx scripts/run-signal-levels.tsx three
+IBIS_MODEL_DIR=models SI_NATIVE_TIMEOUT_MS=180000 SI_BLOCK=QUIET_HIGH SI_RUN_ROOT=runs/ideal-die-rails-QUIET_HIGH node --import tsx scripts/run-signal-levels.tsx three
 ```
 
-Do not relabel the package diagnostics, partial traces, or old unconverged eye as accepted results. The bounded attempt did not find a defensible production fix; IBIS/package rail behavior remains the next concrete investigation.
+## Historical bounded investigation
 
-## Final bounded native rerun
+`section-investigation.json` and `section-native.json` retain the earlier diagnoses and failures at their actual runner heads. They predate the ideal-rail fix. The old RMS-only snapshots were withdrawn because they could miss narrow NEXT/FEXT peaks and used a waveform-mean baseline.
 
-`section-native.json` records each command, actual runner head, model/schema hashes, exact native extraction replays, fresh transient requests and signed-peak convergence data. The production netlist is unchanged. No replayed transient is used. The shorter limits intentionally bound this follow-up; they do not supersede the earlier 600 s failures or imply a runtime improvement.
+At base `1a20782`, typical-corner 10–90% vendor edges and modal delays required 2 single-ended / 1 differential / 2 three-signal sections for these 10 mm routes. The existing two-section start already met that edge criterion. No channel R/L/C scaling, stitch, Maxwell-sign or half-shunt defect was demonstrated. An independent native 100 ps / 50 ohm line regression checks delay, impedance, section/stage invariance and nonzero reference wiring.
 
-| Case | Per-process limit | Total elapsed | Result | Last reported transient time |
-| --- | ---: | ---: | --- | ---: |
-| Single | 120 s | 120.978 s | Timeout; no accepted result | 1.90971 us of 2.4 us |
-| Differential | 180 s | 232.781 s | Converged | Complete 192 us |
-| TRAFFIC | 60 s | 69.309 s | Timeout before gate | 0.153182 us |
-| QUIET_LOW | 60 s | 70.139 s | Timeout before gate | 0.131845 us |
-| QUIET_HIGH | 60 s | 66.184 s | Timeout before gate | 0.252573 us |
+The 4-vs-8 first-edge comparison found the first difference above 10 mV at driver die power around 352.5635 ns, before driver board (352.5639 ns) and receiver board (352.6309 ns). Four-section die power spanned −39.7727…45.7685 V; receiver signed-peak delta was 3.71990 V. The bounded ideal-die-rail diagnostic reduced it to 0.9003 mV, motivating the adopted ideal-PDN semantics. Coefficient clipping reduced it to 13.625 mV but remains diagnostic only. Second-order Gear and LTRA/CPL prototypes did not establish convergence and were not adopted.
 
-The fresh differential eye is 4.464708256 V × 3.932764896 us, margin 2.032351933 V. Timestep and section peak deltas are 2.30168 nV and 1.78676 uV. Single-ended has no completed new eye or section comparison. Level 3 has no completed measurement after its 0.8 us gate; signed NEXT/FEXT remains unavailable. These failures are not zero-noise measurements.
+The obsolete investigation harness was removed after adding the focused TSX/native regression. Its original commands and source remain available at commit `13a97ca1a7bf5cac4d0e5fede31a4e6cd5456439`; no new diagnostic package or distributed-line path remains in production.
 
-Local verification: `IBIS_MODEL_DIR=models NGSPICE_BIN=/opt/homebrew/bin/ngspice npm test` passed 223 of 225 tests, with two optional tests skipped and no failures. Typecheck, lint, module and vocabulary checks pass; lint retains the existing 521-line mesh warning. Local checks use the existing unpublished sibling-schema overlay. CI remains blocked on the published circuit-json package lacking the SI exports. The investigation/regression is published; the single-ended/Level 3 physics issue remains unresolved.
+Earlier complete single-ended recordings did not converge spatially; the 32-section solve hit a 600 s process bound. Its 16-section candidate eye (3.298106 V × 45.185682 ns) is historical and unaccepted. All earlier Level 3 attempts stopped before their 0.8 us gate, so their NEXT/FEXT and eyes are unavailable, not zero. The earlier differential result (4.464708 V × 3.932765 us) passed both criteria. These old measurements have not been relabeled as fresh-head results.
 
-The actual RFC DDR3 TSX asset is in `examples/levels/level4-ddr3-write.tsx`. `IBIS_MODEL_DIR=models node --import tsx scripts/check-ddr3.tsx` rendered it using real AM335x/Winbond files and stopped with `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.` before any native call. This is the RFC's documented boundary, not DDR compliance validation.
+## Local checks and boundaries
 
-Extracted PDN, coupled package matrices and branched routed graphs have the RFC's explicit not-implemented errors. Finite transient eyes do not establish BER, hardware accuracy or protocol compliance. Unit tests with analytic waveforms or canned matrix outputs are synthetic checks, not native evidence.
+`IBIS_MODEL_DIR=models NGSPICE_BIN=/opt/homebrew/bin/ngspice npm test` passes 225 of 227 tests with two optional skips and no failures. The new TSX/vendor regression covers all three package corners and unchanged upstream KU/KD. The native vendor-buffer regression compares 4/8 sections over the problematic first edge using fixed native-extracted channel totals; it does not rerun extraction. The full native runner independently checks complete fixture recordings.
+
+Typecheck, lint, module and vocabulary checks pass. Lint retains the existing 521-line mesh warning. The focused API/documentation checks also pass after updating the ideal-rail terminology and diagrams.
+
+Local checks use the existing built sibling-schema overlay; no local links or vendor bytes are committed. CI's published circuit-json dependency still lacks the SI exports. The actual RFC DDR3 asset is `examples/levels/level4-ddr3-write.tsx`; it stops at `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.` before native solver IO. This is a documented boundary, not DDR validation.
+
+Extracted PDN, coupled package matrices and branched routed graphs retain explicit not-implemented errors. Finite simulated eyes do not establish BER, hardware accuracy or protocol compliance. Analytic waveforms and canned matrix tests are synthetic checks, not native fixture evidence.
