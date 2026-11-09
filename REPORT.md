@@ -48,7 +48,7 @@ A mesh that exhausts floating-point resolution fails with `mesh_convergence`, wi
 The first quiet-middle attempt exposed nearly coincident optional mesh alignment cuts. Merging
 those cuts at the documented topology precision preserves conductor boundaries. Its actual TSX
 slice 179 now converges in a focused regression (7.49 s). All strict quiet slices have converged;
-native quiet/all-active simulation and repeat checks are in progress.
+quiet native simulation and repeat checks pass; all-active native runs are in progress.
 
 ## Native timing measurements
 
@@ -72,8 +72,10 @@ progress; the earlier C/C0-only increment took 420.993 s extraction / 842.539 s 
 experiment choice. The separate package variant is discussed below.
 
 The seconds-level extraction target is not met across the examples. The final differential and
-earlier crosstalk native processes also exceed one minute. The dense BEM and large stiff primitive ladders
-are the closest implemented alternative; there is no timeout, reduced fidelity fallback or hidden
+earlier crosstalk native processes also exceed one minute. The dense BEM reaches 11,776 panels on crosstalk. The top decks contain 865 / 12,609 / 17,653 /
+4,352 primitives for single-ended / differential / crosstalk / multilayer respectively, before IBIS
+subcircuit expansion; control commands are excluded from these counts. These large stiff primitive
+ladders are the closest implemented alternative; there is no timeout, reduced fidelity fallback or hidden
 limit to manufacture a pass. Faster adaptive field solution/model reduction remains further work.
 
 BEFORE used the reproduction checkout's actual FastHenry/FasterCap extractor. Existing examples
@@ -89,6 +91,23 @@ straightened versus 4.169378 nH routed, with C12=-0.909219/-0.187355 pF. Extract
 1.427/2592.909 s under contention; the regression passes. This is the original comparison geometry,
 not the repository default example. The default BEFORE RS-485 example's explicit 0.35 mm return
 profile instead produces 30.447940 nH. Its timing/eye rows must not be conflated with the 11.7 nH case.
+
+## Native crosstalk
+
+The held-low middle lane completes twice natively: 444.066 / 408.583 s, with cold / cached extraction
+4144.831 / 0.1197 s. Its 218 segments use 193 distinct solved slices and 219 automatic cells. Every
+canonical artifact and native request is byte-identical on the repeat. Reversing lane order produces
+identical matrices and native requests; that additional permutation check replays the measured
+output only after exact request equality, rather than claiming a third native execution.
+
+| Case | Middle NEXT max abs(V) | Middle FEXT max abs(V) | Native repeats | Lane permutation |
+|---|---:|---:|---|---|
+| middle held low | 0.186694 | 1.125206 | identical, two actual runs | identical input/matrices |
+| all active | pending | pending | in progress | pending |
+
+Peaks use every native recorded sample after the declared eye gate starts. In the all-active case
+they include the driven signal; the held-low row isolates noise on the victim. These are finite
+packet measurements, not BER or receiver compliance claims.
 
 ## Closed-form accuracy, unit-tested field solver
 
@@ -218,7 +237,7 @@ requires distinct two-endpoint PCB routes meeting at shared junctions. These lim
   fresh three-link SC70 R non-convergence; static and frequency-dependent complete multiport
   primitive networks; independent baseline/eyes.
 - Unit-only: published uniform-line accuracy, closed-form via accuracy, missing-data diagnostics,
-  geometry lane-order invariance. Native quiet NEXT/FEXT, lane permutation and remaining native
+  geometry lane-order invariance. Quiet NEXT/FEXT and lane permutation now pass natively as described above. All-active native
   second-run checks are still pending; speed and 4.2 nH accuracy targets remain unmet.
 
 Evidence is in ignored `runs/2d`, `runs/qualified`, `runs/before-eyes`, native request directories
