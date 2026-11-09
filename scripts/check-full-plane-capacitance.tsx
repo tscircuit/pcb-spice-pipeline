@@ -100,10 +100,11 @@ await writeFile(`${root}/provenance.json`, JSON.stringify({
   fixture_sha256: createHash('sha256').update(await readFile(source)).digest('hex'),
   binary_sha256: createHash('sha256').update(await readFile('/opt/homebrew/bin/FasterCap')).digest('hex'),
   core_sha256: createHash('sha256').update(await readFile(process.env.SI_CORE_MODULE!)).digest('hex'),
+  signal_lengths_m: cell.conductors.slice(0, -1).map(conductor => conductor.lengthM),
   timeout_ms: timeoutMs, reciprocity_tolerance: settings.extraction.reciprocityTolerance, cap_tolerance: settings.extraction.capTolerance,
   analytic_pf_per_m: 37.565933, analytic: 'Hammerstad/Jensen, zero thickness, infinite plane',
 }, null, 2) + '\n')
-for (const variant of (process.env.SI_CAP_VARIANTS ?? 'baseline,uniform-0715,uniform-03575,uniform-017875,edge-003,accuracy-0005,galerkin,direct-001').split(',')) {
+for (const variant of (process.env.SI_CAP_VARIANTS ?? 'baseline,uniform-0715,uniform-03575,uniform-017875,edge-003,accuracy-0005,galerkin,direct-001').split(',').filter(Boolean)) {
   const choice = variants[variant]
   if (!choice) throw new Error(`Unknown variant ${variant}`)
   const files = fasterCapDeck(cell, { ...settings.extraction, maxPanelLengthMm: choice.maximum ?? settings.extraction.maxPanelLengthMm })
@@ -153,6 +154,8 @@ for (const variant of (process.env.SI_CAP_VARIANTS ?? 'baseline,uniform-0715,uni
     } catch (failure) { rejection = (failure as Error).message }
     const rawC = matrix[0][0] / cell.conductors[0].lengthM * 1e12
     measurements = { matrix, reciprocity, auto_residual: autoResidual, accepted: !rejection, rejection,
+      signal_lengths_m: cell.conductors.slice(0, -1).map(conductor => conductor.lengthM),
+      grounded_diagonals_pf_per_m: matrix.slice(0, -1).map((row, i) => row[i] / cell.conductors[i].lengthM * 1e12),
       grounded_diagonal_pf_per_m: rawC, analytic_relative_difference: rawC / 37.565933 - 1,
       refined_panels: Number([...stdout.matchAll(/Number of panels after refinement:\s*(\d+)/g)].at(-1)?.[1]) || null }
   }
