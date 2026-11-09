@@ -14,7 +14,7 @@ You give it a tscircuit board (as Circuit JSON) and models of the chips on it (I
 | DDR timing checks (optional) | Whether memory data arrives inside its allowed time window. |
 | Report | One HTML page plus CSV files that open anywhere, with no internet needed. |
 
-The built-in 2D boundary-element solver extracts RLGC from actual copper and layered materials. **ngspice** simulates the circuit through the `runSolver` callback. See [the extraction method](docs/2d-extraction.md) for automatic meshing, loss fitting and model limits.
+The built-in sparse 2D Laplace solver extracts RLGC from actual copper and layered materials. **ngspice** simulates the circuit through the `runSolver` callback. See [the extraction method](docs/2d-extraction.md) for automatic meshing, loss fitting and model limits.
 
 > Formerly `@tscircuit/pcb-spice-pipeline`. It still implements the `pcb_spice` simulation engine: boards keep declaring `spiceEngine="pcb_spice"`, so saved Circuit JSON does not change.
 
@@ -56,7 +56,7 @@ flowchart TD
   board[/"Your board<br/>(Circuit JSON)"/] --> s1["1. Read the board, pick the wires to study<br/><small>board</small>"]
   chips[/"Chip models<br/>(IBIS files)"/] --> s3
   s1 --> s2["2. Measure the wires: R, L, C<br/><small>extraction</small>"]
-  s2 --> bem["Layered 2D BEM, vacuum solve, fitted losses"]
+  s2 --> bem["Sparse 2D Laplace, vacuum solve, fitted losses"]
   bem --> s3
   s1 --> s3["3. Build one circuit: wires + chips<br/><small>buffers, simulation</small>"]
   s2 --> s3

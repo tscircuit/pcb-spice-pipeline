@@ -1,4 +1,4 @@
-/** 2D extraction: layered BEM, automatic mesh and passive frequency-dependent RLGC networks. */
+/** 2D extraction: sparse layered Laplace, automatic mesh and passive frequency-dependent RLGC networks. */
 export type { ExtractionModeling, ExtractedChannel, ExtractedStage, ChannelMatrices, Matrix, LossFit } from './types'
 export { extractChannel } from './extract'
 export { channelSpice, type StageMatrices } from './rlgc'

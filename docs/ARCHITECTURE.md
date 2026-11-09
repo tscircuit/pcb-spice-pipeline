@@ -49,7 +49,7 @@ catch (e) {
 | `kernel` | `Diagnostic` + code registry, `Artifact`/`ArtifactScope`/`ArtifactLedger`, `SafeId`, `sha256` | none (provides the ledger) |
 | `solver` | `RunSolver` port; `invoke()` is the only way to run a solver: result shape, exit code, required outputs, log capture | `<scope>/<solver>.{request.json,stdout.log,stderr.log}` + I/O files |
 | `board` | Circuit JSON admission → `Board`, stackup, port selection, lanes and **whole-board cross-sections** | `inputs/circuit.json`, `geometry.json` |
-| `extraction` | layered 2D BEM, automatic refinement, loss fitting, via formulas, linear algebra and coupled RLGC ladders | today's `stage-N/**`, `channel.cir` |
+| `extraction` | sparse layered 2D Laplace, automatic refinement, loss fitting, via formulas, linear algebra and coupled RLGC ladders | today's `stage-N/**`, `channel.cir` |
 | `buffers` | IBIS admission, SHA pinning, pinned converter, compiled libs | `vendor-sources.json`, `<exp>/native-ibis-assembly.json`, `<exp>/*.lib` |
 | `simulation` | experiments, node map, probe scope, netlist, ngspice diagnostics, waveform coverage, result records | `electrical-node-map.json`, `experiments/<id>/…` |
 | `observation` | `Signal`, `EyeRequest`, complete-window folding, metrics (leaf) | `<exp>/eyes/**`, `<exp>/eyes.json` |

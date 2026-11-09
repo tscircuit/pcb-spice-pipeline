@@ -6,11 +6,19 @@ Extraction now walks the actual copper. It does not launch FastHenry or FasterCa
 1. **Segment.** Resolve driver and receiver pads, bends, widths, layers, neighbours, pad boundaries
    and polygon edges, including reference-via pad/barrel/drill extents. Intersect each perpendicular slice with metal on every layer and with the
    physical dielectric stack. Cutouts stay cutouts. Electrical junctions share nodes.
-2. **Solve the slice.** A constant-panel boundary-element method solves conductor potentials and
-   dielectric transmission boundaries in open space. A charge-neutral constraint determines the
-   common potential. Solve again in vacuum and calculate L = μ0 ε0 C0⁻¹. Neutral floating pads are
-   eliminated with a Schur complement. Repeated geometry is cached. Within an extraction, identical material/thickness loss fits and the common dielectric fit are also reused. Dense IEEE-double elimination uses the included WebAssembly kernel;
-   `scripts/build-lu.mjs` rebuilds it from the readable C source.
+2. **Solve the slice.** A conservative cell-centred finite-volume Laplace discretization replaces
+   the dense boundary-element field solver. Metal rectangle faces are Dirichlet boundaries; each
+   dielectric cell uses its actual Dk, including mask. Harmonic face weights enforce displacement
+   continuity. The finite outer boundary is insulating (zero normal displacement), so total conductor
+   charge remains neutral. Its extent doubles until every published matrix entry changes below 0.5%.
+   A nested-dissection sparse LDL factorization is reused for every conductor excitation. Nodal Gauss
+   balance is checked independently of mesh convergence. Vacuum C0 gives L = μ0 ε0 C0⁻¹. Floating pads
+   are eliminated by a Schur complement. Dielectric loss comes from weighted face energy, rather than
+   a repeated perturbed-permittivity solve. The old dense logarithmic panel kernel is deleted; the
+   small conductor-matrix inversions still use the existing dense algebra backend.
+   **This replacement is an incomplete candidate:** its grid is geometrically graded with global
+   density refinement, not the requested adaptive field-energy refinement. Surface-current convergence
+   can still demand over a million cells, and coupled accuracy qualification remains resource-blocked.
 3. **Model vias.** Ground and ideal-DC supply stitches bind the copper of their physical reference net across the recorded layers. Tangent and centre cuts delimit their circular pad, plated barrel and drill; the exact chord at each midpoint enters the slice, with the drill removed from copper and dielectric. Existing pour voids retain their actual antipad clearances. Copper unions remove internal pad/barrel/pour seams. This remains a local prismatic approximation: longitudinal via-chord integration is not converged independently. A non-route via without a reference-net identity raises `reference_via`. Signal vias use physical hole, pad, antipad, plating, active length and the weighted dielectric
    permittivity within that span. Exterior mask and layers outside a blind/buried via are excluded. A missing dimension
    raises a named diagnostic. TI's closed-form via approximation gives lumped R/L/C; it is not a
@@ -25,12 +33,14 @@ Extraction now walks the actual copper. It does not launch FastHenry or FasterCa
 
 All numerical policy is in `src/kernel/numerics.ts`. There are no solver process timeouts, mesh
 attempt limits, lane caps, or maximum cell clamps. Refinement continues until every nonzero C/C0/L, surface-current-loss and dielectric-loss
-**estimate** entry changes by less than 0.5%. Richardson extrapolation removes the leading panel error
-(orders 2 then 4 for C/C0/loss, orders 4/3 then 2 for the quartic-graded corner-current integral). Both raw and
-estimated residuals are logged; the raw skin-loss residual can exceed 0.5% at termination. Reciprocity
-of the unprojected estimates must also pass. The entry-wise check compares the published reciprocal
-matrices, including arbitrarily small mutual terms. No matrix-norm floor relaxes their relative
-criterion. Two exact zeros count as unchanged; arrival at zero from a nonzero entry is a full change.
+entry changes by less than 0.5%. C/C0/L and dielectric loss are compared without extrapolation.
+The surface-current matrices retain a leading corner-error extrapolation; both raw and estimated
+residuals are logged. This extrapolation on the new graded grid has not completed the full coupled
+qualification. Grid and domain checks are separate and both must pass before a slice is returned.
+The legacy `steps.panels` artifact field now counts dielectric grid cells; `kind` distinguishes
+`mesh` from `domain`, and `extentMm` records truncation growth. There is no matrix-norm floor in
+entry-wise comparisons. Two exact zeros count as unchanged; arrival at zero from a nonzero entry is
+a full change. Checkpoints from the previous BEM lack independent grid/domain records and are rejected.
 Physical Dk, loss tangent, copper conductivity, layer thickness and via plating come from the original
 `pcb_stackup` (the examples declare it directly with the `pcbStackup` JSX prop), including solder mask; incomplete presets fail with field-specific diagnostics. The default example construction is
 explicitly bare copper. A masked TSX variant and a layered dielectric energy check are unit-tested.
@@ -47,12 +57,14 @@ recorded on every result; see `REPORT.md` for which requested checks actually pa
 flowchart LR
   copper[Real copper and stackup] --> segments[Segment and slice]
   segments --> valid{Supported constant slice?}
-  valid -->|yes| bem[Layered 2D BEM and vacuum solve]
+  valid -->|yes| field[Sparse layered Laplace and vacuum solve]
   valid -->|no| error[Named geometry diagnostic]
   segments --> reference[Reference-net via connectivity and metal unions]
   reference --> valid
   segments --> via[Closed-form signal via model]
-  bem --> fit[Refine Foster branches to sampled accuracy]
+  field --> domain{Grid and domain converged?}
+  domain -->|no| field
+  domain -->|yes| fit[Refine Foster branches to sampled accuracy]
   fit --> ladder[Automatic coupled RLGC ladder]
   fit -->|Uncertifiable loss target| error
   via --> ladder
@@ -67,7 +79,7 @@ References: [Hammerstad–Jensen single microstrip](https://qucs.sourceforge.net
 [coupled microstrip](https://qucs.sourceforge.net/tech/node77.html),
 [TI Analog Engineer's Pocket Reference, via formulas](https://www.ti.com/lit/eb/slyw038c/slyw038c.pdf),
 [NBS Journal of Research 84 (1979), 247, eqs. 2.3 and 3.3](https://nvlpubs.nist.gov/nistpubs/jres/84/jresv84n3p247_A1b.pdf).
-These references define validation oracles; they are not substituted for the BEM solution.
+These references define validation oracles; they are not substituted for the sparse field solution.
 
 IBIS package mode retains vendor R/L/C for signal, power and ground pins. The standard lumped
 capacitance is at the external pin relative to board ground; each pin’s R/L connects to the die.
@@ -78,4 +90,4 @@ ngspice. A solver-source fingerprint and the convergence/matrix checks guard res
 helps resume interrupted measurements; it does not substitute a stored native waveform. Both
 repeat simulations still execute ngspice, and restored extraction timings are marked as cached.
 
-The examples no longer stop at `reference_via`. Differential and multilayer now stop at `varying_cross_section`; active and quiet crosstalk stop at `oblique_coupling`. The first single-ended slice remains too slow and unconverged after a bounded measurement. None has a new qualified native end-to-end result. The finite-slab and wide opposing-strip proximity benchmarks pass within 2%; these unit checks do not qualify general mixed-face bulk-current redistribution or any board waveform.
+The examples no longer stop at `reference_via`. Differential and multilayer now stop at `varying_cross_section`; active and quiet crosstalk stop at `oblique_coupling`. The first single-ended slice converges in the sparse candidate but still takes about one minute. None has a new qualified native end-to-end result. The previous BEM loss/accuracy results are historical; they do not qualify this replacement. See REPORT.md for the current command results and the measured sparse-solver blocker.

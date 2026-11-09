@@ -14,6 +14,7 @@ export function restoreSlices(entries: [string, BemResult][]): void {
   for (const [hash,result] of entries) {
     const residual = result.steps.at(-1)?.residual
     if (typeof hash!=='string' || typeof residual!=='number' || !Number.isFinite(residual) || residual>=numerics.meshRelativeChange) fail('mesh_convergence','Slice checkpoint lacks a converged entry-wise estimate')
+    if (!result.steps.some(s=>s.kind==='mesh'&&s.residual!==null&&s.residual<numerics.meshRelativeChange)||result.steps.at(-1)?.kind!=='domain') fail('mesh_convergence','Slice checkpoint lacks independent sparse grid/domain convergence; re-extract')
     if (!result.surfaces?.length || result.surfaces.some(f => ![f.thicknessM, f.conductivitySm].every(v => Number.isFinite(v) && v > 0))) fail('loss_fit', 'Slice checkpoint lacks physical finite-thickness surface terms; re-extract')
     for (const [name,matrix] of Object.entries({C:result.C,C0:result.C0,surface:result.surface,loss:result.loss, ...Object.fromEntries(result.surfaces.map((f, i) => [`face${i}`, f.matrix]))})) {
       if (matrix.length!==result.C.length || matrix.some(row=>row.length!==matrix.length || row.some(v=>!Number.isFinite(v)))) fail('matrix_format',`checkpoint ${name}: finite matching square matrix required`)
@@ -29,7 +30,7 @@ export function restoreSlices(entries: [string, BemResult][]): void {
 export function cachedSlice(hash: string, slice: CrossSection, progress: (message: string) => void): BemResult {
   const cached = solutions.get(hash)
   if (cached) {
-    for (const step of cached.steps) progress(`2D BEM: ${step.panels} panels; estimated C/C0/L/skin/loss ${step.residual ?? 'initial'}; raw ${step.rawResidual ?? 'initial'}; target < ${numerics.meshRelativeChange}`)
+    for (const step of cached.steps) progress(`2D sparse FV ${step.kind}: ${step.panels} cells; extent ${step.extentMm} mm; C/C0/L/skin/loss ${step.residual ?? 'initial'} ${JSON.stringify(step.entries)}; target < ${numerics.meshRelativeChange}`)
     return structuredClone(cached)
   }
   const solved = solveCrossSection(slice, progress)

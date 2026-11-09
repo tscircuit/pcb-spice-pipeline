@@ -5,37 +5,22 @@
 export const numerics = {
   /** Prompt accuracy contract: every nonzero C/C0/L/skin/loss matrix entry changes by less than 0.5%. */
   meshRelativeChange: .005,
-  /** Start a constant-panel BEM cheaply, then double its graded subdivisions indefinitely. */
-  initialPanelsPerEdge: 2,
-  meshRefinementRatio: 2,
-  /** Galerkin constant panels have second-order capacitance error; Richardson removes that term. */
-  capacitanceExtrapolationOrder: 2,
-  /** A second Richardson step removes the next smooth Galerkin h^4 term.
-   * Corner/interface remainders are still subject to the same entry-wise refinement test.
-   */
-  capacitanceCorrectionOrder: 4,
-  /** Laplace's exterior 3*pi/2 wedge gives J~r^(-1/3). Its unresolved J^2 integral
-   * scales as h^(1/3). Quartic endpoint grading h~n^-4 therefore gives n^(-4/3)
-   * leading surface-loss error. Richardson removes it; every output entry must still converge.
-   */
+  /** Rectilinear metric: grow far cells geometrically; quartic near-edge spacing resolves corner currents. */
+  gridInitialDensity: 1,
+  /** Sum of nodal flux imbalance relative to solved absolute face flux, independent of mesh refinement. */
+  fieldBalanceRelative: 1e-8,
+  gridGrowth: .7,
+  gridEdgePower: 4,
+  gridRefinementRatio: 2,
+  /** Vacuum rectangular-metal corner: J~r^(-1/3); integral J^2 has h^(1/3) error. */
   skinExtrapolationOrder: 4/3,
-  /** After the corner-current term, the smooth-panel surface integral has h^2 error. */
-  skinCorrectionOrder: 2,
-  /** Quartic endpoint grading resolves metal/dielectric corner charge singularities. */
-  edgeGradingPower: 4,
-  /** Four-point Gauss–Legendre target-panel integration (exact through degree 7). */
-  panelQuadrature: [[-.8611363115940526, .3478548451374538], [-.3399810435848563, .6521451548625461], [.3399810435848563, .6521451548625461], [.8611363115940526, .3478548451374538]],
   /** Millimetre topology comparisons reflect Circuit JSON's route precision. */
   endpointToleranceMm: 1e-5,
   boundaryToleranceMm: 1e-9,
-  interfaceProbeMm: 1e-7,
   coordinateDigits: 8,
   stackupCoordinateDigits: 10,
-  /** Direction and panel predicates in mm or dimensionless panel fractions; avoid roundoff slivers. */
+  /** Dimensionless parallel-route direction predicate. */
   directionTolerance: 1e-8,
-  minimumPanelLengthMm: 1e-12,
-  kernelNormalZeroMm: 1e-14,
-  panelEndFractionTolerance: 1e-8,
   /** Observed-eye boundary/interpolation tolerances are fractions of one UI, not resource limits. */
   eyeBoundaryToleranceUi: 1e-9,
   eyeInterpolationToleranceUi: 1e-12,
@@ -58,8 +43,6 @@ export const numerics = {
   frequencySamples: 41,
   /** Relative objective stagnation is numerical convergence, not an iteration cap. */
   fitRelativeChange: 1e-11,
-  /** Differential dielectric sensitivity step; truncation O(step) is below mesh tolerance. */
-  dielectricRelativeStep: .001,
   /** Standard 10–90% physical edge thresholds, used for vendor fixtures and linear PULSE edges. */
   edgeLowFraction: .1,
   edgeHighFraction: .9,
@@ -77,7 +60,7 @@ export const numerics = {
    */
   wasmPageBytes: 65536,
   luInitialMemoryPages: 2,
-  /** Matrix validation tolerances; these predate BEM and also protect SPICE passivity. */
+  /** Matrix validation tolerances; these predate field extraction and also protect SPICE passivity. */
   matrixReciprocity: .005,
   choleskyRelativeFloor: 1e-12,
   /** Native transient accuracy retained from the existing pipeline: tighter than the 0.5% field criterion.
