@@ -11,5 +11,4 @@ minimumReleaseAgeExclude:
 patchedDependencies:
   '@tscircuit/core@0.0.2217': patches/@tscircuit__core@0.0.2217.patch
   '@tscircuit/props@0.0.712': patches/@tscircuit__props@0.0.712.patch
-  circuit-json@0.0.541: patches/circuit-json@0.0.541.patch
   '@tscircuit/ibis-to-spice@0.0.2': patches/@tscircuit__ibis-to-spice@0.0.2.patch

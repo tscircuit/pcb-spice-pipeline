@@ -1,13 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { geometryFromCircuitJson, type CircuitJson } from '../../../src/board'
+import { geometryFromCircuitJson, type CircuitJson, stackupFromCircuitJson } from '../../../src/board'
 import { circuitJson, modeling } from '../../../examples/crosstalk/index.circuit'
 import { circuitJson as via, modeling as viaModeling, makeBoard } from '../../../examples/multilayer/index.circuit'
 import { fourLayerStackup } from '../../../examples/stackup'
 import { drilledHoles } from '../../fixtures/drilled-holes'
 
-test('segments preserve physical lengths and actual unequal neighbour positions', () => {
-  const g = geometryFromCircuitJson(circuitJson as CircuitJson, modeling)
+test('supported parallel TSX preserves copper lengths, unequal neighbours and lane order', async () => {
+  const { circuitJson, modeling } = await reviewBoard({ parallel: true })
+  const g = geometryFromCircuitJson(circuitJson, modeling)
   for (const lane of g.mappings) {
     const segmented = g.cells.reduce((s, c) => s + (c.ports.some(p => p.lane === lane.port) ? c.lengthM * 1000 : 0), 0)
     assert.ok(Math.abs(segmented - lane.stages.reduce((s, v) => s + v.lengthMm, 0)) < 1e-6)
@@ -23,24 +24,44 @@ test('actual JSX drilled holes raise a named diagnostic instead of losing physic
   assert.equal(holes.length, 1)
   assert.throws(() => geometryFromCircuitJson([...circuitJson, ...holes], modeling), { code: 'slice_conductor' })
 })
-test('multilayer TSX derives actual via antipads and splits at plane edges and layers', () => {
-  const g = geometryFromCircuitJson(via as CircuitJson, viaModeling)
-  assert.equal(g.cells.filter(c=>c.via).length,2)
-  assert.ok(g.cells.filter(c=>c.via).every(c=>Math.abs(c.via!.antipadMm-.7)<.001))
-  // All dielectric layers crossed by these vias have Dk 4.1.
-  assert.ok(g.cells.filter(c=>c.via).every(c=>Math.abs(c.via!.er-4.1)<1e-12))
-  assert.ok(g.cells.some(c=>c.profile==='inner2'))
+test('multilayer TSX validates selected antipads and diagnoses unmodelled reference vias', () => {
+  assert.throws(() => geometryFromCircuitJson(via as CircuitJson, viaModeling), { code: 'reference_via' })
+  assert.ok(via.some(r => r.type === 'pcb_via' && r.layers.includes('inner2')))
   const noHoles = structuredClone(via) as any[]
   for (const p of noHoles.filter(r=>r.type==='pcb_copper_pour')) p.brep_shape.inner_rings=[]
   assert.throws(()=>geometryFromCircuitJson(noHoles as CircuitJson,viaModeling),{code:'via_antipad'})
 })
-test('actual JSX solder mask is retained but does not set buried/through-via span permittivity', async () => {
+test('actual JSX mask construction stays intact when reference-via extraction is rejected', async () => {
   const mask = { layer_type:'soldermask', thickness:.02, relative_permittivity:3.3, dielectric_loss_tangent:.025 }
   const masked = await makeBoard({ ...fourLayerStackup, layers:[mask, ...fourLayerStackup.layers, mask] })
-  const g = geometryFromCircuitJson(masked, viaModeling)
+  assert.throws(() => geometryFromCircuitJson(masked, viaModeling), { code: 'reference_via' })
+  const g = { stackup: stackupFromCircuitJson(masked) }
   assert.equal(g.stackup.dielectrics.filter(d=>d.material==='soldermask').length, 2)
   assert.ok(Math.abs(g.stackup.copperLayers.find(c=>c.name==='bottom')!.zMaxMm)<1e-12)
   assert.ok(g.stackup.dielectrics.some(d=>d.relativePermittivity===3.3 && d.lossTangent===.025))
   assert.ok(Math.abs(g.stackup.relativePermittivity-4.1)>.01)
-  assert.ok(g.cells.filter(c=>c.via).every(c=>Math.abs(c.via!.er-4.1)<1e-12))
+})
+
+import { reviewBoard } from '../../fixtures/review-geometry'
+
+test('review 1: oblique driven lanes never become neutral floating copper', async () => {
+  const { circuitJson, modeling } = await reviewBoard({ oblique: true })
+  assert.throws(() => geometryFromCircuitJson(circuitJson, modeling), { code: 'oblique_coupling' })
+})
+test('review 5: sloping return boundaries never become one midpoint extrusion', async () => {
+  const { circuitJson, modeling } = await reviewBoard({ slopingPour: true })
+  assert.throws(() => geometryFromCircuitJson(circuitJson, modeling), { code: 'varying_cross_section' })
+})
+test('review 6: unselected reference via is never omitted', async () => {
+  const { circuitJson, modeling } = await reviewBoard({ via: true })
+  assert.throws(() => geometryFromCircuitJson(circuitJson, modeling), { code: 'reference_via' })
+})
+test('review 7: endpoint pads include connected open overhangs', async () => {
+  const { circuitJson, modeling } = await reviewBoard({ padWidth: 2 })
+  const g = geometryFromCircuitJson(circuitJson, modeling)
+  assert.equal(Math.min(...g.cells.map(c => c.start[0])), -6)
+  assert.equal(Math.max(...g.cells.map(c => c.end[0])), 6)
+  assert.ok(g.cells.some(c => c.ports.some(p => p.from === 'IN0' || p.to === 'IN0')))
+  assert.ok(g.cells.some(c => c.ports.some(p => p.from === 'OUT0' || p.to === 'OUT0')))
+  assert.equal(g.cells.reduce((s, c) => s + c.lengthM * 1000, 0), 12)
 })

@@ -1,4 +1,5 @@
 import * as converter from '@tscircuit/ibis-to-spice'
+import { fail } from './diagnostics'
 import type { ModelRunDefinition } from './types'
 
 /** Adds all mapped pin R/L and pad-to-board-ground C around an omitted-package converter core.
@@ -19,6 +20,10 @@ export function convertWithPackage(bytes: Uint8Array, input: ModelRunDefinition)
   const lines: string[] = []
   for (const [i, [terminal, port]] of Object.entries(result.spicePinMapping).entries()) {
     const pin = data.find(p => p.port === port)!
+    for (const [name, value] of Object.entries({ R: pin.resistanceOhms, L: pin.inductanceHenries, C: pin.capacitanceFarads })) {
+      if (value === null || value === undefined || !Number.isFinite(value) || value < 0) throw new converter.IbisError('invalid_package', `${pin.physicalPin}: vendor ${name} must be present, finite and nonnegative (explicit zero is allowed)`)
+    }
+    if (pin.role === 'reference' && pin.inductanceHenries! > 0 && result.metadata.pins.some(p => p.runState.mode === 'output' && p.runState.enabled)) fail('ibis_supply_dynamics', `${pin.physicalPin}: switching with inductive die supplies needs power-aware supply-current and rail-referenced die-capacitance data; this classic IBIS converter provides neither. Explicit packagePolicy=omit is the available ideal-supply alternative`)
     let previous = terminal
     if (pin.resistanceOhms) {
       lines.push(`RPKG${i} ${previous} PKGR${i} ${converter.spiceNumber(pin.resistanceOhms)}`)

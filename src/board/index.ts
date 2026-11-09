@@ -12,4 +12,4 @@ export { polygonContains, ringArea, closeRing } from './geometry/polygon'
 export { validateModeling, geometryFromCircuitJson, channelGeometry, boardGround } from './geometry'
 export { sliceIntervals, wirePolygon, mergeConductors } from './geometry/slices'
 
-export { pcb_spice_channel as channelIntent } from 'circuit-json'
+export { channelIntent } from './schema'

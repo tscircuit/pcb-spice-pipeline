@@ -11,10 +11,16 @@ test('real TSX reproductions include SC70 pads, three distinct routes and a laye
   assert.ok(multilayer.some(r => r.type === 'pcb_copper_pour'))
 })
 
-test('AFTER: lane permutations produce identical real-copper segment maps', () => {
-  const forward = geometryFromCircuitJson(circuitJson as CircuitJson, modeling)
-  const permuted = geometryFromCircuitJson(circuitJson as CircuitJson, { ...modeling, lanes: [modeling.lanes[0], modeling.lanes[2], modeling.lanes[1]] })
-  assert.deepEqual(forward, permuted)
-  assert.ok(forward.cells.some(c => c.ports.length === 3))
-  assert.ok(forward.cells.some(c => c.slice?.conductors.some(s => s.group === -1 && s.xMax - s.xMin > 20)))
+test('reviewed examples refuse omitted reference-via geometry for every lane order', () => {
+  for (const lanes of [modeling.lanes, [...modeling.lanes].reverse()]) assert.throws(() => geometryFromCircuitJson(circuitJson as CircuitJson, { ...modeling, lanes }), { code: 'reference_via' })
+})
+
+import { makeGapBoard } from '../fixtures/rs485-gap'
+test('review 10: original 44 by 12 mm RS-485 comparison TSX stays reproducible', async () => {
+  const original = await makeGapBoard()
+  const board = original.find(r => r.type === 'pcb_board')!
+  assert.ok(board.type === 'pcb_board' && board.width === 44 && board.height === 12)
+  assert.equal(original.filter(r => r.type === 'pcb_via').length, 2)
+  assert.equal(original.filter(r => r.type === 'pcb_copper_pour').length, 1)
+  assert.equal(original.filter(r => r.type === 'source_component' && r.name === 'RTERM').length, 1)
 })

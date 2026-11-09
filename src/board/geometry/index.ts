@@ -183,6 +183,27 @@ export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling
     const angle = ((Reflect.get(pad, 'rotation') as number | undefined) ?? 0) * Math.PI / 180
     shapes.push({ id: pad.pcb_smtpad_id, net, physicalNet: ground.ids.has(id) ? 'GROUND' : [...connectedSourceIds(cj,id)].sort()[0], layer: pad.layer, polygon: [[[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => [pad.x + x * pad.width / 2 * Math.cos(angle) - y * pad.height / 2 * Math.sin(angle), pad.y + x * pad.width / 2 * Math.sin(angle) + y * pad.height / 2 * Math.cos(angle)])] })
   }
+  // Copper beyond a port is an open pad stub, connected at the actual port node.
+  for (const mapping of mappings) for (const [index, portId] of mapping.pcbPorts.entries()) {
+    const endpoint = index ? mapping.originalRoute.at(-1)! : mapping.originalRoute[0]
+    const wire = edges.find(e => e.lane === mapping.port && Math.hypot((index ? e.b : e.a)[0] - endpoint.x, (index ? e.b : e.a)[1] - endpoint.y) < numerics.endpointToleranceMm)
+    const pad = cj.find(r => r.type === 'pcb_smtpad' && r.pcb_port_id === portId)
+    if (!wire || !pad || pad.type !== 'pcb_smtpad' || pad.shape !== 'rect') continue
+    const point = index ? wire.b : wire.a
+    const direction = (index ? 1 : -1) * (wire.forward ? 1 : -1)
+    const shape = shapes.find(s => s.id === pad.pcb_smtpad_id)!
+    const across = shape.polygon.flat().map(p => -p[0] * wire.dy + p[1] * wire.dx)
+    const values = shape.polygon.flat().map(p => p[0] * wire.dx + p[1] * wire.dy)
+    const at = point[0] * wire.dx + point[1] * wire.dy
+    const tip = direction > 0 ? Math.max(...values) : Math.min(...values)
+    if ((tip - at) * direction <= numerics.endpointToleranceMm) continue
+    const finish: CopperPoint = [point[0] + wire.dx * (tip - at), point[1] + wire.dy * (tip - at)]
+    edges.push({ ...wire, id: `${pad.pcb_smtpad_id}-stub`, a: point, b: finish, lo: Math.min(at, tip), hi: Math.max(at, tip), from: node(mapping.port, ...point, wire.layer), to: node(mapping.port, ...finish, wire.layer), forward: direction > 0 })
+    mapping.stages.push({ kind: 'wire', profile: 'pad-stub', lengthMm: Math.abs(tip - at), widthMm: Math.max(...across) - Math.min(...across), thicknessMm: layer(pad.layer).zMaxMm - layer(pad.layer).zMinMm })
+  }
+  const selectedPcbTraces = new Set(mappings.map(m => m.pcbTraceId))
+  const unmodelledVia = cj.find(r => r.type === 'pcb_via' && !selectedPcbTraces.has(r.pcb_trace_id ?? ''))
+  if (unmodelledVia) fail('reference_via', `${unmodelledVia.type === 'pcb_via' ? unmodelledVia.pcb_via_id : ''}: reference/unselected via barrels, pads, clearances and return connectivity require a qualified discontinuity model`)
   const directions = new Map(edges.map(e => [`${round(e.dx)},${round(e.dy)}`, [e.dx, e.dy]]))
   for (const [key, [dx, dy]] of [...directions].sort(([a], [b]) => a.localeCompare(b))) {
     const parallel = edges.filter(e => `${round(e.dx)},${round(e.dy)}` === key)
@@ -218,11 +239,15 @@ export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling
           const candidates = active.map((e, i) => ({e,i,distance:Math.abs(-dy * e.a[0] + dx * e.a[1] - center)})).filter(c => netForLane.get(c.e.lane) === netForLane.get(shape.net)).sort((a, b) => a.distance - b.distance)
           if (candidates.length) group = candidates[0].i
         }
+        if (group < 0 && netForLane.has(shape.net)) fail('oblique_coupling', `${shape.id}: driven net ${shape.net} crosses direction ${key} without a connected propagation port; oblique coupling is unsupported`)
         if (group < 0 && shape.net !== 'GROUND') {
           const key = netForLane.get(shape.net) ?? shape.net
           if (!floating.has(key)) floating.set(key, order.length + floating.size)
           group = floating.get(key)!
         }
+        const before = sliceIntervals(shape.polygon, dx, dy, lo + (hi - lo) / 4)
+        const after = sliceIntervals(shape.polygon, dx, dy, hi - (hi - lo) / 4)
+        if (before.length !== after.length || before.some((v, i) => v.some((x, j) => Math.abs(x - after[i][j]) > numerics.endpointToleranceMm))) fail('varying_cross_section', `${shape.id}: cross-section varies within ${lo}..${hi} mm in direction ${key}; a converged nonuniform model is required`)
         for (const [xMin, xMax] of intervals) if (xMax > xMin) slice.conductors.push({ id: shape.id, group, physicalNet: shape.physicalNet ?? netForLane.get(shape.net) ?? shape.net, xMin: round(xMin), xMax: round(xMax), zMin: physical.zMinMm, zMax: physical.zMaxMm, conductivitySm: physical.conductivitySm })
       }
       if (!slice.conductors.some(c => c.group === -1)) fail('slice_ground', `No board ground crosses slice ${key} at ${t} mm; a 2D return cannot be determined`)
@@ -242,7 +267,7 @@ export function geometryFromCircuitJson(cj: CircuitJson, modeling: BoardModeling
     'Declared ideal DC source rails are AC equipotential; their physical copper is included with reference surfaces. Distributed rail impedance is outside this model.',
     'Connected transverse bend legs belong to their own propagation segment; including them in a prismatic 2D extrusion would create a nonphysical short. Bend fringing is excluded.',
     'Local quasi-TEM cross-sections at segment midpoints; radiation and bend fringing require a 3D full-wave model and are excluded.',
-    'Only co-propagating parallel wires share distributed magnetic coupling; oblique conductors have electrostatic floating-charge coupling in each local slice.',
+    'Driven oblique copper, continuously varying slices and unselected reference vias raise named diagnostics before extraction.',
     'Floating pads are neutral conductors, eliminated by a Schur complement; inner copper etch gaps have no inferred resin fill.',
     'Vias use cited lumped barrel/pad/antipad formulas; a missing circular antipad is a named error. Ground is the connected board ground net.',
   ] }

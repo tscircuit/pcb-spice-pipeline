@@ -11,3 +11,14 @@ test('channel schema accepts arbitrary lanes and rejects obsolete numerical cont
   validateCircuitRecords([{...experiment,experiment_type:'spice_transient_analysis',name:'SI',time_per_step:1e-6,end_time:1e-3}])
   assert.throws(()=>modelingFromCircuitJson([{...experiment,pcb_spice_channel:{...channel,sections:1}}] as never),{code:'pcb_spice_channel'})
 })
+
+
+test('review 2: actual settings-free TSX is admitted with an unpatched circuit-json peer', async () => {
+  const { reviewBoard } = await import('../fixtures/review-geometry')
+  const { simulation_experiment } = await import('circuit-json')
+  const { circuitJson } = await reviewBoard()
+  const record = circuitJson.find(r => r.type === 'simulation_experiment')!
+  assert.equal(simulation_experiment.safeParse(record).success, false, 'upstream still requires the removed settings')
+  validateCircuitRecords(circuitJson)
+  assert.equal(modelingFromCircuitJson(circuitJson).lanes.length, 1)
+})

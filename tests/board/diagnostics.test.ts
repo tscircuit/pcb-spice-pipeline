@@ -20,7 +20,7 @@ for (const [code, change] of [
   ['slice_conductor', (cj: any[]) => { const p = structuredClone(cj.find(r => r.type === 'pcb_copper_pour'))
     p.source_net_id = 'unbound-copper'
     cj.push(p) }],
-  ['slice_ground', (cj: any[]) => { for (let i = cj.length - 1; i >= 0; i--) if (cj[i].type === 'pcb_copper_pour' || cj[i].type === 'pcb_smtpad' || (cj[i].type === 'pcb_trace' && !cj.some(s => s.type === 'source_trace' && /^D\d$/.test(s.name) && s.source_trace_id === cj[i].source_trace_id))) cj.splice(i, 1) }],
+  ['oblique_coupling', (cj: any[]) => { for (let i = cj.length - 1; i >= 0; i--) if (cj[i].type === 'pcb_via' || cj[i].type === 'pcb_copper_pour' || cj[i].type === 'pcb_smtpad' || (cj[i].type === 'pcb_trace' && !cj.some(s => s.type === 'source_trace' && /^D\d$/.test(s.name) && s.source_trace_id === cj[i].source_trace_id))) cj.splice(i, 1) }],
   ['route_branch', (cj: any[]) => { cj.find(r => r.type === 'source_trace' && r.name === 'D0').connected_source_port_ids.push('extra-branch') }],
 
 ] as const) {
@@ -44,4 +44,11 @@ test('via dimensions remain physical requirements', () => {
 test('intersecting metal on different nets is a physical short', () => {
   const metal = {id:'a',group:0,xMin:0,xMax:1,zMin:0,zMax:.035,conductivitySm:5.8e7}
   assert.throws(() => mergeConductors({conductors:[metal,{...metal,id:'b',group:1}],dielectrics:[]}), {code:'conductor_overlap'})
+})
+
+
+test('supported TSX without reference copper raises slice_ground', async () => {
+  const { reviewBoard } = await import('../fixtures/review-geometry')
+  const { circuitJson, modeling } = await reviewBoard()
+  assert.throws(() => geometryFromCircuitJson(circuitJson.filter(r => r.type !== 'pcb_smtpad' && r.type !== 'pcb_copper_pour'), modeling), {code:'slice_ground'})
 })

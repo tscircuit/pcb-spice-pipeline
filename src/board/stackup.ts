@@ -1,4 +1,4 @@
-import type { CircuitJson } from 'circuit-json'
+import type { CircuitJson } from './schema'
 import { numerics } from '../kernel'
 import { fail } from './diagnostics'
 

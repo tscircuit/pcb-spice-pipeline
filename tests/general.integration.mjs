@@ -189,3 +189,17 @@ test('saving requested voltages preserves internal branch-current controlled sou
   assert.equal(waveforms[0],waveforms[1])
   assert.ok(waveforms[0].split('\n').some(line=>Number(line.trim().split(/\s+/)[1])>.9))
 })
+
+test('review 3: real TI switching with inductive die supplies requires missing power-aware data',
+  {skip:!process.env.PCB_SPICE_TEST_MODEL_DIR}, async () => {
+  const {makeBoard,modeling}=await import('../examples/single-ended/index.circuit.tsx')
+  const {generalDeclarations,modelRunDefinition}=await import('../src/simulation/index.ts')
+  const {admitBuffers,compileBuffers}=await import('../src/buffers/index.ts')
+  const {rootScope}=await import('../src/kernel/index.ts')
+  const circuitJson=await makeBoard(true)
+  // Electrical-only compilation isolates the package issue from board-field diagnostics.
+  const declarations=generalDeclarations(circuitJson,{mappings:[]},modeling)
+  const ibisSources=await loadIbisSources({circuitJson,baseDir:process.env.PCB_SPICE_TEST_MODEL_DIR})
+  const admitted=admitBuffers(declarations.models,ibisSources,modeling,rootScope('buffers'))
+  assert.throws(()=>compileBuffers(admitted.value,declarations.plans,modelRunDefinition),{code:'ibis_supply_dynamics'})
+})

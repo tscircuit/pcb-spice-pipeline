@@ -1,16 +1,22 @@
 // Circuit JSON record admission (was schema.ts + circuit-schema.mjs). Validation never edits input.
 import { z } from 'zod'
 import * as base from 'circuit-json'
-import type { CircuitJson } from 'circuit-json'
+
 import { fail } from './diagnostics'
 
 export type {
-  CircuitJson,
-  SimulationExperiment,
   SimulationIbisModel,
   SimulationIbisPinState,
   SimulationDigitalStimulus,
 } from 'circuit-json'
+
+/** Settings-free electrical intent is owned here, including on unpatched consumer installs. */
+export const channelIntent = z.object({
+  lanes: z.array(z.object({ name: z.string().min(1), driver_source_port_id: z.string().min(1), receiver_source_port_id: z.string().min(1) }).strict()).min(1),
+  passive_source_component_ids: z.array(z.string().min(1)).optional(),
+}).strict()
+export type SimulationExperiment = Omit<base.SimulationExperiment, 'pcb_spice_channel'> & { pcb_spice_channel?: z.infer<typeof channelIntent> }
+export type CircuitJson = (Exclude<base.CircuitJson[number], { type: 'simulation_experiment' }> | SimulationExperiment)[]
 
 /** Saved boards retain a few older physical serialization forms. Validate their
  * equivalent official schemas without changing the original geometry values. */
@@ -31,6 +37,11 @@ const numericDisplayOffsets = (record: Record<string, unknown>): Record<string, 
 }
 
 const physicalCompatibility: Record<string, z.ZodTypeAny> = {
+  simulation_experiment: z.intersection(compatible(base.simulation_experiment, record => {
+    delete record.pcb_spice_channel
+    return record
+  }), z.object({ pcb_spice_channel: channelIntent.optional() }).passthrough()),
+  simulation_digital_stimulus: base.simulation_digital_stimulus.extend({ transmission_pattern: z.object({ transmission_type: z.literal('bits'), bits: z.string().regex(/^[01]+$/).or(z.array(z.union([z.literal(0), z.literal(1)])).min(1)), repeat: z.boolean() }).strict() }),
   source_port: compatible(base.source_port, record => {
     if (record.source_component_id === null) delete record.source_component_id
     return record

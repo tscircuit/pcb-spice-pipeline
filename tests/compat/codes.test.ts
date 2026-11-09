@@ -16,6 +16,10 @@ const src = join(repo, 'src')
 // tests/support/): clock_ui, eye, eyediagram, power, propagation, stimulus, tsx_board, tsx_reference,
 // tsx_scope, tsx_simulation, tsx_supply.
 const RAISED = [
+  'oblique_coupling',
+  'varying_cross_section',
+  'reference_via',
+  'ibis_supply_dynamics',
   'analytic_resistance',
   'analytic_return',
   'artifact_collision',
