@@ -20,7 +20,7 @@ export default () => (
     <trace from=".RX > .A" to=".RTERM > .pin1" />
     <trace from=".RX > .B" to=".RTERM > .pin2" />
     <differentialpair positiveConnection=".TX > .A" negativeConnection=".TX > .B" />
-    <copperpour connectsTo="net.GND" layer="bottom" />
+    <copperpour connectsTo="net.GND" layer="bottom" unbroken />
 
     <signalintegrity bitRate="250kbps">
       <signal

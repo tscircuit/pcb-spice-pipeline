@@ -98,7 +98,7 @@ export default () => (
     <trace from=".CPU > .VSS" to="net.GND" />
     <trace from=".DRAM > .VSSQ" to="net.GND" />
     {cpuDq.map((_, i) => (
-      <trace key={i} from={`.CPU > .DDR_D${i}`} to={`.DRAM > .DQL${i}`} />
+      <trace key={String(i)} from={`.CPU > .DDR_D${i}`} to={`.DRAM > .DQL${i}`} />
     ))}
     <trace from=".CPU > .DDR_DQS0" to=".DRAM > .DQSL" />
     <trace from=".CPU > .DDR_DQSN0" to=".DRAM > .DQSL_N" />
@@ -106,7 +106,7 @@ export default () => (
       positiveConnection=".CPU > .DDR_DQS0"
       negativeConnection=".CPU > .DDR_DQSN0"
     />
-    <copperpour connectsTo="net.GND" layer="inner1" />
+    <copperpour connectsTo="net.GND" layer="inner1" unbroken />
 
     <signalintegrity name="WRITE" bitRate="800Mbps" corner="typ">
       <signal
@@ -124,7 +124,7 @@ export default () => (
       />
       {cpuDq.map((_, i) => (
         <signal
-          key={i}
+          key={String(i)}
           name={`DQ${i}`}
           driver={{ pin: `.CPU > .DDR_D${i}`, model: "Model_257" }}
           receiver={{ pin: `.DRAM > .DQL${i}`, model: "ODT_off" }}

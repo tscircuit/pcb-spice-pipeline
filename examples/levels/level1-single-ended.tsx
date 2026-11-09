@@ -31,7 +31,7 @@ export default () => (
 
     <trace from=".TX > .Y" to=".RX > .A" />
 
-    <copperpour connectsTo="net.GND" layer="bottom" />
+    <copperpour connectsTo="net.GND" layer="bottom" unbroken />
 
     <signalintegrity bitRate="20Mbps">
       <signal name="DATA" driver=".TX > .Y" receiver=".RX > .A" />
