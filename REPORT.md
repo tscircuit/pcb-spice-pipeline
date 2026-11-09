@@ -8,10 +8,11 @@ No branches have been pushed and no PRs opened.
 
 ## Branches and implementation
 
-- `si-2d/repro`: `8a85951c6cd6b1ebd76c8dca3ea8e89d585446a9`, +223/-1 lines, 12 files.
+- `si-2d/repro`: reproduction branch; final head and line counts are reported with delivery.
+  The original BEFORE snapshot is `8a85951c6cd6b1ebd76c8dca3ea8e89d585446a9`.
   Actual TSX crosstalk/multilayer boards, lane-order and invented-return reproductions, opt-in native
-  3D harness. The historical 11.7/4.2 nH and SC70 R residual 0.271606591 come from the supplied
-  prior evidence; they are not newly measured routed-copper results.
+  3D harness. The original RS-485 TSX now reproduces 11.716323/4.169378 nH on native solvers.
+  The SC70 residual 0.271606591 remains prior evidence while its fresh rerun continues.
 - `si-2d/fix`, stacked on it: initial native single-ended increment `8d03416`, broader working
   increment `871e922`, followed by all-matrix convergence/physical-edge/limiter corrections.
   Final head and complete line counts are reported with delivery.
@@ -56,19 +57,20 @@ are identified separately and are not cold-extraction speed claims.
 
 | Board | BEFORE extraction, 3D | AFTER extraction, 2D | BEFORE ngspice | AFTER ngspice | AFTER mesh policy |
 |---|---:|---:|---:|---:|---|
-| single-ended | 89.113 | 49.787 | 6.195 | 11.290 | final reciprocal two-level estimates |
-| differential-data | 11.603 | 603.187 | 10.233 | 684.055 | earlier C/C0-only increment |
+| single-ended | 89.113 | 52.356 | 6.195 | 13.517 | final strict entry-wise estimates |
+| differential-data | 11.603 | 1609.389 | 10.233 | 243.898 | final strict entry-wise estimates |
 | crosstalk, all active | 234.089 | 420.993 | 27.210 | 842.539 | earlier C/C0-only increment |
-| multilayer | 491.585 | 1276.748 | 4.660 | 51.013 | all-matrix estimates |
+| multilayer | 491.585 | 653.178 | 4.660 | 44.742 | final strict entry-wise estimates |
 
-All four AFTER rows completed actual native ngspice, with real TI bytes. The differential/crosstalk
-rows do not qualify the final all-matrix stopping policy; stricter full reruns are in progress.
-The earlier C/C0-only multilayer run was extraction 143.720 s / ngspice 85.300 s; the stricter skin
-criterion makes the cost visible. Final single-ended second native run: extraction 0.0288 s (cached),
-ngspice 9.895 s, total 10.363 s. Every artifact and the native request were bit-identical.
+Three default boards now completed two actual native runs under the final strict policy, with every
+artifact and request identical. Their cached second extraction/native times are: single-ended
+0.0278/12.861 s; differential 0.1626/198.242 s; multilayer 0.0592/48.104 s. The crosstalk row is the
+older C/C0-only increment and does not qualify the final policy; its strict quiet/all-active runs
+are in progress. All default examples explicitly omit package parasitics, preserving the original
+experiment choice. The separate package variant is discussed below.
 
-The seconds-level extraction target is not met across the examples. The earlier differential and
-crosstalk native processes also exceed one minute. The dense BEM and large stiff primitive ladders
+The seconds-level extraction target is not met across the examples. The final differential and
+earlier crosstalk native processes also exceed one minute. The dense BEM and large stiff primitive ladders
 are the closest implemented alternative; there is no timeout, reduced fidelity fallback or hidden
 limit to manufacture a pass. Faster adaptive field solution/model reduction remains further work.
 
@@ -79,13 +81,20 @@ width pi*(.3+.025) mm and omitted through-via stubs. These old controls are abse
 The initial extraction-only baseline measured 37.898 s / 10.058 s for single/differential; the full
 BEFORE-eye measurements above supersede them and show contention variability.
 
+
+A fresh native opt-in reproduction of the original 44 x 12 mm RS-485 board gives 11.716323 nH
+straightened versus 4.169378 nH routed, with C12=-0.909219/-0.187355 pF. Extraction takes
+1.427/2592.909 s under contention; the regression passes. This is the original comparison geometry,
+not the repository default example. The default BEFORE RS-485 example's explicit 0.35 mm return
+profile instead produces 30.447940 nH. Its timing/eye rows must not be conflated with the 11.7 nH case.
+
 ## Closed-form accuracy, unit-tested field solver
 
 Finite 40 mm ground width, 1 mm signal width, 1 micrometre signal thickness, er=4. Microstrip h=1 mm;
 stripline plane spacing 2 mm; coupled gap .5 mm. These are four test configurations, not a sweep of
 all geometries. Single microstrip uses Hammerstad–Jensen; stripline uses Wheeler; coupled microstrip
 uses the published Hammerstad–Jensen modes; coupled stripline uses Cohn's elliptic-integral result.
-All listed errors are below 2%; the largest is 0.5538%. This does not validate RF conductor-loss
+All listed errors are below 2%; the largest is 0.5537%. This does not validate RF conductor-loss
 accuracy, vias, bends or split-return discontinuities against a 3D field solver.
 
 | Configuration | Quantity | Published oracle | 2D result | Error |
@@ -129,10 +138,11 @@ complex algebra; they do not establish the accuracy of the physical skin/dielect
 
 ## RS-485 mutual inductance
 
-Signed sum along the selected A/B driver-to-receiver paths: **1.504046 nH**, versus supplied prior
-real-copper 3D reference **4.2 nH**, difference **-64.19%**. Folded path directions are included; the
-naive first-entry sum 1.476879 nH is not the comparison quantity. Both selected path graphs are
-unbranched chains (52 A pieces, 58 B pieces); termination stubs remain in the circuit.
+Signed sum along the selected A/B driver-to-receiver paths at the IBIS knee, **777240.733 Hz**:
+**1.565388 nH**, including the causal Foster networks' internal inductive storage. The external
+quasi-TEM contribution alone is **1.504064 nH**. Against the supplied 4.2 nH reference the total
+is **-62.73%**. Folded path directions are included. Both selected path graphs are unbranched
+chains (52 A pieces, 58 B pieces); termination stubs remain in the simulated circuit.
 
 This is not a same-geometry 3D accuracy pass. The updated RS-485 TSX adds a broad bottom ground
 pour, whereas the prior routed reference used the earlier board copper. Local 2D extraction also
@@ -152,9 +162,8 @@ RS-485 -.2/+.2 V. These are observed-packet metrics, not BER estimates or protoc
 | single-ended | 3.299992 | 3.299976 | .832434 | .933093 | 41.6217 / 46.6546 ns |
 | differential-data | 4.470763 | 4.471156 | .785567 | .785584 | 3.142269 / 3.142336 us |
 
-These AFTER values currently use the earlier C/C0-only native runs; final-policy remeasurement is
-pending. Height barely changes; single-ended width increases 5.033 ns and RS-485 width changes only
-66.6 ps. Return geometry, routed segmentation and causal losses all changed together, so this is
+These AFTER values use the completed final-policy native runs. Height barely changes; single-ended
+width increases 5.033 ns and RS-485 width changes only 66.8 ps. Return geometry, routed segmentation and causal losses all changed together, so this is
 not an isolated attribution of the improvement. Single-ended also adds real bottom ground copper
 at x=-18..18, y=-5..0.3 mm. The multilayer board is now four layers with actual circular antipad voids
 and split inner/bottom ground pours; its earlier two-layer reproduction was not a qualified board.
@@ -184,24 +193,26 @@ requires distinct two-endpoint PCB routes meeting at shared junctions. These lim
 
 ## Checks and remaining qualification
 
-- `pnpm build`: passed. `pnpm test`: **244 passed, zero failed**, 167.470 s, including actual-TSX
+- `pnpm build`: passed. `pnpm test`: **244 passed, zero failed**, 286.726 s, including actual-TSX
   hole rejection, masked via geometry, layered dielectric energy and 250000-element numeric reductions. The previous first-extrapolation checkpoint
   passed 242/242 in 881.928 s; one obsolete timeout test was replaced by the hole regression.
-- `pnpm test:native`: **6 passed / 1 vendor-gated skip, zero failed**, 2.791 s. Includes dynamic
+- `pnpm test:native`: **6 passed / 1 vendor-gated skip, zero failed**, 4.121 s. Includes dynamic
   synthetic supply-pin packages, twelve lanes and bit-identical internal-branch save restriction.
   Separate real-TI runs are above.
 - `pnpm test:package`: passed packed Node execution, denied-host execution, NodeNext declarations
   and Bun execution. The packaging runner streams without timeout or output-buffer limits.
 - Lint, module graph, vocabulary and type checking pass; the 100001-bit actual TSX admission test
   passes through patched props, core and Circuit JSON. Native primitive test executes twelve lanes.
-- Native: all four default boards on the earlier increment; stricter single-ended/multilayer;
+- Native: final-policy single-ended, differential and multilayer, twice with identical artifacts;
+  earlier crosstalk; fresh original RS-485 3D gap;
   static and frequency-dependent complete multiport primitive networks; independent baseline/eyes.
 - Unit-only: published uniform-line accuracy, closed-form via accuracy, missing-data diagnostics,
   geometry lane-order invariance. Native quiet NEXT/FEXT, lane permutation and remaining native
   second-run checks are still pending; speed and 4.2 nH accuracy targets remain unmet.
 
 Evidence is in ignored `runs/2d`, `runs/qualified`, `runs/before-eyes`, native request directories
-and `/tmp/si-*.log`. Reproduce using `node --import tsx scripts/measure-2d.mjs ...`; it runs twice
+and persistent `runs/checks` logs. Fresh BEFORE evidence is in the separate reproduction worktree
+`../si-api-review/si-2d-before/runs/2d-baseline`. Reproduce using `node --import tsx scripts/measure-2d.mjs ...`; it runs twice
 natively and checks every artifact, then proves crosstalk lane permutation by exact native-request
 comparison and replay of the measured output. `scripts/measure-legacy.mjs ABS_REPRO_CHECKOUT ...`
 measures BEFORE only. `measure-accuracy.mjs`, `measure-eyes.mjs` and `measure-mutual.mjs` write or
@@ -213,3 +224,18 @@ moved the package abort to 101.597 ns but did not resolve it; that change was no
 
 Building the small IEEE-double WebAssembly LU required installing Homebrew lld; Homebrew also
 upgraded LLVM from 23.1.4 to 23.1.5. No native extraction tool was installed or used in the new path.
+
+The Mac reboot at 00:19 on 2026-11-09 interrupted the first strict quiet simulation and two BEFORE
+checks, and cleared `/tmp`. Recovery evidence stays in the workspace. The measurement script now
+checkpoints converged slices before native execution, guarded by solver-source fingerprints and
+convergence/matrix validation. A separate process restored the single-ended checkpoint, executed
+ngspice twice, and reproduced all 58 canonical files. A deliberately stale fingerprint raises
+`measurement_cache_version`. Cached timings are identified; stored waveforms never replace native runs.
+
+Bounded saved-request diagnostics did not establish a faster native backend: KLU aborts at 8 us
+of the requested 128 us differential run, and at 100 ns for the package variant, despite native
+exit code 0. An algebraically equivalent scalar RL/RC realization completes multilayer in 56.232 s
+under contention and still aborts the package variant at 100 ns. No dependable speedup was
+established, and neither diagnostic changed the implementation. The latest complete pipeline attempt
+with the standard real-TI package also raises `native_solver` at 100 ns, timestep 6.25e-23 s,
+node `xibis0.pkgl0`; its request and logs are in `runs/package-final-requests`.
