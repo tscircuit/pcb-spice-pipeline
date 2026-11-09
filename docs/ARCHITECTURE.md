@@ -29,15 +29,14 @@ await writePipelineOutput({ result, outputDir: 'out/' })
 try { await runPipeline({ circuitJson, ibisSources, runSolver: cannedSolver(fixtures) }) }
 catch (e) {
   if (e instanceof Diagnostic && e.code === 'mesh_convergence')   // DiagnosticCode: closed union, same strings as today
-    show(e.domain, e.subjects, e.artifacts)                          // 'extraction', [{kind:'cell',id:'2'}], ['stage-2/fasthenry.stdout.log']
+    show(e.domain, e.subjects, e.artifacts)                          // Inspect the named domain, subjects and retained evidence.
 }
 ```
 
 ```ts
-// Contributor fixing straightened-stage returns (#49/#53/#54) touches one module and its tests:
-//   src/board/geometry/straightened.ts        the code
-//   tests/board/straightened.oracle.test.ts   fast-check: returns follow pcb_stackup planes; stripline gets both
-//   tests/board/metamorphic.test.ts           translate/mirror the board -> identical cells
+// Contributor fixing physical cross-sections touches the owning module and its tests:
+//   src/board/geometry/slices.ts            whole-board metal and dielectric slices
+//   tests/board/geometry/index.test.ts      actual TSX, layer changes, cuts and lane ordering
 // `pnpm verify` = check:modules + typecheck + test. No JVM.
 ```
 
@@ -144,7 +143,7 @@ Base: candidate A (domain-owned modules, typed stage chain). Taken from candidat
 ## Open questions and risks
 
 - DDR: today a strobe-gate failure turns the overall status into `not-evaluated`. Is that intended, or should a violation always win? The decision-table test will pin whichever behaviour you choose.
-- PR #22 adds FastHenry retries. Should `solver.invoke` allow N retries with each attempt's logs recorded, or should a retry stay a caller concern?
+- Field refinement has no attempt cap; resource exhaustion must propagate as a diagnostic rather than select a lower-fidelity fallback.
 - `RoutedCopperMm` must match today's `routedCopper` JSON exactly. Its shape needs to be copied from `copper.ts` before board moves.
 
 ## Staged migration (open PRs keep landing)

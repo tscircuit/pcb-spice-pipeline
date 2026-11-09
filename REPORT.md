@@ -47,7 +47,8 @@ A mesh that exhausts floating-point resolution fails with `mesh_convergence`, wi
 
 The first quiet-middle attempt exposed nearly coincident optional mesh alignment cuts. Merging
 those cuts at the documented topology precision preserves conductor boundaries. Its actual TSX
-slice 179 now converges in a focused regression (7.49 s). The complete quiet native rerun is pending.
+slice 179 now converges in a focused regression (7.49 s). All strict quiet slices have converged;
+native quiet/all-active simulation and repeat checks are in progress.
 
 ## Native timing measurements
 
@@ -56,18 +57,18 @@ work on the machine. Values are measured wall seconds, not estimates. Extraction
 TSX rendering and most admission; native timing includes request/output I/O. Warm-cache results
 are identified separately and are not cold-extraction speed claims.
 
-| Board | BEFORE extraction, 3D | AFTER extraction, 2D | BEFORE ngspice | AFTER ngspice | AFTER mesh policy |
+| Board | BEFORE extraction, straightened 3D | AFTER extraction, 2D | BEFORE ngspice | AFTER ngspice | AFTER mesh policy |
 |---|---:|---:|---:|---:|---|
 | single-ended | 89.113 | 52.356 | 6.195 | 13.517 | final strict entry-wise estimates |
 | differential-data | 11.603 | 1609.389 | 10.233 | 243.898 | final strict entry-wise estimates |
-| crosstalk, all active | 234.089 | 420.993 | 27.210 | 842.539 | earlier C/C0-only increment |
+| crosstalk, shared geometry | 234.089 | 4144.831 | 27.210 | pending | final strict entry-wise estimates, first quiet solve |
 | multilayer | 491.585 | 653.178 | 4.660 | 44.742 | final strict entry-wise estimates |
 
 Three default boards now completed two actual native runs under the final strict policy, with every
 artifact and request identical. Their cached second extraction/native times are: single-ended
-0.0278/12.861 s; differential 0.1626/198.242 s; multilayer 0.0592/48.104 s. The crosstalk row is the
-older C/C0-only increment and does not qualify the final policy; its strict quiet/all-active runs
-are in progress. All default examples explicitly omit package parasitics, preserving the original
+0.0278/12.861 s; differential 0.1626/198.242 s; multilayer 0.0592/48.104 s. The crosstalk row
+uses its first cold quiet-middle geometry solve. Its strict native quiet/all-active runs are in
+progress; the earlier C/C0-only increment took 420.993 s extraction / 842.539 s native. All default examples explicitly omit package parasitics, preserving the original
 experiment choice. The separate package variant is discussed below.
 
 The seconds-level extraction target is not met across the examples. The final differential and
@@ -101,9 +102,9 @@ accuracy, vias, bends or split-return discontinuities against a 3D field solver.
 | Configuration | Quantity | Published oracle | 2D result | Error |
 |---|---|---:|---:|---:|
 | single microstrip | Z0 (ohm) | 74.103195 | 73.943537 | -0.2155% |
-| single microstrip | effective er, even | 2.914643 | 2.918273 | +0.1246% |
+| single microstrip | effective er | 2.914643 | 2.918273 | +0.1246% |
 | single stripline | Z0 (ohm) | 50.064094 | 50.117087 | +0.1059% |
-| single stripline | effective er, even | 4.000000 | 4.000000 | -0.0000% |
+| single stripline | effective er | 4.000000 | 4.000000 | -0.0000% |
 | coupled microstrip | Ze (ohm) | 90.441144 | 90.298213 | -0.1580% |
 | coupled microstrip | Zo (ohm) | 55.330197 | 55.222365 | -0.1949% |
 | coupled microstrip | L12 (nH/m) | 116.660844 | 117.048381 | +0.3322% |
@@ -146,11 +147,15 @@ quasi-TEM contribution alone is **1.504064 nH**. Against the supplied 4.2 nH ref
 is **-62.73%**. Folded path directions are included. Both selected path graphs are unbranched
 chains (52 A pieces, 58 B pieces); termination stubs remain in the simulated circuit.
 
-This is not a same-geometry 3D accuracy pass. The updated RS-485 TSX adds a broad bottom ground
-pour, whereas the prior routed reference used the earlier board copper. Local 2D extraction also
-omits ground-lead/spreading inductance, bend fringing and magnetic coupling between oblique pieces.
-Ideal DC rail copper is AC equipotential. All of these affect return flux and mutual L. Their
-individual contributions have not been isolated; the large remaining gap is explicitly unqualified.
+The two physical layouts differ. The original 44 x 12 mm reference has a continuous 42 x 10 mm
+bottom pour, standard SOIC pads, signal detours ending at x=19 mm and two local ground vias. The
+updated default has custom SOIC pads, detours ending at x=20 mm, a 43 x 10 mm notched bottom pour
+and longer routed supply/ground connections. Adding a pour changes the comparison against the
+default BEFORE example; the original 4.2 nH reference already had one. It cannot alone explain that
+reference gap. Local 2D extraction omits ground-lead/spreading inductance, bend fringing and magnetic
+coupling between oblique pieces; ideal DC rail copper is AC equipotential. These change the return
+flux and common inductance. Their individual contributions have not been isolated. The 62.73% gap
+is a remaining, unqualified board-level discrepancy, not a same-geometry accuracy pass.
 
 ## Native eye measurements
 
@@ -161,7 +166,7 @@ RS-485 -.2/+.2 V. These are observed-packet metrics, not BER estimates or protoc
 
 | Board | BEFORE height V | AFTER height V | BEFORE width UI | AFTER width UI | BEFORE/AFTER width |
 |---|---:|---:|---:|---:|---|
-| single-ended | 3.299992 | 3.299976 | .832434 | .933093 | 41.6217 / 46.6546 ns |
+| single-ended | 3.299992 | 3.299976 | .832434 | .933093 | 41.6217 / 46.6547 ns |
 | differential-data | 4.470763 | 4.471156 | .785567 | .785584 | 3.142269 / 3.142336 us |
 
 These AFTER values use the completed final-policy native runs. Height barely changes; single-ended
@@ -195,6 +200,9 @@ requires distinct two-endpoint PCB routes meeting at shared junctions. These lim
 
 ## Checks and remaining qualification
 
+- Reproduction branch: `pnpm build` passes; `pnpm test` gives **297 passed / 1 skip, zero failed**,
+  53.195 s; `pnpm test:native` gives **2 passed / 1 vendor-gated skip, zero failed**, 14.278 s.
+  Both separate opt-in native 3D checks pass their specific gap/non-convergence assertions.
 - `pnpm build`: passed. `pnpm test`: **244 passed, zero failed**, 286.726 s, including actual-TSX
   hole rejection, masked via geometry, layered dielectric energy and 250000-element numeric reductions. The previous first-extrapolation checkpoint
   passed 242/242 in 881.928 s; one obsolete timeout test was replaced by the hole regression.
@@ -249,3 +257,7 @@ Its legacy-only 3D helpers and old numerical controls are intentionally supersed
 2D implementation; the fresh measurements above remain inspectable on the reproduction branch.
 The final numerical-policy edit documents existing fit weights and plotting density only; no
 numerical values or runtime operations changed after the full verification run.
+
+Final-policy measurements execute the implementation at `30fdfe3140d733719c565b4a4998f7fd67098ff1`.
+The later source edit adds policy comments only; final build, lint, module, vocabulary, types and
+five documentation checks pass. The complete test and packaging runs precede that comment-only edit.
