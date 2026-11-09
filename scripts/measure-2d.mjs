@@ -1,11 +1,26 @@
 import {performance} from 'node:perf_hooks'
-import {mkdir,writeFile} from 'node:fs/promises'
+import {mkdir,writeFile,readFile,readdir,rename} from 'node:fs/promises'
+import {createHash} from 'node:crypto'
 import {runPipeline} from '../src/index'
 import {createNativeSolver,loadIbisSources,writePipelineOutput} from '../src/adapters/index'
 import {measureMutual} from './measure-mutual.mjs'
+import {snapshotSlices,restoreSlices} from '../src/extraction/cache'
 const native=createNativeSolver({tools:{ngspice:'/opt/homebrew/bin/ngspice'}})
 // Output/repeat controls belong to this evidence script, not the extraction API.
 const root=process.env.SI_MEASUREMENT_DIRECTORY??'runs/qualified'
+// Evidence checkpoints survive interrupted native runs. Source fingerprints prevent stale physics reuse.
+const sources=[]
+for(const directory of ['extraction','kernel'])for(const name of (await readdir(new URL(`../src/${directory}/`,import.meta.url))).sort())if(name.endsWith('.ts'))sources.push(new URL(`../src/${directory}/${name}`,import.meta.url))
+const fingerprint=createHash('sha256').update((await Promise.all(sources.map(path=>readFile(path,'utf8')))).join('\n')).digest('hex')
+const checkpoint=`${root}/field-cache.json`
+let restored=false
+try {
+  const saved=JSON.parse(await readFile(checkpoint,'utf8'))
+  if(saved.fingerprint!==fingerprint)throw new Error('measurement_cache_version: solver sources differ from the checkpoint')
+  restoreSlices(saved.entries)
+  restored=true
+} catch(error) {if(error.code!=='ENOENT')throw error}
+console.log(JSON.stringify({checkpoint,restored,convergedSlices:snapshotSlices().length,fingerprint}))
 const names=process.argv.slice(2)
 const failures=[]
 for(const name of names.length?names:['single-ended','differential-data','crosstalk','crosstalk-quiet','multilayer']) {
@@ -38,6 +53,10 @@ for(const name of names.length?names:['single-ended','differential-data','crosst
         const directory=`${root}-requests/${name}${repeat?'-repeat':''}`
         await mkdir(directory,{recursive:true})
         for(const [file,body] of Object.entries(request.files))await writeFile(`${directory}/${file}`,body)
+        await mkdir(root,{recursive:true})
+        await writeFile(`${checkpoint}.tmp`,JSON.stringify({fingerprint,entries:snapshotSlices()}))
+        await rename(`${checkpoint}.tmp`,checkpoint)
+        await writeFile(`${directory}/pending-summary.json`,JSON.stringify({name,repeat,extractionSeconds:(extractionEnd-extractionStart)/1000,restoredFieldCache:restored,nativeStartedAt:new Date().toISOString()},null,2))
         const output=await native(request)
         await writeFile(`${directory}/stdout.log`,output.stdout)
         await writeFile(`${directory}/stderr.log`,output.stderr)
@@ -57,7 +76,11 @@ for(const name of names.length?names:['single-ended','differential-data','crosst
   const summary={name,measurements,segments:results[0].matrices.length,uniqueSlices:new Set(results[0].matrices.map(m=>m.sliceHash)).size,
     cells:results[0].matrices.reduce((sum,m)=>sum+m.cells,0),bitIdentical:changedFiles.length===0,changedFiles,
     nativeRequestsIdentical:JSON.stringify(requests[0])===JSON.stringify(requests[1])}
-  if(base==='differential-data')summary.signedMutualL=measureMutual(results[0].matrices,'A','B',0,1)
+  if(base==='differential-data') {
+    summary.mutualFrequencyHz=results[0].matrices[0].frequencyHz
+    summary.signedExternalMutualL=measureMutual(results[0].matrices,'A','B',0,1)
+    summary.signedRealizedMutualL=measureMutual(results[0].matrices,'A','B',0,1,summary.mutualFrequencyHz)
+  }
   if(base==='crosstalk') {
     // Identical native input proves a permutation cannot affect the electrical solve; replay
     // the measured output only after exact request equality. Both ordinary repeats above are native.
@@ -68,6 +91,8 @@ for(const name of names.length?names:['single-ended','differential-data','crosst
     }})
     summary.permutationNativeRequestIdentical=true
     summary.permutationMatricesIdentical=JSON.stringify(permuted.matrices)===JSON.stringify(results[0].matrices)
+    if(index!==requests[0].length)throw new Error('lane_order_native_request_count_changed')
+    if(!summary.permutationMatricesIdentical)throw new Error('lane_order_matrices_changed')
     summary.crosstalk=results[0].experiments.flatMap(e=>e.probes.map(p=>({probe:p.name,peakAbsoluteV:e.waveform.rows.filter(r=>r[0]>=e.eyes[0].startTimeSeconds).reduce((peak,row)=>Math.max(peak,Math.abs(row[p.column])),0)})))
   }
   await writeFile(`${root}/${name}/summary.json`,JSON.stringify(summary,null,2))

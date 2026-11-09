@@ -65,3 +65,8 @@ IBIS package mode retains vendor R/L/C for signal, power and ground pins. The st
 capacitance is at the external pin relative to board ground; each pin’s R/L connects to the die.
 Native solver failures propagate with their logs. See REPORT.md for the real-TI switching-package
 convergence failure; the synthetic dynamic package check is narrower evidence.
+
+The measurement script checkpoints converged slices in its evidence directory before starting
+ngspice. A solver-source fingerprint and the convergence/matrix checks guard restoration. This
+helps resume interrupted measurements; it does not substitute a stored native waveform. Both
+repeat simulations still execute ngspice, and restored extraction timings are marked as cached.
