@@ -12,7 +12,8 @@ No branches have been pushed and no PRs opened.
   The original BEFORE snapshot is `8a85951c6cd6b1ebd76c8dca3ea8e89d585446a9`.
   Actual TSX crosstalk/multilayer boards, lane-order and invented-return reproductions, opt-in native
   3D harness. The original RS-485 TSX now reproduces 11.716323/4.169378 nH on native solvers.
-  The SC70 residual 0.271606591 remains prior evidence while its fresh rerun continues.
+  The fresh three-link SC70 baseline raises the expected R `mesh_convergence`: residual
+  0.128292996947 > 0.05 after 3667.640 s; 0.271606591 is the separate historical measurement.
 - `si-2d/fix`, stacked on it: initial native single-ended increment `8d03416`, broader working
   increment `871e922`, followed by all-matrix convergence/physical-edge/limiter corrections.
   Final head and complete line counts are reported with delivery.
@@ -122,9 +123,10 @@ Oracles and citations: [single microstrip](https://qucs.sourceforge.net/tech/nod
 Wheeler, IEEE MTT-13 (1965), pp.172–185. Via formulas are TI Analog Engineer's Pocket Reference
 [eqs.87–88](https://www.ti.com/lit/eb/slyw038c/slyw038c.pdf), unit-tested against the worked equations.
 
-The four-branch fits have measured relative RMS residuals: CMOS skin 14.834%, dielectric 6.647%;
+The four-branch fits have measured weighted relative RMS residuals: CMOS skin 14.834%, dielectric 6.647%;
 RS-485 skin 6.018%, dielectric 1.470%. These are fit errors for the added loss terms, not total line
-impedance errors. Skin transition uses the documented DC/f^2/high-frequency sqrt(f) approximation;
+impedance errors. The objective normalizes tiny/zero samples at the named fraction of the band peak;
+this loss-fit weighting does not relax any mesh-entry convergence test. Skin transition uses the documented DC/f^2/high-frequency sqrt(f) approximation;
 frequency-resolved eddy-current accuracy is not established. Via RLC is frequency-independent.
 
 The default examples explicitly declare bare copper without solder mask. A separate actual TSX
@@ -205,7 +207,8 @@ requires distinct two-endpoint PCB routes meeting at shared junctions. These lim
   passes through patched props, core and Circuit JSON. Native primitive test executes twelve lanes.
 - Native: final-policy single-ended, differential and multilayer, twice with identical artifacts;
   earlier crosstalk; fresh original RS-485 3D gap;
-  static and frequency-dependent complete multiport primitive networks; independent baseline/eyes.
+  fresh three-link SC70 R non-convergence; static and frequency-dependent complete multiport
+  primitive networks; independent baseline/eyes.
 - Unit-only: published uniform-line accuracy, closed-form via accuracy, missing-data diagnostics,
   geometry lane-order invariance. Native quiet NEXT/FEXT, lane permutation and remaining native
   second-run checks are still pending; speed and 4.2 nH accuracy targets remain unmet.
@@ -215,7 +218,8 @@ and persistent `runs/checks` logs. Fresh BEFORE evidence is in the separate repr
 `../si-api-review/si-2d-before/runs/2d-baseline`. Reproduce using `node --import tsx scripts/measure-2d.mjs ...`; it runs twice
 natively and checks every artifact, then proves crosstalk lane permutation by exact native-request
 comparison and replay of the measured output. `scripts/measure-legacy.mjs ABS_REPRO_CHECKOUT ...`
-measures BEFORE only. `measure-accuracy.mjs`, `measure-eyes.mjs` and `measure-mutual.mjs` write or
+measures BEFORE only. Use a fresh `SI_MEASUREMENT_DIRECTORY` for a new solver version; a stale
+checkpoint deliberately errors rather than being reused. `measure-accuracy.mjs`, `measure-eyes.mjs` and `measure-mutual.mjs` write or
 print the independent numeric tables. Model bytes are fetched by pinned URL/archive/file hashes;
 `examples/differential-data/verify-vendors.mjs` passed fresh verification in this task.
 
@@ -239,3 +243,9 @@ under contention and still aborts the package variant at 100 ns. No dependable s
 established, and neither diagnostic changed the implementation. The latest complete pipeline attempt
 with the standard real-TI package also raises `native_solver` at 100 ns, timestep 6.25e-23 s,
 node `xibis0.pkgl0`; its request and logs are in `runs/package-final-requests`.
+
+The completed reproduction history is merged into the fix with an explicitly tree-preserving merge.
+Its legacy-only 3D helpers and old numerical controls are intentionally superseded by the tested
+2D implementation; the fresh measurements above remain inspectable on the reproduction branch.
+The final numerical-policy edit documents existing fit weights and plotting density only; no
+numerical values or runtime operations changed after the full verification run.

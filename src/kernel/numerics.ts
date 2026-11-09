@@ -39,6 +39,7 @@ export const numerics = {
   /** Observed-eye boundary/interpolation tolerances are fractions of one UI, not resource limits. */
   eyeBoundaryToleranceUi: 1e-9,
   eyeInterpolationToleranceUi: 1e-12,
+  /** Display interpolation density only; native rows and measured eye envelopes retain all samples. */
   eyePlotPoints: 1200,
   /** Accept only start-time roundoff smaller than a native timestep or this relative duration. */
   simulationStartRelativeTolerance: 1e-8,
@@ -55,6 +56,10 @@ export const numerics = {
   frequencySamples: 41,
   /** Relative objective stagnation is numerical convergence, not an iteration cap. */
   fitRelativeChange: 1e-11,
+  /** Normalize tiny/zero loss samples against a millionth of the band's peak to keep the
+   * relative least-squares objective finite. Reported fit residuals use these same weights.
+   * This weighting never changes a solved field matrix or its entry-wise convergence check.
+   */
   fitZeroRelative: 1e-6,
   /** Differential dielectric sensitivity step; truncation O(step) is below mesh tolerance. */
   dielectricRelativeStep: .001,
