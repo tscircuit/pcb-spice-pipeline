@@ -135,13 +135,12 @@ test('loadIbisSources rejects traversal and symlinks escaping baseDir, follows c
   assert.equal(new TextDecoder().decode(sources['models/link.ibs'] as Uint8Array),'inside')
 })
 
-// Moved from tests/native-timeout.test.ts; assertions unchanged.
+// Extraction-only source: legacy synthetic eye/stimulus declarations were removed.
 let ddr: ReturnType<typeof nativeDdrTimeout> | undefined
 /** Renders the DDR timeout board once, on first use, so the lifecycle tests above do not pay for it. */
 const fixture = (): ReturnType<typeof nativeDdrTimeout> => (ddr ??= nativeDdrTimeout())
-test('native TSX prepares a three-lane DDR extraction and two eye declarations', async () => {
-  const { records, deck } = await fixture()
-  assert.equal(records.filter(r => String(r.type) === 'simulation_eye_diagram').length, 2)
+test('native TSX prepares a three-lane DDR extraction', async () => {
+  const { deck } = await fixture()
   assert.equal((deck.match(/^\.external /gm) ?? []).length, 4)
   assert.match(deck, /meshMm=1.5/)
   assert.match(deck, /nhinc=5 nwinc=5/)

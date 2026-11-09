@@ -8,12 +8,10 @@ import { geometryFromCircuitJson } from '../../src/board'
 import { inspectPins, receiverThresholds, admitBuffers, compileBuffers } from '../../src/buffers'
 import { generalDeclarations, modelRunDefinition } from '../../src/simulation'
 import { rootScope } from '../../src/kernel'
-import Single from '../../examples/levels/level1-single-ended'
-import Differential from '../../examples/levels/level1-differential'
-import Three from '../../examples/levels/level3-three-signals'
-import Two from '../../examples/levels/level2-two-signals'
+import Single from './unit-single-ended'
+import Differential from './unit-differential'
 import Strobe from './strobe-other-chip'
-import { Inverter, Reference } from '../../examples/levels/parts'
+import { Inverter, Reference } from './signal-parts'
 
 const modelDir = process.env.IBIS_MODEL_DIR
 /** Read actual vendor bytes only; no synthetic IBIS fallback. */
@@ -21,7 +19,7 @@ const sources = async (): Promise<Record<string, Uint8Array>> => Object.fromEntr
 
 /** More than three physical conductors, expressed as real TSX. */
 function Four(): React.JSX.Element {
-  return <board width={16} height={12} thickness={1.6} layers={4} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled>
+  return <board width={16} height={12} thickness={1.6} layers={4} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled isViaInPadAllowed>
     {[0, 1, 2, 3].map(i => <React.Fragment key={i}>
       <Inverter name={`TX${i}`} x={-5} y={i * .4} driver /><Inverter name={`RX${i}`} x={5} y={i * .4} driver={false} />
       <trace from={`.TX${i} > .Y`} to={`.RX${i} > .A`} width={.2} pcbPath={[`.TX${i} > .Y`, `.RX${i} > .A`]} />
@@ -33,8 +31,8 @@ function Four(): React.JSX.Element {
   </board>
 }
 
-test('TSX adapter renders RFC records and core-owned stackup for each learning level', async () => {
-  for (const Board of [Single, Differential, Two, Three, Four]) {
+test('TSX adapter renders source records and core-owned stackup for unit boards', async () => {
+  for (const Board of [Single, Differential, Four]) {
     const records = await renderSignals(<Board />)
     assert.equal(records.filter(r => r.type === 'pcb_stackup').length, 1)
     assert.ok(records.some(r => r.type === 'simulation_signal'))

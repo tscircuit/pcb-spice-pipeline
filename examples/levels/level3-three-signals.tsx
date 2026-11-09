@@ -1,15 +1,36 @@
-import React from 'react'
-import { Inverter, Reference } from './parts'
+// LEVEL 3: three signals, and measuring crosstalk on its own.
+import { Inverter } from "./parts"
 
-export default () => <board width={16} height={12} layers={4} thickness={1.6} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled>
-  {[0, 1, 2].map(i => <React.Fragment key={i}>
-    <Inverter name={`TX${i}`} x={-5} y={i * .6} driver /><Inverter name={`RX${i}`} x={5} y={i * .6} driver={false} />
-    <trace from={`.TX${i} > .Y`} to={`.RX${i} > .A`} width={.2} pcbPath={[`.TX${i} > .Y`, `.RX${i} > .A`]} />
-  </React.Fragment>)}
-  <Reference />
-  {(['TRAFFIC', 'QUIET_LOW', 'QUIET_HIGH'] as const).map((name, i) => <signalintegrity key={name} name={name} bitRate={20e6} duration={48 / 20e6}>
-    <signal name="D0" driver=".TX0 > .Y" receiver=".RX0 > .A" />
-    <signal name="D1" driver=".TX1 > .Y" receiver=".RX1 > .A" quiet={i === 1 ? 'low' : i === 2 ? 'high' : undefined} />
-    <signal name="D2" driver=".TX2 > .Y" receiver=".RX2 > .A" />
-  </signalintegrity>)}
-</board>
+export default () => (
+  <board width="40mm" height="24mm" layers={2} fabricatorPreset="jlcpcb_standard">
+    <Inverter name="TX0" pcbX={-15} pcbY={4} />
+    <Inverter name="TX1" pcbX={-15} pcbY={0} />
+    <Inverter name="TX2" pcbX={-15} pcbY={-4} />
+    <Inverter name="RX0" pcbX={15} pcbY={4} />
+    <Inverter name="RX1" pcbX={15} pcbY={0} />
+    <Inverter name="RX2" pcbX={15} pcbY={-4} />
+
+    <trace from=".TX0 > .Y" to=".RX0 > .A" />
+    <trace from=".TX1 > .Y" to=".RX1 > .A" />
+    <trace from=".TX2 > .Y" to=".RX2 > .A" />
+    <copperpour connectsTo="net.GND" layer="bottom" />
+
+    <signalintegrity name="TRAFFIC" bitRate="20Mbps">
+      <signal name="D0" driver=".TX0 > .Y" receiver=".RX0 > .A" />
+      <signal name="D1" driver=".TX1 > .Y" receiver=".RX1 > .A" />
+      <signal name="D2" driver=".TX2 > .Y" receiver=".RX2 > .A" />
+    </signalintegrity>
+
+    <signalintegrity name="XTALK_LOW" bitRate="20Mbps">
+      <signal name="D0" driver=".TX0 > .Y" receiver=".RX0 > .A" />
+      <signal name="D1" driver=".TX1 > .Y" receiver=".RX1 > .A" quiet="low" />
+      <signal name="D2" driver=".TX2 > .Y" receiver=".RX2 > .A" />
+    </signalintegrity>
+
+    <signalintegrity name="XTALK_HIGH" bitRate="20Mbps">
+      <signal name="D0" driver=".TX0 > .Y" receiver=".RX0 > .A" />
+      <signal name="D1" driver=".TX1 > .Y" receiver=".RX1 > .A" quiet="high" />
+      <signal name="D2" driver=".TX2 > .Y" receiver=".RX2 > .A" />
+    </signalintegrity>
+  </board>
+)

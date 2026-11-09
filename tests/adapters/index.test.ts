@@ -1,5 +1,5 @@
 import React from 'react'
-import Single from '../../examples/levels/level1-single-ended'
+import Single from '../support/unit-single-ended'
 import { renderSignals } from '../support/signal-render'
 // Copied from tests/node.test.ts, repointed at src/adapters. Assertions unchanged.
 import test from 'node:test'

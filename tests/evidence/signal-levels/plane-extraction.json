@@ -1,0 +1,66 @@
+{
+  "status": "unconverged_native_diagnostic",
+  "fixture": "escape-via-plane.tsx; not an RFC example",
+  "rejection": "mesh_convergence: Stage 0 R refinement residual 0.21036960016414752 > 0.05; increase filaments and refinementFilaments and halve groundMeshMm explicitly",
+  "native_calls": [
+    {
+      "solver": "fasthenry",
+      "request_sha256": "d91fc00acba88829f4e5be65dfc45a530c1ce2e6ce99ed96a360cb0b7594524b",
+      "exact_native_extraction_replay_from": "runs/escape-plane-native/native-0-fasthenry"
+    },
+    {
+      "solver": "fasthenry",
+      "request_sha256": "3f91ed4eaac4c9cdbfaea953071849feada8a50c8f7c176d8141ba567b00e627",
+      "exact_native_extraction_replay_from": "runs/escape-plane-native/native-1-fasthenry"
+    },
+    {
+      "solver": "fastercap",
+      "request_sha256": "aa8e2264b87717e6775859f8f84d6d38dd064c4b096780c4b0146a88ba59d526"
+    }
+  ],
+  "length_m": 0.028118502884254444,
+  "L_h_per_m": 9.03074096703056e-07,
+  "C_f_per_m": 6.785655293732547e-11,
+  "capacitance_auto_residual": 0.0178023,
+  "estimate": {
+    "source": "https://qucs.sourceforge.net/tech/node75.html",
+    "width_mm": 0.15,
+    "dielectric_height_mm": 1.43,
+    "copper_thickness_mm": 0.03,
+    "er": 4.42,
+    "approximation": "zero-thickness infinite plane; excludes finite board, end contacts, bends, via and internal inductance",
+    "effective_er": 2.92693147186369,
+    "impedance_ohm": 151.91176029767254,
+    "L_h_per_m": 8.669159042558048e-07,
+    "C_f_per_m": 3.7565932869000405e-11,
+    "homogeneous_C_f_per_m": 5.6728838675289116e-11
+  },
+  "implementation_head": "e8814f00d9369a60c69d381533d620e60052d0a3",
+  "core_head": "ca4bb147291e8eb41dfa92b5d4c361d1dc21e9f3",
+  "core_dist_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
+  "fixture_sha256": "b3d394d822d784fd86d2fda692e03905fcfdc0a937cd002833ef1afe7cdccf1e",
+  "input_sha256": "cae4d87081083c44608b63e2484611a60802fb566a3e5e2f0f269ebc168b896f",
+  "geometry_sha256": "06223917d0f514c9a94dde5f2fbaa372647dc876823c0479a3113ce5fb5f9c04",
+  "native_process_timeout_ms": 180000,
+  "R_refinement_relative_change": 0.21036960016414752,
+  "L_refinement_relative_change": 0.012436265861065266,
+  "refinement_acceptance": false,
+  "original_native_RL_elapsed_s": 11.048,
+  "comparison": {
+    "L_vs_microstrip_relative_difference": 0.041708996535587683,
+    "C_vs_microstrip_relative_difference": 0.8063321673377382,
+    "C_vs_homogeneous_estimate_relative_difference": 0.19615621475578604
+  },
+  "tool_sha256": {
+    "fasthenry": "211cdb2b30dbd6f7bcef16e78f4a56e2f6cbcfffe9b8de398386dd90b89ff0b7",
+    "FasterCap": "7bc18e61a66a9814d7a893cd1e7a7ffbf9246607a6f1128028870a467165c101",
+    "ngspice": "9ccc39c9b87a717db0244770596eeb01fc51e635f39dc32d77b3dc9ce4e17922"
+  },
+  "limitations": [
+    "Unaccepted R/L mesh: 21.04% R change exceeds unchanged 5% criterion; no transient was run.",
+    "The single capacitance diagnostic is separate from the rejected production extraction.",
+    "Native C fills all space with er=4.42, while microstrip has air above. No correction or scaling was applied.",
+    "Bends, finite plane, end leads and vias remain in the native geometry; zero-thickness analytic estimate omits them.",
+    "No eyes, NEXT/FEXT or timestep/section deltas can be inferred from this extraction-only diagnostic."
+  ]
+}

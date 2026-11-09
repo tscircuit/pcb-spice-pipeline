@@ -1,48 +1,50 @@
-import React from 'react'
+// Shared TI inverter and transceiver models used by the examples.
+export const Inverter = (props: { name: string; pcbX: number; pcbY?: number }) => (
+  <>
+    <chip
+      name={props.name}
+      manufacturerPartNumber="SN74LVC1G04DBV"
+      footprint="sot23_5"
+      pcbX={props.pcbX}
+      pcbY={props.pcbY ?? 0}
+      pinLabels={{ pin1: "NC", pin2: "A", pin3: "GND", pin4: "Y", pin5: "VCC" }}
+    />
+    <ibismodel
+      componentRef={`.${props.name}`}
+      ibisModelAsset={{
+        project_relative_path: "models/sn74lvc1g04.ibs",
+        url: "./models/sn74lvc1g04.ibs",
+        mimetype: "text/plain",
+      }}
+      ibisComponentName="LVC1G04_DBV"
+      ibisPinNameToPortLabel={{ "2": "A", "3": "GND", "4": "Y", "5": "VCC" }}
+      ibisPinNameToModelName={{ "2": "LVC1G04_IN_33", "4": "LVC1G04_OUT_33" }}
+      ibisPinNameToReferencePortLabels={{
+        "2": { pullup: "VCC", pulldown: "GND", powerClamp: "VCC", groundClamp: "GND" },
+        "4": { pullup: "VCC", pulldown: "GND", powerClamp: "VCC", groundClamp: "GND" },
+      }}
+    />
+    <trace from={`.${props.name} > .VCC`} to="net.VCC" />
+    <trace from={`.${props.name} > .GND`} to="net.GND" />
+  </>
+)
 
-/** Local vendor asset descriptor; vendor bytes are never redistributed. */
-const asset = (file: string): { project_relative_path: string; url: string; mimetype: string } => ({ project_relative_path: `models/${file}`, url: `./models/${file}`, mimetype: 'text/plain' })
-
-/** Designed pad fixture for real TI buffer models; internal gate logic is outside IBIS. */
-export function Inverter({ name, x, y, driver, groundX = 0 }: { name: string; x: number; y: number; driver: boolean; groundX?: number }): React.JSX.Element {
-  const pin = driver ? '4' : '2'
-  const label = driver ? 'Y' : 'A'
-  return <>
-    <chip name={name} pcbX={x} pcbY={y} pinLabels={{ pin2: 'A', pin3: 'GND', pin4: 'Y', pin5: 'VCC' }} connections={{ VCC: 'net.VCC', GND: 'net.GND' }}
-      footprint={<footprint>
-        <smtpad portHints={[`pin${pin}`]} pcbX={0} pcbY={0} width={.3} height={.3} shape="rect" />
-        <smtpad portHints={['pin3']} pcbX={groundX} pcbY={-3.5 - y} width={.5} height={.5} shape="rect" />
-        <smtpad portHints={['pin5']} pcbX={0} pcbY={2} width={.5} height={.5} shape="rect" />
-      </footprint>} />
-    {/* @ts-expect-error Installed props require the removed corner/package props; the test adapter supplies them. */}
-    <ibismodel componentRef={`.${name}`} ibisModelAsset={asset('sn74lvc1g04.ibs')} ibisComponentName="LVC1G04_DCK"
-      ibisPinNameToPortLabel={{ [pin]: label, '3': 'GND', '5': 'VCC' }}
-      ibisPinNameToModelName={{ [pin]: driver ? 'LVC1G04_OUT_33' : 'LVC1G04_IN_33' }}
-      ibisPinNameToReferencePortLabels={{ [pin]: { pullup: 'VCC', pulldown: 'GND', powerClamp: 'VCC', groundClamp: 'GND' } }} />
-  </>
+export const sn65hvd72 = {
+  ibisModelAsset: {
+    project_relative_path: "models/sn65hvd72.ibs",
+    url: "./models/sn65hvd72.ibs",
+    mimetype: "text/plain",
+  },
+  ibisComponentName: "SN65HVD72D",
+  ibisPinNameToPortLabel: { "1": "R", "2": "RE", "3": "DE", "4": "D", "5": "GND", "6": "A", "7": "B", "8": "VCC" },
+  ibisPinNameToModelName: { "1": "rpin", "2": "d_re", "3": "de", "4": "d_re", "6": "a_b_p", "7": "a_b_n" },
+  ibisPinNameToReferencePortLabels: {
+    "1": { pullup: "VCC", pulldown: "GND", powerClamp: "VCC", groundClamp: "GND" },
+    "2": { pullup: "VCC", pulldown: "GND", powerClamp: "VCC", groundClamp: "GND" },
+    "3": { pullup: "VCC", pulldown: "GND", powerClamp: "VCC", groundClamp: "GND" },
+    "4": { pullup: "VCC", pulldown: "GND", powerClamp: "VCC", groundClamp: "GND" },
+    "6": { pullup: "VCC", pulldown: "GND", powerClamp: "VCC", groundClamp: "GND" },
+    "7": { pullup: "VCC", pulldown: "GND", powerClamp: "VCC", groundClamp: "GND" },
+  },
 }
-/** Real SN65HVD72 bus buffers in a designed two-pad channel fixture. */
-export function Transceiver({ name, x }: { name: string; x: number }): React.JSX.Element {
-  return <>
-    <chip name={name} pcbX={x} pinLabels={{ pin5: 'GND', pin6: 'A', pin7: 'B', pin8: 'VCC' }} connections={{ VCC: 'net.VCC', GND: 'net.GND' }}
-      footprint={<footprint>
-        <smtpad portHints={['pin6']} pcbX={0} pcbY={.3} width={.25} height={.25} shape="rect" />
-        <smtpad portHints={['pin7']} pcbX={0} pcbY={-.3} width={.25} height={.25} shape="rect" />
-        <smtpad portHints={['pin5']} pcbX={0} pcbY={-3.5} width={.5} height={.5} shape="rect" />
-        <smtpad portHints={['pin8']} pcbX={0} pcbY={2} width={.5} height={.5} shape="rect" />
-      </footprint>} />
-    {/* @ts-expect-error Installed props require the removed corner/package props; the test adapter supplies them. */}
-    <ibismodel componentRef={`.${name}`} ibisModelAsset={asset('sn65hvd72.ibs')} ibisComponentName="SN65HVD72D"
-      ibisPinNameToPortLabel={{ '5': 'GND', '6': 'A', '7': 'B', '8': 'VCC' }} ibisPinNameToModelName={{ '6': 'a_b_p', '7': 'a_b_n' }}
-      ibisPinNameToReferencePortLabels={{ '6': { pullup: 'VCC', pulldown: 'GND', powerClamp: 'VCC', groundClamp: 'GND' }, '7': { pullup: 'VCC', pulldown: 'GND', powerClamp: 'VCC', groundClamp: 'GND' } }} />
-  </>
-}
-/** Same-layer finite ground copper avoids inventing missing via-plating data. */
-export function Reference(): React.JSX.Element {
-  return <>
-    <voltagesource name="V3V3" voltage="3.3V" doNotPlace connections={{ pin1: 'net.VCC', pin2: 'net.GND' }} />
-    <net name="GND" /><net name="VCC" />
-    <copperpour name="POWER" layer="top" connectsTo="net.VCC" unbroken outline={[{ x: -6, y: 1.8 }, { x: 6, y: 1.8 }, { x: 6, y: 4 }, { x: -6, y: 4 }]} />
-    <copperpour name="RETURN" layer="top" connectsTo="net.GND" unbroken outline={[{ x: -5.20001, y: -3 }, { x: 5.20001, y: -3 }, { x: 5.20001, y: -4 }, { x: -5.20001, y: -4 }]} />
-  </>
-}
+export const transceiverPins = { pin1: "R", pin2: "RE", pin3: "DE", pin4: "D", pin5: "GND", pin6: "A", pin7: "B", pin8: "VCC" }

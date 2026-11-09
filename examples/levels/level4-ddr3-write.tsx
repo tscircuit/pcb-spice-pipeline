@@ -1,4 +1,3 @@
-import React from 'react'
 /* LEVEL 4: AM335x -> W631GG6MB-12 DDR3 lower-byte write illustration, not JEDEC compliance.
  * Currently stops with: .CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.
  * Typ corner is 1.5 V. DQS is delayed 0.5 UI to centre-align write sampling.
@@ -29,8 +28,7 @@ const dramPins = {
 const missing = [..."ABCDEFGHJKLMNPRT"]
   .flatMap((row) => [4, 5, 6].map((col) => `${row}${col}`))
   .join(",")
-/** Physical package balls share the selected ideal reference rails. */
-const references = (balls: string[], high: string, low: string): Record<string, { pullup: string; pulldown: string; powerClamp: string; groundClamp: string }> =>
+const references = (balls: string[], high: string, low: string) =>
   Object.fromEntries(
     balls.map((ball) => [
       ball,

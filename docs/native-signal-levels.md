@@ -1,86 +1,85 @@
 # Native signal API evidence
 
-The runner renders the actual TSX examples through the temporary adapter for unpublished core#5286 and calls public `runPipeline` with real TI IBIS bytes and `/opt/homebrew/bin/{fasthenry,FasterCap,ngspice}`. Vendor files and complete native decks remain local and ignored. Committed summaries under `tests/evidence/signal-levels` distinguish accepted results from failed or interrupted solves.
+The scope is the **verbatim RFC boards intended to have a full opposite-layer ground plane**, not the earlier pad/1 mm top-ground-strip fixtures. All earlier strip-fixture eyes, approximately 1.3 V FEXT, and convergence figures are **superseded**. They remain in Git history at `f79e808`; they are not measurements of the RFC boards. There are currently **no accepted full-plane RFC-board native results**.
 
-## Ideal die rails
+All six files in `examples/levels/` match the RFC assets byte-for-byte at RFC head `5f4d848f91aab44b7426480e98792a99d5493bea`. `scripts/run-signal-levels.tsx` now includes Level 2 and renders directly through real core, without stripping SI elements, patching Circuit JSON, or injecting plating. The evidence uses core `ca4bb147291e8eb41dfa92b5d4c361d1dc21e9f3`, props `8b44084`, and circuit-json `bc2c8a6`. The JLC stackup declares 0.018 mm plating, 0.03 mm outer copper, 1.43 mm dielectric, and er=4.42.
 
-Under `pdn="ideal"`, IBIS die-side POWER/GND references connect directly to the ideal rails, with no package R/L/C on POWER/GND pins. Vendor signal-pin package R/L/C remains enabled as a pi network with split shunt capacitance. `pdn="extracted"` remains explicitly unimplemented.
+## Verbatim RFC-board outcomes
 
-Non-power-aware IBIS models assume ideal die rail voltages. These models lack `[Composite Current]`, ISSO and split C_comp power-aware data; on-die decoupling is not described. Feeding their die rails through bare package inductance is therefore unphysical. The user-approved interpretation follows the RFC's `pdn="ideal"` promise of perfect rails; it supersedes the earlier implementation's inclusion of scalar POWER/GND package leads.
+A bounded render/preflight pass covers every case below. Level 3's quiet blocks were also isolated from the unchanged board without changing seeds or copper. Zero native solver calls were made: missing geometry or core rendering stopped each case before extraction. An unavailable measurement is not zero.
 
-KU/KD coefficients are computed by `switchingWeights` in the pinned `@tscircuit/ibis-to-spice` tarball `ad1ec9e640a92a4d370fc76acbbd8db245563317`, then scheduled by its `bitWeights`. This repo only inserts package networks. The inverter's generated KU range is −0.0657680079208…1.00741880404 and KD is −0.172649925905…1.00324434607. No coefficient is clipped or otherwise modified. The separate upstream investigation owns any coefficient correction.
+| Board/block | PCB traces | Vias | Pours | Outcome | Eyes, NEXT/FEXT, L/C, timestep/section deltas |
+| --- | ---: | ---: | ---: | --- | --- |
+| Level 1 single-ended | 3 | 0 | 0 | `ground_geometry`: no physical ground copper pours | Unavailable |
+| Level 1 differential | 0 | 0 | 1 | Core differential autorouting fails; no routed BUS | Unavailable |
+| Level 2 | 8 | 2 | 0 | `ground_geometry`: no physical ground copper pours | Unavailable |
+| Level 3 TRAFFIC | 13 | 4 | 0 | `ground_geometry`: no physical ground copper pours | Unavailable |
+| Level 3 XTALK_LOW | 13 | 4 | 0 | Same missing physical ground pour | Unavailable |
+| Level 3 XTALK_HIGH | 13 | 4 | 0 | Same missing physical ground pour | Unavailable |
 
-## Fresh native verification
+Level 2 declares two switching signals and no quiet victim. Even after its layout is repaired, its current RFC intent does not request a standalone quiet-victim NEXT/FEXT measurement. No quiet block was invented for these runs.
 
-The ideal-rail implementation is committed at `37f2392263453b59dcdca63842638cd26b6c7f0d`. Each native process has a 180 s limit. Only exact-request-hash native extraction outputs may be replayed; every idle and switching transient is fresh ngspice execution. The three Level 3 blocks are isolated from the full rendered board while retaining its planned seeds and copper. Concurrent runs and local tests make elapsed times unsuitable as performance comparisons.
+`tests/evidence/signal-levels/rfc-boards.json` records the exact example, runner, schema, vendor-model, and rendered-input hashes, core provenance, errors, and null measurement fields. Complete inputs and raw logs stay ignored under `runs/rfc-boards*`; no vendor bytes or local overlays are committed.
 
-Extraction uses native FastHenry R/L and FasterCap Maxwell C with mesh, reciprocity, passivity, DC resistance and neutral-charge/energy checks. A 3D copper model is built first. Only verified straight parallel signals over a rectangular return contacted at opposite ends may use the extra 2D bar reduction.
+## Root causes and proposed upstream changes
 
-Transient convergence independently halves timestep and doubles sections. Every probe must pass both time-integrated RMS and signed-peak tolerances (1% + 1 mV), comparing every timestamp in both adaptive native traces. First-order Gear and IBIS tolerances are unchanged. Quiet peaks retain both signs and use an independent settled constant-drive idle solve; disabled victims also require alternate-initial-charge checks. Numerical settings alone do not establish physical validity.
+**Ground-plane intent:** plain `<copperpour connectsTo="net.GND" layer="bottom" />` does not request ground escape routing. Core `lib/utils/autorouting/getUnbrokenCopperPourObstacles.ts:134` skips pours without `unbroken`. The single-ended board therefore routes GND between top pads without a GND via; `lib/components/normal-components/Board/Board_doInitialPcbCopperPourCleanup.ts:21` removes the floating bottom pour. Level 2/3 have signal-routing vias, not a connected ground plane.
 
-All five cases converge at four sections in `ideal-die-rails.json`. The table gives the largest peak change over all probes; every probe also passes its RMS check. The full per-probe values, native requests, extraction-replay provenance, model/schema/converter hashes and accepted results are committed in that file. Raw requests and losslessly archived native outputs remain under `runs/ideal-die-rails*`.
+Suggested RFC edits, **not applied**: add `unbroken` to the GND pours in `level1-single-ended.tsx:34`, `level1-differential.tsx:23`, `level2-two-signals.tsx:13`, `level3-three-signals.tsx:16`, and `level4-ddr3-write.tsx:109` (inner1). An independent single-ended diagnostic with only that prop added produces one full bottom plane and two ground escape vias. The multi-signal/DDR suggestions have not been validated. Explicit ground-via/lead connections are another way to express the required physical path.
 
-| Case | Total elapsed (s) | Timestep peak delta (mV) | Section peak delta (mV) | Result |
-| --- | ---: | ---: | ---: | --- |
-| Single | 89.948 | 0.186977 | 2.776489 | Converged |
-| Differential | 253.166 | 0.000164 | 0.000079 | Converged |
-| TRAFFIC | 434.928 | 0.116683 | 3.606621 | Converged |
-| QUIET_LOW | 395.066 | 0.061188 | 2.044217 | Converged |
-| QUIET_HIGH | 378.160 | 0.072410 | 1.502090 | Converged |
+The minimal positive source is `tests/fixtures/escape-via-plane.tsx`; remove its `unbroken` prop to reproduce the missing-plane outcome. It uses real `sot23_5` footprints and autorouting, with no IBIS or handcrafted Circuit JSON needed.
 
-The final maximum timestep is 14.576129 ps for single/three and 14.807340 ns for differential. Every recording completes: 2.4 us for single/three, 192 us for differential, with measurement gates of 0.8 us and 64 us respectively.
+**Differential routing:** the actual RFC board and the smaller `tests/fixtures/differential-termination.tsx` both fail with `Pipeline9: differential pair connection "source_trace_…" must resolve to exactly one final point-pair connection, got 2`. Captured SRJ contains two-terminal pair trunks plus separate termination tails; the failure is downstream of that source representation. The precise upstream throw is capacity-autorouter 0.0.1054, `lib/autorouter-pipelines/AutoroutingPipeline9_PreloadedTraceGraph/AutoroutingPipelineSolver9_PreloadedTraceGraph.ts:1005` (verified from its source map). Its root/net-name match at line 997 associates multiple final paths with a selected trunk. Core's source-path construction is `lib/utils/autorouting/getSimpleRouteJsonFromCircuitJson.ts:603`; pair selection is `getDifferentialPairsForSimpleRouteJson.ts:205`. No pin-map error was demonstrated. No core, props, circuit-json, autorouter, or RFC repository was edited.
 
-| Eye | Height (V) | Width (ns) | Mask margin (V) |
-| --- | ---: | ---: | ---: |
-| Single DATA | 3.299981 | 49.740514 | 0.799981 |
-| Differential BUS | 4.466424 | 3932.799340 | 2.033210 |
-| TRAFFIC D0 | 3.286102 | 47.644185 | 0.793135 |
-| TRAFFIC D1 | 3.281172 | 47.600220 | 0.791891 |
-| TRAFFIC D2 | 3.284261 | 47.573996 | 0.791673 |
-| QUIET_LOW D0 | 3.286793 | 49.543261 | 0.793383 |
-| QUIET_LOW D2 | 3.293363 | 49.544985 | 0.799981 |
-| QUIET_HIGH D0 | 3.285862 | 49.542713 | 0.793025 |
-| QUIET_HIGH D2 | 3.292833 | 49.544349 | 0.799981 |
+**RFC type error:** `level4-ddr3-write.tsx:101` uses `<trace key={i}>`, but props `lib/components/trace.ts:18` declares a string-only key. Suggested RFC change: `key={String(i)}`. The copied source remains verbatim, so the newly included example typecheck reports this exact error, without a suppression.
 
-Quiet D1 has no eye. Its signed noise is measured relative to the separate idle solve:
+## Pipeline fix and bounded plane diagnostic
 
-| Block | End | Idle (V) | Positive peak (V) | Negative peak (V) |
-| --- | --- | ---: | ---: | ---: |
-| QUIET_LOW | NEXT | 0.001657 | +0.145222 | −0.159380 |
-| QUIET_LOW | FEXT | 0.001657 | +1.290258 | −0.864660 |
-| QUIET_HIGH | NEXT | 3.299742 | +0.128930 | −0.145032 |
-| QUIET_HIGH | FEXT | 3.299742 | +1.322569 | −1.174905 |
+A valid unbroken plane exposed a pipeline bug: core ends an escape route at its physical via, while `groundConnection` rejected every route not ending on a wire. The stacked commits are `308df97` (failing real-footprint TSX reproduction) and `e8814f0` (fix). The pipeline now validates the associated physical barrel, electrical net, layer span, plating, and full barrel contact with the pour, then retains the native via endpoint. Missing/misnetted barrels, invalid plating, and inconsistent spans remain errors. The regression checks the actual 0.018 mm barrel cross-section and plane endpoint.
 
-The large crosstalk excursions remain in the accepted model results. The single-ended receiver also retains overshoot/undershoot (approximately −0.694…4.109 V after settling). Convergence does not establish the accuracy of the upstream coefficient reconstruction or assign these residual excursions to it. KU/KD remains outside [0,1] and unchanged. No further Level 3 divergence investigation was needed because every probe passed both refinements.
+One bounded extraction of that **minimal reproduction, not an RFC example**, exercised `routed.ts`'s full pour/lead/via geometry with `/opt/homebrew/bin/{fasthenry,FasterCap}`. It did **not** produce an accepted channel: resistance changed **21.03696%** when ground mesh halved from 1.43 to 0.715 mm (filaments 3→5), exceeding the unchanged **5%** threshold. Inductance changed 1.2436%. The two FastHenry calls took 11.048 s in total; each process had a 180 s deadline. No further R/L mesh attempt was made.
 
-Reproduce the actual TSX runs (omit `SI_EXTRACTION_CACHE` for fresh extraction):
+One separate FasterCap diagnostic completed its automatic refinement at **1.78023%**, within its unchanged 2% tolerance. It does not override the rejected R/L mesh. The exact FastHenry requests were replayed only to generate the comparison summary; native capacitance was fresh. No transient was run on this rejected extraction.
 
-```sh
-IBIS_MODEL_DIR=models SI_NATIVE_TIMEOUT_MS=180000 SI_RUN_ROOT=runs/ideal-die-rails node --import tsx scripts/run-signal-levels.tsx single
-IBIS_MODEL_DIR=models SI_NATIVE_TIMEOUT_MS=180000 SI_RUN_ROOT=runs/ideal-die-rails node --import tsx scripts/run-signal-levels.tsx differential
-IBIS_MODEL_DIR=models SI_NATIVE_TIMEOUT_MS=180000 SI_BLOCK=TRAFFIC SI_RUN_ROOT=runs/ideal-die-rails-TRAFFIC node --import tsx scripts/run-signal-levels.tsx three
-IBIS_MODEL_DIR=models SI_NATIVE_TIMEOUT_MS=180000 SI_BLOCK=QUIET_LOW SI_RUN_ROOT=runs/ideal-die-rails-QUIET_LOW node --import tsx scripts/run-signal-levels.tsx three
-IBIS_MODEL_DIR=models SI_NATIVE_TIMEOUT_MS=180000 SI_BLOCK=QUIET_HIGH SI_RUN_ROOT=runs/ideal-die-rails-QUIET_HIGH node --import tsx scripts/run-signal-levels.tsx three
+For the 28.118503 mm signal route, the **unaccepted** native totals correspond to **L′=0.903074 µH/m**, **C′=67.856553 pF/m**. A zero-thickness Hammerstad/Jensen estimate for w=0.15 mm, h=1.43 mm, er=4.42 gives **L′=0.866916 µH/m**, **C′=37.565933 pF/m**, er-effective=2.926931, and Z0=151.911760 ohm. The equations are the [Qucs technical microstrip formulas](https://qucs.sourceforge.net/tech/node75.html), 11.4–11.18. Native L is 4.17% higher; native C is 80.63% higher. This is a plausibility comparison, not validation of the rejected model.
+
+The native capacitance deck currently fills all space with er=4.42 (`src/extraction/decks.ts:70`), including above the trace. The corresponding homogeneous estimate is **56.728839 pF/m**; native C is still 19.62% higher. The analytic estimate omits finite-plane edges, bends, end leads, via geometry, copper thickness, and internal inductance. No coefficient, capacitance, or waveform was rescaled to force agreement. The homogeneous dielectric assumption is an accuracy limitation for a real microstrip, not a substitute for a layered dielectric solve.
+
+`tests/evidence/signal-levels/plane-extraction.json` records the unaccepted numbers, comparison assumptions, request hashes/replay origins, geometry/input hashes, and binary hashes. `scripts/check-plane-extraction.tsx` reproduces the bounded extraction and separate capacitance diagnostic.
+
+## DDR3 boundary
+
+The unchanged full DDR3 board's autorouting attempt was manually interrupted after approximately four minutes; no precise elapsed time or completed layout is claimed. Its native solver call count was zero.
+
+`scripts/check-ddr3.tsx` independently checks **source admission with `routeRemaining={false}`**, explicitly not a completed layout. Both real core and public pipeline preflight return exactly:
+
+```text
+.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.
 ```
 
-## Historical bounded investigation
+The pipeline callback count is **zero**. `ddr3-boundary.json` labels this source-only check and records that full layout is unverified. There is no DDR eye or protocol-compliance claim.
 
-`section-investigation.json` and `section-native.json` retain the earlier diagnoses and failures at their actual runner heads. They predate the ideal-rail fix. The old RMS-only snapshots were withdrawn because they could miss narrow NEXT/FEXT peaks and used a waveform-mean baseline.
+## Convergence, checks, and reproduction
 
-At base `1a20782`, typical-corner 10–90% vendor edges and modal delays required 2 single-ended / 1 differential / 2 three-signal sections for these 10 mm routes. The existing two-section start already met that edge criterion. No channel R/L/C scaling, stitch, Maxwell-sign or half-shunt defect was demonstrated. An independent native 100 ps / 50 ohm line regression checks delay, impedance, section/stage invariance and nonzero reference wiring.
+The production numerical criteria are unchanged: independently halve transient timestep and double sections; every probe must pass integrated RMS and signed-extrema checks at **1% + 1 mV**, across both adaptive native timestamp sets. Signed quiet noise uses a separate settled constant-drive idle solve. Disabled victims also require independent initial-charge tests. No RFC case reached those checks, so their deltas are unavailable.
 
-The 4-vs-8 first-edge comparison found the first difference above 10 mV at driver die power around 352.5635 ns, before driver board (352.5639 ns) and receiver board (352.6309 ns). Four-section die power spanned −39.7727…45.7685 V; receiver signed-peak delta was 3.71990 V. The bounded ideal-die-rail diagnostic reduced it to 0.9003 mV, motivating the adopted ideal-PDN semantics. Coefficient clipping reduced it to 13.625 mV but remains diagnostic only. Second-order Gear and LTRA/CPL prototypes did not establish convergence and were not adopted.
+`pdn="ideal"` keeps die POWER/GND on ideal rails and preserves vendor signal-pin package R/L/C. Upstream KU/KD remains unchanged. Extracted PDN, coupled packages, and branched routed graphs retain their documented explicit boundaries.
 
-The obsolete investigation harness was removed after adding the focused TSX/native regression. Its original commands and source remain available at commit `13a97ca1a7bf5cac4d0e5fede31a4e6cd5456439`; no new diagnostic package or distributed-line path remains in production.
+Local verification uses ignored built sibling overlays. `IBIS_MODEL_DIR=models NGSPICE_BIN=/opt/homebrew/bin/ngspice SI_CORE_MODULE=<absolute core/dist/index.js> npm test` passes **226/228 tests, two optional skips, no failures**, including the real-core escape-via regression. Unit tests retain dedicated small TSX sources with explicit ground vias and a bottom plane; they do not supply RFC native evidence. The native buffer regression uses fixed historical channel totals only to test ideal-rail section behavior.
 
-Earlier complete single-ended recordings did not converge spatially; the 32-section solve hit a 600 s process bound. Its 16-section candidate eye (3.298106 V × 45.185682 ns) is historical and unaccepted. All earlier Level 3 attempts stopped before their 0.8 us gate, so their NEXT/FEXT and eyes are unavailable, not zero. The earlier differential result (4.464708 V × 3.932765 us) passed both criteria. These old measurements have not been relabeled as fresh-head results.
+Source and test typechecks pass. `npm run typecheck` additionally checks the verbatim RFC examples and **fails only at DDR3 line 101** for the numeric key described above. Lint passes with the existing 521-line mesh warning; module and vocabulary checks pass (89.6%). Published dependencies still lack the unpublished SI schema/props changes, so these local overlay checks do not imply CI readiness.
 
-## Local checks and boundaries
+Run from this repository after building the supplied siblings. `SI_CORE_MODULE` selects the real built core; `TSX_TSCONFIG_PATH` enables automatic JSX for the import-free RFC sources. The runner's default native-process deadline is 180 s. No Circuit JSON adapter is used for the Level 1–3 runner.
 
-`IBIS_MODEL_DIR=models NGSPICE_BIN=/opt/homebrew/bin/ngspice npm test` passes 225 of 227 tests with two optional skips and no failures. The new TSX/vendor regression covers all three package corners and unchanged upstream KU/KD. The native vendor-buffer regression compares 4/8 sections over the problematic first edge using fixed native-extracted channel totals; it does not rerun extraction. The full native runner independently checks complete fixture recordings.
+```sh
+export IBIS_MODEL_DIR=models
+export SI_CORE_MODULE="$(cd ../core && pwd)/dist/index.js"
+export TSX_TSCONFIG_PATH=examples/tsconfig.json
+SI_RUN_ROOT=runs/rfc-boards node --import tsx scripts/run-signal-levels.tsx
+SI_BLOCK=XTALK_LOW SI_RUN_ROOT=runs/rfc-boards-XTALK_LOW node --import tsx scripts/run-signal-levels.tsx three
+SI_BLOCK=XTALK_HIGH SI_RUN_ROOT=runs/rfc-boards-XTALK_HIGH node --import tsx scripts/run-signal-levels.tsx three
+node --import tsx scripts/check-ddr3.tsx
+node --import tsx scripts/check-plane-extraction.tsx
+```
 
-Typecheck, lint, module and vocabulary checks pass. Lint retains the existing 521-line mesh warning. The focused API/documentation checks also pass after updating the ideal-rail terminology and diagrams.
-
-Local checks use the existing built sibling-schema overlay; no local links or vendor bytes are committed. CI's published circuit-json dependency still lacks the SI exports. The actual RFC DDR3 asset is `examples/levels/level4-ddr3-write.tsx`; it stops at `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.` before native solver IO. This is a documented boundary, not DDR validation.
-
-Extracted PDN, coupled package matrices and branched routed graphs retain explicit not-implemented errors. Finite simulated eyes do not establish BER, hardware accuracy or protocol compliance. Analytic waveforms and canned matrix tests are synthetic checks, not native fixture evidence.
+The first three commands currently exit unsuccessfully with the recorded upstream/layout errors. Omit `SI_EXTRACTION_CACHE` for fresh native extraction. Failed extraction, finite synthetic eyes, and native buffer unit tests establish neither hardware accuracy nor BER/protocol compliance.

@@ -4,23 +4,25 @@ import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { gzipSync } from 'node:zlib'
 import { dirname } from 'node:path'
-import { renderSignals } from '../tests/support/signal-render'
+import { renderCoreSignals } from '../tests/support/core-render'
 import { runPipeline } from '../src'
 import { createNativeSolver } from '../src/adapters'
 import type { SolverRequest } from '../src'
 import Single from '../examples/levels/level1-single-ended'
 import Differential from '../examples/levels/level1-differential'
+import Two from '../examples/levels/level2-two-signals'
 import Three from '../examples/levels/level3-three-signals'
+import type { CircuitJson } from '../src/board'
 
 const modelDir = process.env.IBIS_MODEL_DIR ?? 'models'
-const ibisSources = Object.fromEntries(await Promise.all(['sn74lvc1g04.ibs', 'sn65hvd72.ibs'].map(async file => [`models/${file}`, await readFile(`${modelDir}/${file}`)])))
+const ibisSources: Record<string, Uint8Array> = Object.fromEntries(await Promise.all(['sn74lvc1g04.ibs', 'sn65hvd72.ibs'].map(async file => [`models/${file}`, await readFile(`${modelDir}/${file}`)])))
 const selected = process.argv[2]
 /** Retain large solver artifacts losslessly without exhausting the local evidence volume. */
 const archive = async (path: string, body: string): Promise<void> => {
   if (body.length > 2_000_000) await writeFile(`${path}.gz`, gzipSync(body, { level: 1 }))
   else await writeFile(path, body)
 }
-const timeoutMs = Number(process.env.SI_NATIVE_TIMEOUT_MS ?? 600000)
+const timeoutMs = Number(process.env.SI_NATIVE_TIMEOUT_MS ?? 180000)
 const extractionCache = new Map<string, { directory: string; result: { stdout: string; stderr: string; files: Record<string, string> } }>()
 if (process.env.SI_EXTRACTION_CACHE) for (const entry of await readdir(process.env.SI_EXTRACTION_CACHE)) {
   if (!/^native-\d+-(fasthenry|fastercap)$/.test(entry)) continue
@@ -33,18 +35,12 @@ if (process.env.SI_EXTRACTION_CACHE) for (const entry of await readdir(process.e
 }
 /** Stable native-request digest; raw files stay in ignored runs/, with no vendor redistribution. */
 const digest = (value: string | Uint8Array): string => createHash('sha256').update(value).digest('hex')
-for (const [name, Board] of Object.entries({ single: Single, differential: Differential, three: Three })) {
+for (const [name, Board] of Object.entries({ single: Single, differential: Differential, two: Two, three: Three })) {
   if (selected && selected !== name) continue
   const started = Date.now()
-  let circuitJson = await renderSignals(<Board />)
-  if (process.env.SI_BLOCK) {
-    const block = circuitJson.find(record => record.type === 'simulation_signal_integrity' && record.name === process.env.SI_BLOCK)
-    if (block?.type !== 'simulation_signal_integrity') throw new Error(`Unknown block ${process.env.SI_BLOCK}`)
-    circuitJson = circuitJson.filter(record => record.type === 'simulation_signal_integrity' ? record === block : record.type === 'simulation_signal' ? record.simulation_signal_integrity_id === block.simulation_signal_integrity_id : true)
-  }
+  let circuitJson: CircuitJson = []
   const root = `${process.env.SI_RUN_ROOT ?? 'runs/rfc-final'}/${name}`
   await mkdir(root, { recursive: true })
-  await writeFile(`${root}/input.json`, JSON.stringify(circuitJson, null, 2))
   const native = createNativeSolver({ timeoutMs, tools: { fasthenry: '/opt/homebrew/bin/fasthenry', fastercap: '/opt/homebrew/bin/FasterCap', ngspice: '/opt/homebrew/bin/ngspice' } })
   const calls: unknown[] = []
   /** Capture exact requests and native outputs, including the request when execution is interrupted. */
@@ -62,14 +58,26 @@ for (const [name, Board] of Object.entries({ single: Single, differential: Diffe
     for (const [file, body] of Object.entries(output.files)) await archive(`${dir}/${file}`, body)
     return output
   }
-  const provenance = { name, large_artifacts: 'gzip_level_1_above_2_MB', runner_sha256: digest(await readFile(new URL(import.meta.url))), ...(process.env.SI_BLOCK ? { isolated_block: process.env.SI_BLOCK } : {}), native_timeout_ms: timeoutMs, implementation_head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), sources: Object.fromEntries(Object.entries(ibisSources).map(([file, bytes]) => [file, digest(bytes)])),
+  const provenance = { name, rendering: 'real_core_without_adapter', core_module: process.env.SI_CORE_MODULE ?? '@tscircuit/core',
+    core_sha256: digest(await readFile(process.env.SI_CORE_MODULE ?? import.meta.resolve('@tscircuit/core').replace('file://', ''))),
+    example_sha256: digest(await readFile(new URL(`../examples/levels/${({ single: 'level1-single-ended', differential: 'level1-differential', two: 'level2-two-signals', three: 'level3-three-signals' })[name]}.tsx`, import.meta.url))),
+    large_artifacts: 'gzip_level_1_above_2_MB', runner_sha256: digest(await readFile(new URL(import.meta.url))), ...(process.env.SI_BLOCK ? { isolated_block: process.env.SI_BLOCK } : {}), native_timeout_ms: timeoutMs, implementation_head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), sources: Object.fromEntries(Object.entries(ibisSources).map(([file, bytes]) => [file, digest(bytes)])),
     circuit_json_schema_sha256: digest(await readFile('node_modules/circuit-json/dist/index.mjs')) }
   try {
+    circuitJson = await renderCoreSignals(<Board />)
+    if (process.env.SI_BLOCK) {
+      const block = circuitJson.find(record => record.type === 'simulation_signal_integrity' && record.name === process.env.SI_BLOCK)
+      if (block?.type !== 'simulation_signal_integrity') throw new Error(`Unknown block ${process.env.SI_BLOCK}`)
+      circuitJson = circuitJson.filter(record => record.type === 'simulation_signal_integrity' ? record === block : record.type === 'simulation_signal' ? record.simulation_signal_integrity_id === block.simulation_signal_integrity_id : true)
+    }
+    await writeFile(`${root}/input.json`, JSON.stringify(circuitJson, null, 2))
     const result = await runPipeline({ circuitJson, ibisSources, runSolver: solver, onProgress: console.log })
     const summary = { ...provenance, status: 'verified_native', seconds: (Date.now() - started) / 1000,
       native_execution: JSON.parse(result.files['native-execution.json']), native_requests: calls,
       transient_convergence: Object.fromEntries(Object.entries(result.files).filter(([file]) => file.endsWith('numerical-convergence.json')).map(([file, body]) => [file, JSON.parse(body)])),
       blocks: result.blocks.map(block => ({ name: block.name, duration_s: block.duration_s, numericalSettings: block.numericalSettings,
+        extraction: block.matrices.map((matrix, stage) => ({ ...matrix, per_length: matrix.L.map((row, i) => ({ length_m: block.geometry.cells[stage].conductors[i].lengthM,
+          L_h_per_m: row[i] / block.geometry.cells[stage].conductors[i].lengthM, C_f_per_m: matrix.C[i][i] / block.geometry.cells[stage].conductors[i].lengthM })) })),
         results: block.results.filter(r => r.type !== 'simulation_signal_waveform').map(r => r.type === 'simulation_signal_eye' ? { ...r, folded_traces: undefined } : r), limitations: block.limitations })) }
     await writeFile(`${root}/summary.json`, JSON.stringify(summary, null, 2) + '\n')
     for (const [file, body] of Object.entries(result.files)) {
@@ -78,9 +86,13 @@ for (const [name, Board] of Object.entries({ single: Single, differential: Diffe
     }
     console.log(JSON.stringify(summary))
   } catch (error) {
-    const failure = error as Error & { code?: string; convergence?: unknown }
-    const summary = { ...provenance, status: 'failed_native', seconds: (Date.now() - started) / 1000, error: failure.message, code: failure.code, convergence: failure.convergence, native_execution: calls }
+    const failure = error as Error & { code?: string; convergence?: unknown; circuitJson?: CircuitJson }
+    circuitJson = failure.circuitJson ?? circuitJson
+    await writeFile(`${root}/input.json`, JSON.stringify(circuitJson, null, 2))
+    const summary = { ...provenance, status: calls.length ? 'failed_native' : 'rejected_before_native', seconds: (Date.now() - started) / 1000, error: failure.message, code: failure.code, convergence: failure.convergence, native_execution: calls,
+      physical_records: Object.fromEntries(['pcb_trace', 'pcb_via', 'pcb_copper_pour'].map(type => [type, circuitJson.filter(record => record.type === type).length])) }
     await writeFile(`${root}/summary.json`, JSON.stringify(summary, null, 2) + '\n')
-    throw error
+    console.error(JSON.stringify(summary))
+    process.exitCode = 1
   }
 }

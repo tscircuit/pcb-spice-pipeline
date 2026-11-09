@@ -1,0 +1,240 @@
+{
+  "status": "blocked_before_native_for_verbatim_RFC_boards",
+  "supersedes": "all earlier strip-fixture native evidence in f79e808eb9eba3fa77b12291b1066621c1e35c1d; no RFC plane eye/crosstalk is verified",
+  "rfc_head": "5f4d848f91aab44b7426480e98792a99d5493bea",
+  "core_head": "ca4bb147291e8eb41dfa92b5d4c361d1dc21e9f3",
+  "props_head": "8b44084ed67b67817315acb76b91968a7e963b90",
+  "circuit_json_head": "bc2c8a6b1eea2bfcc17c9edaf975f87236b48f88",
+  "example_sha256": {
+    "level1-single-ended.tsx": "eca9cfd7b01f09ce2e694a948a2a7775f24e9eb556eb6cfac85b1860ef4b81b8",
+    "level1-differential.tsx": "092b5f4bd0442ecc05ef20f05d19c67ab2ffe5af768349a5b10fcbd4949e532d",
+    "level2-two-signals.tsx": "aa36fdb698f534dba0117a6e628d67c9aa81eaeb57bdf79d890f3d029bb8a382",
+    "level3-three-signals.tsx": "594aca27279756e1aaf6f40971775b904325784f3e086b21df68561631f59ed2",
+    "level4-ddr3-write.tsx": "14c3121f1bf980e6a7e8c7b66d220253b93bd411ad9b3f44bfff4b7438a35634",
+    "parts.tsx": "d02190a3ec566ec620ce95efa45bfc063dc71e0273c2c25c1548b6294e6bc756"
+  },
+  "examples_are_verbatim": true,
+  "native_calls_for_RFC_boards": 0,
+  "convergence_criteria": "unchanged: each probe RMS and signed peak, 1% + 1mV; timestep halving and section doubling independently; native R/L mesh 5%, C auto 2%",
+  "level2_note": "Both signals switch. This RFC example declares no quiet victim; no standalone NEXT/FEXT measurement is requested.",
+  "cases": [
+    {
+      "name": "single",
+      "rendering": "real_core_without_adapter",
+      "core_module": "../core/dist/index.js",
+      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
+      "example_sha256": "eca9cfd7b01f09ce2e694a948a2a7775f24e9eb556eb6cfac85b1860ef4b81b8",
+      "large_artifacts": "gzip_level_1_above_2_MB",
+      "runner_sha256": "d8365a3d396bc3445de00bbe403c90e76708d92eb928fd890ccbadf47c238c07",
+      "native_timeout_ms": 180000,
+      "implementation_head": "e8814f00d9369a60c69d381533d620e60052d0a3",
+      "sources": {
+        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+      },
+      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+      "status": "rejected_before_native",
+      "seconds": 1.1,
+      "error": "ground_geometry: GND: no physical ground copper pours found",
+      "code": "ground_geometry",
+      "native_execution": [],
+      "physical_records": {
+        "pcb_trace": 3,
+        "pcb_via": 0,
+        "pcb_copper_pour": 0
+      },
+      "case": "single",
+      "input_sha256": "d4d61c2bdd955deaa4ec098f269f6a7ed61d0557b0a6911fc5ce1e3b83f754cc",
+      "eyes": null,
+      "next_fext": null,
+      "timestep_convergence_delta": null,
+      "section_convergence_delta": null,
+      "extracted_L_C_per_length": null
+    },
+    {
+      "name": "differential",
+      "rendering": "real_core_without_adapter",
+      "core_module": "../core/dist/index.js",
+      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
+      "example_sha256": "092b5f4bd0442ecc05ef20f05d19c67ab2ffe5af768349a5b10fcbd4949e532d",
+      "large_artifacts": "gzip_level_1_above_2_MB",
+      "runner_sha256": "d8365a3d396bc3445de00bbe403c90e76708d92eb928fd890ccbadf47c238c07",
+      "native_timeout_ms": 180000,
+      "implementation_head": "e8814f00d9369a60c69d381533d620e60052d0a3",
+      "sources": {
+        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+      },
+      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+      "status": "rejected_before_native",
+      "seconds": 0.342,
+      "error": "Signal \"BUS\" is not routed between .TX > .A and .RX > .A.",
+      "native_execution": [],
+      "physical_records": {
+        "pcb_trace": 0,
+        "pcb_via": 0,
+        "pcb_copper_pour": 1
+      },
+      "case": "differential",
+      "input_sha256": "aebff0c9ceeffa6998457f6d25eb01a496ed593c447c6aedb684c184162e3906",
+      "eyes": null,
+      "next_fext": null,
+      "timestep_convergence_delta": null,
+      "section_convergence_delta": null,
+      "extracted_L_C_per_length": null
+    },
+    {
+      "name": "two",
+      "rendering": "real_core_without_adapter",
+      "core_module": "../core/dist/index.js",
+      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
+      "example_sha256": "aa36fdb698f534dba0117a6e628d67c9aa81eaeb57bdf79d890f3d029bb8a382",
+      "large_artifacts": "gzip_level_1_above_2_MB",
+      "runner_sha256": "d8365a3d396bc3445de00bbe403c90e76708d92eb928fd890ccbadf47c238c07",
+      "native_timeout_ms": 180000,
+      "implementation_head": "e8814f00d9369a60c69d381533d620e60052d0a3",
+      "sources": {
+        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+      },
+      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+      "status": "rejected_before_native",
+      "seconds": 0.189,
+      "error": "ground_geometry: GND: no physical ground copper pours found",
+      "code": "ground_geometry",
+      "native_execution": [],
+      "physical_records": {
+        "pcb_trace": 8,
+        "pcb_via": 2,
+        "pcb_copper_pour": 0
+      },
+      "case": "two",
+      "input_sha256": "1c46b4b644d8d5970c4d892ee4d1e6f2bb49fcda0b7c508d87585545c383a112",
+      "eyes": null,
+      "next_fext": null,
+      "timestep_convergence_delta": null,
+      "section_convergence_delta": null,
+      "extracted_L_C_per_length": null
+    },
+    {
+      "name": "three",
+      "rendering": "real_core_without_adapter",
+      "core_module": "../core/dist/index.js",
+      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
+      "example_sha256": "594aca27279756e1aaf6f40971775b904325784f3e086b21df68561631f59ed2",
+      "large_artifacts": "gzip_level_1_above_2_MB",
+      "runner_sha256": "d8365a3d396bc3445de00bbe403c90e76708d92eb928fd890ccbadf47c238c07",
+      "native_timeout_ms": 180000,
+      "implementation_head": "e8814f00d9369a60c69d381533d620e60052d0a3",
+      "sources": {
+        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+      },
+      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+      "status": "rejected_before_native",
+      "seconds": 0.251,
+      "error": "ground_geometry: GND: no physical ground copper pours found",
+      "code": "ground_geometry",
+      "native_execution": [],
+      "physical_records": {
+        "pcb_trace": 13,
+        "pcb_via": 4,
+        "pcb_copper_pour": 0
+      },
+      "case": "three",
+      "input_sha256": "a25203eba360b776424fc1676659c4a34b3f551b832706e9b30a8d6da12fb8ea",
+      "eyes": null,
+      "next_fext": null,
+      "timestep_convergence_delta": null,
+      "section_convergence_delta": null,
+      "extracted_L_C_per_length": null
+    },
+    {
+      "name": "three",
+      "rendering": "real_core_without_adapter",
+      "core_module": "../core/dist/index.js",
+      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
+      "example_sha256": "594aca27279756e1aaf6f40971775b904325784f3e086b21df68561631f59ed2",
+      "large_artifacts": "gzip_level_1_above_2_MB",
+      "runner_sha256": "d8365a3d396bc3445de00bbe403c90e76708d92eb928fd890ccbadf47c238c07",
+      "isolated_block": "XTALK_LOW",
+      "native_timeout_ms": 180000,
+      "implementation_head": "e8814f00d9369a60c69d381533d620e60052d0a3",
+      "sources": {
+        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+      },
+      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+      "status": "rejected_before_native",
+      "seconds": 1.199,
+      "error": "ground_geometry: GND: no physical ground copper pours found",
+      "code": "ground_geometry",
+      "native_execution": [],
+      "physical_records": {
+        "pcb_trace": 13,
+        "pcb_via": 4,
+        "pcb_copper_pour": 0
+      },
+      "case": "XTALK_LOW",
+      "input_sha256": "25a3515503c53be02e9fe6d53cf6460286bbfb42c4e7bbe7a08ce08d7150d7c5",
+      "eyes": null,
+      "next_fext": null,
+      "timestep_convergence_delta": null,
+      "section_convergence_delta": null,
+      "extracted_L_C_per_length": null
+    },
+    {
+      "name": "three",
+      "rendering": "real_core_without_adapter",
+      "core_module": "../core/dist/index.js",
+      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
+      "example_sha256": "594aca27279756e1aaf6f40971775b904325784f3e086b21df68561631f59ed2",
+      "large_artifacts": "gzip_level_1_above_2_MB",
+      "runner_sha256": "d8365a3d396bc3445de00bbe403c90e76708d92eb928fd890ccbadf47c238c07",
+      "isolated_block": "XTALK_HIGH",
+      "native_timeout_ms": 180000,
+      "implementation_head": "e8814f00d9369a60c69d381533d620e60052d0a3",
+      "sources": {
+        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+      },
+      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+      "status": "rejected_before_native",
+      "seconds": 1.229,
+      "error": "ground_geometry: GND: no physical ground copper pours found",
+      "code": "ground_geometry",
+      "native_execution": [],
+      "physical_records": {
+        "pcb_trace": 13,
+        "pcb_via": 4,
+        "pcb_copper_pour": 0
+      },
+      "case": "XTALK_HIGH",
+      "input_sha256": "561615abe9af8d7cb9874015520431733508fe71434744db54d219cfa7a272b4",
+      "eyes": null,
+      "next_fext": null,
+      "timestep_convergence_delta": null,
+      "section_convergence_delta": null,
+      "extracted_L_C_per_length": null
+    }
+  ],
+  "full_DDR3_layout_attempt": {
+    "status": "interrupted_during_autorouting",
+    "elapsed_s": null,
+    "note": "Manually stopped after approximately four minutes; no native solver execution. No complete DDR3 layout claim."
+  },
+  "local_checks": {
+    "npm_test": {
+      "tests": 228,
+      "pass": 226,
+      "skip": 2,
+      "fail": 0,
+      "environment": "IBIS_MODEL_DIR=models NGSPICE_BIN=/opt/homebrew/bin/ngspice SI_CORE_MODULE=<core/dist/index.js>"
+    },
+    "source_and_test_typecheck": "pass",
+    "npm_run_typecheck": "fails only on verbatim RFC level4-ddr3-write.tsx:101:14 numeric key vs props string key",
+    "lint": "pass; existing 521-line mesh warning",
+    "modules": "pass",
+    "vocabulary": "pass, 89.6%"
+  }
+}

@@ -1,21 +1,21 @@
 import type { SimulationSignal } from '../../src/board'
 import React from 'react'
-import Single from '../../examples/levels/level1-single-ended'
+import Single from '../support/unit-single-ended'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { renderSignals } from '../support/signal-render'
 import { extendRecording, prepareBlocks, signalBits, endpointPorts } from '../../src/pipeline/signals'
 import { geometryFromCircuitJson } from '../../src/board'
-import { Inverter, Reference } from '../../examples/levels/parts'
+import { Inverter, Reference } from '../support/signal-parts'
 
 const modelDir = process.env.IBIS_MODEL_DIR
 /** Real vendor bytes, never an invented model. */
 const sources = async (): Promise<Record<string, Uint8Array>> => ({ 'models/sn74lvc1g04.ibs': await readFile(`${modelDir}/sn74lvc1g04.ibs`) })
 /** Regression boards stay ordinary TSX, including the deliberately incomplete route after RS. */
 function Board({ missing = false, via = false, branch = false, sameEnd = false, unlisted = false }: { missing?: boolean; via?: boolean; branch?: boolean; sameEnd?: boolean; unlisted?: boolean }): React.JSX.Element {
-  return <board width={18} height={12} layers={4} thickness={1.6} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled>
-    <Inverter name="TX" x={-5} y={0} driver /><Inverter name="RX" x={5} y={0} driver={false} groundX={sameEnd ? -10 : 0} />
+  return <board width={18} height={12} layers={4} thickness={1.6} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled isViaInPadAllowed allowBlindAndBuriedVias>
+    <Inverter name="TX" x={-5} y={0} driver /><Inverter name="RX" x={5} y={0} driver={false} groundX={sameEnd ? -8 : 0} />
     <Reference />
     {missing ? <>
       <resistor name="RS" resistance="33" pcbX={0} footprint={<footprint>
@@ -27,8 +27,8 @@ function Board({ missing = false, via = false, branch = false, sameEnd = false, 
     </> : <trace from=".TX > .Y" to=".RX > .A" width={.2} pcbPath={['.TX > .Y', ...(via ? [
       { x: 1, y: 0 },
       { x: 1, y: 0 },
-      { x: 1, y: 0, via: true as const, fromLayer: 'top' as const, toLayer: 'bottom' as const }, { x: 9, y: 0 },
-      { x: 9, y: 0, via: true as const, fromLayer: 'bottom' as const, toLayer: 'top' as const },
+      { x: 1, y: 0, via: true as const, fromLayer: 'top' as const, toLayer: 'inner2' as const }, { x: 9, y: 0 },
+      { x: 9, y: 0, via: true as const, fromLayer: 'inner2' as const, toLayer: 'top' as const },
     ] : []), '.RX > .A']} />}
     {(branch || unlisted) && <>
       <Inverter name="TX1" x={-5} y={1} driver /><Inverter name="RX1" x={5} y={1} driver={false} />
