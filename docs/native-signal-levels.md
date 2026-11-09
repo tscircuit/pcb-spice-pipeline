@@ -6,7 +6,7 @@ The runner renders the real TSX fixtures through the temporary adapter for unpub
 
 Extraction uses native FastHenry R/L and FasterCap Maxwell C, with mesh, reciprocity, passivity, DC resistance and neutral-charge/energy checks. A 3D copper model is built first. Only straight parallel signals and a rectangular return contacted at opposite ends may use the extra 2D bar reduction.
 
-Transient convergence independently halves timestep and doubles sections. Each probe must meet both time-integrated RMS and signed peak tolerances (1% + 1 mV). Comparison uses every timestamp from both adaptive native traces, without a sparse display grid. First-order Gear with ngspice's default truncation setting and tight IBIS tolerances avoid accepting ringing based only on RMS. NEXT/FEXT retain both signs and use a separate constant-drive, settled idle solve; disabled victims also undergo an alternate-initial-charge check.
+Transient convergence independently halves timestep and doubles sections. Each probe must meet both time-integrated RMS and signed peak tolerances (1% + 1 mV). Comparison uses every timestamp from both adaptive native traces, without a sparse display grid. The current deck forces first-order Gear and tight IBIS tolerances; neither numerical setting establishes physical validity on its own. NEXT/FEXT retain both signs and use a separate constant-drive, settled idle solve; disabled victims also undergo an alternate-initial-charge check.
 
 The final-RFC differential run at `a5e85f3` completed in 329.910 s (see the committed summary for the exact time). Eye height is 4.464708 V, width 3.932765 µs, mask margin 2.032352 V. The timestep check at 2 sections had 2.30 nV peak change; the independent section check at 4 sections had 1.79 µV peak change. Both passed the per-probe RMS and peak criteria. This case has no quiet victim, so no NEXT/FEXT record is applicable.
 
@@ -25,6 +25,41 @@ Level 1 SE did not converge spatially. The last complete 16-section trace has an
 All three Level 3 blocks were attempted natively. TRAFFIC failed with `native_timeout` after 1043.880 s including extraction, at a last reported transient time of 0.655883 µs. QUIET_LOW returned `native_solver` after 601.781 s at 0.676601 µs; QUIET_HIGH returned `native_timeout` after 601.760 s at 0.729304 µs. Each stopped before the 0.8 µs settling gate, so **signed NEXT/FEXT and Level 3 eyes are unavailable**, not zero. The isolated quiet-block attempts preserved the full board's planned seeds and copper; only exact-request native extraction outputs were replayed. Their committed `three-*-failed.json` files identify that replay and every native ngspice request.
 
 The native evidence records its actual implementation head (`a5e85f3` for SE, differential and TRAFFIC; `ad46600` for isolated quiet blocks). Subsequent changes strengthen idle completion/charge checks, routing admission, artifact retention and evidence storage; the failed attempts have not been relabeled as final-head successes. No old RMS-only numerical claim remains valid evidence. Resolving the native stiffness/spatial nonconvergence remains necessary before calling these fixtures verified.
+
+## Bounded section investigation (2026-11-09)
+
+`section-investigation.json` records commands, native deck/log hashes and numbers at base head `1a20782`. Production netlists and convergence criteria are unchanged. The reproducible harness is `scripts/investigate-signal-sections.mjs`; it reads decks generated from the existing actual TSX examples by `scripts/run-signal-levels.tsx`. Complete decks and vendor bytes remain ignored. These are bounded diagnostics, not a successful single-ended or Level 3 fix.
+
+Hypothesis 1 was insufficient edge resolution. Typical-corner 10–90% edges are interpolated from each selected vendor waveform, taking the fastest rising/falling fixture. The inverter rises in 0.670–0.934 ns and falls in 0.583–0.925 ns; the fastest RS485 leg edge is 592.294 ns. For coupled lines, `sqrt(eigenvalues(L*C))` gives modal delays from the total extracted matrices. Thus `v = length/delay` and `N = ceil(10*delay/edge)` implement `section_length <= v*edge/10` without a per-metre/total conversion error.
+
+| Fixture (all 10 mm) | Fastest edge | Modal delay | Modal velocity (m/s) | Maximum section length | Required sections |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Single | 0.583045 ns | 70.6841 ps | 1.41475e8 | 8.24861 mm | 2 |
+| Differential | 592.294 ns | 72.7322–74.2367 ps | 1.34704e8–1.37491e8 | 7.97845–8.14349 m | 1 |
+| Three | 0.583045 ns | 69.9822–70.9229 ps | 1.40998e8–1.42894e8 | 8.22083–8.33134 mm | 2 |
+
+The implementation already starts at two sections. Single-ended N=2 and N=4 each exhausted a 120 s bound at 2.15406 and 1.90676 us, respectively; neither produced a complete new waveform. The earlier complete 2-vs-4 comparison still rejects convergence (RMS 0.116311341 V, peak delta 0.050512530 V). Increasing the count beyond the edge requirement is not justified as a demonstrated fix.
+
+Hypothesis 2 was a bad stitch or half-shunt. A 4-vs-8 comparison records driver board/die/ground/power, quarter/half/three-quarter line, receiver board/die/ground over 349–360 ns. Both native solves finished (7.982 / 14.100 s). The first difference above 10 mV occurs at driver power around 352.5635 ns, then driver board at 352.5639 ns, and receiver board at 352.6309 ns. The 4-section die power rail spans −39.7727 to +45.7685 V; the receiver peak delta is 3.71990 V. This points to active-buffer/package behavior, without proving its root cause. R/L/C scaling, loop/Maxwell signs, shunt halves and terminal references were inspected; no defect in `channelSpice` was demonstrated.
+
+A native regression independently checks a 100 ps, 50 ohm line at 1 GHz: 8/16 sections and two half-stages with four sections each agree with analytic delay and input impedance within 0.1%, and complex voltage within 0.5 mV. A driven 1.7 V reference checks reference-node wiring. R=1 nOhm is the lossless limit because the current validator requires positive-definite R. Run `NGSPICE_BIN=/opt/homebrew/bin/ngspice node --import tsx --test tests/extraction/rlgc.test.ts` (4 passed). This is an analytic native guard, not vendor-device validation.
+
+Two bounded A/B diagnostics isolate the package interaction. Generated KU/KD coefficients reach −0.065768 / −0.172650. Clipping coefficients to [0,1] reduces the first-edge receiver section delta to 13.625 mV; replacing die supply/ground leads with ideal rails reduces it to 0.9003 mV. Both alter required IBIS/package physics, and neither is adopted. Default second-order Gear completed N=2 in 85.187 s, but N=4/8 hit 90 s bounds, so that change is also unverified and not adopted.
+
+Hypothesis 3 was that distributed lines avoid the problem. The bounded prototype uses the same total RLGC with length=1, lossless G=0, LTRA for single-ended and full upper-triangular R/L/C for CPL. The [ngspice manual](https://ngspice.sourceforge.io/docs/ngspice-46-manual.pdf) describes these devices; current [CPL source](https://github.com/ngspice/ngspice/blob/master/src/spicelib/devices/cpl/cplsetup.c) consumes full triangular R despite the manual's diagonal-R guidance. Each prototype hit 90 s: single stopped near 0.352575 us, differential 0.164198 us, three 0.0109077 us. All are before their measurement gates (0.8 / 64 / 0.8 us). No comparison against a converged single-ended ladder or complete differential distributed waveform exists. The ladder stays in production; there is no evidence supporting adoption.
+
+Reproduce the diagnostics after generating `runs/rfc-final/{single,differential,three}` with the native runner:
+
+```sh
+node --import tsx scripts/investigate-signal-sections.mjs edge
+SI_NATIVE_TIMEOUT_MS=120000 node --import tsx scripts/investigate-signal-sections.mjs ladder
+SI_NATIVE_TIMEOUT_MS=30000 node --import tsx scripts/investigate-signal-sections.mjs nodes
+SI_NATIVE_TIMEOUT_MS=45000 node --import tsx scripts/investigate-signal-sections.mjs package
+SI_NATIVE_TIMEOUT_MS=90000 node --import tsx scripts/investigate-signal-sections.mjs gear
+SI_NATIVE_TIMEOUT_MS=90000 node --import tsx scripts/investigate-signal-sections.mjs distributed
+```
+
+Do not relabel the package diagnostics, partial traces, or old unconverged eye as accepted results. The bounded attempt did not find a defensible production fix; IBIS/package rail behavior remains the next concrete investigation.
 
 The actual RFC DDR3 TSX asset is in `examples/levels/level4-ddr3-write.tsx`. `IBIS_MODEL_DIR=models node --import tsx scripts/check-ddr3.tsx` rendered it using real AM335x/Winbond files and stopped with `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.` before any native call. This is the RFC's documented boundary, not DDR compliance validation.
 

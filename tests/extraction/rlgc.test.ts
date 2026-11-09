@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 import type { CircuitJson } from 'circuit-json'
 import { channelSpice, fastHenryDeck, fasterCapDeck, type StageMatrices as ChannelMatrices, type Matrix } from '../../src/extraction'
 import { geometryFromCircuitJson, type Modeling } from '../../src/board'
+import { createNativeSolver } from '../../src/adapters'
 
 const baseCircuit: CircuitJson = JSON.parse(await readFile(new URL('../fixtures/straight.circuit.json', import.meta.url), 'utf8'))
 const baseModeling: Modeling = JSON.parse(await readFile(new URL('../fixtures/straight.modeling.json', import.meta.url), 'utf8'))
@@ -100,4 +101,37 @@ test('malformed or nonpassive selected matrices fail before emitting a partial c
   assert.throws(() => channelSpice([{ ...channel, L: [[1, 2, 0], [2, 1, 0], [0, 0, 1]] }], 1), /passivity/)
   assert.throws(() => channelSpice([{ ...channel, C: [[3, .1, 0], [.1, 3, 0], [0, 0, 3]] }], 1), /capacitance_sign/)
   assert.throws(() => channelSpice([], 1), /matrix_dimension/)
+})
+
+test('native lossless-limit line preserves analytic delay, impedance and section/stage invariance', { skip: !process.env.NGSPICE_BIN }, async () => {
+  const solve = createNativeSolver({ timeoutMs: 15000, tools: { ngspice: process.env.NGSPICE_BIN } })
+  // 100 ps, 50 ohms. The 1 nOhm resistance is below the numerical tolerance;
+  // channelSpice currently requires positive-definite R, including for this limit.
+  const line = { R: [[1e-9]], L: [[5e-9]], C: [[2e-12]] }
+  const frequency = 1e9
+  const omega = 2 * Math.PI * frequency
+  const delay = Math.sqrt(line.L[0][0] * line.C[0][0])
+  const results: number[][] = []
+  for (const [stages, sections] of [[1, 8], [1, 16], [2, 4]]) {
+    const matrices = Array.from({ length: stages }, () => ({
+      R: [[line.R[0][0] / stages]], L: [[line.L[0][0] / stages]], C: [[line.C[0][0] / stages]],
+    }))
+    const deck = ['Matched line with a nonzero reference', 'VREF ref 0 1.7', 'V1 source ref AC 1', 'RS source near 50', 'RL far ref 50',
+      channelSpice(matrices, sections), 'XCHAN near far ref CHANNEL', '.control', 'set wr_singlescale', 'set wr_vecnames', 'set numdgt=17',
+      `ac lin 1 ${frequency} ${frequency}`, 'wrdata line.dat v(near,ref) v(far,ref)', 'quit', '.endc', '.end'].join('\n')
+    const output = await solve({ solver: 'ngspice', files: { 'line.cir': deck }, args: ['-n', '-b', 'line.cir'], outputFiles: ['line.dat'] })
+    const values = output.files['line.dat'].trim().split('\n')[1].trim().split(/\s+/).map(Number)
+    const measuredDelay = -Math.atan2(values[4], values[3]) / omega
+    assert.ok(Math.abs(measuredDelay / delay - 1) < .001, 'phase delay agrees with sqrt(LC) within 0.1%')
+    // Z_in = 50 V_near / (1 - V_near), independently of the line's emitted elements.
+    const denominator = (1 - values[1]) ** 2 + values[2] ** 2
+    const real = 50 * (values[1] * (1 - values[1]) - values[2] ** 2) / denominator
+    const imaginary = 50 * values[2] / denominator
+    assert.ok(Math.hypot(real - 50, imaginary) < .05, 'matched input impedance agrees with sqrt(L/C) within 0.1%')
+    assert.ok(Math.hypot(values[3] - .5 * Math.cos(omega * delay), values[4] + .5 * Math.sin(omega * delay)) < .0005)
+    results.push(values)
+  }
+  for (const values of results.slice(1)) for (let i = 1; i < values.length; i++) {
+    assert.ok(Math.abs(values[i] - results[0][i]) < .0005, 'refining or splitting a physical stage preserves the waveform')
+  }
 })
