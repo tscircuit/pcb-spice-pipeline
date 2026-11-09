@@ -13,6 +13,8 @@ import Differential from '../examples/levels/level1-differential'
 import Two from '../examples/levels/level2-two-signals'
 import Three from '../examples/levels/level3-three-signals'
 import type { CircuitJson } from '../src/board'
+import { prepareBlocks } from '../src/pipeline/signals'
+import { receiverThresholds } from '../src/buffers'
 
 const modelDir = process.env.IBIS_MODEL_DIR ?? 'models'
 const ibisSources: Record<string, Uint8Array> = Object.fromEntries(await Promise.all(['sn74lvc1g04.ibs', 'sn65hvd72.ibs'].map(async file => [`models/${file}`, await readFile(`${modelDir}/${file}`)])))
@@ -72,6 +74,32 @@ for (const [name, Board] of Object.entries({ single: Single, differential: Diffe
     }
     await writeFile(`${root}/input.json`, JSON.stringify(circuitJson, null, 2))
     const result = await runPipeline({ circuitJson, ibisSources, runSolver: solver, onProgress: console.log })
+    const prepared = prepareBlocks(circuitJson, ibisSources)
+    const plot = result.blocks.map((block, index) => ({ name: block.name, gate_s: block.numericalSettings.measurementGate,
+      signals: prepared[index].signals.map(signal => ({ ...signal, thresholds: Object.fromEntries(signal.receivers.map(receiver => {
+        const port = receiver.kind === 'single' ? receiver.source_port_id : receiver.p_source_port_id
+        return [port, receiverThresholds(prepared[index].pins.get(port)!, receiver.kind === 'differential', signal.mask, { typ: 0, min: 1, max: 2 }[prepared[index].block.corner])]
+      })) })),
+      results: block.results.map(record => {
+        if (record.type === 'simulation_signal_eye') return { ...record, folded_traces: undefined }
+        if (record.type !== 'simulation_signal_waveform') return record
+        const stride = Math.max(1, Math.ceil(record.timestamps_s.length / 30000))
+        const indices = new Set([0, record.timestamps_s.length - 1])
+        for (let i = 0; i < record.timestamps_s.length; i += stride) {
+          let low = i
+          let high = i
+          for (let j = i; j < Math.min(i + stride, record.timestamps_s.length); j++) {
+            if (record.voltage_levels[j] < record.voltage_levels[low]) low = j
+            if (record.voltage_levels[j] > record.voltage_levels[high]) high = j
+          }
+          indices.add(low)
+          indices.add(high)
+        }
+        const ordered = [...indices].sort((a, b) => a - b)
+        return { ...record, full_resolution_samples: record.timestamps_s.length,
+          full_resolution_sha256: digest(JSON.stringify(record)), timestamps_s: ordered.map(i => record.timestamps_s[i]), voltage_levels: ordered.map(i => record.voltage_levels[i]) }
+      }) }))
+    await writeFile(`${root}/plot-evidence.json.gz`, gzipSync(JSON.stringify(plot), { level: 9 }))
     const summary = { ...provenance, status: 'verified_native', seconds: (Date.now() - started) / 1000,
       native_execution: JSON.parse(result.files['native-execution.json']), native_requests: calls,
       transient_convergence: Object.fromEntries(Object.entries(result.files).filter(([file]) => file.endsWith('numerical-convergence.json')).map(([file, body]) => [file, JSON.parse(body)])),
@@ -92,6 +120,7 @@ for (const [name, Board] of Object.entries({ single: Single, differential: Diffe
     const summary = { ...provenance, status: calls.length ? 'failed_native' : 'rejected_before_native', seconds: (Date.now() - started) / 1000, error: failure.message, code: failure.code, convergence: failure.convergence, native_execution: calls,
       physical_records: Object.fromEntries(['pcb_trace', 'pcb_via', 'pcb_copper_pour'].map(type => [type, circuitJson.filter(record => record.type === type).length])) }
     await writeFile(`${root}/summary.json`, JSON.stringify(summary, null, 2) + '\n')
+    await writeFile(`${root}/plot-evidence.json.gz`, gzipSync(JSON.stringify([]), { level: 9 }))
     console.error(JSON.stringify(summary))
     process.exitCode = 1
   }

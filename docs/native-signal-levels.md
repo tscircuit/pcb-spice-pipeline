@@ -1,85 +1,94 @@
 # Native signal API evidence
 
-The scope is the **verbatim RFC boards intended to have a full opposite-layer ground plane**, not the earlier pad/1 mm top-ground-strip fixtures. All earlier strip-fixture eyes, approximately 1.3 V FEXT, and convergence figures are **superseded**. They remain in Git history at `f79e808`; they are not measurements of the RFC boards. There are currently **no accepted full-plane RFC-board native results**.
+**No full-plane RFC-board channel is accepted.** Ground-plane rendering and the differential autorouter workaround now work, and native R/L refinement passes for Levels 1 and 2. Layered capacitance still fails the unchanged primitive-matrix reciprocity criterion; Level 3 refinement reaches its bounded deadline. No rejected extraction is used for a transient. Eyes, NEXT/FEXT and timestep/section convergence deltas are unavailable for every RFC case, never zero.
 
-All six files in `examples/levels/` match the RFC assets byte-for-byte at RFC head `5f4d848f91aab44b7426480e98792a99d5493bea`. `scripts/run-signal-levels.tsx` now includes Level 2 and renders directly through real core, without stripping SI elements, patching Circuit JSON, or injecting plating. The evidence uses core `ca4bb147291e8eb41dfa92b5d4c361d1dc21e9f3`, props `8b44084`, and circuit-json `bc2c8a6`. The JLC stackup declares 0.018 mm plating, 0.03 mm outer copper, 1.43 mm dielectric, and er=4.42.
+Earlier strip-fixture eyes and FEXT figures retained in Git history at `f79e808` remain superseded and were not reused.
 
-## Verbatim RFC-board outcomes
+The five unchanged TSX files (including `parts.tsx`) match RFC `a235ddd1ba93de1245ab07f3497511a860c81345` byte-for-byte. Only `level1-differential.tsx` differs, as requested: explicit pair/tap paths, explicit GND vias, `routeRemaining={false}`, a rotated 0603 termination and ideal model rails without power copper. The RFC repository, core, capacity-autorouter, props and circuit-json were not edited. The DDR3 string key and all RFC `unbroken` pour fixes are included without suppressions.
 
-A bounded render/preflight pass covers every case below. Level 3's quiet blocks were also isolated from the unchanged board without changing seeds or copper. Zero native solver calls were made: missing geometry or core rendering stopped each case before extraction. An unavailable measurement is not zero.
+`tests/evidence/signal-levels/rfc-boards.json` records native request hashes, source/model/schema/core hashes, binary hashes, geometry-derived lengths, raw rejected matrices, component convergence and explicit null measurements. The real-core bundle hash is `67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a`. Its JLC stackup declares 0.018 mm plating, 0.03 mm outer copper, 1.43 mm FR-4 and er=4.42. Ignored `runs/` retains exact native decks and logs; vendor bytes and dependency overlays are never committed.
 
-| Board/block | PCB traces | Vias | Pours | Outcome | Eyes, NEXT/FEXT, L/C, timestep/section deltas |
-| --- | ---: | ---: | ---: | --- | --- |
-| Level 1 single-ended | 3 | 0 | 0 | `ground_geometry`: no physical ground copper pours | Unavailable |
-| Level 1 differential | 0 | 0 | 1 | Core differential autorouting fails; no routed BUS | Unavailable |
-| Level 2 | 8 | 2 | 0 | `ground_geometry`: no physical ground copper pours | Unavailable |
-| Level 3 TRAFFIC | 13 | 4 | 0 | `ground_geometry`: no physical ground copper pours | Unavailable |
-| Level 3 XTALK_LOW | 13 | 4 | 0 | Same missing physical ground pour | Unavailable |
-| Level 3 XTALK_HIGH | 13 | 4 | 0 | Same missing physical ground pour | Unavailable |
+## Current bounded native outcomes
 
-Level 2 declares two switching signals and no quiet victim. Even after its layout is repaired, its current RFC intent does not request a standalone quiet-victim NEXT/FEXT measurement. No quiet block was invented for these runs.
+L′ below is the refined native loop diagonal divided by actual routed length; Level 3 has **coarse-only, unaccepted** L′. The C column is the **raw primitive diagonal** divided by length, with physical ground and infinity held at zero. It is a plausibility diagnostic from a rejected matrix, **not accepted charge-neutral channel C′**. No invalid primitive C matrix is symmetrized or reduced to manufacture a channel.
 
-`tests/evidence/signal-levels/rfc-boards.json` records the exact example, runner, schema, vendor-model, and rendered-input hashes, core provenance, errors, and null measurement fields. Complete inputs and raw logs stay ignored under `runs/rfc-boards*`; no vendor bytes or local overlays are committed.
+| Case | R mesh delta | L mesh delta | L′ µH/m | Raw grounded C diagonal pF/m | Outcome |
+| --- | ---: | ---: | --- | --- | --- |
+| Level 1 single-ended | 1.339% | 0.1227% | 0.88855 | 37.959 | C reciprocity rejected |
+| Level 1 differential | 0.05626% | 0.1673% | 0.83633, 0.83833 | 47.944, 47.6 | C reciprocity rejected |
+| Level 2 two signals | 1.392% | 0.1566% | 0.89623, 0.92157 | 37.702, 37.508 | C reciprocity rejected |
+| Level 3 TRAFFIC | unavailable | unavailable | 0.93367, 0.93207, 0.92339 | unavailable, unavailable, unavailable | refinement timeout |
+| Level 3 XTALK_LOW | unavailable | unavailable | 0.93367, 0.93207, 0.92339 | unavailable, unavailable, unavailable | shared refinement timeout |
+| Level 3 XTALK_HIGH | unavailable | unavailable | 0.93367, 0.93207, 0.92339 | unavailable, unavailable, unavailable | shared refinement timeout |
 
-## Root causes and proposed upstream changes
+Level 1 single-ended has 4 traces / 2 vias / 1 full pour; differential has 6 / 2 / 1; Level 2 has 9 / 4 / 1; Level 3 has 14 / 6 / 1. Single-ended, differential and Level 2 reject C reciprocity at 0.1070386498482376, 0.0949961368297065 and 0.09675331594056424, against **0.025**. FasterCap auto residuals of 1.724%, 1.796% and 1.371% do not override that failure.
 
-**Ground-plane intent:** plain `<copperpour connectsTo="net.GND" layer="bottom" />` does not request ground escape routing. Core `lib/utils/autorouting/getUnbrokenCopperPourObstacles.ts:134` skips pours without `unbroken`. The single-ended board therefore routes GND between top pads without a GND via; `lib/components/normal-components/Board/Board_doInitialPcbCopperPourCleanup.ts:21` removes the floating bottom pour. Level 2/3 have signal-routing vias, not a connected ground plane.
+The first single/Level 2 sweep attempts used 180 s process deadlines and stopped at the unused frequency above modelHz. The mesh fix now stops that sweep at modelHz. Subsequent Level 2 and differential runs use bounded 600 s processes. Level 3's first refined solve stopped at 180 s; one further refined attempt stopped at **600 s**, after replaying its byte-identical completed coarse request. Its refined request hash is `03d3b7b7ed4b597251ed532390e7b68f7280bab666547180013461086e3a32d3`.
 
-Suggested RFC edits, **not applied**: add `unbroken` to the GND pours in `level1-single-ended.tsx:34`, `level1-differential.tsx:23`, `level2-two-signals.tsx:13`, `level3-three-signals.tsx:16`, and `level4-ddr3-write.tsx:109` (inner1). An independent single-ended diagnostic with only that prop added produces one full bottom plane and two ground escape vias. The multi-signal/DDR suggestions have not been validated. Explicit ground-via/lead connections are another way to express the required physical path.
+XTALK_LOW and XTALK_HIGH were separately rendered and admitted without changing copper, traffic seeds or source intent. Each replayed the exact completed coarse native extraction. Their refined requests matched that same hash; duplicate native attempts were cancelled after confirming the identity. Evidence labels them **blocked by shared extraction**, retaining their actual interrupted-attempt errors and elapsed times. They are not independent successful/refined solves. No quiet idle or transient solve ran. Level 2 declares two switching signals and no quiet victim; no extra noise block was invented.
 
-The minimal positive source is `tests/fixtures/escape-via-plane.tsx`; remove its `unbroken` prop to reproduce the missing-plane outcome. It uses real `sot23_5` footprints and autorouting, with no IBIS or handcrafted Circuit JSON needed.
+## Mesh diagnosis and regression
 
-**Differential routing:** the actual RFC board and the smaller `tests/fixtures/differential-termination.tsx` both fail with `Pipeline9: differential pair connection "source_trace_…" must resolve to exactly one final point-pair connection, got 2`. Captured SRJ contains two-terminal pair trunks plus separate termination tails; the failure is downstream of that source representation. The precise upstream throw is capacity-autorouter 0.0.1054, `lib/autorouter-pipelines/AutoroutingPipeline9_PreloadedTraceGraph/AutoroutingPipelineSolver9_PreloadedTraceGraph.ts:1005` (verified from its source map). Its root/net-name match at line 997 associates multiple final paths with a selected trunk. Core's source-path construction is `lib/utils/autorouting/getSimpleRouteJsonFromCircuitJson.ts:603`; pair selection is `getDifferentialPairsForSimpleRouteJson.ts:205`. No pin-map error was demonstrated. No core, props, circuit-json, autorouter, or RFC repository was edited.
+The former 21.03696% R delta was dominated by cross-section resolution, not by a demonstrated lack of copper. At 100 MHz copper skin depth is about 6.61 µm. A thickness-only filament rule left a 150 µm trace with approximately 25 µm outer width filaments. An isolated check holding the plane fixed gave only 2.02% R change with 7 versus 11 width filaments.
 
-**RFC type error:** `level4-ddr3-write.tsx:101` uses `<trace key={i}>`, but props `lib/components/trace.ts:18` declares a string-only key. Suggested RFC change: `key={String(i)}`. The copied source remains verbatim, so the newly included example typecheck reports this exact error, without a suppression.
+`decks.ts` now sizes **both width and thickness** against half the skin depth for each path, including ground leads and the plane thickness. Refinement tightens those cross-sections while still halving the plane spacing. `pipeline/signals.ts` no longer independently chooses one thickness-derived count for every dimension. All convergence thresholds remain unchanged.
 
-## Pipeline fix and bounded plane diagnostic
+The real-footprint `tests/fixtures/escape-via-plane.tsx` reproduction now passes R/L: mesh 1.43→0.715 mm, requested refinement 3→7 (trace width 9→13 and height 5→9 filaments), **R delta 1.20642%**, **L delta 0.14795%**. This is accepted **component mesh convergence**, not an accepted whole channel. `scripts/check-plane-extraction.tsx` reproduces it and preserves the later C rejection. Its regression checks the real TSX geometry and emitted cross-section refinement.
 
-A valid unbroken plane exposed a pipeline bug: core ends an escape route at its physical via, while `groundConnection` rejected every route not ending on a wire. The stacked commits are `308df97` (failing real-footprint TSX reproduction) and `e8814f0` (fix). The pipeline now validates the associated physical barrel, electrical net, layer span, plating, and full barrel contact with the pour, then retains the native via endpoint. Missing/misnetted barrels, invalid plating, and inconsistent spans remain errors. The regression checks the actual 0.018 mm barrel cross-section and plane endpoint.
+## Layered capacitance candidate and its remaining blocker
 
-One bounded extraction of that **minimal reproduction, not an RFC example**, exercised `routed.ts`'s full pour/lead/via geometry with `/opt/homebrew/bin/{fasthenry,FasterCap}`. It did **not** produce an accepted channel: resistance changed **21.03696%** when ground mesh halved from 1.43 to 0.715 mm (filaments 3→5), exceeding the unchanged **5%** threshold. Inductance changed 1.2436%. The two FastHenry calls took 11.048 s in total; each process had a 180 s deadline. No further R/L mesh attempt was made.
+The old deck surrounded every face with er=4.42. Its former unaccepted 67.8566 pF/m diagnostic (80.6% above the microstrip estimate) is superseded by the layered investigation below. The new deck uses the actual finite board outline and declared dielectric z ranges, with air outside. Copper faces are partitioned by their adjacent medium and connected with FasterCap `C ... +`; `D` interfaces omit conductor contacts rather than double-emitting coincident panels. Via/lead interfaces are split at layer boundaries. Reference points have a numerically resolvable 0.01 mm offset on the declared side. The optional straight-bar R/L reduction retains the original physical copper for layered C. Soldermask, unselected power/neighboring copper and dielectric loss remain omitted.
 
-One separate FasterCap diagnostic completed its automatic refinement at **1.78023%**, within its unchanged 2% tolerance. It does not override the rejected R/L mesh. The exact FastHenry requests were replayed only to generate the comparison summary; native capacitance was fresh. No transient was run on this rejected extraction.
+The deck follows the primary FasterCap [conductor](https://github.com/ediloren/FasterCap/blob/master/hlp/InputFile/3D/InputFile_3D_ch03.htm) and [dielectric](https://github.com/ediloren/FasterCap/blob/master/hlp/InputFile/3D/InputFile_3D_ch04.htm) formats. Geometry regressions verify material assignment and closed copper volumes. These tests do not establish numerical accuracy of a rejected solve.
 
-For the 28.118503 mm signal route, the **unaccepted** native totals correspond to **L′=0.903074 µH/m**, **C′=67.856553 pF/m**. A zero-thickness Hammerstad/Jensen estimate for w=0.15 mm, h=1.43 mm, er=4.42 gives **L′=0.866916 µH/m**, **C′=37.565933 pF/m**, er-effective=2.926931, and Z0=151.911760 ohm. The equations are the [Qucs technical microstrip formulas](https://qucs.sourceforge.net/tech/node75.html), 11.4–11.18. Native L is 4.17% higher; native C is 80.63% higher. This is a plausibility comparison, not validation of the rejected model.
+For the minimal 28.118503 mm route, the raw grounded diagonal is **37.958635 pF/m**, versus **37.565933 pF/m** from the zero-thickness [Hammerstad/Jensen microstrip estimate](https://qucs.sourceforge.net/tech/node75.html): a **+1.045%** plausibility difference. Native loop L′ is **0.900588 µH/m**, versus **0.866916 µH/m** analytically. The estimate assumes an infinite plane and excludes finite-board edges, bends, end leads, vias, copper thickness and internal inductance; their individual residual contributions were not isolated. Differential diagonals additionally include close pair coupling and substantial receiver fanout, so isolated-microstrip C is not an accuracy target for each leg.
 
-The native capacitance deck currently fills all space with er=4.42 (`src/extraction/decks.ts:70`), including above the trace. The corresponding homogeneous estimate is **56.728839 pF/m**; native C is still 19.62% higher. The analytic estimate omits finite-plane edges, bends, end leads, via geometry, copper thickness, and internal inductance. No coefficient, capacitance, or waveform was rescaled to force agreement. The homogeneous dielectric assumption is an accuracy limitation for a real microstrip, not a substitute for a layered dielectric solve.
+**That C matrix remains rejected at 10.704% primitive reciprocity error.** Its 1.724% automatic refinement figure is insufficient evidence. Bounded Galerkin / tighter-GMRES diagnostics remained nonreciprocal; a current-deck `-a0.005` attempt and a stringent manual solve reached their 180 s deadlines. No further parameter search was made after those bounded checks; final default-setting calls only refreshed evidence for the committed deck. No coefficient or waveform was fitted, rescaled, or accepted to force agreement. An earlier diagnostic value of 36.03 pF/m reduced an invalid primitive matrix; it has been removed as an extracted C′ result. Accepted charge-neutral C′ remains unavailable.
 
-`tests/evidence/signal-levels/plane-extraction.json` records the unaccepted numbers, comparison assumptions, request hashes/replay origins, geometry/input hashes, and binary hashes. `scripts/check-plane-extraction.tsx` reproduces the bounded extraction and separate capacitance diagnostic.
+## Differential layout and internal receiver taps
 
-## DDR3 boundary
+The manual example is rendered through real core with `routeRemaining={false}`: all pair/tap paths and GND leads are preplaced and no copper/courtyard/dangling-path errors remain. Actual soic8 pads are TX A/B=(-22.85, ∓0.635) mm and RX A/B=(22.15, ∓0.635) mm. The 0603 is at (23.8, 0), rotated 90°; its pads are (23.8, ∓0.825) mm. The 0.15 mm trunks have 0.25 mm pitch, then fan around RX on opposite sides. Model POWER/GND rails remain ideal; physical power copper is omitted explicitly.
 
-The unchanged full DDR3 board's autorouting attempt was manually interrupted after approximately four minutes; no precise elapsed time or completed layout is claimed. Its native solver call count was zero.
+A pipeline limitation surfaced after routing: two contiguous traces could not share the RX port. The pipeline now joins degree-two copper paths into one native conductor, preserving the RX pin as an internal tap at its actual arc-length fraction. Uniform pi sections split at each tap so receiver loading is not moved to RTERM. Native totals are preserved; independent section refinement retains the same physical tap positions. Branches and cycles remain explicit errors. Real-footprint TSX and netlist regressions cover this behavior.
 
-`scripts/check-ddr3.tsx` independently checks **source admission with `routeRemaining={false}`**, explicitly not a completed layout. Both real core and public pipeline preflight return exactly:
+The unchanged `tests/fixtures/differential-termination.tsx` remains the minimal autorouter reproduction. The exact upstream throw is capacity-autorouter 0.0.1054, `lib/autorouter-pipelines/AutoroutingPipeline9_PreloadedTraceGraph/AutoroutingPipelineSolver9_PreloadedTraceGraph.ts:1005`; its root/net-name match at :997 associates multiple final paths with a trunk. Core source construction is `lib/utils/autorouting/getSimpleRouteJsonFromCircuitJson.ts:603`; pair selection is `getDifferentialPairsForSimpleRouteJson.ts:205`. No upstream repository was edited. Differential **routing** is no longer blocked; native simulation stops at the shared C numerical boundary above.
+
+## DDR3 boundary and pictures
+
+Independent source preflight with `routeRemaining={false}` returns exactly, from both real core and pipeline:
 
 ```text
 .CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.
 ```
 
-The pipeline callback count is **zero**. `ddr3-boundary.json` labels this source-only check and records that full layout is unverified. There is no DDR eye or protocol-compliance claim.
+The native solver callback count is zero. The image command additionally attempts the unchanged full DDR3 board through real core for at most 180 s; the current attempt produces only placed pads, no routed traces/vias/pour, and is labelled **partial**. It is not a completed DDR layout or simulation.
 
-## Convergence, checks, and reproduction
+`examples/levels/README.md` embeds five 1600 px PNGs. `scripts/render-example-images.tsx` imports the actual TSX and renders core again at image-generation time, showing top/bottom copper without silkscreen. Current lower panels contain exact committed blocking messages; quiet panels identify the shared failed request. There are no accepted waveforms to commit or draw. The runner can archive compact adaptive samples only after accepted runs, with full-resolution hashes and measurements; the image code folds them over 2 UI after the gate and supports idle-relative signed quiet plots. Those successful-output drawing paths have no accepted RFC data to exercise yet.
 
-The production numerical criteria are unchanged: independently halve transient timestep and double sections; every probe must pass integrated RMS and signed-extrema checks at **1% + 1 mV**, across both adaptive native timestamp sets. Signed quiet noise uses a separate settled constant-drive idle solve. Disabled victims also require independent initial-charge tests. No RFC case reached those checks, so their deltas are unavailable.
+## Verification and reproduction
 
-`pdn="ideal"` keeps die POWER/GND on ideal rails and preserves vendor signal-pin package R/L/C. Upstream KU/KD remains unchanged. Extracted PDN, coupled packages, and branched routed graphs retain their documented explicit boundaries.
+Final local verification: **232 tests, 230 pass, 2 optional skips, 0 failures**; source/test/example typechecks and explicit script typechecks pass. Lint passes with the existing mesh-length warning (now 523 lines). Module checks pass; vocabulary is 88.9%. All five final PNGs were opened and visually inspected. These are local overlay checks, not accepted RFC simulation results or proof that published-dependency CI is ready.
 
-Local verification uses ignored built sibling overlays. `IBIS_MODEL_DIR=models NGSPICE_BIN=/opt/homebrew/bin/ngspice SI_CORE_MODULE=<absolute core/dist/index.js> npm test` passes **226/228 tests, two optional skips, no failures**, including the real-core escape-via regression. Unit tests retain dedicated small TSX sources with explicit ground vias and a bottom plane; they do not supply RFC native evidence. The native buffer regression uses fixed historical channel totals only to test ideal-rail section behavior.
-
-Source and test typechecks pass. `npm run typecheck` additionally checks the verbatim RFC examples and **fails only at DDR3 line 101** for the numeric key described above. Lint passes with the existing 521-line mesh warning; module and vocabulary checks pass (89.6%). Published dependencies still lack the unpublished SI schema/props changes, so these local overlay checks do not imply CI readiness.
-
-Run from this repository after building the supplied siblings. `SI_CORE_MODULE` selects the real built core; `TSX_TSCONFIG_PATH` enables automatic JSX for the import-free RFC sources. The runner's default native-process deadline is 180 s. No Circuit JSON adapter is used for the Level 1–3 runner.
+Local checks use ignored sibling overlays and local vendor models. Export the same JSX configuration for tests and scripts:
 
 ```sh
 export IBIS_MODEL_DIR=models
 export SI_CORE_MODULE="$(cd ../core && pwd)/dist/index.js"
 export TSX_TSCONFIG_PATH=examples/tsconfig.json
-SI_RUN_ROOT=runs/rfc-boards node --import tsx scripts/run-signal-levels.tsx
-SI_BLOCK=XTALK_LOW SI_RUN_ROOT=runs/rfc-boards-XTALK_LOW node --import tsx scripts/run-signal-levels.tsx three
-SI_BLOCK=XTALK_HIGH SI_RUN_ROOT=runs/rfc-boards-XTALK_HIGH node --import tsx scripts/run-signal-levels.tsx three
-node --import tsx scripts/check-ddr3.tsx
+export NGSPICE_BIN=/opt/homebrew/bin/ngspice
+npm test
+npm run typecheck
+npm run lint
+npm run check:modules
+npm run check:vocabulary
 node --import tsx scripts/check-plane-extraction.tsx
+node --import tsx scripts/check-ddr3.tsx
+SI_RUN_ROOT=runs/rfc-native SI_NATIVE_TIMEOUT_MS=600000 node --import tsx scripts/run-signal-levels.tsx
+SI_BLOCK=XTALK_LOW SI_RUN_ROOT=runs/rfc-low node --import tsx scripts/run-signal-levels.tsx three
+SI_BLOCK=XTALK_HIGH SI_RUN_ROOT=runs/rfc-high node --import tsx scripts/run-signal-levels.tsx three
+node --import tsx scripts/render-example-images.tsx
 ```
 
-The first three commands currently exit unsuccessfully with the recorded upstream/layout errors. Omit `SI_EXTRACTION_CACHE` for fresh native extraction. Failed extraction, finite synthetic eyes, and native buffer unit tests establish neither hardware accuracy nor BER/protocol compliance.
+`SI_EXTRACTION_CACHE` can point to a prior case directory; only byte-identical complete native requests are replayed and labelled. Omit it for fresh native extraction. The collector script's explicit run-directory list records this bounded investigation and can be updated after new native runs. The final native commands currently reject extraction; success of unit tests does not accept their matrices or establish hardware/BER/protocol compliance. Published dependencies still lack the unpublished shared SI records; local overlay checks do not imply CI readiness.
+
+The numerical criteria are unchanged: R/L mesh 5%, FasterCap auto 2%, primitive reciprocity 2.5%, and independent transient timestep/section RMS plus signed-extrema checks at 1% + 1 mV. No RFC case reaches transient convergence. `pdn="ideal"` keeps ideal die rails and vendor signal-pin package R/L/C; extracted PDN and coupled packages retain their documented boundaries. Upstream KU/KD is unchanged.

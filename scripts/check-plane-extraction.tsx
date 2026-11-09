@@ -16,7 +16,7 @@ await mkdir(root, { recursive: true })
 const circuit = await renderCoreSignals(<Board />)
 const settings = { ...modeling, viaPlatingMm: .018, viaEquivalentWidthMm: .236, relativePermittivity: 4.42,
   lanes: [{ port: 'DATA', from: { component: 'TX', port: 'Y' }, to: { component: 'RX', port: 'A' } }],
-  extraction: { ...modeling.extraction, groundMeshMm: 1.43, maxPanelLengthMm: 2.86 } }
+  extraction: { ...modeling.extraction, maximumHz: modeling.extraction.modelHz, refinementFilaments: 7, groundMeshMm: 1.43, maxPanelLengthMm: 2.86 } }
 const geometry = geometryFromCircuitJson(circuit, settings)
 await writeFile(`${root}/input.json`, JSON.stringify(circuit, null, 2))
 await writeFile(`${root}/geometry.json`, JSON.stringify(geometry, null, 2))
@@ -49,14 +49,14 @@ let rejection: string | undefined
 try {
   await extractChannel(geometry, settings, rootScope('extraction'), { progress: console.log, runSolver: run })
 } catch (error) {
-  if ((error as { code?: string }).code !== 'mesh_convergence') throw error
   rejection = (error as Error).message
 }
-// A rejected mesh stays rejected. One separate capacitance diagnostic supplies a
-// plausibility comparison, never a channel accepted for transient/eye evidence.
+// A rejected extraction stays rejected. Raw capacitance is used only for an
+// explicitly unaccepted plausibility comparison, never to run a transient.
 const cell = geometry.cells[0]
-const cap = await run({ solver: 'fastercap', args: ['channel.lst', '-b', '-a0.02', '-ap', '-e'], files: fasterCapDeck(cell, settings.extraction), outputFiles: [] })
-const C = referenceCapacitance(parseFasterCap(cap.stdout).matrix.map(row => row.map(value => value * 1e-3))).matrix
+const cap = outputs[2] ?? await run({ solver: 'fastercap', args: ['channel.lst', '-b', '-a0.02', '-ap', '-e'], files: fasterCapDeck(cell, settings.extraction), outputFiles: [] })
+const primitiveC = parseFasterCap(cap.stdout).matrix.map(row => row.map(value => value * 1e-3))
+const C = rejection ? null : referenceCapacitance(primitiveC).matrix
 const refined = impedanceSamples(outputs[1].files['Zc.mat'], cell)[0]
 const L = loopImpedance(refined.L)
 const length = cell.conductors[0].lengthM
@@ -68,11 +68,17 @@ const b = .564 * ((er - .9) / (er + 3)) ** .053
 const effectiveEr = (er + 1) / 2 + (er - 1) / 2 * (1 + 10 / u) ** (-a * b)
 const f = 6 + (2 * Math.PI - 6) * Math.exp(-((30.666 / u) ** .7528))
 const airImpedance = 376.730313668 / (2 * Math.PI) * Math.log(f / u + Math.sqrt(1 + (2 / u) ** 2))
-const summary = { status: rejection ? 'unconverged_native_diagnostic' : 'verified_native_extraction_only', fixture: 'escape-via-plane.tsx; not an RFC example', rejection,
-  native_calls: calls, length_m: length, L_h_per_m: L[0][0] / length, C_f_per_m: C[0][0] / length,
+const summary = { status: rejection ? 'rejected_native_extraction' : 'verified_native_extraction_only', fixture: 'escape-via-plane.tsx; not an RFC example', rejection,
+  primitive_C_f: primitiveC,
+  mesh: { coarse: impedanceSamples(outputs[0].files['Zc.mat'], cell).find(sample => sample.frequencyHz === settings.extraction.modelHz), refined,
+    R_delta: Math.abs(loopImpedance(impedanceSamples(outputs[0].files['Zc.mat'], cell).find(sample => sample.frequencyHz === settings.extraction.modelHz)!.R)[0][0] / loopImpedance(refined.R)[0][0] - 1),
+    L_delta: Math.abs(loopImpedance(impedanceSamples(outputs[0].files['Zc.mat'], cell).find(sample => sample.frequencyHz === settings.extraction.modelHz)!.L)[0][0] / L[0][0] - 1), tolerance: settings.extraction.convergenceTolerance },
+  native_calls: calls, length_m: length, L_h_per_m: L[0][0] / length, C_f_per_m: C ? C[0][0] / length : null,
+  raw_grounded_C_f_per_m: primitiveC[0][0] / length,
+  raw_C_definition: 'Raw primitive diagonal with physical return and infinity held at zero; rejected reciprocity, not a charge-neutral channel. No invalid matrix is symmetrized or reduced to manufacture accepted C.' ,
   capacitance_auto_residual: Number([...cap.stdout.matchAll(/Weighted Frobenius norm of the difference between capacitance \(auto option\):\s*([\deE+.-]+)/g)].at(-1)?.[1]),
   estimate: { source: 'https://qucs.sourceforge.net/tech/node75.html', width_mm: .15, dielectric_height_mm: 1.43, copper_thickness_mm: .03, er,
-    approximation: 'zero-thickness infinite plane; excludes finite board, end contacts, bends, via and internal inductance', effective_er: effectiveEr,
+    approximation: 'zero-thickness infinite plane; raw rejected grounded diagonal C is a plausibility diagnostic only; excludes finite board, end contacts, bends, via and internal inductance', effective_er: effectiveEr,
     impedance_ohm: airImpedance / Math.sqrt(effectiveEr), L_h_per_m: airImpedance / 299792458, C_f_per_m: effectiveEr / (airImpedance * 299792458),
     homogeneous_C_f_per_m: er / (airImpedance * 299792458) } }
 await writeFile(`${root}/summary.json`, JSON.stringify(summary, null, 2) + '\n')
