@@ -2,7 +2,7 @@ import React from 'react'
 import { execFileSync } from 'node:child_process'
 import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
-import { gzipSync } from 'node:zlib'
+import { gzipSync, gunzipSync } from 'node:zlib'
 import { dirname } from 'node:path'
 import { renderCoreSignals } from '../tests/support/core-render'
 import { runPipeline } from '../src'
@@ -25,13 +25,22 @@ const archive = async (path: string, body: string): Promise<void> => {
   else await writeFile(path, body)
 }
 const timeoutMs = Number(process.env.SI_NATIVE_TIMEOUT_MS ?? 180000)
+const replayTransients = process.env.SI_REPLAY_COMPLETE_NATIVE === '1'
+/** Reads one exact archived solver output, including losslessly compressed files. */
+const readArchive = async (path: string): Promise<string> => {
+  try { return await readFile(path, 'utf8') }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    return gunzipSync(await readFile(`${path}.gz`)).toString()
+  }
+}
 const extractionCache = new Map<string, { directory: string; result: { stdout: string; stderr: string; files: Record<string, string> } }>()
 if (process.env.SI_EXTRACTION_CACHE) for (const entry of await readdir(process.env.SI_EXTRACTION_CACHE)) {
-  if (!/^native-\d+-(fasthenry|fastercap)$/.test(entry)) continue
+  if (!/^native-\d+-(fasthenry|fastercap|ngspice)$/.test(entry) || (entry.endsWith('-ngspice') && !replayTransients)) continue
   const directory = `${process.env.SI_EXTRACTION_CACHE}/${entry}`
   const request = JSON.parse(await readFile(`${directory}/request.json`, 'utf8')) as SolverRequest
   try {
-    const files = Object.fromEntries(await Promise.all(request.outputFiles.map(async file => [file, await readFile(`${directory}/${file}`, 'utf8')])) )
+    const files = Object.fromEntries(await Promise.all(request.outputFiles.map(async file => [file, await readArchive(`${directory}/${file}`)])) )
     extractionCache.set(createHash('sha256').update(JSON.stringify(request)).digest('hex'), { directory, result: { files, stdout: await readFile(`${directory}/stdout.log`, 'utf8'), stderr: await readFile(`${directory}/stderr.log`, 'utf8') } })
   } catch { /* Incomplete native calls cannot enter the cache. */ }
 }
@@ -48,8 +57,8 @@ for (const [name, Board] of Object.entries({ single: Single, differential: Diffe
   /** Capture exact requests and native outputs, including the request when execution is interrupted. */
   const solver = async (request: SolverRequest): ReturnType<typeof native> => {
     const dir = `${root}/native-${calls.length}-${request.solver}`
-    const cached = request.solver === 'ngspice' ? undefined : extractionCache.get(digest(JSON.stringify(request)))
-    calls.push({ solver: request.solver, request_sha256: digest(JSON.stringify(request)), args: request.args, ...(cached ? { exact_native_extraction_replay_from: cached.directory } : {}) })
+    const cached = request.solver === 'ngspice' && !replayTransients ? undefined : extractionCache.get(digest(JSON.stringify(request)))
+    calls.push({ solver: request.solver, request_sha256: digest(JSON.stringify(request)), args: request.args, ...(cached ? { [request.solver === 'ngspice' ? 'exact_native_transient_replay_from' : 'exact_native_extraction_replay_from']: cached.directory } : {}) })
     await mkdir(dir, { recursive: true })
     await writeFile(`${dir}/request.json`, JSON.stringify(request, null, 2))
     await writeFile(`${root}/native-calls.json`, JSON.stringify(calls, null, 2))

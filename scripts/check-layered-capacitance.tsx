@@ -47,6 +47,8 @@ for (const coupled of [false, true]) {
     checkNativeRun(run, dir, 'fastercap')
     const matrix = parseFasterCap(run.stdout).matrix.map(row => row.map(v => v * .001))
     const reciprocity = Math.max(...matrix.flatMap((row, i) => row.map((v, j) => Math.abs(v - matrix[j][i])))) / Math.max(...matrix.flat().map(Math.abs))
+    const signal = matrix.slice(0, -1).map(row => row.slice(0, -1))
+    const signalReciprocity = Math.max(...signal.flatMap((row, i) => row.map((v, j) => Math.abs(v - signal[j][i])))) / Math.max(...signal.flat().map(Math.abs))
     const autoResidual = Number([...run.stdout.matchAll(/Weighted Frobenius norm of the difference between capacitance \(auto option\):\s*([\deE+.-]+)/g)].at(-1)?.[1])
     let rejection: string | undefined
     try {
@@ -55,7 +57,7 @@ for (const coupled of [false, true]) {
     }
     catch (error) { rejection = (error as Error).message }
     const result = { accepted: !rejection, rejection, coupled, refinement, seconds: (Date.now() - start) / 1000, request_sha256: createHash('sha256').update(JSON.stringify(request)).digest('hex'),
-      matrix, reciprocity, signal_reciprocity: referenceCapacitance(matrix, settings.extraction.reciprocityTolerance).reciprocityResidual, grounded_diagonal_pf_per_m: matrix.slice(0, -1).map((row, i) => row[i] / cell.conductors[i].lengthM * 1e12),
+      matrix, reciprocity, signal_reciprocity: signalReciprocity, grounded_diagonal_pf_per_m: matrix.slice(0, -1).map((row, i) => row[i] / cell.conductors[i].lengthM * 1e12),
       auto_residual: autoResidual,
       dielectric_panels: Object.entries(files).filter(([file]) => file.startsWith('dielectric-')).reduce((sum, [, text]) => sum + text.split('\n').filter(row => /^[TQ] /.test(row)).length, 0) }
     results.push(result)
