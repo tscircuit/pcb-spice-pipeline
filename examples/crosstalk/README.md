@@ -1,7 +1,7 @@
 # Three SC70 links
 
 `index.circuit.tsx` renders three SN74LVC1G04 output/input links, a ground pour and explicit
-20 Mbps TI IBIS stimulus/probe/eye declarations. `makeBoard(true)` holds the middle output low;
+20 Mbps TI IBIS stimulus/probe/eye declarations. The TSX `fabricatorPreset` produces the stackup. `makeBoard(true)` holds the middle output low;
 NEXT1 and FEXT1 measure its near/far end crosstalk. Vendor bytes are not redistributed: use the URL,
 archive member and SHA-256 in `../vendor-models.lock.json`.
 

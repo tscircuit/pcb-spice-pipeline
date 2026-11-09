@@ -14,7 +14,7 @@ export const modeling = {
 export async function makeBoard(quietMiddle: boolean = false, multilayer: boolean = false): Promise<CircuitJson> {
   const circuit = new Circuit()
   const count = multilayer ? 1 : 3
-  circuit.add(<board width={40} height={24} layers={2} thickness={1.6} routingDisabled schematicDisabled>
+  circuit.add(<board width={40} height={24} layers={2} thickness={1.6} fabricatorPreset="jlcpcb_standard" routingDisabled schematicDisabled>
     <net name="GND" /><net name="VCC" />
     <voltagesource name="SUPPLY" voltage="3.3V" doNotPlace connections={{ pin1: 'net.VCC', pin2: 'net.GND' }} />
     {Array.from({ length: count }, (_, i) => {
@@ -57,14 +57,7 @@ export async function makeBoard(quietMiddle: boolean = false, multilayer: boolea
       ]).flat())} />
   </board>)
   await circuit.renderUntilSettled()
-  const records = circuit.getCircuitJson()
-  return [...records, { type: 'pcb_stackup', pcb_stackup_id: 'physical-stackup',
-    pcb_board_id: records.find(r => r.type === 'pcb_board')!.pcb_board_id, plated_hole_copper_thickness: .025,
-    layers: [
-      { layer_type: 'copper', layer: 'top', thickness: .035, electrical_conductivity_s_per_m: 5.8e7 },
-      { layer_type: 'dielectric', thickness: 1.53, relative_permittivity: 4.1, loss_tangent: .02 },
-      { layer_type: 'copper', layer: 'bottom', thickness: .035, electrical_conductivity_s_per_m: 5.8e7 },
-    ] }]
+  return circuit.getCircuitJson()
 }
 
 export const circuitJson = await makeBoard()
