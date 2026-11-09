@@ -207,7 +207,6 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Pick<Geometry
       if(!stimulus.transmission_pattern.repeat&&(stimulus.start_time_ms+stimulus.transmission_pattern.bits.length*stimulus.bit_duration_ms)/1000<durationSeconds-1e-12*durationSeconds) fail('stimulus_coverage',`${stimulus.name}: nonrepeating bits do not cover the complete run`)
     }
     for(const state of states) if(state.is_output&&state.is_output_enabled&&!stimulusIds.has(state.source_port_id)) fail('stimulus_missing',`${experiment.name}: enabled output requires one explicit digital stimulus`)
-    const eyeRecords=circuit.filter(e=>e.type==='simulation_eye_diagram').filter(e=>e.simulation_experiment_id===id)
     const probes=circuit.filter(e=>e.type==='simulation_voltage_probe').filter(e=>subcircuits.within(e.subcircuit_id,scope)).map((probe,i)=>{
       const signal=probe.signal_input_source_port_id??probe.signal_input_source_net_id
       const reference=probe.reference_input_source_port_id??probe.reference_input_source_net_id
@@ -219,19 +218,9 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Pick<Geometry
       return {simulationVoltageProbeId:probe.simulation_voltage_probe_id,name:probe.name??probe.simulation_voltage_probe_id,column:i+1,signalSourceId:signal,referenceSourceId:reference??null,signalNode,referenceNode}
     })
     if(!probes.length) fail('simulation_probe',`${experiment.name}: at least one voltage probe required`)
-    const eyes=eyeRecords.map(eye=>{
-      const probe=exactly(probes.filter(p=>p.simulationVoltageProbeId===eye.simulation_voltage_probe_id),`${eye.name} probeRef`)
-      const unitIntervalSeconds=milliseconds(eye.unit_interval_ms,`${eye.name} UI`,{positive:true})
-      const timeOriginSeconds=eye.time_origin_ms/1000
-      if(!Number.isFinite(timeOriginSeconds)) fail('eye_timing',`${eye.name}: explicit finite timeOrigin required`)
-      const start=eye.start_time_ms===undefined?startTimeSeconds:milliseconds(eye.start_time_ms,`${eye.name} startTime`)
-      const end=eye.end_time_ms===undefined?durationSeconds:milliseconds(eye.end_time_ms,`${eye.name} endTime`)
-      if(start<startTimeSeconds||end>durationSeconds||start>=end||end-start<2*unitIntervalSeconds) fail('eye_timing',`${eye.name}: measurement gate must fit the recorded run and contain a complete two-UI window`)
-      return {simulationEyeDiagramId:eye.simulation_eye_diagram_id,name:eye.name,simulationExperimentId:id,simulationVoltageProbeId:probe.simulationVoltageProbeId,column:probe.column,unitIntervalSeconds,timeOriginSeconds,startTimeSeconds:start,endTimeSeconds:end}
-    })
-    return {simulationExperimentId:id,name:experiment.name,subcircuitId:scope,durationSeconds,startTimeSeconds,maxStepSeconds,experiment,states,stimuli,probes,eyes,models:scopedModels}
+
+    return {simulationExperimentId:id,name:experiment.name,subcircuitId:scope,durationSeconds,startTimeSeconds,maxStepSeconds,experiment,states,stimuli,probes,models:scopedModels}
   })
-  for(const eye of circuit.filter(e=>e.type==='simulation_eye_diagram')) if(!declaredExperimentIds.has(eye.simulation_experiment_id)) fail('eye_reference',`${eye.name}: unknown or unsupported transient experiment`)
   for(const record of circuit.filter(e=>e.type==='simulation_digital_stimulus'||e.type==='simulation_ibis_pin_state')) if(!declaredExperimentIds.has(record.simulation_experiment_id)) fail('simulation_reference',`${'name' in record?record.name:record.type}: unknown transient experiment`)
   const usedModelIds=new Set(plans.flatMap(plan=>plan.models.map(model=>model.pipelineId)))
   return {models:models.filter(model=>usedModelIds.has(model.pipelineId)),nodes,plans,ports}
@@ -254,7 +243,7 @@ export function modelRunDefinition(model: PipelineIbisModel,plan: SimulationPlan
     }
   }
   for(const stimulus of plan.stimuli) if(selected.has(stimulus.source_port_id)) stimuli[stimulus.source_port_id]={unitInterval:stimulus.bit_duration_ms,startTime:stimulus.start_time_ms,initialState:stimulus.initial_state,inverted:stimulus.inverted??false,pattern:{type:'bits',bits:stimulus.transmission_pattern.bits,repeat:stimulus.transmission_pattern.repeat}}
-  const references: Record<string,IbisReferencePorts>=Object.fromEntries(Object.entries(model.ibis_pin_name_to_reference_source_port_ids??{}).map(([pin,refs])=>[pin,{pullup:refs.pullup_reference_source_port_id,pulldown:refs.pulldown_reference_source_port_id,powerClamp:refs.power_clamp_reference_source_port_id,groundClamp:refs.ground_clamp_reference_source_port_id,external:refs.external_reference_source_port_id}]))
-  const packagePolicy: IbisModelDefinition['packagePolicy']=model.include_package_parasitics === false ? 'omit' : 'vendor'
+  const references: Record<string,IbisReferencePorts>=Object.fromEntries(Object.entries(model.ibis_pin_name_to_reference_source_port_ids??{}).map(([pin,refs])=>[pin,{pullup:refs.pullup_reference_source_port_id,pulldown:refs.pulldown_reference_source_port_id,powerClamp:refs.power_clamp_reference_source_port_id,groundClamp:refs.ground_clamp_reference_source_port_id,...(refs.external_reference_source_port_id ? {external:refs.external_reference_source_port_id} : {})}]))
+  const packagePolicy: IbisModelDefinition['packagePolicy']='vendor'
   return {definition:{source:{file:model.ibis_model_asset.project_relative_path},component:model.ibis_component_name,pinMap,modelSelections:model.ibis_pin_name_to_model_name,references,corner:model.model_value_corner??'typical',packagePolicy},run:{duration:plan.durationSeconds*1000,pinStates,stimuli}}
 }

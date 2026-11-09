@@ -4,7 +4,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {Diagnostic} from '../../src/kernel/index.js'
-import {geometryFromCircuitJson} from '../../src/board/index.js'
+import {fixtureGeometry as geometryFromCircuitJson} from './fixtures.mjs'
 import * as current from '../../src/simulation/index.js'
 import {fixture} from './fixtures.mjs'
 
@@ -93,8 +93,6 @@ test('simulation codes and messages equal the pre-module implementation', () => 
   ['stimulus_pattern',declare(cj=>{one(cj,'simulation_digital_stimulus').transmission_pattern.bits='012'})],
   ['stimulus_coverage',declare(cj=>{one(cj,'simulation_digital_stimulus').transmission_pattern={transmission_type:'bits',bits:'001',repeat:false}})],
   ['probe_reference',declare(cj=>{one(cj,'simulation_voltage_probe').signal_input_source_port_id='missing'})],
-  ['eye_timing',declare(cj=>{one(cj,'simulation_eye_diagram').end_time_ms=.02})],
-  ['eye_reference',declare(cj=>{cj.push({...one(cj,'simulation_eye_diagram'),simulation_eye_diagram_id:'ghost',simulation_experiment_id:'ghost'})})],
   ['channel_short',declare(cj=>{cj.push({type:'source_trace',source_trace_id:'short',connected_source_port_ids:['p0','p2']})})],
   ['electrical_input',electrical(undefined,m=>({...m,supplies:[{...m.supplies[0],voltageV:NaN}]}))],
   ['supply_reference',electrical(cj=>{cj.push({type:'simulation_voltage_source',simulation_voltage_source_id:'dc',is_dc_source:true,voltage:1,positive_source_port_id:'v0'})})],
@@ -126,11 +124,36 @@ test('simulation codes and messages equal the pre-module implementation', () => 
   }
 })
 
-test('result_schema: a schema that drops probe ids fails the result Circuit JSON', () => {
-  const {cj,m}=fixture()
-  const g=geometryFromCircuitJson(cj,m)
-  const {plans}=current.generalDeclarations(cj,g,m)
-  const run={records:[{type:'simulation_transient_voltage_graph',simulation_experiment_id:'run'}]}
-  assert.throws(()=>current.simulationResultCircuitJson(cj,plans,[run]),{code:'result_schema',message:'result_schema: Installed Circuit JSON schema discarded the result probe ID'})
-  assert.equal(current.simulationResultCircuitJson(cj,plans,[]).length,cj.length)
+
+const {circuitNodes,generalDeclarations,electricalSources,validateProbeScope}=current
+test('a channel net split into per-subcircuit records joined by net-only traces is cut like one shared net',()=>{
+  // CPU pin -> DQ@cpu, RAM pin -> DQ@ram, both joined to DQ@board, as boards built from subcircuits save them.
+  const split=cj=>{
+    for(const [id,scope] of [['dq-cpu','cpu'],['dq-ram','ram'],['dq-board','board']]) cj.push({type:'source_net',source_net_id:id,name:'DQ',subcircuit_id:scope,member_source_group_ids:[]})
+    cj.push({type:'source_trace',source_trace_id:'bind-cpu',connected_source_port_ids:['p0'],connected_source_net_ids:['dq-cpu']},
+      {type:'source_trace',source_trace_id:'bind-ram',connected_source_port_ids:['p2'],connected_source_net_ids:['dq-ram']},
+      {type:'source_trace',source_trace_id:'join-cpu',connected_source_port_ids:[],connected_source_net_ids:['dq-cpu','dq-board']},
+      {type:'source_trace',source_trace_id:'join-ram',connected_source_port_ids:[],connected_source_net_ids:['dq-board','dq-ram']})
+    return cj
+  }
+  const {cj,m,g}=fixture()
+  const nodes=circuitNodes(split(cj),g,m)
+  assert.notEqual(nodes.node('p0'),nodes.node('p2'))
+  assert.throws(()=>nodes.node('dq-board'),/channel_net/)
+  const fanout=fixture()
+  split(fanout.cj).push({type:'source_trace',source_trace_id:'tap',connected_source_port_ids:['p1'],connected_source_net_ids:['dq-board']})
+  assert.throws(()=>circuitNodes(fanout.cj,fanout.g,fanout.m),/channel_fanout/)
 })
+
+test('orphan ideal sources and unsupplied IBIS reference rails fail preflight',()=>{
+  const {cj,m,g}=fixture()
+  cj.push({type:'source_component',source_component_id:'voltage',name:'ORPHAN'},{type:'source_port',source_port_id:'vspos',source_component_id:'voltage'},{type:'source_port',source_port_id:'vsneg',source_component_id:'voltage'},{type:'simulation_voltage_source',simulation_voltage_source_id:'voltage-source',terminal1_source_port_id:'vspos',terminal2_source_port_id:'vsneg',voltage:3.3,is_dc_source:false})
+  const nodes=circuitNodes(cj,g,m)
+  assert.throws(()=>electricalSources(cj,m,nodes),/floating_source.*ORPHAN/)
+  const clean=cj.filter(e=>e.type!=='simulation_voltage_source')
+  const declarations=generalDeclarations(clean,g,m)
+  const electrical=electricalSources(clean,m,declarations.nodes)
+  const models=[{name:'test',spicePinMapping:{PAD:'p0',REF:'vspos'},metadata:{pins:[{physicalPin:'1',references:{pullup:'vspos'}}]}}]
+  assert.throws(()=>validateProbeScope(declarations.plans[0],g,models,declarations.nodes,electrical),/floating_reference.*pullup/)
+})
+

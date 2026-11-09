@@ -4,9 +4,8 @@ import type { Board, ChannelGeometry, CircuitJson } from '../board'
 import type { ExtractedChannel } from '../extraction'
 import type { AdmittedBuffers, AssemblyEntry, CompiledBuffer } from '../buffers'
 import type { Experiments, BoundExperiments, ExperimentRun, SafeSimulationPlan } from '../simulation'
-import type { ResolvedDdrAssessment } from '../ddr'
 import type { NumericalSettings } from './modeling'
-import type { EyeDescriptor, ExperimentResult, PreparedOptions, PreparedResult } from './result'
+import type { ExperimentResult, PreparedOptions, PreparedResult } from './result'
 
 /**
  * Pipeline state is a discriminated union; each phase carries everything earlier phases
@@ -17,14 +16,14 @@ export type PureOptions = Omit<PreparedOptions, 'runSolver'>
 type Input     = { phase: 'input'; options: PureOptions }
 type Admitted  = { phase: 'admitted'; board: Board; modeling: NumericalSettings } & Omit<Input, 'phase'>
 type Declared  = { phase: 'declared'; geometry: ChannelGeometry; experiments: Experiments; plans: readonly SafeSimulationPlan[];
-                   ddr: readonly ResolvedDdrAssessment[]; buffers: AdmittedBuffers } & Omit<Admitted, 'phase'>
+                   buffers: AdmittedBuffers } & Omit<Admitted, 'phase'>
 /** The validation line: everything checkable without a solver has been checked. */
 type Bound     = { phase: 'bound'; compiled: CompiledBuffer[][]; bound: BoundExperiments<CompiledBuffer> } & Omit<Declared, 'phase'>
 type Extracted = { phase: 'extracted'; channel: ExtractedChannel } & Omit<Bound, 'phase'>
-/** One experiment's accepted ngspice run, its folded eyes and its IBIS assembly evidence. */
-export interface ObservedRun { readonly run: ExperimentRun; readonly eyes: EyeDescriptor[]; readonly assembly: AssemblyEntry[]; readonly solverInvocations: number }
+/** One experiment's accepted ngspice run, its IBIS assembly evidence. */
+export interface ObservedRun { readonly idleVoltages: number[]; readonly run: ExperimentRun; readonly assembly: AssemblyEntry[]; readonly solverInvocations: number }
 type Simulated = { phase: 'simulated'; runs: readonly ObservedRun[] } & Omit<Extracted, 'phase'>
-type Observed  = { phase: 'observed'; experimentResults: ExperimentResult[]; results: CircuitJson } & Omit<Simulated, 'phase'>
+type Observed  = { phase: 'observed'; experimentResults: ExperimentResult[] } & Omit<Simulated, 'phase'>
 /** Everything but `files`: run.ts seals the ledger and adds them (sealResult). */
 type Sealed    = { phase: 'sealed'; result: Omit<PreparedResult, 'files'> }
 

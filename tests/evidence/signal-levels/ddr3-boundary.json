@@ -1,0 +1,6 @@
+{
+  "status": "expected_error",
+  "error": ".CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.",
+  "native_solver_calls": 0
+}
+

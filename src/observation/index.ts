@@ -7,10 +7,9 @@
  * Artifacts: <experiment>/eyes/<eyeId>/{eye-data.csv, eye-data.json}, <experiment>/eyes.json.
  * (Was: metrics.mjs probeWaveformRows/foldProbeEye + the eye loop of general-pipeline.ts.)
  */
-export type {
-  Signal, WaveformRows, EyeGate, EyeRequest, EyeAlignment, EyeLimits, FoldOptions, EyeSample, EyeMetrics, FoldedEye, EyeResult,
-} from './types'
+export type { Signal, WaveformRows } from './types'
 export { probeWaveformRows } from './waveform'
-export { foldProbeEye } from './fold'
-export { foldEyes, eyeDataCsv, type EyeFoldInput } from './artifacts'
 export { sampleVoltage, crossingTimes, quietPeak, measureEye, strobeMargins } from './measure'
+
+export type { Capture } from './measure'
+export { waveformConvergence } from './convergence'

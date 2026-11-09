@@ -16,7 +16,7 @@ export function parallelCopperGeometry(geometry: Geometry): Geometry {
   const maxY = Math.max(...y)
   if (pour.polygon[0].some(p => ![minX, maxX].includes(p[0]) || ![minY, maxY].includes(p[1]))) return geometry
   if (paths.some(([path]) => Math.abs(path.a[0] - minX) > 1e-4 || Math.abs(path.b[0] - maxX) > 1e-4)) return geometry
-  if (copper.connections.some(path => Math.abs(Math.abs(path.terminals[0][0] - (minX + maxX) / 2) - (maxX - minX) / 2) > 1e-4)) return geometry
+  if (copper.connections.length !== 2 || Math.abs(copper.connections[0].terminals[0][0] - minX) > 1e-4 || Math.abs(copper.connections[1].terminals[0][0] - maxX) > 1e-4) return geometry
   const cell: GeometryCell = { ...geometry.cells[0], profile: 'parallel-routed-copper', conductors: paths.map(([path], index) => ({ name: `sig${index}`,
     lengthM: (maxX - minX) / 1000, widthM: path.widthMm / 1000, thicknessM: path.thicknessMm / 1000,
     yM: path.a[1] / 1000, zM: path.a[2] / 1000, conductivitySm: path.conductivitySm })) }

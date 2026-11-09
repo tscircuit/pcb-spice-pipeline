@@ -1,6 +1,6 @@
 # Signal-integrity pipeline architecture
 
-The public entry consumes Circuit JSON source records from RFC #26. It rejects the
+The public entry consumes Circuit JSON source records from RFC #28. It rejects the
 removed modeling option. `pipeline/signals.ts` groups blocks and derives private
 settings and native declarations. `pipeline/prepared.ts` runs the existing typed
 stage chain after derivation. The lowered transient records are private and never
@@ -10,7 +10,7 @@ appear in the new result Circuit JSON.
 flowchart LR
   source["Circuit JSON SI records"] --> derive["pipeline: independent block derivation"]
   derive --> board3d["board: 3D routed copper geometry and stackup"]
-  board3d --> check{"straight parallel traces,<br/>one rectangular return?"}
+  board3d --> check{"straight parallel traces,<br/>one rectangular return<br/>with contacts at opposite ends?"}
   check -->|"yes"| bars["board: extra 2D bar reduction<br/>(cross-section extruded, real coordinates)"]
   check -->|"no"| extract
   bars --> extract["extraction: native R/L/C and convergence"]
@@ -30,6 +30,7 @@ stateDiagram-v2
   bound --> extracted: mesh copper, native R/L/C
   extracted --> simulated: native transient
   simulated --> observed: measurements
+  observed --> declared: extend automatic strobe recording
   observed --> sealed: results and artifacts
   input --> failed
   admitted --> failed
@@ -56,5 +57,10 @@ node identity and ngspice; `observation` owns interpolation and measurements.
 
 Tests use TSX for board reproductions. Numerical measurement oracles use analytic
 waveforms; those synthetic waveforms are never claimed as native solver evidence.
-The old compatibility snapshots for the removed modeling API require migration;
-the RFC intentionally changes the public entry, records and artifact paths.
+Tests for the removed straightened-stage, legacy fold and DDR assessment paths were deleted. New shared schemas validate every public result. The RFC intentionally changes the public entry, records and artifact paths.
+
+R/L use the signal-minus-return loop transform. C and G use the floating finite-return, charge-neutral Maxwell reduction; records contain total matrices indexed by physical conductors, with P/N entries for differential signals. Dielectric loss is currently zero, so G is the reduction of a zero primitive matrix. The transient uses first-order Gear, tight IBIS tolerances, adaptive native samples, and independent time/section refinement. Each probe must pass both integrated RMS and signed peak tolerances (1% + 1 mV). A failure produces no accepted measurements.
+
+The runtime imports the shared circuit-json schemas. Local validation must build the sibling RFC branch until circuit-json#983 is released. No absolute local dependency links are committed. The render adapter exists only for the unpublished core#5286 intrinsics; unknown strobes are errors.
+
+Preset-via integration currently depends on core emitting `pcb_stackup.plated_hole_copper_thickness`. The installed core and current sibling renderer preserve imported plating but omit preset-derived plating. The adapter now matches that omission; the pipeline rejects absent plating instead of inventing barrel geometry.

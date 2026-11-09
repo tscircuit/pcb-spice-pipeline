@@ -1,4 +1,4 @@
-// RLGC pi-section subcircuit text (was spice.ts channelSpice; the legacy simulationSpice has no non-legacy caller and stays behind).
+// Coupled RLGC pi-section subcircuit text.
 import { fail } from './diagnostics'
 import { validateMatrix } from './checks'
 import { scale, sum, type Matrix } from './linalg'

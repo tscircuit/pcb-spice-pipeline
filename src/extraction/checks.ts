@@ -42,3 +42,12 @@ export function referenceCapacitance(c: Matrix): CapacitanceCheck {
   if(checked.matrix.some((r,i)=>r.some((v,j)=>i!==j&&v>0)||sum(r)<=0)) fail('capacitance_sign', 'Referenced Maxwell C needs nonpositive mutual C and positive shunt C')
   return {...checked,denominator,convention:'Q_total=0; Vsignal relative to finite return; infinity common voltage eliminated'}
 }
+
+/** Floating finite-return, zero-total-current reduction for a primitive Maxwell conductance matrix. */
+export function referenceConductance(g: Matrix): Matrix {
+  const rows = g.map(sum)
+  const denominator = sum(rows)
+  if (denominator === 0 && rows.every(value => value === 0)) return g.slice(0, -1).map(row => row.slice(0, -1))
+  if (!(denominator > 0)) fail('reference', 'G requires positive common conductance or zero row sums')
+  return g.slice(0, -1).map((row, i) => row.slice(0, -1).map((value, j) => value - rows[i] * rows[j] / denominator))
+}

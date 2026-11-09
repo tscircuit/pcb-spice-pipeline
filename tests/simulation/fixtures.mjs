@@ -1,6 +1,7 @@
 // Copy of tests/fixtures/general.mjs + in-memory.mjs with geometry from the new board module.
 import {readFile} from 'node:fs/promises'
-import {geometryFromCircuitJson} from '../../src/board/index.js'
+export const fixtureGeometry=()=>({mappings:[['p0','p2'],['p1','p3']].map(([from,to],i)=>({port:['DQS','DQSn'][i],sourceTraceId:`s${i}`,from,to,pcbPorts:[],stages:[],originalRoute:[]})),cells:[],approximations:[]})
+const geometryFromCircuitJson=fixtureGeometry
 const read=async path=>JSON.parse(await readFile(new URL(path,import.meta.url),'utf8'))
 export const circuit=await read('../fixtures/straight.circuit.json')
 export const physical=await read('../fixtures/straight.modeling.json')

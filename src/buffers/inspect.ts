@@ -88,40 +88,85 @@ export function edgeSeconds(pin: InspectedPin, corner: number): number {
   if (!edges.length) throw new Error(`${pin.port}: IBIS edge rate missing at selected corner`)
   return Math.min(...edges)
 }
-/** Differential vdiff, explicit mask overrides, or IBIS receiver thresholds. */
+/** Selected model capabilities; unsupported types cannot acquire invented receive/disable modes. */
+export function pinCapabilities(pin: InspectedPin): { drive: boolean; receive: boolean; disable: boolean } {
+  switch (pin.buffer.type) {
+    case 'input': return { drive: false, receive: true, disable: false }
+    case 'output': return { drive: true, receive: false, disable: false }
+    case 'i/o': return { drive: true, receive: true, disable: true }
+    case '3-state': return { drive: true, receive: false, disable: true }
+    case 'terminator': return { drive: false, receive: true, disable: false }
+    default: throw new Error(`${pin.port}: unsupported IBIS model capability ${pin.buffer.type}`)
+  }
+}
+/** DC thresholds at the test corner, with the IBIS receiver reference-supply correction. */
 export function receiverThresholds(pin: InspectedPin, differential: boolean, mask: 'ibis' | { vih_v?: number; vil_v?: number }, corner: number): { vih: number; vil: number } {
   const overrides = mask === 'ibis' ? {} : mask
-  let vih = overrides.vih_v
-  let vil = overrides.vil_v
   const text = modelText(pin)
-  /** Read an explicit threshold at its declared corner; no assumed logic family. */
-  const value = (key: string): number | undefined => {
-    const line = text.split(/\r?\n/).find(line => new RegExp(`^\\s*${key}(?:\\s|=)`, 'i').test(line))
-    if (!line) return undefined
-    const tokens = line.replace(/\|.*$/, '').trim().split(/[\s=]+/).slice(1)
-    const token = tokens.length >= 3 ? tokens[corner] : tokens[0]
-    return token && token !== 'NA' ? ibisNumber(token) : undefined
+  /** Exact subsection; model-level scalars stop at its first keyword. */
+  const section = (name: string): string => {
+    if (name === 'Model') return text.split(/^\s*\[/m)[0]
+    const match = new RegExp(`^\\s*\\[${name}\\]`, 'mi').exec(text)
+    return match ? text.slice(match.index + match[0].length).split(/^\s*\[/m)[0] : ''
   }
+  /** Tokens for one scalar or three-corner keyword. */
+  const tokens = (body: string, name: string): string[] | undefined => body.split(/\r?\n/).find(line => new RegExp(`^\\s*${name}(?:\\s|=)`, 'i').test(line))?.replace(/\|.*$/, '').trim().split(/[\s=]+/).slice(1)
+  /** Select the corner; only Model Spec NA falls back to the required typical value. */
+  const numeric = (values: string[] | undefined, selected: number = corner, fallback: boolean = false): number | undefined => {
+    if (!values?.length || /^NA$/i.test(values[0])) return undefined
+    let token = values.length >= 3 ? values[selected] : values[0]
+    if (/^NA$/i.test(token) && fallback) token = values[0]
+    return token && !/^NA$/i.test(token) ? ibisNumber(token) : undefined
+  }
+  const receiver = section('Receiver Thresholds')
+  /** Receiver threshold scalar or corner-valued field. */
+  const threshold = (name: string): number | undefined => numeric(tokens(receiver, name))
+  let high: number | undefined
+  let low: number | undefined
   if (differential) {
     const pair = pin.component.differentialPins.find(pair => pair.pin === pin.pin)
-    // IBIS [Receiver Thresholds] Vdiff_ac overrides [Diff_pin] vdiff.
-    const threshold = value('Vdiff_ac') ?? pair?.voltage ?? undefined
-    vih ??= threshold
-    vil ??= threshold === undefined ? undefined : -threshold
-  } else if (vih === undefined || vil === undefined) {
-    if (value('Threshold_sensitivity')) throw new Error(`${pin.port}: supply/Vref-dependent receiver thresholds need explicit mask.vih/vil`)
-    const vth = value('Vth')
-    if (/^\s*\[Receiver Thresholds\]/mi.test(text)) {
-      const high = value('Vinh_ac')
-      const low = value('Vinl_ac')
-      // These are offsets from Vth; optional extrema bound the guaranteed valid region.
-      vih ??= vth !== undefined && high !== undefined ? (value('Vth_max') ?? vth) + high : undefined
-      vil ??= vth !== undefined && low !== undefined ? (value('Vth_min') ?? vth) + low : undefined
-    } else {
-      vih ??= value('Vinh')
-      vil ??= value('Vinl')
+    const value = threshold('Vdiff_dc') ?? pair?.voltage ?? undefined
+    high = value
+    low = value === undefined ? undefined : -value
+  } else {
+    const spec = section('Model Spec')
+    /** Model Spec overrides Model even when the required typical value is missing. */
+    const dc = (name: string): number | undefined => {
+      const declared = tokens(spec, name)
+      return declared ? numeric(declared, corner, true) : numeric(tokens(section('Model'), name))
+    }
+    high = dc('Vinh')
+    low = dc('Vinl')
+    const vth = threshold('Vth')
+    const highOffset = threshold('Vinh_dc')
+    const lowOffset = threshold('Vinl_dc')
+    const sensitivity = threshold('Threshold_sensitivity')
+    const reference = tokens(receiver, 'Reference_supply')?.[0]?.toLowerCase()
+    let correction: number | undefined = corner === 0 ? 0 : undefined
+    if (sensitivity !== undefined && !reference) correction = undefined
+    if (corner !== 0 && sensitivity !== undefined && reference) {
+      const references: Record<string, { name: string; default?: number[] }> = {
+        pullup_ref: { name: 'Pullup Reference', default: pin.buffer.voltage as number[] },
+        power_clamp_ref: { name: 'POWER Clamp Reference', default: pin.buffer.voltage as number[] },
+        pulldown_ref: { name: 'Pulldown Reference', default: [0, 0, 0] },
+        gnd_clamp_ref: { name: 'GND Clamp Reference', default: [0, 0, 0] },
+        ext_ref: { name: 'External Reference' },
+      }
+      const field = references[reference]
+      if (field) {
+        const declared = new RegExp(`^\\s*\\[${field.name}\\]([^\\r\\n]*)`, 'mi').exec(text)?.[1].trim().split(/\s+/)
+        const typical = declared ? numeric(declared, 0) : field.default?.[0]
+        const selected = declared ? numeric(declared, corner) : field.default?.[corner]
+        if (typical != null && selected != null) correction = sensitivity * (selected - typical)
+      }
+    }
+    if (vth !== undefined && highOffset !== undefined && lowOffset !== undefined && correction !== undefined) {
+      high = (threshold('Vth_max') ?? vth) + correction + highOffset
+      low = (threshold('Vth_min') ?? vth) + correction + lowOffset
     }
   }
-  if (vih === undefined || vil === undefined || !Number.isFinite(vih) || !Number.isFinite(vil) || vih <= vil) throw new Error(`${pin.port}: receiver thresholds missing or invalid; provide mask.vih/vil`)
+  const vih = overrides.vih_v ?? high
+  const vil = overrides.vil_v ?? low
+  if (vih === undefined || vil === undefined || !Number.isFinite(vih) || !Number.isFinite(vil) || vih <= vil) throw new Error(`${pin.port} has no usable ${differential ? 'differential' : 'DC'} thresholds at ${['typ', 'min', 'max'][corner]}; specify mask.vih and mask.vil.`)
   return { vih, vil }
 }

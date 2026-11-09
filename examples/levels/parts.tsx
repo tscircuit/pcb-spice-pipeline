@@ -4,14 +4,14 @@ import React from 'react'
 const asset = (file: string): { project_relative_path: string; url: string; mimetype: string } => ({ project_relative_path: `models/${file}`, url: `./models/${file}`, mimetype: 'text/plain' })
 
 /** Designed pad fixture for real TI buffer models; internal gate logic is outside IBIS. */
-export function Inverter({ name, x, y, driver }: { name: string; x: number; y: number; driver: boolean }): React.JSX.Element {
+export function Inverter({ name, x, y, driver, groundX = 0 }: { name: string; x: number; y: number; driver: boolean; groundX?: number }): React.JSX.Element {
   const pin = driver ? '4' : '2'
   const label = driver ? 'Y' : 'A'
   return <>
     <chip name={name} pcbX={x} pcbY={y} pinLabels={{ pin2: 'A', pin3: 'GND', pin4: 'Y', pin5: 'VCC' }} connections={{ VCC: 'net.VCC', GND: 'net.GND' }}
       footprint={<footprint>
         <smtpad portHints={[`pin${pin}`]} pcbX={0} pcbY={0} width={.3} height={.3} shape="rect" />
-        <smtpad portHints={['pin3']} pcbX={0} pcbY={-3.5 - y} width={.5} height={.5} shape="rect" />
+        <smtpad portHints={['pin3']} pcbX={groundX} pcbY={-3.5 - y} width={.5} height={.5} shape="rect" />
         <smtpad portHints={['pin5']} pcbX={0} pcbY={2} width={.5} height={.5} shape="rect" />
       </footprint>} />
     {/* @ts-expect-error Installed props require the removed corner/package props; the test adapter supplies them. */}

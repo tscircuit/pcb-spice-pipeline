@@ -11,8 +11,9 @@ test('removed modeling input fails before any solver invocation', async () => {
   assert.equal(calls, 0)
 })
 
-test('old experiments without signal-integrity source records cannot run', async () => {
-  await assert.rejects(runPipeline({ circuitJson: [], ibisSources: {}, runSolver: async () => {
+test('no SI blocks return an empty result', async () => {
+  const result = await runPipeline({ circuitJson: [], ibisSources: {}, runSolver: async () => {
     throw Error('unreachable')
-  } }), /requires simulation_signal_integrity/)
+  } })
+  assert.deepEqual(result.blocks, [])
 })

@@ -32,6 +32,10 @@ try {
   // Hosts supply circuit-json, as tscircuit does for core and the other converters.
   const circuitJsonVersion=JSON.parse(await readFile(join(root,'package.json'),'utf8')).devDependencies['circuit-json']
   await run('npm',['install','--ignore-scripts','--legacy-peer-deps','--no-audit','--no-fund',`circuit-json@${circuitJsonVersion}`],consumer)
+  // Until circuit-json#983 is released, exercise the exact locally built peer schemas.
+  if(process.env.SI_LOCAL_CIRCUIT_JSON_DIST){
+    for(const file of ['index.mjs','index.d.mts'])await copyFile(join(process.env.SI_LOCAL_CIRCUIT_JSON_DIST,file),join(consumer,'node_modules/circuit-json/dist',file))
+  }
   const manifest=JSON.parse(await readFile(join(installed,'package.json'),'utf8'))
   assert.equal(manifest.name,'@tscircuit/signal-integrity-pipeline')
   assert.equal(manifest.main,'./dist/index.js')
@@ -51,7 +55,8 @@ try {
   // Canned waveform checks the packaged IO boundary, not solver physics. Native evidence is separate.
   await writeFile(join(consumer,'solver.mjs'),`export async function fixtureSolver(request){
     if(request.solver!=='ngspice')throw Error('Ideal copper should require no extraction');
-    return {stdout:'',stderr:'',files:{'waveform.dat':'time voltage\\n'+Array.from({length:961},(_,i)=>[i*2.4e-6/960,3.3*(Math.floor(i/20)%2)].join(' ')).join('\\n')+'\\n'}};
+    const end=Number(request.files['simulation.cir'].match(/^tran +\\S+ +(\\S+)/m)[1]);
+    return {stdout:'',stderr:'',files:{'waveform.dat':'time voltage\\n'+Array.from({length:961},(_,i)=>[i*end/960,end<2e-6?0:3.3*(Math.floor(i/20)%2)].join(' ')).join('\\n')+'\\n'}};
   }`)
   const smoke=`import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 import {runPipeline,generateReport} from '@tscircuit/signal-integrity-pipeline';
@@ -60,7 +65,7 @@ import {fixtureSolver} from './solver.mjs';
 const input=JSON.parse(readFileSync('input.json','utf8'));
 await assert.rejects(runPipeline({...input,modeling:{},runSolver:fixtureSolver}),{code:'signal_integrity_input'});
 if(input.circuitJson.length){const result=await runPipeline({...input,runSolver:fixtureSolver});assert.equal(result.blocks.length,1);assert.ok(result.blocks[0].results.some(r=>r.type==='simulation_signal_eye'));assert.ok(generateReport(result)['results.html']);}
-else await assert.rejects(runPipeline({...input,runSolver:fixtureSolver}),/requires simulation_signal_integrity/);
+else assert.deepEqual((await runPipeline({...input,runSolver:fixtureSolver})).blocks,[]);
 assert.equal(typeof createNativeSolver,'function');assert.equal(typeof loadIbisSources,'function');assert.equal(typeof writePipelineOutput,'function');`
   await writeFile(join(consumer,'smoke.mjs'),smoke)
   await run(process.execPath,['smoke.mjs'],consumer)

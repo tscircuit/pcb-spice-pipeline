@@ -2,7 +2,6 @@
 import type { CircuitJson, SimulationIbisPinState, Geometry } from '../board'
 import { selectPort } from '../board'
 import type { SimulationPlan } from '../simulation'
-import type { DdrAssessment } from '../ddr'
 import type { NumericalSettings as Modeling } from '../pipeline'
 
 export type ReportTest = Pick<SimulationPlan, 'startTimeSeconds' | 'durationSeconds' | 'maxStepSeconds' | 'stimuli' | 'states' | 'models'>
@@ -29,7 +28,8 @@ export interface ReportEye {
   name: string; simulationVoltageProbeId?: string; unitIntervalSeconds: number
   startTimeSeconds?: number; endTimeSeconds?: number; timeOriginSeconds?: number
   windows?: number; windowOriginsSeconds?: number[]; csv?: string
-  alignment?: string; ddrAssessment?: DdrAssessment
+  alignment?: string
+  folded_traces?: { timestamps_s: number[]; voltage_levels: number[] }[]
   metrics?: { voltageRangeV: number[] }
 }
 export interface ReportRun {
@@ -136,8 +136,7 @@ export function reportContext(circuit: CircuitJson, geometry: Geometry, modeling
       ...circuit.filter(e => e.type === 'simulation_voltage_source').map((s): [string, string] => ['Physical voltage source',
         `${number(s.voltage, 'V')} ${s.is_dc_source || !s.wave_shape ? 'DC' : s.wave_shape}; ${label({ ports }, s.is_dc_source ? s.positive_source_port_id ?? s.positive_source_net_id : s.terminal1_source_port_id)} − ${label({ ports }, s.is_dc_source ? s.negative_source_port_id ?? s.negative_source_net_id : s.terminal2_source_port_id)}`]),
       ...(modeling.reduction==='routed-copper' ? [['Ground mesh spacing', number(modeling.extraction.groundMeshMm!, 'mm')], ['Homogeneous relative permittivity', number(modeling.relativePermittivity ?? geometry.stackup?.relativePermittivity!)] ] as [string,string][] : []),
-      ...Object.entries(modeling.profiles??{}).map(([name, profile]): [string, string] => [name + ' material / return',
-        `Signal center spacing ${number(profile.spacingMm, 'mm')}; relative permittivity ${number(profile.relativePermittivity)}; return width ${number(profile.return.widthMm, 'mm')}, thickness ${number(profile.return.thicknessMm, 'mm')}, center y/z ${number(profile.return.centerYMm, 'mm')} / ${number(profile.return.centerZMm, 'mm')}, length factor ${profile.return.lengthFactor}`]),
+
     ],
   }
 }
@@ -174,15 +173,7 @@ export function reportFiles(data: ReportData): ReportFile[] {
         eye.startTimeSeconds, eye.endTimeSeconds, eye.unitIntervalSeconds, eye.timeOriginSeconds, eye.windows ?? eye.windowOriginsSeconds?.length,
         eye.metrics?.voltageRangeV[0], eye.metrics?.voltageRangeV[1]])
       if (eye.csv !== undefined) add(`${prefix}-eye-${index + 1}.csv`, `${run.name} · ${eye.name}`, 'Complete folded eye samples, linearly interpolated from recorded waveforms; both original and folded time in seconds.', eye.csv)
-      const ddr = eye.ddrAssessment
-      if (ddr) {
-        assessments.push([run.name, ddr.name, ddr.status, ddr.checks.status, ddr.compliance.status, ddr.strobe.status,
-          ddr.checks.captures, ddr.checks.violations, ddr.checks.unevaluated, ddr.reasons.join('; '), JSON.stringify(ddr.config)])
-        add(`${prefix}-ddr-${index + 1}.csv`, `${run.name} · ${ddr.name} timing checks`, 'Every observed received DQS edge; interpolated AC setup and DC hold margins. Blank values are not evaluated. No DDR compliance claim.',
-          csv([['strobe_s', 'capture_s', 'rising', 'dq_v', 'level', 'status', 'ac_setup_s', 'dc_hold_s', 'setup_margin_s', 'hold_margin_s', 'dc_margin_v', 'setup_lower_bound', 'hold_lower_bound', 'reason'],
-            ...ddr.captures.map(c => [c.strobeTimeSeconds, c.sampleTimeSeconds, c.rising, c.voltageV, c.level, c.status, c.setupSeconds, c.holdSeconds,
-              c.setupMarginSeconds, c.holdMarginSeconds, c.dcMarginV, c.setupIsLowerBound, c.holdIsLowerBound, c.reason])]))
-      }
+
     })
   })
   const overview: ReportFile[] = []
@@ -199,8 +190,6 @@ export function reportFiles(data: ReportData): ReportFile[] {
     [['order', 'experiment', 'drives', 'bits', 'repeat', 'inverted', 'initial_state_before_inversion', 'unit_interval_s', 'stimulus_start_s', 'recording_start_s', 'simulation_end_s', 'maximum_step_s'], ...tests])
   if (eyes.length) summary('eye-summary.csv', 'Eye measurement summary', 'Declared measurement gates, folding origins and finite observed voltage ranges. No eye opening or compliance estimate.',
     [['experiment', 'eye', 'probe', 'gate_start_s', 'gate_end_s', 'unit_interval_s', 'origin_s', 'complete_windows', 'minimum_v', 'maximum_v'], ...eyes])
-  if (assessments.length) summary('ddr-summary.csv', 'Configured DDR checks', 'Illustrative unless complete characterization evidence is supplied. Compliance is always not evaluated. Configuration includes every explicit limit and its evidence.',
-    [['experiment', 'assessment', 'status', 'configured_checks', 'compliance', 'strobe', 'captures', 'violations', 'unevaluated', 'reason', 'config_json'], ...assessments])
   if (data.changes?.length) summary('comparison.csv', 'Quiet versus switching measurements', 'Switching minus quiet; extrema of piecewise-linear recorded data, with RMS integrated over the stated gate.',
     [['probe', 'quiet', 'switching', 'gate_start_s', 'gate_end_s', 'peak_absolute_difference_v', 'time_rms_difference_v'],
       ...data.changes.map(c => [data.comparisonProbeName, c.quiet, c.active, c.startSeconds, c.endSeconds, c.peakAbsoluteV, c.timeRmsV])])
@@ -242,29 +231,6 @@ function bufferState(state: SimulationIbisPinState): string[] {
   return ['input','—']
 }
 
-/** HTML for each configured DDR assessment: status, margins, and the explicit limits behind them. */
-function ddrFindings(eyes: ReportEye[]): string {
-  return eyes.flatMap(eye => eye.ddrAssessment ? [eye.ddrAssessment] : []).map(d => {
-    const c = d.config
-    const t = c.thresholds
-    /** Smallest evaluated margin of this kind across captures, in picoseconds. */
-    const minimum = (key: 'setupMarginSeconds' | 'holdMarginSeconds'): string => {
-      const values = d.captures.flatMap(c => c[key] === undefined ? [] : [c[key]!])
-      return values.length ? number(Math.min(...values), 'ps', 1e12) : 'Not evaluated'
-    }
-    return `<h3>${html(d.name)} · ${html(d.status)}</h3><p>DDR compliance: ${html(d.compliance.status)}. ${html(d.compliance.reason)}</p>
-      ${d.reasons.map(reason => `<p>${html(reason)}</p>`).join('')}
-      ${table(['Received reference', 'Configured checks', 'Violations / captures', 'Min AC setup margin', 'Min DC hold margin'], [[d.strobeProbe, d.checks.status, `${d.checks.violations} / ${d.checks.captures} (${d.checks.unevaluated} unevaluated)`, minimum('setupMarginSeconds'), minimum('holdMarginSeconds')]])}
-      <details open><summary>Explicit receiver limits and assumptions</summary>${table(['Limit', 'Value'], [
-        ['Direction / sample offset', `${c.direction}; ${number(c.sampleOffsetSeconds, 'ps', 1e12)} after received DQS crossing`],
-        ['VREF', number(c.vrefV, 'V')], ['VIL(AC) / VIL(DC)', `${number(t.vilAcV, 'V')} / ${number(t.vilDcV, 'V')}`],
-        ['VIH(DC) / VIH(AC)', `${number(t.vihDcV, 'V')} / ${number(t.vihAcV, 'V')}`],
-        ['Required setup / hold', `${number(c.setupSeconds, 'ps', 1e12)} / ${number(c.holdSeconds, 'ps', 1e12)}`],
-        ['DQS magnitude / interval tolerance', `${number(c.minimumStrobeDifferentialV, 'V')} / ${number(c.maximumStrobeIntervalErrorSeconds, 'ps', 1e12)}`],
-        ['Characterization evidence', c.characterization ? Object.entries(c.characterization).map(([key, value]) => `${key}: ${value}`).join('; ') : 'Absent; illustrative limits only'],
-      ])}<p>${d.limitations.map(html).join('<br>')}</p></details>`
-  }).join('')
-}
 
 /** The HTML fragments for each report tab, built from the report data and its CSV files. */
 export function reportSections(data: ReportData, files: ReportFile[]): { traces: string; plan: string; findings: string; settings: string; downloads: string } {
@@ -289,7 +255,7 @@ export function reportSections(data: ReportData, files: ReportFile[]): { traces:
     `${number(eye.startTimeSeconds, 'ns', 1e9)} to ${number(eye.endTimeSeconds, 'ns', 1e9)}`,
     `${number(eye.unitIntervalSeconds, 'ns', 1e9)} / ${eye.alignment === 'received-differential-dqs' ? 'Received DQS; capture at center' : number(eye.timeOriginSeconds, 'ns', 1e9)}`,
     eye.windows ?? eye.windowOriginsSeconds?.length ?? 'Not recorded', eye.metrics ? eye.metrics.voltageRangeV.map(v => number(v, 'V')).join(' to ') : 'Not recorded',
-  ])) : ''}${ddrFindings(run.eyes)}</article>`).join('')
+  ])) : ''}</article>`).join('')
   const changes = data.changes?.length ? `<div class="comparison-summary"><h2>Neighbor switching · ${html(data.comparisonProbeName ?? 'Selected probe')}</h2>${table(['Switching − quiet', 'Gate', 'Peak absolute ΔV', 'Time RMS ΔV'], data.changes.map(c => [
     `${c.active} − ${c.quiet}`, `${number(c.startSeconds, 'ns', 1e9)} to ${number(c.endSeconds, 'ns', 1e9)}`, number(c.peakAbsoluteV, 'mV', 1000), number(c.timeRmsV, 'mV', 1000),
   ]))}</div>` : ''

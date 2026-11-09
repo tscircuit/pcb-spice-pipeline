@@ -12,7 +12,7 @@ import Single from '../../examples/levels/level1-single-ended'
 import Differential from '../../examples/levels/level1-differential'
 import Three from '../../examples/levels/level3-three-signals'
 import Two from '../../examples/levels/level2-two-signals'
-import Strobe from '../../examples/levels/level4-strobe'
+import Strobe from './strobe-other-chip'
 import { Inverter, Reference } from '../../examples/levels/parts'
 
 const modelDir = process.env.IBIS_MODEL_DIR
@@ -34,7 +34,7 @@ function Four(): React.JSX.Element {
 }
 
 test('TSX adapter renders RFC records and core-owned stackup for each learning level', async () => {
-  for (const Board of [Single, Differential, Two, Three, Strobe, Four]) {
+  for (const Board of [Single, Differential, Two, Three, Four]) {
     const records = await renderSignals(<Board />)
     assert.equal(records.filter(r => r.type === 'pcb_stackup').length, 1)
     assert.ok(records.some(r => r.type === 'simulation_signal'))
@@ -68,12 +68,14 @@ test('RS485 thresholds and the placed termination are derived from real vendor d
   assert.ok(prepared.settings.passiveComponents?.some(p => p.sourceComponentId === resistor.source_component_id))
 })
 
-test('power and ground packages remain present, including quiet-off output-only die buffers', { skip: !modelDir }, async () => {
+test('power and ground packages remain present; quiet-off rejects output-only buffers', { skip: !modelDir }, async () => {
   const circuit = await renderSignals(<Single />)
   const signal = circuit.find(r => r.type === 'simulation_signal')!
   if (signal.type !== 'simulation_signal') throw new Error('missing signal')
   signal.quiet = 'off'
   const ibis = await sources()
+  assert.throws(() => prepareBlocks(circuit, ibis), /has no disabled state/)
+  signal.quiet = 'low'
   const prepared = prepareBlocks(circuit, ibis)[0]
   const geometry = geometryFromCircuitJson(prepared.circuit, prepared.settings)
   const declarations = generalDeclarations(prepared.circuit, geometry, prepared.settings)
@@ -86,5 +88,15 @@ test('power and ground packages remain present, including quiet-off output-only 
     assert.match(model.source, /CPKG/)
     assert.equal(model.metadata.packageData.mappedPins.filter(p => p.role === 'reference').length, 2)
   }
-  assert.ok(compiled[0].metadata.pins.every(p => p.runState.mode !== 'output' || !p.runState.enabled))
+  assert.ok(compiled[0].metadata.pins.some(p => p.runState.mode === 'output' && p.runState.enabled))
+})
+
+test('a sole strobe receiver on a different chip cannot silently sample data', { skip: !modelDir }, async () => {
+  const circuit = await renderSignals(<Strobe />)
+  const ibis = await sources()
+  assert.throws(() => prepareBlocks(circuit, ibis), /expected exactly one DQS receiver/)
+})
+
+test('temporary adapter rejects unknown strobes instead of silently dropping them', async () => {
+  await assert.rejects(renderSignals(<Strobe strobe="MISSING" />), /strobe "MISSING" is not a signal/)
 })

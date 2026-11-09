@@ -4,18 +4,24 @@ import * as base from 'circuit-json'
 import type { CircuitJson as BaseCircuitJson, SimulationIbisModel as BaseIbisModel } from 'circuit-json'
 import { simulation_signal, simulation_signal_integrity, type SimulationSignal, type SimulationSignalIntegrity, type SignalResult } from './signals'
 export type SimulationIbisModel = Omit<BaseIbisModel, 'include_package_parasitics' | 'model_value_corner'> & {
-  /** Private lowered fields while the installed converter schema predates RFC #26. */
-  model_value_corner?: BaseIbisModel['model_value_corner']
+  /** Private lowered fields while the installed converter schema predates RFC #28. */
+  model_value_corner?: 'typical' | 'minimum' | 'maximum'
   include_package_parasitics?: boolean
 }
-export type CircuitJson = (Exclude<BaseCircuitJson[number], BaseIbisModel> | SimulationIbisModel | SimulationSignal | SimulationSignalIntegrity | SignalResult)[]
+export type CircuitJson = (Exclude<BaseCircuitJson[number], BaseIbisModel> | SimulationIbisModel | SimulationSignal | SimulationSignalIntegrity | SignalResult | SimulationIbisPinState | SimulationDigitalStimulus)[]
 import { fail } from './diagnostics'
 
-export type {
-  SimulationExperiment,
-  SimulationIbisPinState,
-  SimulationDigitalStimulus,
-} from 'circuit-json'
+export type { SimulationExperiment } from 'circuit-json'
+/** Private declarations produced only after the public Circuit JSON boundary has been validated. */
+export interface SimulationIbisPinState {
+  type: 'simulation_ibis_pin_state'; simulation_ibis_pin_state_id: string; simulation_experiment_id: string
+  source_port_id: string; is_output: boolean; is_output_enabled?: boolean
+}
+export interface SimulationDigitalStimulus {
+  type: 'simulation_digital_stimulus'; simulation_digital_stimulus_id: string; simulation_experiment_id: string
+  name: string; source_port_id: string; bit_duration_ms: number; start_time_ms: number; initial_state: 0 | 1; inverted?: boolean
+  transmission_pattern: { transmission_type: 'bits'; bits: string; repeat: boolean }
+}
 
 /** Saved boards retain a few older physical serialization forms. Validate their
  * equivalent official schemas without changing the original geometry values. */
@@ -64,7 +70,6 @@ const physicalCompatibility: Record<string, z.ZodTypeAny> = {
 export function recordSchema(record: { type: string; ftype?: string }): z.ZodTypeAny | undefined {
   if (record.type === 'simulation_signal') return simulation_signal
   if (record.type === 'simulation_signal_integrity') return simulation_signal_integrity
-  if (['simulation_signal_waveform', 'simulation_signal_eye', 'simulation_signal_crosstalk', 'simulation_signal_strobe_margin', 'simulation_signal_integrity_rlgc'].includes(record.type)) return z.object({ type: z.literal(record.type) }).passthrough()
   let schemaName = record.type
   if (record.type === 'source_component') schemaName = `source_${record.ftype}`
   return physicalCompatibility[record.type] ?? Reflect.get(base, schemaName)

@@ -2,7 +2,11 @@ import type { WaveformRows } from './types'
 
 /** Interpolate an actual adaptive solver trace at a bounded time. */
 export function sampleVoltage(rows: WaveformRows, column: number, time: number): number {
-  if (time < rows[0][0] || time > rows.at(-1)![0]) throw new Error('Measurement time is outside the recording')
+  const first = rows[0][0]
+  const last = rows.at(-1)![0]
+  const epsilon = Math.max(Math.abs(last), Number.MIN_VALUE) * 1e-12
+  if (time < first - epsilon || time > last + epsilon) throw new Error('Measurement time is outside the recording')
+  time = Math.max(first, Math.min(last, time))
   let low = 0
   let high = rows.length - 1
   while (high - low > 1) {
@@ -27,59 +31,93 @@ export function crossingTimes(rows: WaveformRows, column: number, threshold: num
   }
   return times
 }
-/** Peak noise about the time-weighted DC baseline, after the settling gate. */
-export function quietPeak(rows: WaveformRows, column: number, start: number): number {
-  const points = [[start, sampleVoltage(rows, column, start)], ...rows.filter(row => row[0] > start).map(row => [row[0], row[column]])]
-  let area = 0
-  for (let i = 1; i < points.length; i++) area += (points[i][0] - points[i - 1][0]) * (points[i][1] + points[i - 1][1]) / 2
-  const baseline = area / (points.at(-1)![0] - start)
-  return points.reduce((peak, point) => Math.max(peak, Math.abs(point[1] - baseline)), 0)
+/** Signed extrema relative to the separately solved undisturbed idle voltage. */
+export function quietPeak(rows: WaveformRows, column: number, start: number, idle: number): { idle_voltage_v: number; peak_positive_v: number; peak_negative_v: number } {
+  let positive = Math.max(0, sampleVoltage(rows, column, start) - idle)
+  let negative = Math.min(0, sampleVoltage(rows, column, start) - idle)
+  for (const row of rows) if (row[0] > start) {
+    positive = Math.max(positive, row[column] - idle)
+    negative = Math.min(negative, row[column] - idle)
+  }
+  return { idle_voltage_v: idle, peak_positive_v: positive, peak_negative_v: negative }
 }
+export interface Capture { time: number; high: boolean }
 export interface EyeMeasurement {
-  traces: number[][][]; height: number; width: number; margin: number
+  traces: { timestamps_s: number[]; voltage_levels: number[] }[]; height: number; width: number; margin: number
 }
-/** Finite observed eye: known transmitted bits, inner envelopes, threshold-qualified width. */
-export function measureEye(rows: WaveformRows, column: number, bits: string, ui: number, offset: number,
-  start: number, vih: number, vil: number, captures?: number[]): EyeMeasurement {
-  const points = 400
-  const anchors: { time: number; high: boolean }[] = []
-  if (captures) {
-    for (const time of captures) if (time - ui >= start && time + ui <= rows.at(-1)![0]) anchors.push({ time: time - ui, high: sampleVoltage(rows, column, time) >= (vih + vil) / 2 })
-  } else {
-    for (let bit = Math.ceil((start - offset) / ui); offset + (bit + 2) * ui <= rows.at(-1)![0]; bit++) anchors.push({ time: offset + bit * ui, high: bits[bit % bits.length] === '1' })
-  }
-  if (!anchors.some(a => a.high) || !anchors.some(a => !a.high)) throw new Error('Eye requires observed high and low bits after 16 UI settling')
-  const traces = anchors.map(() => [] as number[][])
-  let height = -Infinity
-  let margin = -Infinity
-  let run = 0
-  let width = 0
-  for (let index = 0; index <= points; index++) {
-    const phase = 2 * ui * index / points
-    let high = Infinity
-    let low = -Infinity
-    for (const [i, anchor] of anchors.entries()) {
-      const value = sampleVoltage(rows, column, anchor.time + phase)
-      traces[i].push([phase, value])
-      if (anchor.high) high = Math.min(high, value)
-      else low = Math.max(low, value)
+/** Threshold-valid continuous intervals for one fixed transmitted bit, clipped to the recording. */
+export function validIntervals(rows: WaveformRows, column: number, high: boolean, threshold: number): [number, number][] {
+  const intervals: [number, number][] = []
+  /** Validity includes equality at the threshold. */
+  const valid = (value: number): boolean => high ? value >= threshold : value <= threshold
+  let start: number | undefined = valid(rows[0][column]) ? rows[0][0] : undefined
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1]
+    const b = rows[i]
+    if (valid(a[column]) === valid(b[column])) continue
+    const time = a[0] + (threshold - a[column]) * (b[0] - a[0]) / (b[column] - a[column])
+    if (valid(b[column])) start = time
+    else {
+      intervals.push([start!, time])
+      start = undefined
     }
-    height = Math.max(height, high - low)
-    margin = Math.max(margin, Math.min(high - vih, vil - low))
-    run = high >= vih && low <= vil ? run + 1 : 0
-    width = Math.max(width, Math.max(0, run - 1) * 2 * ui / points)
   }
-  return { traces, height, width: Math.min(ui, width), margin }
+  if (start !== undefined) intervals.push([start, rows.at(-1)![0]])
+  return intervals
 }
-/** Setup/hold from the continuous threshold-valid interval around each received strobe edge. */
-export function strobeMargins(rows: WaveformRows, column: number, captures: number[], vih: number, vil: number, setup: number, hold: number): { time_s: number; setup_margin_s: number; hold_margin_s: number }[] {
-  return captures.map(time => {
-    const value = sampleVoltage(rows, column, time)
-    const valid = value >= vih || value <= vil
-    const threshold = value >= (vih + vil) / 2 ? vih : vil
-    const crossings = crossingTimes(rows, column, threshold, rows[0][0])
-    const before = crossings.filter(t => t <= time).at(-1) ?? rows[0][0]
-    const after = crossings.find(t => t > time) ?? rows.at(-1)![0]
-    return { time_s: time, setup_margin_s: (valid ? time - before : 0) - setup, hold_margin_s: (valid ? after - time : 0) - hold }
+/** Finite eye at the RFC sampling instant; interval intersections use every native threshold crossing. */
+export function measureEye(rows: WaveformRows, column: number, bits: string, ui: number, offset: number,
+  start: number, vih: number, vil: number, captures?: Capture[], period?: number): EyeMeasurement {
+  const anchors: { time: number; high: boolean }[] = []
+  const end = rows.at(-1)![0]
+  if (captures) {
+    for (const capture of captures) if (capture.time - ui >= start && capture.time + ui <= end * (1 + 1e-12)) anchors.push({ time: capture.time - ui, high: capture.high })
+  } else {
+    const first = Math.ceil((start - offset) / ui - 1e-10)
+    for (let bit = first; offset + (bit + 2) * ui <= end * (1 + 1e-12) && (period === undefined || (bit - first) * ui < period * (1 - 1e-12)); bit++) anchors.push({ time: offset + bit * ui, high: bits[bit % bits.length] === '1' })
+  }
+  if (!anchors.some(a => a.high) || !anchors.some(a => !a.high)) throw new Error('recording needs complete eye windows and transmitted high and low bits after settling.')
+  const sample = captures ? ui : .5 * ui
+  let high = Infinity
+  let low = -Infinity
+  let left = 0
+  let right = 2 * ui
+  const intervals = [validIntervals(rows, column, false, vil), validIntervals(rows, column, true, vih)]
+  const traces = anchors.map(anchor => {
+    const value = sampleVoltage(rows, column, anchor.time + sample)
+    if (anchor.high) high = Math.min(high, value)
+    else low = Math.max(low, value)
+    const valid = intervals[Number(anchor.high)]
+    const interval = valid.find(([a, b]) => a <= anchor.time + sample && b >= anchor.time + sample)
+    if (!interval) right = left
+    else {
+      left = Math.max(left, interval[0] - anchor.time)
+      right = Math.min(right, interval[1] - anchor.time)
+    }
+    // Include native threshold boundaries, so the rendered fold preserves short invalid excursions.
+    const times = new Set(Array.from({ length: 401 }, (_, i) => 2 * ui * i / 400))
+    times.add(sample)
+    for (const list of intervals) for (const interval of list) for (const boundary of interval) if (boundary > anchor.time && boundary < anchor.time + 2 * ui) times.add(boundary - anchor.time)
+    const timestamps_s = [...times].sort((a, b) => a - b)
+    return { timestamps_s, voltage_levels: timestamps_s.map(phase => sampleVoltage(rows, column, anchor.time + phase)) }
+  })
+  return { traces, height: high - low, width: Math.max(0, right - left), margin: Math.min(high - vih, vil - low) }
+}
+/** Setup/hold uses the expected transmitted bit and the nearest valid interval of that bit. */
+export function strobeMargins(rows: WaveformRows, column: number, captures: Capture[], vih: number, vil: number, setup: number, hold: number): { time_s: number; setup_margin_s: number; hold_margin_s: number }[] {
+  const intervals = [validIntervals(rows, column, false, vil), validIntervals(rows, column, true, vih)]
+  return captures.map(({ time, high }) => {
+    const candidates = intervals[Number(high)]
+    let selected: [number, number] | undefined
+    let distance = Infinity
+    for (const interval of candidates) {
+      const gap = Math.max(interval[0] - time, time - interval[1], 0)
+      if (gap < distance) {
+        selected = interval
+        distance = gap
+      }
+    }
+    return { time_s: time, setup_margin_s: selected ? time - selected[0] - setup : -rows.at(-1)![0] - setup,
+      hold_margin_s: selected ? selected[1] - time - hold : -rows.at(-1)![0] - hold }
   })
 }

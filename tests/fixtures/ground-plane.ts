@@ -13,7 +13,6 @@ export function groundPlaneFixture(): { circuit: CircuitJson; modeling: Modeling
   modeling.extraction.groundMeshMm = .5
   modeling.extraction.filaments = 3
   modeling.extraction.refinementFilaments = 5
-  delete modeling.profiles
   circuit.push({ type: 'source_net', source_net_id: 'ground', name: 'GND', is_ground: true, member_source_group_ids: [] })
   for (let i = 0; i < 2; i++) circuit.push(
     { type: 'source_port', source_port_id: `ground${i}`, source_component_id: `u${i}`, name: 'GND', pin_number: 5 },

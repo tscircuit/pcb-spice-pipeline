@@ -3,25 +3,22 @@ import type {FileMap} from '../kernel'
 import type {PipelineResult} from '../pipeline'
 import {browserClient} from './client/viewer-client.generated'
 import {html as escapeHtml,reportContext,reportFiles,reportSections,type ReportData} from './sections'
-import {fail} from './diagnostics'
-
-/** An artifact the result itself names; 'report_missing_artifact' instead of rendering `undefined`. */
-function namedArtifact(result: PipelineResult, path: string): string {
-  if (!Object.hasOwn(result.files, path) || typeof result.files[path] !== 'string')
-    fail('report_missing_artifact', `${path}: the result names this artifact but result.files does not contain it`, { subjects: [{ kind: 'artifact', id: path }] })
-  return result.files[path]
-}
 
 /**
  * Public. Returns a self-contained HTML report and CSVs without reading or writing files.
  * Pure and deterministic; reads result.files only through paths the result names.
  */
 export function generateReport(result: PipelineResult): FileMap {
-  return generateReportData({context:reportContext(result.circuitJson,result.geometry,result.blocks[0].numericalSettings),
-    limitations:result.limitations,runs:result.experiments.map(run=>({
-      name:run.name,rows:run.waveform.rows,probes:run.probes,test:run.plan,
-      eyes:run.eyes.map(({samples,...eye})=>({...eye,csv:namedArtifact(result,`${run.directory}/${eye.directory}/eye-data.csv`)})),
-    }))})
+  return generateReportData({ context: result.geometry && result.blocks.length ? reportContext(result.circuitJson, result.geometry, result.blocks[0].numericalSettings) : undefined,
+    limitations: result.limitations, runs: result.blocks.flatMap(block => block.experiments.map(run => ({
+      name: run.name, rows: run.waveform.rows, probes: run.probes, test: run.plan,
+      eyes: block.results.filter(r => r.type === 'simulation_signal_eye').map(eye => {
+        const signal = result.circuitJson.find(r => r.type === 'simulation_signal' && r.simulation_signal_id === eye.simulation_signal_id)!
+        return { name: signal.type === 'simulation_signal' ? signal.name : eye.simulation_signal_id, unitIntervalSeconds: signal.type === 'simulation_signal' ? 1 / signal.bit_rate_bps : 0,
+          simulationVoltageProbeId: eye.simulation_signal_eye_id, windows: eye.folded_traces.length, folded_traces: eye.folded_traces,
+          csv: 'window,time_s,voltage_v\n' + eye.folded_traces.flatMap((trace, i) => trace.timestamps_s.map((time, j) => `${i},${time},${trace.voltage_levels[j]}`)).join('\n') + '\n' }
+      }),
+    }))) })
 }
 
 /**
@@ -59,7 +56,7 @@ button,select,input,.download{font:inherit;border:1px solid #d4dce6;border-radiu
 <section class="panel" id="results" role="tabpanel" aria-labelledby="tab-results" hidden>${sections.findings}<p class="hint">Min/max use the full recording. Eye ranges use their declared gates.</p></section>
 <section class="panel" id="explore" role="tabpanel" aria-labelledby="tab-explore" aria-label="Interactive simulation results" hidden><div class="toolbar"><label>Experiment<select id="run"></select></label><label>Probe<select id="probe"></select></label><label class="check"><input id="overlay" type="checkbox">Overlay runs</label><span class="grow"></span><button id="waveform-button" aria-pressed="true">Waveform</button><button id="eye-button" aria-pressed="false">Eye</button></div><div class="title" id="selection"></div><div class="binding" id="binding"></div><div id="legend"></div><label id="eye-field" hidden>Eye<select id="eye"></select></label><canvas id="plot" role="img" aria-label="Voltage plot: scroll to zoom, drag to pan, double click to reset"></canvas><div id="cursor" aria-live="off"></div><footer><label>Start (ns)<input id="start" type="number" step="any"></label><label>End (ns)<input id="end" type="number" step="any"></label><button id="reset">Reset</button><span class="grow"></span><span id="sample-count"></span><a id="csv" href="#" class="download" download>Download CSV</a></footer><p class="hint">Scroll to zoom · drag to pan · double-click to reset.</p></section>
 <section class="panel" id="downloads" role="tabpanel" aria-labelledby="tab-downloads" hidden>${sections.downloads}</section>
-<section class="panel" id="assumptions" role="tabpanel" aria-labelledby="tab-assumptions" hidden><p>${escapeHtml(data.context?.description ?? '')}</p>${sections.settings}<details open><summary>Assumptions</summary><pre id="limitations">${escapeHtml(data.limitations.join('\n'))}</pre></details><p class="hint">${data.runs.some(run=>run.eyes.some(eye=>eye.ddrAssessment))?'Configured DDR limits, evidence and unevaluated checks appear in Results; no DDR compliance claim.':'Observed values only; no pass/fail thresholds or compliance assessment.'} Waveform CSVs retain every solver sample. Eye CSVs use linear interpolation. Plot display envelopes preserve extrema.</p></section>
+<section class="panel" id="assumptions" role="tabpanel" aria-labelledby="tab-assumptions" hidden><p>${escapeHtml(data.context?.description ?? '')}</p>${sections.settings}<details open><summary>Assumptions</summary><pre id="limitations">${escapeHtml(data.limitations.join('\n'))}</pre></details><p class="hint">Observed values only; no DDR compliance assessment. Waveform CSVs retain every solver sample. Eye CSVs use linear interpolation. Plot display envelopes preserve extrema.</p></section>
 </main><noscript><style>[role=tabpanel][hidden]{display:block!important}</style></noscript><script type="application/json" id="simulation-data">${payload}</script><script>(${browserClient})();</script></body></html>`
   return output
 }

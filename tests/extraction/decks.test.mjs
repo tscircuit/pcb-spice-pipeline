@@ -3,11 +3,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {geometryFromCircuitJson} from '../../src/board/index.js'
 import {fastHenryDeck,fasterCapDeck,loopImpedance,referenceCapacitance} from '../../src/extraction/index.js'
-import {circuit,physical} from '../fixtures/general.mjs'
+import {barFixture} from './solvers.ts'
 
 test('one signal extraction retains its explicit return and correct 2x2 reduction',()=>{
-  const m={...physical,lanes:[physical.lanes[0]]}
-  const geometry=geometryFromCircuitJson(circuit,m)
+  const {geometry,modeling:m}=barFixture()
+  geometry.cells[0].conductors.splice(1,1)
   assert.equal(geometry.cells[0].conductors.length,2)
   assert.equal((fastHenryDeck(geometry.cells[0],m.extraction).match(/\.external /g)??[]).length,2)
   assert.equal(Object.keys(fasterCapDeck(geometry.cells[0],m.extraction)).length,3)

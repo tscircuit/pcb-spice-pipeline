@@ -141,7 +141,7 @@ let ddr: ReturnType<typeof nativeDdrTimeout> | undefined
 const fixture = (): ReturnType<typeof nativeDdrTimeout> => (ddr ??= nativeDdrTimeout())
 test('native TSX prepares a three-lane DDR extraction and two eye declarations', async () => {
   const { records, deck } = await fixture()
-  assert.equal(records.filter(r => r.type === 'simulation_eye_diagram').length, 2)
+  assert.equal(records.filter(r => String(r.type) === 'simulation_eye_diagram').length, 2)
   assert.equal((deck.match(/^\.external /gm) ?? []).length, 4)
   assert.match(deck, /meshMm=1.5/)
   assert.match(deck, /nhinc=5 nwinc=5/)

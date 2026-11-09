@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { validateMatrix,loopImpedance,referenceCapacitance,multiply,transpose,parseFastHenry,parseFasterCap } from '../../src/extraction/index.js'
+import { validateMatrix,loopImpedance,referenceCapacitance,referenceConductance,multiply,transpose,parseFastHenry,parseFasterCap } from '../../src/extraction/index.js'
 test('shared return resistance survives the full loop transform',()=>{
   assert.deepEqual(loopImpedance([[2,0,0],[0,3,0],[0,0,5]]),[[7,5],[5,8]])
   validateMatrix([[7,5],[5,8]],'R')
@@ -32,4 +32,11 @@ test('nonpassive and nonreciprocal matrices fail before normalization',()=>{
   assert.throws(()=>validateMatrix([[1,2],[2,1]],'L'),/passivity/)
   assert.throws(()=>validateMatrix([[1,.2],[.5,1]],'C'),/reciprocity/)
   assert.throws(()=>referenceCapacitance([[1,-1,0],[-1,1,0],[0,0,0]]),/reference/)
+})
+
+test('RFC Maxwell C/G use charge-neutral finite-return reduction, not a principal submatrix', () => {
+  const primitive = [[4, -1, -1], [-1, 4, -1], [-1, -1, 4]]
+  const expected = [[10 / 3, -5 / 3], [-5 / 3, 10 / 3]]
+  for (const actual of [referenceCapacitance(primitive).matrix, referenceConductance(primitive)]) actual.forEach((row, i) => row.forEach((value, j) => assert.ok(Math.abs(value - expected[i][j]) < 1e-12)))
+  assert.deepEqual(referenceConductance(primitive.map(row => row.map(() => 0))), [[0, 0], [0, 0]])
 })

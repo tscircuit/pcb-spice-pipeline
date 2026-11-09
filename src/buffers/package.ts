@@ -1,20 +1,13 @@
 import { convertIbisModelToSpice, parseIbis, type ConvertedGeneralIbisComponent } from '@tscircuit/ibis-to-spice'
 import type { ModelRunDefinition } from './types'
-import { convertDie } from './die'
 
 /** Convert die buffers, then insert each vendor package exactly once, including supply pins. */
 export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): ConvertedGeneralIbisComponent {
   const document = parseIbis(new TextDecoder().decode(bytes))
   const component = document.components[input.definition.component]
   if (!component) throw new Error(`Missing IBIS component ${input.definition.component}`)
-  if (component.coupledPackage) throw new Error(`${component.name}: coupled [Package Model] requires a supported package matrix; scalar fallback is forbidden`)
-  const needsDisabled = Object.entries(input.definition.pinMap).some(([pin, port]) => {
-    const physical = component.pins[pin]
-    const choices = document.selectors[physical?.model] ?? [physical?.model]
-    const name = input.definition.modelSelections?.[pin] ?? choices[0]
-    return !/^(power|gnd|nc)$/i.test(physical?.model ?? '') && document.getBuffer(name).type === 'output' && (input.run.pinStates[port]?.mode === 'input' || input.run.pinStates[port]?.mode === 'output' && !Reflect.get(input.run.pinStates[port], 'enabled'))
-  })
-  const converted = needsDisabled ? convertDie(bytes, input) : convertIbisModelToSpice(bytes, { ...input.definition, packagePolicy: 'omit' }, input.run)
+  if (component.coupledPackage) throw new Error(`${component.name}: coupled [Package Model] not implemented yet; scalar fallback is forbidden`)
+  const converted = convertIbisModelToSpice(bytes, { ...input.definition, packagePolicy: 'omit' }, input.run)
   const corner = { typical: 0, minimum: 1, maximum: 2 }[input.definition.corner]
   const top = converted.source.indexOf('\n.ends ')
   const wrapper = converted.source.slice(0, top).split('\n')

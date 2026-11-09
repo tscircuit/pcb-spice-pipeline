@@ -1,7 +1,7 @@
 // Serialized as a standalone function so results.html works offline, including file://.
 /** Browser entry point for results.html: wires the tabs, selectors and the zoomable waveform/eye canvas to the embedded data. */
 export function viewerClient(): void {
-  type Eye = { name: string; simulationVoltageProbeId: string; unitIntervalSeconds: number; windowOriginsSeconds: number[]; metrics?: unknown; alignment?: string; ddrAssessment?: { status: string } }
+  type Eye = { name: string; simulationVoltageProbeId: string; unitIntervalSeconds: number; windowOriginsSeconds: number[]; metrics?: unknown; alignment?: string; folded_traces?: { timestamps_s: number[]; voltage_levels: number[] }[] }
   type Probe = { name: string; simulationVoltageProbeId: string; column: number; signalSourceId?: string; referenceSourceId?: string | null; signalLabel?: string; referenceLabel?: string }
   type Run = { name: string; rows: number[][]; probes: Probe[]; eyes: Eye[] }
   const data = JSON.parse(document.getElementById('simulation-data')!.textContent!) as { runs: Run[]; limitations: string[]; comparisonProbeName?: string;
@@ -187,7 +187,8 @@ export function viewerClient(): void {
         const eye = run.eyes.find(e => e.simulationVoltageProbeId === probe.simulationVoltageProbeId && e.name === selectedEye().name)
           ?? run.eyes.find(e => e.simulationVoltageProbeId === probe.simulationVoltageProbeId)
         if (eye && eye.unitIntervalSeconds === selectedEye().unitIntervalSeconds)
-          for (const origin of eye.windowOriginsSeconds) drawRows(run.rows, probe.column, origin + xMin, origin + xMax, origin)
+          if (eye.folded_traces) for (const trace of eye.folded_traces) drawRows(trace.timestamps_s.map((time, i) => [time, trace.voltage_levels[i]]), 1, xMin, xMax, 0)
+          else for (const origin of eye.windowOriginsSeconds ?? []) drawRows(run.rows, probe.column, origin + xMin, origin + xMax, origin)
       }
     })
     ctx.restore()
@@ -204,7 +205,7 @@ export function viewerClient(): void {
     if (mode === 'eye') {
       const eye = selectedEye()
       $('binding').textContent += eye.alignment === 'received-differential-dqs'
-        ? ` · Received DQS alignment; capture at ${format(eye.unitIntervalSeconds * 1e9)} ns · ${eye.windowOriginsSeconds.length} complete windows · ${eye.ddrAssessment?.status ?? 'not-evaluated'} · DDR compliance not evaluated`
+        ? ` · Received DQS alignment; capture at ${format(eye.unitIntervalSeconds * 1e9)} ns · ${eye.folded_traces?.length ?? eye.windowOriginsSeconds?.length ?? 0} complete windows · DDR compliance not evaluated`
         : ' · Declared stimulus clock alignment'
     }
     $('sample-count').textContent = curves.map(({ run }) => run.rows.length.toLocaleString()).join(' + ') + ' actual samples'

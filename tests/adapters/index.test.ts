@@ -1,3 +1,6 @@
+import React from 'react'
+import Single from '../../examples/levels/level1-single-ended'
+import { renderSignals } from '../support/signal-render'
 // Copied from tests/node.test.ts, repointed at src/adapters. Assertions unchanged.
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -47,19 +50,19 @@ test('local IBIS loading deduplicates declarations, rejects missing files and sy
   const baseDir=join(root,'project')
   const outside=join(root,'outside.ibs')
   await mkdir(join(baseDir,'models'),{recursive:true})
-  const input=inMemoryInput()
-  const bytes=input.ibisSources['models/test.ibs']
-  await writeFile(join(baseDir,'models/test.ibs'),bytes)
-  assert.deepEqual(await loadIbisSources({circuitJson:input.circuitJson,baseDir}),Object.assign(Object.create(null),{'models/test.ibs':bytes}))
-  await rm(join(baseDir,'models/test.ibs'))
-  await assert.rejects(loadIbisSources({circuitJson:input.circuitJson,baseDir}),{code:'ENOENT'})
+  const input={circuitJson:await renderSignals(React.createElement(Single))}
+  const bytes=Buffer.from('[IBIS Ver] 4.2\n[End]\n')
+  await writeFile(join(baseDir,'models/sn74lvc1g04.ibs'),bytes)
+  assert.deepEqual(await loadIbisSources({circuitJson:input.circuitJson.filter((r: {type: string})=>r.type==='simulation_ibis_model'),baseDir}),Object.assign(Object.create(null),{'models/sn74lvc1g04.ibs':bytes}))
+  await rm(join(baseDir,'models/sn74lvc1g04.ibs'))
+  await assert.rejects(loadIbisSources({circuitJson:input.circuitJson.filter((r: {type: string})=>r.type==='simulation_ibis_model'),baseDir}),{code:'ENOENT'})
   await writeFile(outside,bytes)
-  await symlink(outside,join(baseDir,'models/test.ibs'))
-  await assert.rejects(loadIbisSources({circuitJson:input.circuitJson,baseDir}),/file_path/)
+  await symlink(outside,join(baseDir,'models/sn74lvc1g04.ibs'))
+  await assert.rejects(loadIbisSources({circuitJson:input.circuitJson.filter((r: {type: string})=>r.type==='simulation_ibis_model'),baseDir}),/file_path/)
 })
 test('explicit output writes supplied artifacts plus the in-memory report without invoking solvers',async t=>{
   const outputDir=await temporary(t)
-  const result=await runPipeline({...inMemoryInput(),runSolver:fixtureSolver as RunSolver})
+  const result=await runPipeline({})
   const report=generateReport(result)
   await writePipelineOutput({result,outputDir})
   for(const [path,body] of Object.entries({...result.files,...report})) assert.equal(await readFile(join(outputDir,path),'utf8'),body)

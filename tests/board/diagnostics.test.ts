@@ -2,14 +2,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import type { CircuitJson } from 'circuit-json'
-import { geometryFromCircuitJson, measuredLaneSpacingMm, subcircuitTree, type Geometry, type Modeling, type PcbTrace, type SubcircuitTree } from '../../src/board'
+import type { CircuitJson } from '../../src/board'
+import { geometryFromCircuitJson, subcircuitTree, type Geometry, type Modeling, type PcbTrace, type SubcircuitTree } from '../../src/board'
 import { groundPlaneFixture, routedGroundPlaneFixture } from '../fixtures/ground-plane'
 
 /** Parses a JSON fixture; the caller's context picks the type it is read as. */
 const read = <T>(name: string): T => JSON.parse(readFileSync(new URL(`../fixtures/${name}`, import.meta.url), 'utf8'))
 /** A fresh copy of the two-lane straight board and its modeling, safe to mutate. */
-const straight = (): { circuit: CircuitJson; modeling: Modeling } => ({ circuit: read('straight.circuit.json'), modeling: read('straight.modeling.json') })
+const straight = (): { circuit: CircuitJson; modeling: Modeling } => groundPlaneFixture()
 /** The PCB trace with the given id, so a test can edit its route in place. */
 const trace = (circuit: CircuitJson, id: string): PcbTrace => {
   const t = circuit.find(e => e.type === 'pcb_trace' && e.pcb_trace_id === id)
@@ -29,7 +29,6 @@ test('modeling and lane selection failures', () => {
   rejects(() => geometryFromCircuitJson(circuit, { ...modeling, extraction: { ...modeling.extraction, filaments: -1 } }), 'modeling_input', /extraction\.filaments must be a positive number/)
   rejects(() => geometryFromCircuitJson(circuit, { ...modeling, lanes: [{ ...modeling.lanes[0], from: { component: 'missing', port: '1' } }] }), 'pin_mapping', /missing: expected one source component, got 0/)
   rejects(() => geometryFromCircuitJson(circuit, { ...modeling, lanes: [{ ...modeling.lanes[0], sourceTraceId: 'nope' }] }), 'route_selection', /DQS: expected one source trace/)
-  rejects(() => geometryFromCircuitJson(circuit, { ...modeling, profiles: { top: { ...modeling.profiles!.top, spacingMm: .01 } } }), 'conductor_overlap', /Stage 0: sig0\/sig1 overlap/)
 })
 
 test('route shape failures', () => {
@@ -51,15 +50,7 @@ test('route shape failures', () => {
   rejects(mutate(c => {
     trace(c, 't0').route.splice(1, 0, { route_type: 'wire', x: 5, y: -.375, width: .1, layer: 'bottom' })
   }), 'layer_transition', /Layer change requires explicit via/)
-  rejects(mutate((c, m) => {
-    Object.assign(m, { viaPlatingMm: .025, viaEquivalentWidthMm: .15, omitThroughViaStubs: true })
-    trace(c, 't1').route = [
-      { route_type: 'wire', x: 0, y: .375, width: .1, layer: 'top', start_pcb_port_id: 'b1' }, { route_type: 'wire', x: 3, y: .375, width: .1, layer: 'top' },
-      { route_type: 'via', x: 3, y: .375, from_layer: 'top', to_layer: 'bottom', hole_diameter: .2 }, { route_type: 'wire', x: 6, y: .375, width: .1, layer: 'bottom' },
-      { route_type: 'via', x: 6, y: .375, from_layer: 'bottom', to_layer: 'top', hole_diameter: .2 }, { route_type: 'wire', x: 10, y: .375, width: .1, layer: 'top', end_pcb_port_id: 'b3' },
-    ]
-  }), 'route_topology', /identical ordered layer\/via stage topology/)
-  rejects(() => measuredLaneSpacingMm([[{ x: 0, y: 0, layer: 'top', route_type: 'wire' }], []], 'top'), 'lane_spacing', /lanes 0 and 1 share no routed segments/)
+
 })
 
 test('subcircuit ownership cycles', () => {
@@ -93,9 +84,16 @@ test('routed-copper ground failures', () => {
 
 test('reduction, section count and routed primitive type are validated before geometry', () => {
   const { circuit, modeling } = straight()
-  rejects(() => geometryFromCircuitJson(circuit, { ...modeling, reduction: 'mesh' as never }), 'reduction', /Select straightened-stages or routed-copper/)
+  rejects(() => geometryFromCircuitJson(circuit, { ...modeling, reduction: 'mesh' as never }), 'reduction', /Only routed copper/)
   for (const sections of [0, 129, 2.5]) rejects(() => geometryFromCircuitJson(circuit, { ...modeling, sections }), 'sections', /sections must be an integer 1\.\.128/)
   const arc = straight()
   Object.assign(trace(arc.circuit, 't0').route[1], { route_type: 'arc' })
   rejects(() => geometryFromCircuitJson(arc.circuit, arc.modeling), 'route_type', /Only wire\/via routed primitives supported/)
+})
+
+test('a missing lane and stale physical metadata remain errors', () => {
+  const { circuit, modeling } = straight()
+  rejects(() => geometryFromCircuitJson(circuit, { ...modeling, lanes: [] }), 'lanes')
+  Object.assign(trace(circuit, 't0').route[0], { start_pcb_port_id: 'wrong-pad' })
+  rejects(() => geometryFromCircuitJson(circuit, modeling), 'stale_endpoint')
 })

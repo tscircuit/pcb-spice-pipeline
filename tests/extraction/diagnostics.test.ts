@@ -6,12 +6,11 @@ import { rootScope, type Produced } from '../../src/kernel'
 import type { SolverRequest, SolverResult } from '../../src/solver'
 import { geometryFromCircuitJson, type Modeling } from '../../src/board'
 import { extractChannel, parseFastHenry, parseFasterCap, validateMatrix, meshPolygon, channelSpice, type ExtractedChannel } from '../../src/extraction'
-import { consistentSolver, type Tweak } from './solvers'
+import { barFixture, consistentSolver, type Tweak } from './solvers'
 
 /** Loads a JSON fixture from tests/fixtures; the caller's declared type says what it holds. */
 const read = <T>(name: string): T => JSON.parse(readFileSync(new URL(`../fixtures/${name}`, import.meta.url), 'utf8'))
-const modeling: Modeling = read('straight.modeling.json')
-const geometry = geometryFromCircuitJson(read('straight.circuit.json'), modeling)
+const { geometry, modeling } = barFixture()
 /** Asserts that f throws a diagnostic with this code (and, if given, a matching message). */
 const rejects = (f: () => unknown, code: string, message?: RegExp): void => assert.throws(f, (e: { code?: string; message: string }) => {
   assert.equal(e.code, code)

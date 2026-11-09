@@ -30,35 +30,6 @@ function threeSignals(): { circuit: CircuitJson; modeling: Modeling } {
   return { circuit, modeling }
 }
 
-test('all three selected signals and the common return reach both solver inputs in declared order', () => {
-  const { circuit, modeling } = threeSignals()
-  const geometry = geometryFromCircuitJson(circuit, modeling)
-  assert.deepEqual(geometry.mappings.map(({ from, to }) => [from, to]), [['p0', 'p2'], ['p1', 'p3'], ['p4', 'p5']])
-  const cell = geometry.cells[0]
-  assert.deepEqual(cell.conductors.map(conductor => conductor.name), ['sig0', 'sig1', 'sig2', 'return'])
-  const inductance = fastHenryDeck(cell, modeling.extraction)
-  assert.deepEqual([...inductance.matchAll(/^\.external (\S+) (\S+)$/gm)].map(match => match.slice(1)),
-    [['N0a', 'N0b'], ['N1a', 'N1b'], ['N2a', 'N2b'], ['N3a', 'N3b']])
-  const capacitance = fasterCapDeck(cell, modeling.extraction)
-  assert.deepEqual(capacitance['channel.lst'].split('\n').filter(line => line.startsWith('C ')).map(line => line.split(' ')[1]),
-    ['sig0.txt', 'sig1.txt', 'sig2.txt', 'return.txt'])
-})
-
-test('unsupported fan-out, duplicated physical lanes and missing neighbor routes fail explicitly', () => {
-  const branched = threeSignals()
-  const source = branched.circuit.find(element => element.type === 'source_trace' && element.source_trace_id === 's0')
-  assert.ok(source?.type === 'source_trace')
-  source.connected_source_port_ids.push('p4')
-  assert.throws(() => geometryFromCircuitJson(branched.circuit, branched.modeling), /route_selection.*fan-out/)
-
-  const duplicate = threeSignals()
-  duplicate.modeling.lanes[2] = { ...duplicate.modeling.lanes[0], port: 'DUPLICATE' }
-  assert.throws(() => geometryFromCircuitJson(duplicate.circuit, duplicate.modeling), /pin_mapping.*distinct physical/)
-
-  const missing = threeSignals()
-  missing.circuit = missing.circuit.filter(element => !(element.type === 'pcb_trace' && element.pcb_trace_id === 't2'))
-  assert.throws(() => geometryFromCircuitJson(missing.circuit, missing.modeling), /route_selection.*DQ_NEIGHBOR/)
-})
 
 const channel: ChannelMatrices = {
   R: [[4, .5, .25], [.5, 5, .75], [.25, .75, 6]],

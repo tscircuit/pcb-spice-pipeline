@@ -4,8 +4,7 @@
 - `level1-differential.tsx`: one real TI SN65HVD72 pair and a normal 120 ohm resistor.
 - `level2-two-signals.tsx`: two coupled single-ended signals.
 - `level3-three-signals.tsx`: traffic, quiet-low and quiet-high as three blocks.
-- `level4-strobe.tsx`: received-strobe timing mechanics with CMOS pad models;
-  it is not a characterized DDR memory interface.
+- `level4-ddr3-write.tsx`: the final RFC DDR3 write illustration; deliberately stops at the coupled-package not-implemented diagnostic.
 
 The pad fixtures and coplanar return were designed for native API tests. They use
 actual routed coordinates and the default ideal PDN (`pdn="extracted"` is not

@@ -1,38 +1,23 @@
-// The IBIS part of general-pipeline.ts runPipeline (hash pinning, loading, conversion, assembly).
+// Vendor model admission, conversion and assembly evidence.
 import * as converter from '@tscircuit/ibis-to-spice'
 import { sha256, type Artifact, type ArtifactScope, type Produced } from '../kernel'
 import { fail } from './diagnostics'
 import { loadModelSource } from './source'
 import { convertPackaged } from './package'
-import type { AdmittedBuffers, AssemblyEntry, BufferModeling, CompiledBuffer, IbisSources, LoadedModelSource, ModelRunDefinition, ModelSourceRequest } from './types'
+import type { AdmittedBuffers, AssemblyEntry, CompiledBuffer, IbisSources, LoadedModelSource, ModelRunDefinition, ModelSourceRequest } from './types'
 
-/** Fails 'converter_version' unless the pinned upstream general converter is installed. Today's first IBIS check. */
+/** Require the pinned upstream general converter. */
 export function assertConverter(): void {
-  if (typeof converter.convertIbisModelToSpice !== 'function') fail('converter_version', 'Install the pinned upstream general IBIS converter')
+  if (typeof converter.convertIbisModelToSpice !== 'function') throw new Error('Install the pinned upstream general IBIS converter')
 }
 
 /**
- * Validate modeling.ibisModelAssetSha256 and load every used model before any solver work, in
+ * Load every used model before any solver work, in
  * declaration order. Artifacts (under `scope`, the output root): inputs/ibis/<pipelineId>.ibs and
  * vendor-sources.json, byte-identical to today.
  */
-export function admitBuffers(models: readonly ModelSourceRequest[], ibisSources: IbisSources, modeling: BufferModeling, scope: ArtifactScope): Produced<AdmittedBuffers> {
-  const expectedHashes: unknown = modeling.ibisModelAssetSha256
-  if (expectedHashes !== undefined && (!expectedHashes || typeof expectedHashes !== 'object' || Array.isArray(expectedHashes))) fail('vendor_hash', 'modeling.ibisModelAssetSha256 must map project-relative IBIS asset paths to SHA-256 hashes')
-  const hashes = expectedHashes as Record<string, unknown> | undefined
-  const loaded: LoadedModelSource[] = []
-  for (const model of models) {
-    const path = model.ibis_model_asset.project_relative_path
-    let expected: string | undefined
-    if (hashes !== undefined) {
-      const pinned = hashes[path]
-      if (typeof pinned !== 'string' || !/^[a-f0-9]{64}$/i.test(pinned)) fail('vendor_hash', `${path}: modeling.ibisModelAssetSha256 requires an expected 64-digit SHA-256 hash for each used IBIS asset`)
-      expected = pinned
-    }
-    const source = loadModelSource(model, ibisSources)
-    if (expected !== undefined && source.evidence.sourceSha256 !== expected.toLowerCase()) fail('vendor_hash', `${path}: IBIS asset bytes differ from modeling.ibisModelAssetSha256`)
-    loaded.push(source)
-  }
+export function admitBuffers(models: readonly ModelSourceRequest[], ibisSources: IbisSources, _modeling: object, scope: ArtifactScope): Produced<AdmittedBuffers> {
+  const loaded = models.map(model => loadModelSource(model, ibisSources))
   const artifacts: Artifact[] = loaded.map(source => scope.text(source.evidence.ibsFile, source.text))
   artifacts.push(scope.json('vendor-sources.json', loaded.map(source => source.evidence)))
   return { value: { models: models.map(model => ({ pipelineId: model.pipelineId })), sources: loaded } as unknown as AdmittedBuffers, artifacts }
@@ -50,7 +35,7 @@ export function compileBuffers<M extends { pipelineId: string; ibis_component_na
     const input = define(model, plan)
     const source = admitted.sources[index]
     input.definition.source = { file: source.evidence.ibsFile, sha256: source.evidence.sourceSha256 }
-    const result = input.definition.packagePolicy === 'vendor' ? convertPackaged(source.bytes, input) : converter.convertIbisModelToSpice(source.bytes, input.definition, input.run)
+    const result = convertPackaged(source.bytes, input)
     return { ...result, name: model.ibis_component_name, pipelineId: model.pipelineId, input, sourceEvidence: admitted.sources[index].evidence }
   }))
 }

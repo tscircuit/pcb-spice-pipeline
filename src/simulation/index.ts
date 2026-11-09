@@ -12,11 +12,11 @@
  * (Was: declarations.ts, general-spice.ts, stimulus.ts, ngspice part of general-pipeline.ts.)
  */
 export type {
-  SimulationModeling, CircuitNodes, PipelineIbisModel, VoltageProbePlan, EyePlan, SimulationPlan, SafeEyePlan, SafeSimulationPlan,
+  SimulationModeling, CircuitNodes, PipelineIbisModel, VoltageProbePlan, SimulationPlan, SafeSimulationPlan,
   Declarations, ElectricalModel, CompiledModel, ExperimentModel, ElectricalSources, SimulationSpiceOptions,
   Experiments, BoundExperiments, ExperimentRun, ExperimentResult,
 } from './types'
 export { circuitNodes, generalDeclarations, modelRunDefinition } from './declarations'
 export { namespaceSpice, electricalSources, simulationSpiceOptions, generalSimulationSpice, validateProbeScope } from './netlist'
-export { safeSimulationPlans, electricalNodeMap, bindExperiments, runExperiment, simulationResultCircuitJson, experimentResult } from './run'
+export { safeSimulationPlans, electricalNodeMap, bindExperiments, runIdle, runExperiment, experimentResult } from './run'
 export { transmittedBits } from './stimulus'

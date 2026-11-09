@@ -84,6 +84,26 @@ export function electricalSources(circuit: CircuitJson, modeling: SimulationMode
     if (components.length !== 1) fail('passive_reference', 'Selected passive component is missing or ambiguous')
     const component = components[0]
     const ports = sourcePorts.filter(e => e.source_component_id === component.source_component_id).sort((a, b) => Number(a.pin_number) - Number(b.pin_number))
+    const placed = circuit.filter(r => r.type === 'simulation_spice_subcircuit').filter(r => r.source_component_id === component.source_component_id)
+    if (placed.length) {
+      if (placed.length !== 1) fail('passive_capability', `${component.name}: placed SPICE model is ambiguous`)
+      const model = placed[0]
+      const header = /^\.subckt\s+(\S+)\s+([^\r\n]+)$/mi.exec(model.subcircuit_source)
+      const unsupported = /^\s*(?:\.(?:include|lib|control|end|tran|ac|dc)\b|[BESGWFT])/mi.test(model.subcircuit_source)
+      if (!header || unsupported) fail('passive_capability', `${component.name}: placed SPICE model is unsupported; it cannot be discarded.`)
+      const pins = header[2].trim().split(/\s+/)
+      if (pins.some(pin => !model.spice_pin_to_source_port_map[pin])) fail('passive_capability', `${component.name}: placed SPICE model has unmapped terminals`)
+      const namespaced = namespaceSpice(model.subcircuit_source, `PLACED${i}`)
+      const nodesForPins = pins.map(pin => nodes.node(model.spice_pin_to_source_port_map[pin]))
+      nodesForPins.forEach(node => activeNodes.add(node))
+      passives.push(namespaced.source, `XPHYSICAL${i} ${nodesForPins.join(' ')} ${namespaced.wrapper}`)
+      // Supported passive resistor/inductor edges determine the DC rail connectivity.
+      for (const line of model.subcircuit_source.split(/\r?\n/)) {
+        const match = /^\s*[RL]\S*\s+(\S+)\s+(\S+)\s+/i.exec(line)
+        if (match && pins.includes(match[1]) && pins.includes(match[2])) dcConnections.push([nodesForPins[pins.indexOf(match[1])], nodesForPins[pins.indexOf(match[2])]])
+      }
+      continue
+    }
     if (ports.length !== 2) fail('passive_capability', `${component.name}: expected two physical ports`)
     const pos = nodes.node(ports[0].source_port_id)
     const neg = nodes.node(ports[1].source_port_id)
@@ -146,7 +166,7 @@ export function simulationSpiceOptions(overrides: SimulationPlan['experiment']['
 export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geometry, 'mappings'>, modeling: { sections: number }, extracted: readonly StageMatrices[], models: readonly CompiledModel[], nodes: CircuitNodes, electrical: ElectricalSources): string {
   const lines = ['Native transient: explicit physical source rails, IBIS run controls and extracted PCB channel']
   const options = simulationSpiceOptions(plan.experiment.spice_options)
-  lines.push('.options ' + Object.entries(options).map(([key, input]) => `${key}=${input}`).join(' '), ...electrical.lines)
+  lines.push('.options ' + Object.entries(options).map(([key, input]) => `${key}=${input}`).join(' ') + ' maxord=1', ...electrical.lines)
   for (const [i, model] of models.entries()) {
     const renamed = namespaceSpice(model.source, `IBIS${i}`)
     const wrapper = model.source.match(/^\.subckt\s+\S+\s+(.+)$/mi)
@@ -194,7 +214,7 @@ export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geom
 export function validateProbeScope(plan: SimulationPlan, geometry: Pick<Geometry, 'mappings'>, models: readonly ElectricalModel[], nodes: CircuitNodes, electrical: ElectricalSources): void {
   const active = new Set(electrical.activeNodes)
   for (const model of models) for (const id of Object.values(model.spicePinMapping)) active.add(nodes.node(id))
-  for (const model of models) for (const pin of model.metadata?.pins ?? []) for (const [role, id] of Object.entries(pin.references ?? {})) if (!electrical.grounded.has(nodes.node(id))) fail('floating_reference', `${model.name} physical pin ${pin.physicalPin} ${role}: reference rail has no explicit source/passive DC path to channelReference`)
+  for (const model of models) for (const pin of model.metadata?.pins ?? []) for (const [role, id] of Object.entries(pin.references ?? {})) if (id !== undefined && !electrical.grounded.has(nodes.node(id))) fail('floating_reference', `${model.name} physical pin ${pin.physicalPin} ${role}: reference rail has no explicit source/passive DC path to channelReference`)
   for (const mapping of geometry.mappings) {
     active.add(nodes.node(mapping.from))
     active.add(nodes.node(mapping.to))

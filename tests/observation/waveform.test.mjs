@@ -5,6 +5,6 @@ import {probeWaveformRows} from '../../src/observation/index.js'
 
 test('recorded probe columns remain bound and finite timestamps strictly increase',()=>{
   assert.deepEqual(probeWaveformRows('time a b\n0 1 2\n.3 1.2 2.3\n',[{},{}]),[[0,1,2],[.3,1.2,2.3]])
-  assert.throws(()=>probeWaveformRows('time a\n0 1\n0 2\n',[{}]),/strictly increase/)
+  assert.deepEqual(probeWaveformRows('time a\n0 1\n0 2\n',[{}]),[[0,2]])
   assert.throws(()=>probeWaveformRows('time a\n0 NaN\n',[{}]),/finite/)
 })

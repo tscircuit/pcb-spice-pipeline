@@ -4,8 +4,6 @@ import type { ChannelMatrices } from '../extraction'
 import type { RunSolver } from '../solver'
 import type { IbisSources, AssemblyEntry } from '../buffers'
 import type { SimulationPlan, VoltageProbePlan } from '../simulation'
-import type { EyeResult } from '../observation'
-import type { DdrAssessment } from '../ddr'
 import type { NumericalSettings } from './modeling'
 
 export interface PreparedOptions {
@@ -14,15 +12,6 @@ export interface PreparedOptions {
   ibisSources: IbisSources
   runSolver: RunSolver
   onProgress?: (message: string) => void
-}
-
-/**
- * One `experiments/<id>/eyes/<eyeId>/eye-data.json` descriptor (and `eyes.json` entry): observation's
- * EyeResult with ddr's assessment embedded when the eye is DDR-aligned. Its CSV lives at
- * `${experiment.directory}/${eye.directory}/eye-data.csv` in PipelineResult.files.
- */
-export interface EyeDescriptor extends EyeResult {
-  readonly ddrAssessment?: DdrAssessment
 }
 
 /** One PipelineResult.experiments[] entry. Field set and serialized key order are today's. */
@@ -37,7 +26,6 @@ export interface ExperimentResult {
   startTimeSeconds: number
   maxStepSeconds: number
   probes: VoltageProbePlan[]
-  eyes: EyeDescriptor[]
   solverInvocations: number
   waveformSamples: number
   assembly: AssemblyEntry[]
@@ -47,8 +35,8 @@ export interface ExperimentResult {
 
 /** Designed explicitly (was Awaited<ReturnType<typeof runPipeline>>). Same field names, order and shapes as today. */
 export interface PreparedResult {
+  idleVoltages?: number[]
   circuitJson: CircuitJson
-  simulationResultCircuitJson: CircuitJson
   modeling: NumericalSettings
   geometry: ChannelGeometry
   matrices: ChannelMatrices
@@ -66,6 +54,7 @@ export interface PipelineOptions {
   onProgress?: (message: string) => void
 }
 export interface BlockResult {
+  duration_s: number
   simulationSignalIntegrityId: string
   name: string
   geometry: ChannelGeometry
@@ -79,7 +68,7 @@ export interface PipelineResult {
   circuitJson: CircuitJson
   simulationResultCircuitJson: CircuitJson
   blocks: BlockResult[]
-  geometry: ChannelGeometry
+  geometry?: ChannelGeometry
   matrices: ChannelMatrices
   experiments: ExperimentResult[]
   limitations: string[]
