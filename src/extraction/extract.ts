@@ -77,10 +77,10 @@ export async function extractChannel(geometry: Geometry, modeling: ExtractionMod
     const L: MatrixCheck=validateMatrix(loopImpedance(selected.L),'L loop',modeling.extraction.reciprocityTolerance)
     validateMatrix(selected.R,'R primitive',modeling.extraction.reciprocityTolerance)
     validateMatrix(selected.L,'L primitive',modeling.extraction.reciprocityTolerance)
-    const capRun=await run(stageScope,{solver:'fastercap',args:['channel.lst','-b',`-a${modeling.extraction.capTolerance}`,...(cell.routedCopper?['-ap']:[]),'-e'],files:fc,outputFiles:[]})
+    const capRun=await run(stageScope,{solver:'fastercap',args:['channel.lst','-b',`-a${modeling.extraction.capTolerance}`,...(cell.routedCopper || cell.dielectric?['-ap']:[]),'-e'],files:fc,outputFiles:[]})
     checkNativeRun(capRun,dir,'fastercap',{subjects:subject,artifacts:capRun.logPaths})
     const cap: {names: string[]; matrix: Matrix}=parseFasterCap(capRun.stdout)
-    const capacitanceScaleToFarads=cell.routedCopper?copperCapacitanceScaleToFarads:1
+    const capacitanceScaleToFarads=cell.routedCopper || cell.dielectric?copperCapacitanceScaleToFarads:1
     cap.matrix=cap.matrix.map(row=>row.map(value=>value*capacitanceScaleToFarads))
     const capDiff=[...capRun.stdout.matchAll(/Weighted Frobenius norm of the difference between capacitance \(auto option\):\s*([\deE+.-]+)/g)].at(-1)
     const capConvergence=capDiff?Number(capDiff[1]):null
@@ -99,11 +99,11 @@ export async function extractChannel(geometry: Geometry, modeling: ExtractionMod
     const energyResidual=Math.abs(energy-reducedEnergy)/Math.abs(energy)
     const neutralityResidual=Math.abs(sum(q.flat()))/Math.max(...q.flat().map(Math.abs))
     if(!Number.isFinite(energyResidual)||!Number.isFinite(neutralityResidual)||energyResidual>1e-10||neutralityResidual>1e-10) fail('reference_energy','Neutral finite-return charge/energy reconstruction failed',{subjects:subject})
-    const result: ExtractedStage={stage:cell.stage,profile:cell.profile,R:R.matrix,L:L.matrix,C:C.matrix,G:referenceConductance(cap.matrix.map(row=>row.map(()=>0))),units:{R:'ohm',L:'H',C:'F',G:'S'},frequencyHz:selected.frequencyHz,primitiveOrder:cell.conductors.map(c=>c.name),primitiveImpedance:spectrum,modelPrimitiveImpedance:selected,primitiveCapacitance:cap.matrix,checks:{R,L,C,primitiveC,convergence,capConvergence,analyticResistanceOhm:analytic,analyticResistanceRelativeErrors:errors,analyticFrequencyHz:lowest.frequencyHz,analyticLoopResistanceOhm:analyticLoop,dcLoopResidual,energyResidual,neutralityResidual},conversions:{impedance:'R=Re(Z), L=Im(Z)/(2*pi*f); A=[I;-ones]; loop=A^T primitive A',capacitance:C.convention,capacitanceSolverCoordinateUnits:cell.routedCopper?'mm':'m',capacitanceScaleToFarads,neutralityDenominatorF:C.denominator}}
+    const result: ExtractedStage={stage:cell.stage,profile:cell.profile,R:R.matrix,L:L.matrix,C:C.matrix,G:referenceConductance(cap.matrix.map(row=>row.map(()=>0))),units:{R:'ohm',L:'H',C:'F',G:'S'},frequencyHz:selected.frequencyHz,primitiveOrder:cell.conductors.map(c=>c.name),primitiveImpedance:spectrum,modelPrimitiveImpedance:selected,primitiveCapacitance:cap.matrix,checks:{R,L,C,primitiveC,convergence,capConvergence,analyticResistanceOhm:analytic,analyticResistanceRelativeErrors:errors,analyticFrequencyHz:lowest.frequencyHz,analyticLoopResistanceOhm:analyticLoop,dcLoopResidual,energyResidual,neutralityResidual},conversions:{impedance:'R=Re(Z), L=Im(Z)/(2*pi*f); A=[I;-ones]; loop=A^T primitive A',capacitance:C.convention,capacitanceSolverCoordinateUnits:cell.routedCopper || cell.dielectric?'mm':'m',capacitanceScaleToFarads,neutralityDenominatorF:C.denominator}}
     record([stageScope.json('extraction.json',result)])
     extracted.push(result)
   }
-  const spice=geometry.mappings.length ? channelSpice(extracted,modeling.sections) : ''
+  const spice=geometry.mappings.length ? channelSpice(extracted,modeling.sections,geometry.mappings.flatMap((mapping, conductor) => (mapping.intermediatePorts ?? []).map((tap, i) => ({ ...tap, conductor, name: `TAP${conductor}_${i}` })))) : ''
   record([scope.text('channel.cir',spice)])
   return {value:{matrices:extracted,spice},artifacts:[...files.values()]}
 }

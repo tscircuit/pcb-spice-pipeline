@@ -4,6 +4,10 @@ import { geometryFromCircuitJson } from '../../src/board'
 import { fastHenryDeck, fasterCapDeck, groundMesh, copperFasterCapDeck, panelAspectLimit, meshPolygon } from '../../src/extraction'
 import { groundPlaneFixture, routedGroundPlaneFixture } from '../fixtures/ground-plane'
 
+/** Join material-specific files for the same physical conductor before checking its closed surface. */
+const conductorSurface = (files: Record<string, string>, name: string): string => '* Closed copper surface; millimetres\n' + Object.entries(files)
+  .filter(([file]) => file === `${name}.txt` || new RegExp(`^${name}-[0-9]+\\.txt$`).test(file)).map(([, body]) => body).join('\n')
+
 /** Checks a FasterCap panel file is a closed, consistently wound surface and returns its enclosed volume in m^3 (divergence theorem). */
 function closedSurfaceVolume(surface: string): number {
   assert.match(surface.split('\n')[0], /\bmillimetres\b/)
@@ -51,8 +55,8 @@ test('FasterCap reference lead and via union forms a closed outward-facing solid
   const { circuit, modeling } = routedGroundPlaneFixture()
   const cell = geometryFromCircuitJson(circuit, modeling).cells[0]
   const files = fasterCapDeck(cell, modeling.extraction)
-  for (const name of ['sig0', 'sig1', 'return']) assert.ok(closedSurfaceVolume(files[`${name}.txt`]) > 0)
-  assert.ok(closedSurfaceVolume(files['return.txt']) > 47 * .035 * 1e-9, 'ground lead and via add copper to the physical plane')
+  for (const name of ['sig0', 'sig1', 'return']) assert.ok(closedSurfaceVolume(conductorSurface(files, name)) > 0)
+  assert.ok(closedSurfaceVolume(conductorSurface(files, 'return')) > 47 * .035 * 1e-9, 'ground lead and via add copper to the physical plane')
 })
 
 test('adaptive ground mesh preserves the cutout and resolves connected finite contact areas', () => {
@@ -93,12 +97,12 @@ test('both native decks use ground polygon cutouts and original trace coordinate
   assert.match(fh,/Np0_\d+ x=-0.001 y=-0.002/)
   assert.match(fh,/N0a x=0 y=-0.000375/)
   assert.match(fh,/\.external N2a N2b/)
-  assert.match(fc['return.txt'],/T return/)
-  assert.match(fc['return.txt'],/Q return/)
+  assert.match(conductorSurface(fc, 'return'),/T return/)
+  assert.match(conductorSurface(fc, 'return'),/Q return/)
   assert.match(fc['channel.lst'].split('\n')[0], /\bmillimetres\b/)
   // Divergence theorem independently verifies the closed, outward-facing solid
   // volume: (12*4 - 2*.5) * .035 mm^3, including the hole side walls.
-  const volume = closedSurfaceVolume(fc['return.txt'])
+  const volume = closedSurfaceVolume(conductorSurface(fc, 'return'))
   assert.ok(Math.abs(volume-47*.035*1e-9)<1e-20)
   assert.ok(fh.length < fastHenryDeck(cell,{...modeling.extraction,groundMeshMm:.25}).length)
 })
@@ -116,11 +120,11 @@ test('FasterCap copper panels are pre-shaped: graded faces, short side walls, sa
   const legacy = copperFasterCapDeck(cell)
   const shaped = fasterCapDeck(cell, modeling.extraction)
   for (const name of ['sig0', 'sig1', 'return']) {
-    const before = panels(legacy[`${name}.txt`])
-    const after = panels(shaped[`${name}.txt`])
+    const before = panels(conductorSurface(legacy, name))
+    const after = panels(conductorSurface(shaped, name))
     assert.ok(after.length > before.length, `${name} is subdivided`)
     // Subdivision keeps the exact closed, outward-facing copper solid.
-    assert.ok(Math.abs(closedSurfaceVolume(shaped[`${name}.txt`]) - closedSurfaceVolume(legacy[`${name}.txt`])) < 1e-20)
+    assert.ok(Math.abs(closedSurfaceVolume(conductorSurface(shaped, name)) - closedSurfaceVolume(conductorSurface(legacy, name))) < 1e-20)
     for (const { kind, points } of after) {
       const e = edges(points)
       assert.ok(Math.min(...e) > 0)
@@ -129,7 +133,7 @@ test('FasterCap copper panels are pre-shaped: graded faces, short side walls, sa
     }
   }
   // Pour faces are graded: fine panels under the trace (y = -.375 / .375), coarse far away.
-  const pourFace = panels(shaped['return.txt']).filter(p => p.kind === 'T' && p.points.every(q => q[2] === p.points[0][2]))
+  const pourFace = panels(conductorSurface(shaped, 'return')).filter(p => p.kind === 'T' && p.points.every(q => q[2] === p.points[0][2]))
   /** Mean longest-edge length of pour-face panels near the signal traces or far from them. */
   const size = (near: boolean): number => {
     const chosen = pourFace.filter(p => {

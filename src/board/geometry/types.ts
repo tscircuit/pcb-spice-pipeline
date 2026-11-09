@@ -1,6 +1,6 @@
 // Today's geometry.json shapes (was geometry.ts + copper.ts types). Serialized: do not reorder or rename.
 import type { CircuitJson } from '../schema'
-import type { BoardStackup, CopperLayer } from '../stackup'
+import type { BoardStackup, CopperLayer, DielectricLayer } from '../stackup'
 
 export type PortSelector = { sourcePortId: string; component?: never; port?: never } | { sourcePortId?: never; component: string; port: string }
 export interface ExtractionSettings {
@@ -72,6 +72,8 @@ export interface GeometryCell {
   /** `parts`: parallel boxes joined at both ends forming one conductor (e.g. a
    * stripline return in both adjacent planes). The scalar fields are part 0. */
   conductors: Conductor[]
+  capacitanceCopper?: RoutedCopper
+  dielectric?: { polygon: CopperPolygon; layers: DielectricLayer[] }
   routedCopper?: RoutedCopper
 }
 export interface Geometry {

@@ -135,6 +135,14 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
     mappings.push({port:lane.port,sourceTraceId:src.source_trace_id,pcbTraceId:traces[0].pcb_trace_id,from:from.source_port_id,to:to.source_port_id,pcbPorts:ports.map(p=>p.pcb_port_id),stages,originalRoute:route})
   }
   const geometry = {...routedCopperGeometry(cj,m,joinSeriesMappings(mappings)),stackup}
+  const board = cj.find(record => record.type === 'pcb_board')!
+  const x = board.center.x
+  const y = board.center.y
+  const polygon: [number, number][][] = [board.outline?.map(p => [p.x, p.y] as [number, number]) ?? [
+    [x - board.width! / 2, y - board.height! / 2], [x + board.width! / 2, y - board.height! / 2],
+    [x + board.width! / 2, y + board.height! / 2], [x - board.width! / 2, y + board.height! / 2],
+  ]]
+  for (const cell of geometry.cells) cell.dielectric = { polygon, layers: stackup.dielectrics }
   return m.simplifyParallel ? parallelCopperGeometry(geometry) : geometry
 }
 

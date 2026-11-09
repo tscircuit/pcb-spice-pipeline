@@ -243,7 +243,7 @@ export function routedCopperGeometry(circuit: CircuitJson, m: ResolvedModeling, 
       'FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential',
       'Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted',
       'Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded',
-      'Homogeneous explicit effective permittivity; other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted',
+      'Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted',
       'Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted',
     ] }
 }

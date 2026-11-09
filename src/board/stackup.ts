@@ -54,8 +54,8 @@ export function stackupFromCircuitJson(circuit: CircuitJson): BoardStackup {
   }
   for (let i = 1; i < copperLayers.length; i++) if (copperLayers[i].zMinMm <= copperLayers[i - 1].zMaxMm)
     fail('stackup', 'Copper layers require a positive dielectric gap')
-  // Native decks use one homogeneous dielectric. Preserve every layer above,
-  // and expose a thickness-weighted approximation only when all Dk is known.
+  // Preserve physical layers for the native dielectric interfaces. The weighted
+  // value is used only to choose initial timing and mesh settings.
   const thickness = dielectrics.reduce((sum, layer) => sum + layer.zMaxMm - layer.zMinMm, 0)
   const relativePermittivity = thickness > 0 && dielectrics.every(layer => layer.relativePermittivity !== undefined)
     ? dielectrics.reduce((sum, layer) => sum + (layer.zMaxMm - layer.zMinMm) * layer.relativePermittivity!, 0) / thickness : undefined

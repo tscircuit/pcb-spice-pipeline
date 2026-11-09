@@ -2,6 +2,7 @@
 import { polygonContains as contains, type CopperPoint as Point, type CopperXYZ as XYZ, type CopperPath as Path,
   type ExtractionSettings, type GeometryCell } from '../board'
 import { groundMesh, pathSolids, surfacePanels, copperPanelSizing } from './mesh'
+import { layeredCapacitanceDeck } from './dielectric'
 
 // FasterCap has absolute panel-area thresholds. Millimetre coordinates keep
 // real fine copper edges numerically resolvable. Electrostatic capacitance
@@ -67,6 +68,7 @@ export function copperFastHenryDeck(cell: GeometryCell, extraction: ExtractionSe
 /** FasterCap panel files for routed copper: one surface file per signal plus one for the return (pours and ground connections), in millimetres. */
 export function copperFasterCapDeck(cell: GeometryCell, extraction?: Pick<ExtractionSettings, 'maxPanelLengthMm'>): Record<string, string> {
   const copper = cell.routedCopper!
+  if (cell.dielectric) return layeredCapacitanceDeck(cell, extraction)
   const files: Record<string, string> = {}
   const list = ['* Actual routed copper in millimetres; physical capacitance = raw matrix * 0.001; homogeneous dielectric']
   const solids = [...copper.signals.map(pathSolids), [...copper.pours, ...copper.connections.flatMap(pathSolids)]]
@@ -95,6 +97,7 @@ export function fastHenryDeck(cell: GeometryCell,extraction: ExtractionSettings)
 }
 /** FasterCap input files for a cell: routed copper gets surface panels, otherwise each conductor is a closed box split along its length. */
 export function fasterCapDeck(cell: GeometryCell,extraction: ExtractionSettings): Record<string,string> {
+  if (cell.dielectric) return layeredCapacitanceDeck(cell, extraction)
   if(cell.routedCopper) return copperFasterCapDeck(cell,extraction)
   const files: Record<string,string>={}
   const list=['* 3D conductor surfaces; metres; homogeneous dielectric']

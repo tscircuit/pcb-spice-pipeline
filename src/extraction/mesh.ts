@@ -434,19 +434,21 @@ export function meshPolygon(rings: Point[][], size: (p: Point) => number): Point
 }
 
 /** FasterCap panel file for one conductor: slices the solids into z slabs and emits triangulated top/bottom faces plus side-wall quads. */
-export function surfacePanels(solids: Solid[], name: string, sizing?: PanelSizing): string {
-  const levels = [...new Set(solids.flatMap(s => [s.zMinMm, s.zMaxMm]))].sort((a, b) => a - b)
+export function surfacePanels(solids: Solid[], name: string, sizing?: PanelSizing, exclude: Solid[] = [], cuts: number[] = []): string {
+  const levels = [...new Set([...solids.flatMap(s => [s.zMinMm, s.zMaxMm]), ...exclude.flatMap(s => [s.zMinMm, s.zMaxMm]), ...cuts].map(z => Math.round(z * 1e10) / 1e10))].sort((a, b) => a - b)
   const rows = ['* Closed union of actual copper polygons; millimetres; physical capacitance = raw matrix * 0.001']
   const slabs = levels.slice(1).map((high, i) => {
     const low = levels[i]
     const active = solids.filter(s => s.zMinMm < high - 1e-10 && s.zMaxMm > low + 1e-10)
-    return active.length ? copperBoolean(active.map(s=>s.polygon)) : []
+    const holes = exclude.filter(s => s.zMinMm < high - 1e-10 && s.zMaxMm > low + 1e-10)
+    return active.length ? copperBoolean(active.map(s=>s.polygon), holes.length ? holes.map(s => s.polygon) : undefined) : []
   })
   /** Writes one triangle or quadrilateral panel line for this conductor. */
   const emit = (kind: 'T' | 'Q', pts: XYZ[]): number => rows.push(`${kind} ${name} ${pts.flat().join(' ')}`)
   /** Triangulates a horizontal face at height zz, orients it outward (up or down), and checks the triangles cover the polygon area exactly. */
   const face = (polys: Polygon[], zz: number, up: boolean): void => {
-    for (const p of cleanPolygons(polys)) {
+    const touching = exclude.filter(s => s.zMinMm <= zz + 1e-10 && s.zMaxMm >= zz - 1e-10)
+    for (const p of cleanPolygons(touching.length ? copperBoolean(polys, touching.map(s => s.polygon)) : polys)) {
       const rings = p.map(r => r.slice(0, -1))
       const polygonArea = Math.abs(area(rings[0])) - rings.slice(1).reduce((s, r) => s + Math.abs(area(r)), 0)
       let triangles: Point[][]

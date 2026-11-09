@@ -56,11 +56,11 @@ No package install or solver download happens during `runPipeline`.
 flowchart TD
   board[/"Your board<br/>(Circuit JSON with signalintegrity blocks)"/] --> s1["1. Read the board, group the blocks, derive drivers, receivers, pin states and patterns<br/><small>pipeline</small>"]
   chips[/"Chip models<br/>(IBIS files)"/] --> s4
-  s1 --> s2["2. Build the 3D copper geometry: routed traces, vias, pours, stackup<br/><small>board</small>"]
+  s1 --> s2["2. Build 3D copper and layered dielectric; join series paths and retain receiver taps<br/><small>board</small>"]
   s2 --> q{"Straight parallel traces over<br/>one rectangular return<br/>with contacts at opposite ends?"}
-  q -->|"yes"| s2b["2b. Extra: replace the 3D copper with straight bars<br/>(a 2D cross-section taken from the real coordinates, extruded along the length)<br/><small>board</small>"]
+  q -->|"yes"| s2b["2b. Extra: use straight bars for R/L<br/>(C keeps the full copper and layered dielectric)<br/><small>board</small>"]
   q -->|"no"| s3
-  s2b --> s3["3. Measure the wires: R, L, C, refining the mesh until it converges<br/><small>extraction</small>"]
+  s2b --> s3["3. Extract R/L and layered C; check mesh convergence, reciprocity and passivity<br/><small>extraction</small>"]
   s3 <-->|"runSolver"| fs{{"FastHenry + FasterCap"}}
   s3 --> s4["4. Build one circuit per block: wires + chip buffers + signal packages + ideal die rails<br/><small>buffers, simulation</small>"]
   s4 --> s5["5. Solve undisturbed idle, then signals; independently refine sections and timestep until RMS and signed peaks converge<br/><small>simulation</small>"]
@@ -96,7 +96,7 @@ IBIS edge rates, bit rates, stackup and actual routes. Matrix order follows stab
 physical pin identities, and coupling follows copper positions. The 3D routed
 copper geometry is always built first. Only when the traces are verified straight,
 parallel and over one rectangular return with opposite-end contacts is it replaced by straight bars (step 2b);
-every other route is extracted from the 3D geometry. In that case `geometry.json`
+every other route is extracted from the 3D geometry. Capacitance retains the physical copper and finite dielectric slabs even when R/L uses the bar reduction. In that case `geometry.json`
 holds the bars, not the 3D copper.
 
 Every block produces an independent run. A differential endpoint drives opposite

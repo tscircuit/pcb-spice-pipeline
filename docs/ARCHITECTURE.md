@@ -9,11 +9,11 @@ appear in the new result Circuit JSON.
 ```mermaid
 flowchart LR
   source["Circuit JSON SI records"] --> derive["pipeline: independent block derivation"]
-  derive --> board3d["board: 3D routed copper geometry and stackup"]
+  derive --> board3d["board: 3D copper, layered dielectric and series receiver taps"]
   board3d --> check{"straight parallel traces,<br/>one rectangular return<br/>with contacts at opposite ends?"}
-  check -->|"yes"| bars["board: extra 2D bar reduction<br/>(cross-section extruded, real coordinates)"]
+  check -->|"yes"| bars["board: extra 2D bar reduction for R/L<br/>C retains physical copper and dielectric"]
   check -->|"no"| extract
-  bars --> extract["extraction: native R/L/C and convergence"]
+  bars --> extract["extraction: native R/L and layered C<br/>convergence and reciprocity checks"]
   derive --> buffers["buffers: vendor models, signal packages and ideal die rails"]
   buffers --> simulate["simulation: undisturbed idle, then native transient<br/>independent section and timestep refinement"]
   extract --> simulate
@@ -65,8 +65,4 @@ R/L use the signal-minus-return loop transform. C and G use the floating finite-
 
 The runtime imports the shared circuit-json schemas. Local validation must build the sibling RFC branch until circuit-json#983 is released. No absolute local dependency links are committed. The render adapter exists only for the unpublished core#5286 intrinsics; unknown strobes are errors.
 
-Core#5286 emits JLC preset plating (0.018 mm), preserving explicit imported stackup plating. The native level runner now renders the verbatim RFC examples directly through real core; the adapter remains only for isolated unit tests. `tests/evidence/signal-levels/rfc-boards.json` records current upstream/layout blockers and supersedes the earlier strip-fixture parity/results. Pipeline via geometry requires the declared shared stackup thickness. Valid ground escape routes may terminate at their associated physical via into a pour; barrel span, net, plating, and copper contact remain validated.
-
-The idle solve precedes switching. Only the accepted transient waveform is retained in library artifacts; earlier refinement steps keep native requests, logs, sample counts, scalar convergence data and waveform digests. The evidence runner separately archives raw native outputs (large files use lossless gzip). This prevents refinement history from retaining many gigabytes of duplicate adaptive traces in memory.
-
-Disabled output nodes receive independent initial-charge perturbations, so a common-mode shift cannot hide a floating differential mode. Every idle trial must complete its recording and settle before becoming a crosstalk reference; solver counts include these trials.
+Core#5286 emits JLC preset plating (0.018 mm), preserving explicit imported stackup plating. The native runner uses real core. RFC pours now request ground escape routing with `unbroken`; the differential example uses manual paths and retains its original autorouter reproduction. Degree-two copper paths are joined for native extraction, with intermediate receiver pins exposed at their physical arc-length fractions in the uniform pi model. Branches and cycles remain unsupported. The native capacitance deck models each declared dielectric slab and air outside; conductor/dielectric contacts are emitted once. Numerical acceptance, including reciprocity, remains mandatory. See `native-signal-levels.md` for accepted and rejected evidence.
