@@ -39,3 +39,15 @@ flowchart LR
   OLD --> STRIP[Invented 2 mm strip and median spacing]
   STRIP --> ORDER[Lane order changes assigned neighbours]
 ```
+
+Fresh native rerun on Apple M5, 2026-11-09 (CPU-contended):
+
+| Original RS-485 board | Mutual L | Mutual C | Extraction wall time |
+|---|---:|---:|---:|
+| Straightened | 11.716323 nH | -0.909219 pF | 1.427 s |
+| Routed copper | 4.169378 nH | -0.187355 pF | 2592.909 s |
+
+The native opt-in gap test passed. Its source is the original physical TSX; requests and outputs
+are in `runs/2d-baseline/rs485-*/native-*`. This board differs from the repository's default
+RS-485 example, whose original explicit 0.35 mm return profile gives 30.447940 nH in the separate
+BEFORE run. These layouts/settings must not be conflated.
