@@ -169,21 +169,19 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
   if (!stack.relativePermittivity) throw new Error('<signalintegrity> needs explicit stackup dielectric constants.')
   const routes = circuit.filter(r => r.type === 'pcb_trace').filter(r => lanes.some(l => l.sourceTraceId === r.source_trace_id))
   const length = Math.max(...routes.map(route => route.route.slice(1).reduce((sum, p, i) => sum + ('x' in p && 'x' in route.route[i] ? Math.hypot(p.x - route.route[i].x!, p.y - route.route[i].y!) : 0), 0)))
-  const thickness = Math.min(...stack.copperLayers.map(layer => layer.zMaxMm - layer.zMinMm))
   const gap = Math.min(...stack.dielectrics.map(layer => layer.zMaxMm - layer.zMinMm))
-  const wireWidth = routes.length ? Math.min(...routes.flatMap(route => route.route.filter(point => point.route_type === 'wire').map(point => point.width))) : thickness
+  const wireWidth = routes.length ? Math.min(...routes.flatMap(route => route.route.filter(point => point.route_type === 'wire').map(point => point.width))) : Math.min(...stack.copperLayers.map(layer => layer.zMaxMm - layer.zMinMm))
   const mesh = Math.max(gap, wireWidth * 2)
   const modelHz = Number(Math.max(rate / 2, .5 / edge).toPrecision(3))
   const decade = Math.ceil(Math.log10(modelHz))
-  const skin = Math.sqrt(1 / (Math.PI * modelHz * 4e-7 * Math.PI * 5.8e7))
-  let filaments = 3
-  while (thickness / 1000 / (2 * (2 ** ((filaments + 1) / 2) - 1)) > skin) filaments += 2
+  // Deck generation sizes width and thickness independently from skin depth.
+  const filaments = 3
   const groundCandidates = [...new Set(signals.flatMap(signal => signal.receivers.flatMap(endpointPorts)).map(port => pins.get(port)!.ground))].sort()
   const settings: NumericalSettings = {
     measurementGate: timing.gate, reduction: 'routed-copper', allowIdeal: block.unrouted === 'ideal', simplifyParallel: true, sections: Math.max(2, Math.ceil(length / 1000 * Math.sqrt(stack.relativePermittivity) / 299792458 / edge * 10)),
     lanes, channelReference: { sourcePortId: reference }, groundReturn: { sourcePortId: groundCandidates[0] },
     relativePermittivity: stack.relativePermittivity,
-    extraction: { minimumHz: modelHz / 10 ** decade, modelHz, maximumHz: modelHz * 10, filaments, refinementFilaments: filaments + 4,
+    extraction: { minimumHz: modelHz / 10 ** decade, modelHz, maximumHz: modelHz, filaments, refinementFilaments: filaments + 4,
       convergenceTolerance: .05, capTolerance: .02, reciprocityTolerance: .025, dcResistanceTolerance: .002,
       maxPanelLengthMm: mesh * 2, groundMeshMm: mesh },
     passiveComponents: circuit.filter(r => r.type === 'source_component').filter(r => (['simple_resistor', 'simple_capacitor', 'simple_inductor'].includes(r.ftype) || circuit.some(model => model.type === 'simulation_spice_subcircuit' && model.source_component_id === r.source_component_id))).map(r => ({ sourceComponentId: r.source_component_id })),

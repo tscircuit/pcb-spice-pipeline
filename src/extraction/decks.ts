@@ -12,6 +12,13 @@ export const copperCapacitanceScaleToFarads=1e-3
 export function copperFastHenryDeck(cell: GeometryCell, extraction: ExtractionSettings): string {
   const copper = cell.routedCopper!
   const mesh = extraction.groundMeshMm!
+  const skinMm = 1000 * Math.sqrt(1 / (Math.PI * extraction.modelHz * 4e-7 * Math.PI * cell.conductivitySm))
+  /** Grade both cross-section dimensions to skin depth; requested refinement also tightens the edge filaments. */
+  const filaments = (sizeMm: number): number => {
+    let count = 3
+    while (sizeMm / (2 * (2 ** ((count + 1) / 2) - 1)) > skinMm / 2) count += 2
+    return count + Math.max(0, extraction.filaments - 3)
+  }
   const lines = ['* Actual routed signals and inferred ground copper; dimensions in metres', '.units m', `.default sigma=${cell.conductivitySm} nhinc=${extraction.filaments} nwinc=${extraction.filaments}`]
   /** Formats a millimetre point as FastHenry node coordinates in metres. */
   const coordinates = (p: XYZ): string => `x=${p[0] / 1000} y=${p[1] / 1000} z=${p[2] / 1000}`
@@ -30,7 +37,7 @@ export function copperFastHenryDeck(cell: GeometryCell, extraction: ExtractionSe
       const dx = s.b[0] - s.a[0]
       const dy = s.b[1] - s.a[1]
       const horizontal = Math.hypot(dx, dy)
-      lines.push(`E${serial++} ${names[i]} ${names[i + 1]} w=${s.widthMm / 1000} h=${s.thicknessMm / 1000} sigma=${s.conductivitySm??cell.conductivitySm} wx=${horizontal ? -dy / horizontal : 1} wy=${horizontal ? dx / horizontal : 0} wz=0`)
+      lines.push(`E${serial++} ${names[i]} ${names[i + 1]} w=${s.widthMm / 1000} h=${s.thicknessMm / 1000} sigma=${s.conductivitySm??cell.conductivitySm} wx=${horizontal ? -dy / horizontal : 1} wy=${horizontal ? dx / horizontal : 0} wz=0 nwinc=${filaments(s.widthMm)} nhinc=${filaments(s.thicknessMm)}`)
     }
   }
   copper.signals.forEach((p, i) => path(p, `N${i}a`, `N${i}b`))
@@ -48,7 +55,7 @@ export function copperFastHenryDeck(cell: GeometryCell, extraction: ExtractionSe
       const dx=v[0]-u[0]
       const dy=v[1]-u[1]
       const length=Math.hypot(dx,dy)
-      lines.push(`Eg${index}_${j} Np${index}_${a} Np${index}_${b} w=${width/1000} h=${thickness} sigma=${pour.conductivitySm??cell.conductivitySm} wx=${-dy/length} wy=${dx/length} wz=0 nwinc=1 nhinc=${extraction.filaments}`)
+      lines.push(`Eg${index}_${j} Np${index}_${a} Np${index}_${b} w=${width/1000} h=${thickness} sigma=${pour.conductivitySm??cell.conductivitySm} wx=${-dy/length} wy=${dx/length} wz=0 nwinc=1 nhinc=${filaments(thickness * 1000)}`)
     })
     contacts.forEach(({i},j)=>ground.contacts[j].forEach(id=>lines.push(`.equiv Ng${i} Np${index}_${id}`)))
   }

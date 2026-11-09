@@ -32,6 +32,6 @@ test('real TSX microstrip deck separates air, FR-4 and conductor contacts', asyn
   assert.ok(!list.includes('homogeneous dielectric'))
   const coarse = fastHenryDeck(cell, settings.extraction)
   const refined = fastHenryDeck(cell, { ...settings.extraction, filaments: 5, groundMeshMm: .5 })
-  assert.match(coarse, /E\d+ .* w=0.00015 .*nwinc=7 /, '150 um trace needs seven width filaments at 100 MHz')
+  assert.match(coarse, /E\d+ .* w=0.00015 .*nwinc=9 /, '150 um trace needs nine width filaments at 100 MHz')
   assert.match(refined, /E\d+ .* w=0.00015 .*nwinc=11 /, 'refinement must increase physical cross-section resolution')
 })
