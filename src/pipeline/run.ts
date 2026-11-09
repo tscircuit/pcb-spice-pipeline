@@ -5,6 +5,7 @@ import type { PipelineOptions, PipelineResult, BlockResult, PreparedResult } fro
 import { prepareBlocks, extendRecording } from './signals'
 import { runPrepared } from './prepared'
 import { signalResults } from './results'
+import { signalResultFiles } from './result-files'
 import { fail } from './diagnostics'
 
 /** Run every Circuit JSON signal-integrity block independently with native solver IO. */
@@ -62,7 +63,7 @@ export async function runPipeline(options: PipelineOptions): Promise<PipelineRes
   }
   const resultTypes = new Set(['simulation_signal_waveform', 'simulation_signal_eye', 'simulation_signal_crosstalk', 'simulation_signal_strobe_margin', 'simulation_signal_integrity_rlgc'])
   const results = [...options.circuitJson.filter(record => !resultTypes.has(record.type)), ...blocks.flatMap(block => block.results)]
-  files['circuit-results.json'] = jsonBody(results)
+  Object.assign(files, signalResultFiles(results))
   files['native-execution.json'] = jsonBody(executions)
   return { circuitJson: options.circuitJson, simulationResultCircuitJson: results, blocks, geometry: blocks[0]?.geometry, matrices: blocks[0]?.matrices ?? [],
     experiments: blocks.flatMap(block => block.experiments), limitations: [...new Set(blocks.flatMap(block => block.limitations))], files }

@@ -6,7 +6,7 @@ import { fail } from './diagnostics'
 import { fastHenryDeck, fasterCapDeck, copperCapacitanceScaleToFarads } from './decks'
 import { checkNativeRun, impedanceSamples, parseFasterCap } from './parse'
 import { validateMatrix, loopImpedance, referenceCapacitance, referenceConductance, reciprocityResidual, type MatrixCheck, type CapacitanceCheck } from './checks'
-import { multiply, transpose, sum, type Matrix } from './linalg'
+import { multiply, transpose, type Matrix } from './linalg'
 import { channelSpice } from './rlgc'
 import type { ExtractionModeling, ExtractedChannel, ExtractedStage, RefinementCheck } from './types'
 

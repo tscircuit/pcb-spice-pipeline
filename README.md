@@ -50,6 +50,13 @@ FastHenry, FasterCap and ngspice must already be installed. The evidence runner
 uses `/opt/homebrew/bin`; the Node adapter accepts executable paths for other hosts.
 No package install or solver download happens during `runPipeline`.
 
+For an oversized full-resolution result, `files` stores waveform records in separate
+`circuit-results/waveform-*.json` parts. `circuit-results.index.json` lists each
+part's original record positions; `circuit-results.json` then holds the other
+records. Reassembling those indexed parts preserves every sample and record.
+Ordinary-sized aggregate artifacts keep their existing format, and
+`simulationResultCircuitJson` always contains the complete in-memory result.
+
 ## General workflow
 
 ```mermaid
