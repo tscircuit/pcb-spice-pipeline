@@ -143,3 +143,9 @@ test('internal receiver taps split uniform pi cells at their physical position',
   assert.match(deck, /VS2_0 RX S2_0 0/)
   assert.match(deck, /R2_0 S2_0 R2_0 1\b/)
 })
+
+test('invalid internal taps cannot create negative pi sections or extra SPICE terminals', () => {
+  const matrices = [{ R: [[1]], L: [[1e-9]], C: [[1e-12]] }]
+  for (const fraction of [0, 1, -1, NaN]) assert.throws(() => channelSpice(matrices, 2, [{ conductor: 0, fraction, name: 'RX' }]), /Internal taps/)
+  assert.throws(() => channelSpice(matrices, 2, [{ conductor: 0, fraction: .5, name: 'RX REF' }]), /Internal taps/)
+})

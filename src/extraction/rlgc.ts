@@ -14,6 +14,7 @@ export function channelSpice(extracted: readonly StageMatrices[], sections: numb
   if (!Number.isInteger(sections) || sections < 1 || sections > 128) fail('sections', 'sections must be an integer 1..128')
   if (!extracted.length || !extracted[0].R.length) fail('matrix_dimension', 'At least one extracted channel stage is required')
   const n = extracted[0].R.length
+  if (taps.some(tap => !Number.isInteger(tap.conductor) || tap.conductor < 0 || tap.conductor >= n || !(tap.fraction > 0 && tap.fraction < 1) || !/^[A-Za-z][A-Za-z0-9_]*$/.test(tap.name)) || (taps.length && extracted.length !== 1)) fail('sections', 'Internal taps require one stage, a valid conductor, a fraction strictly between 0 and 1, and a safe node name')
   for (const [stage, matrices] of extracted.entries()) {
     for (const kind of ['R', 'L', 'C'] as const) {
       if (matrices[kind].length !== n) fail('matrix_dimension', `Stage ${stage} ${kind}: channel dimensions disagree`)

@@ -1,4 +1,4 @@
-import { polygonContains, type GeometryCell, type ExtractionSettings, type CopperXYZ as XYZ, type CopperSolid as Solid } from '../board'
+import { polygonContains, type GeometryCell, type ExtractionSettings, type CopperXYZ as XYZ } from '../board'
 import { pathSolids, surfacePanels, copperPanelSizing } from './mesh'
 
 /** Read a panel's vertices and outward unit normal. Copper and slab surfaces are outward wound. */
