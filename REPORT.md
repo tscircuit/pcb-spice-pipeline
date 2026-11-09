@@ -8,7 +8,7 @@ No branches have been pushed and no PRs opened.
 
 ## Branches and implementation
 
-- `si-2d/repro`: reproduction branch; final head and line counts are reported with delivery.
+- `si-2d/repro`: reproduction branch; head `f2b3bb0ee3eeefdfe0016e68baa4f4b1ae8156ad`.
   The original BEFORE snapshot is `8a85951c6cd6b1ebd76c8dca3ea8e89d585446a9`.
   Actual TSX crosstalk/multilayer boards, lane-order and invented-return reproductions, opt-in native
   3D harness. The original RS-485 TSX now reproduces 11.716323/4.169378 nH on native solvers.
@@ -16,7 +16,7 @@ No branches have been pushed and no PRs opened.
   0.128292996947 > 0.05 after 3667.640 s; 0.271606591 is the separate historical measurement.
 - `si-2d/fix`, stacked on it: initial native single-ended increment `8d03416`, broader working
   increment `871e922`, followed by all-matrix convergence/physical-edge/limiter corrections.
-  Final head and complete line counts are reported with delivery.
+  Final head is supplied with delivery; complete line counts are below.
 
 The old 3D mesh/deck builders, invented return generator, routed/straightened split and extraction
 settings are removed. The plain stages are described in [docs/2d-extraction.md](docs/2d-extraction.md).
@@ -48,7 +48,7 @@ A mesh that exhausts floating-point resolution fails with `mesh_convergence`, wi
 The first quiet-middle attempt exposed nearly coincident optional mesh alignment cuts. Merging
 those cuts at the documented topology precision preserves conductor boundaries. Its actual TSX
 slice 179 now converges in a focused regression (7.49 s). All strict quiet slices have converged;
-quiet native simulation and repeat checks pass; all-active native runs are in progress.
+quiet and all-active native simulations and repeat checks pass.
 
 ## Native timing measurements
 
@@ -61,18 +61,30 @@ are identified separately and are not cold-extraction speed claims.
 |---|---:|---:|---:|---:|---|
 | single-ended | 89.113 | 52.356 | 6.195 | 13.517 | final strict entry-wise estimates |
 | differential-data | 11.603 | 1609.389 | 10.233 | 243.898 | final strict entry-wise estimates |
-| crosstalk, shared geometry | 234.089 | 4144.831 | 27.210 | pending | final strict entry-wise estimates, first quiet solve |
+| crosstalk, shared geometry | 234.089 | 4144.831 | 27.210 | 519.619 | final strict entry-wise estimates, first quiet solve |
 | multilayer | 491.585 | 653.178 | 4.660 | 44.742 | final strict entry-wise estimates |
 
-Three default boards now completed two actual native runs under the final strict policy, with every
-artifact and request identical. Their cached second extraction/native times are: single-ended
-0.0278/12.861 s; differential 0.1626/198.242 s; multilayer 0.0592/48.104 s. The crosstalk row
-uses its first cold quiet-middle geometry solve. Its strict native quiet/all-active runs are in
-progress; the earlier C/C0-only increment took 420.993 s extraction / 842.539 s native. All default examples explicitly omit package parasitics, preserving the original
-experiment choice. The separate package variant is discussed below.
+All four default boards plus the quiet-middle case complete two actual native runs under the final
+strict policy (ten native invocations), with every canonical artifact and request identical per
+case. The first passes are cold: their BEM geometry hashes have no overlap across boards. Multilayer
+has 45 BEM slices plus two closed-form via hashes. The crosstalk timing row combines its first
+quiet-middle cold geometry solve with the all-active native simulation; all 218 extraction artifacts
+and the channel netlist are byte-identical between those two cases. All-active extraction is cached
+(0.1121 s first, 0.1155 s repeat).
+
+| Board/case | Repeat extraction s, cached | Repeat native s | Segments | Distinct slice/via hashes | Automatic cells |
+|---|---:|---:|---:|---:|---:|
+| single-ended | 0.0278 | 12.861 | 13 | 9 | 14 |
+| differential-data | 0.1626 | 198.242 | 134 | 110 | 134 |
+| multilayer | 0.0592 | 48.104 | 73 | 47 | 73 |
+| crosstalk, quiet | 0.1197 | 408.583 | 218 | 193 | 219 |
+| crosstalk, all active | 0.1155 | 522.459 | 218 | 193 | 219 |
+
+All default examples explicitly omit package parasitics, preserving the original experiment choice.
+The separate package variant is discussed below.
 
 The seconds-level extraction target is not met across the examples. The final differential and
-earlier crosstalk native processes also exceed one minute. The dense BEM reaches 11,776 panels on crosstalk. The top decks contain 865 / 12,609 / 17,653 /
+crosstalk native processes also exceed one minute. The dense BEM reaches 11,776 panels on crosstalk. The top decks contain 865 / 12,609 / 17,653 /
 4,352 primitives for single-ended / differential / crosstalk / multilayer respectively, before IBIS
 subcircuit expansion; control commands are excluded from these counts. These large stiff primitive
 ladders are the closest implemented alternative; there is no timeout, reduced fidelity fallback or hidden
@@ -82,9 +94,7 @@ BEFORE used the reproduction checkout's actual FastHenry/FasterCap extractor. Ex
 used their original settings. New crosstalk used legacy extraction settings with derived 2 mm returns;
 new multilayer additionally needed an explicit legacy via profile, .025 mm plating, equivalent
 width pi*(.3+.025) mm and omitted through-via stubs. These old controls are absent from the new path.
-The initial extraction-only baseline measured 37.898 s / 10.058 s for single/differential; the full
-BEFORE-eye measurements above supersede them and show contention variability.
-
+The table uses the full BEFORE-eye measurements; repeated runs vary under contention.
 
 A fresh native opt-in reproduction of the original 44 x 12 mm RS-485 board gives 11.716323 nH
 straightened versus 4.169378 nH routed, with C12=-0.909219/-0.187355 pF. Extraction takes
@@ -103,10 +113,10 @@ output only after exact request equality, rather than claiming a third native ex
 | Case | Middle NEXT max abs(V) | Middle FEXT max abs(V) | Native repeats | Lane permutation |
 |---|---:|---:|---|---|
 | middle held low | 0.186694 | 1.125206 | identical, two actual runs | identical input/matrices |
-| all active | pending | pending | in progress | pending |
+| all active | 3.460467 | 4.490223 | identical, two actual runs | identical input/matrices |
 
 Peaks use every native recorded sample after the declared eye gate starts. In the all-active case
-they include the driven signal; the held-low row isolates noise on the victim. These are finite
+they include the driven signal; the held-low row isolates noise on the victim. The all-active native times are 519.619 / 522.459 s. These are finite
 packet measurements, not BER or receiver compliance claims.
 
 ## Closed-form accuracy, unit-tested field solver
@@ -115,7 +125,7 @@ Finite 40 mm ground width, 1 mm signal width, 1 micrometre signal thickness, er=
 stripline plane spacing 2 mm; coupled gap .5 mm. These are four test configurations, not a sweep of
 all geometries. Single microstrip uses Hammerstad–Jensen; stripline uses Wheeler; coupled microstrip
 uses the published Hammerstad–Jensen modes; coupled stripline uses Cohn's elliptic-integral result.
-All listed errors are below 2%; the largest is 0.5537%. This does not validate RF conductor-loss
+All listed uniform-line errors are below 2%; the largest is 0.5537%. This does not validate RF conductor-loss
 accuracy, vias, bends or split-return discontinuities against a 3D field solver.
 
 | Configuration | Quantity | Published oracle | 2D result | Error |
@@ -223,8 +233,7 @@ requires distinct two-endpoint PCB routes meeting at shared junctions. These lim
   53.195 s; `pnpm test:native` gives **2 passed / 1 vendor-gated skip, zero failed**, 14.278 s.
   Both separate opt-in native 3D checks pass their specific gap/non-convergence assertions.
 - `pnpm build`: passed. `pnpm test`: **244 passed, zero failed**, 286.726 s, including actual-TSX
-  hole rejection, masked via geometry, layered dielectric energy and 250000-element numeric reductions. The previous first-extrapolation checkpoint
-  passed 242/242 in 881.928 s; one obsolete timeout test was replaced by the hole regression.
+  hole rejection, masked via geometry, layered dielectric energy and 250000-element numeric reductions.
 - `pnpm test:native`: **6 passed / 1 vendor-gated skip, zero failed**, 4.121 s. Includes dynamic
   synthetic supply-pin packages, twelve lanes and bit-identical internal-branch save restriction.
   Separate real-TI runs are above.
@@ -232,20 +241,27 @@ requires distinct two-endpoint PCB routes meeting at shared junctions. These lim
   and Bun execution. The packaging runner streams without timeout or output-buffer limits.
 - Lint, module graph, vocabulary and type checking pass; the 100001-bit actual TSX admission test
   passes through patched props, core and Circuit JSON. Native primitive test executes twelve lanes.
-- Native: final-policy single-ended, differential and multilayer, twice with identical artifacts;
-  earlier crosstalk; fresh original RS-485 3D gap;
-  fresh three-link SC70 R non-convergence; static and frequency-dependent complete multiport
-  primitive networks; independent baseline/eyes.
-- Unit-only: published uniform-line accuracy, closed-form via accuracy, missing-data diagnostics,
-  geometry lane-order invariance. Quiet NEXT/FEXT and lane permutation now pass natively as described above. All-active native
-  second-run checks are still pending; speed and 4.2 nH accuracy targets remain unmet.
+- Native: final-policy single-ended, differential, multilayer, all-active and quiet crosstalk, twice
+  each with identical artifacts and requests; fresh original RS-485 3D gap; fresh three-link SC70 R
+  non-convergence; static and frequency-dependent multiport primitives; independent baseline/eyes.
+  Both crosstalk permutations have exact native-request/matrix proof with measured-output replay.
+- Unit-only: published uniform-line accuracy, closed-form via accuracy, masked geometry/material
+  checks and missing-data diagnostics. Native primitive checks validate network algebra, rather
+  than frequency-resolved physical eddy-current or via-discontinuity accuracy.
+- Not achieved/qualified: seconds-level extraction and sub-minute native targets; real-TI switching
+  package operation; a same-geometry explanation isolating the 62.73% mutual-L discrepancy.
+  The local 2D model also omits oblique magnetic coupling, bend fringing and longitudinal
+  supply/ground-connection impedance. These are explicit model boundaries on results; their
+  complete physical treatment is outside this implemented alternative.
 
-Evidence is in ignored `runs/2d`, `runs/qualified`, `runs/before-eyes`, native request directories
-and persistent `runs/checks` logs. Fresh BEFORE evidence is in the separate reproduction worktree
+Final evidence is in ignored `runs/strict-recovery`, `runs/strict-recovery-requests`,
+`runs/before-eyes`, `runs/package-final-requests` and persistent `runs/checks` logs. The latter
+include `cold-geometry-validation.json` and `crosstalk-shared-geometry.json`. Fresh BEFORE evidence is in the separate reproduction worktree
 `../si-api-review/si-2d-before/runs/2d-baseline`. Reproduce using `node --import tsx scripts/measure-2d.mjs ...`; it runs twice
 natively and checks every artifact, then proves crosstalk lane permutation by exact native-request
 comparison and replay of the measured output. `scripts/measure-legacy.mjs ABS_REPRO_CHECKOUT ...`
-measures BEFORE only. Use a fresh `SI_MEASUREMENT_DIRECTORY` for a new solver version; a stale
+measures BEFORE only and requires a separate checkout at original snapshot `8a85951`,
+rather than the latest reproduction head. Use a fresh `SI_MEASUREMENT_DIRECTORY` for a new solver version; a stale
 checkpoint deliberately errors rather than being reused. `measure-accuracy.mjs`, `measure-eyes.mjs` and `measure-mutual.mjs` write or
 print the independent numeric tables. Model bytes are fetched by pinned URL/archive/file hashes;
 `examples/differential-data/verify-vendors.mjs` passed fresh verification in this task.
@@ -280,3 +296,14 @@ numerical values or runtime operations changed after the full verification run.
 Final-policy measurements execute the implementation at `30fdfe3140d733719c565b4a4998f7fd67098ff1`.
 The later source edit adds policy comments only; final build, lint, module, vocabulary, types and
 five documentation checks pass. The complete test and packaging runs precede that comment-only edit.
+
+## Lines changed
+
+Standard Git line counts include tests, documentation, package patches and measurement tooling.
+The production `src/` comparison decreases code; the whole fix increases it.
+
+| Comparison | Added | Removed | Net |
+|---|---:|---:|---:|
+| reproduction vs main | 388 | 5 | +383 |
+| fix vs reproduction | 5562 | 4044 | +1518 |
+| production src, fix vs reproduction | 1253 | 1744 | -491 |
