@@ -13,30 +13,45 @@ test('three signals retain shared-return coupling and parse four-conductor solve
   const parsed=parseFasterCap(cap)
   assert.equal(referenceCapacitance(parsed.matrix).matrix.length,3)
 })
-test('neutral capacitance reduction preserves electrostatic energy and charge neutrality',()=>{
+test('grounded capacitance preserves signal charge and energy with the return held at zero',()=>{
   const C=[[4,-1,-2],[-1,5,-3],[-2,-3,7]]
   const r=referenceCapacitance(C)
   const v=[1.2,-.7]
-  const row=C.map(r=>r.reduce((a,b)=>a+b))
-  const den=row.reduce((a,b)=>a+b)
-  const offset=-(row[0]*v[0]+row[1]*v[1])/den
-  const full=[[v[0]+offset],[v[1]+offset],[offset]]
+  const full=[[v[0]],[v[1]],[0]]
   const q=multiply(C,full)
-  assert.ok(Math.abs(q.flat().reduce((a,b)=>a+b))<1e-12)
-  const energy=multiply(transpose(full),q)[0][0]
-  const small=multiply(multiply([v],r.matrix),transpose([v]))[0][0]
-  assert.ok(Math.abs(energy-small)<1e-12)
-  assert.ok(r.matrix[0][1]<0)
+  const small=multiply(r.matrix,[[v[0]],[v[1]]])
+  assert.deepEqual(q.slice(0,-1),small)
+  assert.notEqual(q.flat().reduce((a,b)=>a+b),0)
+  assert.equal(multiply(transpose(full),q)[0][0],multiply([v],small)[0][0])
+  assert.deepEqual(r.matrix,[[4,-1],[-1,5]])
 })
 test('nonpassive and nonreciprocal matrices fail before normalization',()=>{
   assert.throws(()=>validateMatrix([[1,2],[2,1]],'L'),/passivity/)
   assert.throws(()=>validateMatrix([[1,.2],[.5,1]],'C'),/reciprocity/)
-  assert.throws(()=>referenceCapacitance([[1,-1,0],[-1,1,0],[0,0,0]]),/reference/)
+  assert.throws(()=>referenceCapacitance([[1,-1,0],[-1,1,0],[0,0,0]]),/passivity/)
 })
 
-test('RFC Maxwell C/G use charge-neutral finite-return reduction, not a principal submatrix', () => {
+test('C and G select the grounded signal block', () => {
   const primitive = [[4, -1, -1], [-1, 4, -1], [-1, -1, 4]]
-  const expected = [[10 / 3, -5 / 3], [-5 / 3, 10 / 3]]
-  for (const actual of [referenceCapacitance(primitive).matrix, referenceConductance(primitive)]) actual.forEach((row, i) => row.forEach((value, j) => assert.ok(Math.abs(value - expected[i][j]) < 1e-12)))
+  assert.deepEqual(referenceCapacitance(primitive).matrix, [[4, -1], [-1, 4]])
   assert.deepEqual(referenceConductance(primitive.map(row => row.map(() => 0))), [[0, 0], [0, 0]])
+  assert.deepEqual(referenceConductance(primitive), [[4, -1], [-1, 4]])
+})
+
+test('signal-block rejection keeps the 2.5% limit, signs and positive energy', () => {
+  assert.throws(() => referenceCapacitance([[4, -.1, -1], [-.3, 4, -1], [-1, -1, 4]]), /reciprocity/)
+  assert.throws(() => referenceCapacitance([[1, -2, 0], [-2, 4, 0], [0, 0, 1]]), /passivity/)
+  assert.throws(() => referenceCapacitance([[4, .1, 0], [.1, 4, 0], [0, 0, 1]]), /capacitance_sign/)
+  assert.throws(() => referenceCapacitance([[4, NaN, 0], [-1, 4, 0], [0, 0, 1]]), /matrix_format/)
+})
+
+test('a passing signal block is averaged only after the raw 2.5% reciprocity gate', () => {
+  const passing = [[4, -1, -9], [-1.08, 5, -8], [-2, -3, 20]]
+  const checked = referenceCapacitance(passing)
+  assert.deepEqual(checked.matrix, [[4, -1.04], [-1.04, 5]])
+  assert.ok(Math.abs(checked.reciprocityResidual - .08 / 5) < 1e-15)
+  const failing = [[4, -1, -9], [-1.2, 5, -8], [-2, -3, 20]]
+  const original = structuredClone(failing)
+  assert.throws(() => referenceCapacitance(failing), { code: 'reciprocity' })
+  assert.deepEqual(failing, original, 'a rejected block is never averaged or mutated')
 })

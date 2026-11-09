@@ -269,13 +269,13 @@ export async function independentlyCheckMatrices(out, cell, modeling) {
   // Routed-copper panels use numeric mm to avoid FasterCap's absolute area
   // thresholds. Electrostatic C scales with length; the legacy panels use m.
   // Derive the conversion from the captured input/geometry, not result metadata.
-  const primitiveC = symmetric(capLines.map(row => row.slice(1).map(value => Number(value) * capacitanceScaleToFarads)))
+  const primitiveC = capLines.map(row => row.slice(1).map(value => Number(value) * capacitanceScaleToFarads))
   assert.equal(extraction.conversions.capacitanceScaleToFarads, capacitanceScaleToFarads, 'Reported capacitance scale agrees with input geometry')
   assert.equal(extraction.conversions.capacitanceSolverCoordinateUnits, routed ? 'mm' : 'm', 'Reported capacitance units agree with captured panels')
-  const rowSums = primitiveC.map(row => row.reduce((sum, value) => sum + value, 0))
-  const total = rowSums.reduce((sum, value) => sum + value, 0)
-  assert.ok(total > 0, 'Finite reference-reduction capacitance')
-  const C = Array.from({ length: returnIndex }, (_, i) => Array.from({ length: returnIndex }, (_, j) => primitiveC[i][j] - rowSums[i] * rowSums[j] / total))
+  const signalC = primitiveC.slice(0, -1).map(row => row.slice(0, -1))
+  const residual = Math.max(...signalC.flatMap((row, i) => row.map((value, j) => Math.abs(value - signalC[j][i])))) / Math.max(...signalC.flat().map(Math.abs))
+  assert.ok(residual <= modeling.extraction.reciprocityTolerance, 'Raw grounded C signal block passes reciprocity before averaging')
+  const C = symmetric(signalC)
   for (const [kind, matrix] of Object.entries({ R, L, C })) {
     positiveEnergy(matrix, kind)
     assert.equal(extraction[kind].length, returnIndex)

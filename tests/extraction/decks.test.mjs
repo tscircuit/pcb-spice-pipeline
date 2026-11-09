@@ -13,7 +13,7 @@ test('one signal extraction retains its explicit return and correct 2x2 reductio
   assert.equal(Object.keys(fasterCapDeck(geometry.cells[0],m.extraction)).length,3)
   assert.deepEqual(loopImpedance([[2,.1],[.1,3]]),[[4.8]])
   const C=referenceCapacitance([[4,-1],[-1,3]])
-  assert.ok(Math.abs(C.matrix[0][0]-2.2)<1e-15)
+  assert.ok(Math.abs(C.matrix[0][0]-4)<1e-15)
 })
 
 test('real TSX microstrip deck separates air, FR-4 and conductor contacts', async () => {

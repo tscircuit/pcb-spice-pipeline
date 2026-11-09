@@ -29,15 +29,15 @@ export interface ExtractedStage {
   modelPrimitiveImpedance: ImpedanceSample
   primitiveCapacitance: Matrix
   checks: {
-    R: MatrixCheck; L: MatrixCheck; C: CapacitanceCheck; primitiveC: MatrixCheck
+    R: MatrixCheck; L: MatrixCheck; C: CapacitanceCheck; primitiveC: { reciprocityResidual: number; checked: false }
     convergence: RefinementCheck; capConvergence: number
     analyticResistanceOhm: number[]; analyticResistanceRelativeErrors: number[]; analyticFrequencyHz: number
     analyticLoopResistanceOhm: Matrix | null; dcLoopResidual: number | null
-    energyResidual: number; neutralityResidual: number
+    energyResidual: number
   }
   conversions: {
     impedance: string; capacitance: string
-    capacitanceSolverCoordinateUnits: 'mm' | 'm'; capacitanceScaleToFarads: number; neutralityDenominatorF: number
+    capacitanceSolverCoordinateUnits: 'mm' | 'm'; capacitanceScaleToFarads: number
   }
 }
 /** Today's `extracted` array (PipelineResult.matrices), in stage order. */

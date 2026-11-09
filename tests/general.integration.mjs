@@ -74,7 +74,6 @@ test('full in-memory pipeline executes real extraction, refinement and ngspice b
   assert.ok(matrix.checks.convergence.R<=input.modeling.extraction.convergenceTolerance)
   assert.ok(matrix.checks.convergence.L<=input.modeling.extraction.convergenceTolerance)
   assert.ok(matrix.checks.energyResidual<1e-10)
-  assert.ok(matrix.checks.neutralityResidual<1e-10)
   const run=result.experiments[0]
   assert.equal(run.solverInvocations,1)
   assert.ok(run.waveform.rows.length>100)

@@ -80,7 +80,7 @@ test('FasterCap failures override its mesh report; routed mm and legacy m result
       assert.equal(result.conversions.capacitanceSolverCoordinateUnits,legacy?'m':'mm')
       assert.equal(result.conversions.capacitanceScaleToFarads,legacy?1:1e-3)
       assert.ok(Math.abs(result.primitiveCapacitance[0][0]-4e-12)<1e-24)
-      assert.ok(Math.abs(result.C[0][0]-10e-12/3)<1e-24)
+      assert.ok(Math.abs(result.C[0][0]-4e-12)<1e-24)
       for(const phase of ['', 'refinement']) {
         const record=JSON.parse(files[`stage-0/${phase?phase+'/':''}fasthenry.request.json`])
         assert.deepEqual(record.args,legacy?['channel.inp']:['-p','seg','channel.inp'])

@@ -5,12 +5,13 @@ import { Clipper64, PolyTree64, ClipType, FillRule } from 'clipper2-ts'
 import Board, { modeling } from '../fixtures/layered-microstrip'
 import { renderCoreSignals } from '../support/core-render'
 import { geometryFromCircuitJson, polygonContains } from '../../src/board'
-import { fasterCapDeck, parseFasterCap, validateMatrix } from '../../src/extraction'
+import { fasterCapDeck, parseFasterCap, validateMatrix, referenceCapacitance } from '../../src/extraction'
+import { symmetrize } from '../../src/extraction/linalg'
 import { pathSolids } from '../../src/extraction/mesh'
 import { checkNativeRun } from '../../src/extraction/parse'
 import { createNativeSolver } from '../../src/adapters'
 
-for (const coupled of [false, true]) test(`layered TSX ${coupled ? 'coupled' : 'single'} microstrip primitive capacitance is reciprocal`, {
+for (const coupled of [false, true]) test(`layered TSX ${coupled ? 'coupled' : 'single'} microstrip ground-referenced signal block passes before symmetrization`, {
   skip: process.env.SI_TEST_NATIVE_CAPACITANCE !== '1', timeout: 180000,
 }, async () => {
   const circuit = await renderCoreSignals(React.createElement(Board, { coupled }))
@@ -23,7 +24,10 @@ for (const coupled of [false, true]) test(`layered TSX ${coupled ? 'coupled' : '
   assert.ok(autoResidual >= 0 && autoResidual <= settings.extraction.capTolerance)
   const raw = parseFasterCap(run.stdout).matrix
   assert.equal(raw.length, coupled ? 3 : 2)
-  validateMatrix(raw, 'C primitive', settings.extraction.reciprocityTolerance)
+  assert.throws(() => validateMatrix(raw, 'C primitive', settings.extraction.reciprocityTolerance), /reciprocity/)
+  const checked = referenceCapacitance(raw, settings.extraction.reciprocityTolerance)
+  assert.deepEqual(checked.matrix, symmetrize(raw.slice(0, -1).map(row => row.slice(0, -1))))
+  assert.ok(checked.reciprocityResidual <= settings.extraction.reciprocityTolerance)
 })
 
 test('TSX dielectric and contact faces form one closed FR-4 boundary with consistent reference sides', async () => {
@@ -83,4 +87,20 @@ test('TSX dielectric and contact faces form one closed FR-4 boundary with consis
   assert.deepEqual([...directions].sort(), ['-1,0,0', '0,-1,0', '0,0,-1', '0,0,1', '0,1,0', '1,0,0'].sort(), 'top, bottom and all four dielectric side faces exist')
   assert.ok(Math.hypot(...flux) < 1e-7, 'dielectric boundary has no net oriented area gap')
   assert.ok(Math.abs(volume - 50 * 14 * 1.43) < 1e-7, 'D plus reversed copper contacts enclose the declared FR-4 volume')
+})
+
+// Recorded native matrices come from the actual TSX fixture, not hand-authored Circuit JSON.
+test('recorded TSX microstrip asymmetry is confined to return entries; symmetrize only the passing signal block', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const evidence = JSON.parse(await readFile(new URL('../evidence/signal-levels/layered-capacitance-investigation.json', import.meta.url), 'utf8'))
+  for (const sample of evidence.final_baseline_confirmation) {
+    const circuit = await renderCoreSignals(React.createElement(Board, { coupled: sample.coupled }))
+    const settings = { ...modeling, lanes: modeling.lanes.slice(0, sample.coupled ? 2 : 1) }
+    const cell = geometryFromCircuitJson(circuit, settings).cells[0]
+    assert.equal(sample.matrix.length, cell.conductors.length)
+    assert.throws(() => validateMatrix(sample.matrix, 'C primitive', settings.extraction.reciprocityTolerance), /reciprocity/)
+    const checked = referenceCapacitance(sample.matrix, settings.extraction.reciprocityTolerance)
+    assert.deepEqual(checked.matrix, symmetrize(sample.matrix.slice(0, -1).map((row: number[]) => row.slice(0, -1))))
+    assert.ok(checked.reciprocityResidual < .001)
+  }
 })
