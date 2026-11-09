@@ -34,4 +34,10 @@ test('real TSX microstrip deck separates air, FR-4 and conductor contacts', asyn
   const refined = fastHenryDeck(cell, { ...settings.extraction, filaments: 5, groundMeshMm: .5 })
   assert.match(coarse, /E\d+ .* w=0.00015 .*nwinc=9 /, '150 um trace needs nine width filaments at 100 MHz')
   assert.match(refined, /E\d+ .* w=0.00015 .*nwinc=11 /, 'refinement must increase physical cross-section resolution')
+  for (const filaments of [3, 7]) {
+    const thin = fastHenryDeck(cell, { ...settings.extraction, modelHz: 1e3, filaments })
+    assert.ok(thin.split('\n').filter(line => line.startsWith('Eg')).every(line => line.endsWith('nwinc=1 nhinc=1')), 'electrically thin planes need no thickness subdivision')
+  }
+  const point = fastHenryDeck(cell, { ...settings.extraction, minimumHz: settings.extraction.modelHz, maximumHz: settings.extraction.modelHz })
+  assert.equal(coarse.replace(/^\.freq .*$/m, ''), point.replace(/^\.freq .*$/m, ''), 'frequency sweeps reuse the same geometry and cross sections')
 })

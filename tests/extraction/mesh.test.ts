@@ -81,7 +81,7 @@ test('adaptive ground mesh preserves the cutout and resolves connected finite co
   const { circuit, modeling } = groundPlaneFixture()
   const copper = geometryFromCircuitJson(circuit, modeling).cells[0].routedCopper!
   const contacts = copper.connections.map(p => ({ point: [p.terminals[1][0], p.terminals[1][1]] as [number, number], radius: p.contactRadiusMm! }))
-  const mesh = groundMesh(copper.pours[0], modeling.extraction.groundMeshMm!, contacts)
+  const mesh = groundMesh(copper.pours[0], modeling.extraction.groundMeshMm!, contacts, 2, copper.signals)
   const parents = mesh.points.map((_, i) => i)
   /** Union-find root of a mesh point, used to check all contacts are connected. */
   const root = (i: number): number => parents[i] === i ? i : (parents[i] = root(parents[i]))
