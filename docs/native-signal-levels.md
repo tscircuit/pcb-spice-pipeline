@@ -61,6 +61,22 @@ SI_NATIVE_TIMEOUT_MS=90000 node --import tsx scripts/investigate-signal-sections
 
 Do not relabel the package diagnostics, partial traces, or old unconverged eye as accepted results. The bounded attempt did not find a defensible production fix; IBIS/package rail behavior remains the next concrete investigation.
 
+## Final bounded native rerun
+
+`section-native.json` records each command, actual runner head, model/schema hashes, exact native extraction replays, fresh transient requests and signed-peak convergence data. The production netlist is unchanged. No replayed transient is used. The shorter limits intentionally bound this follow-up; they do not supersede the earlier 600 s failures or imply a runtime improvement.
+
+| Case | Per-process limit | Total elapsed | Result | Last reported transient time |
+| --- | ---: | ---: | --- | ---: |
+| Single | 120 s | 120.978 s | Timeout; no accepted result | 1.90971 us of 2.4 us |
+| Differential | 180 s | 232.781 s | Converged | Complete 192 us |
+| TRAFFIC | 60 s | 69.309 s | Timeout before gate | 0.153182 us |
+| QUIET_LOW | 60 s | 70.139 s | Timeout before gate | 0.131845 us |
+| QUIET_HIGH | 60 s | 66.184 s | Timeout before gate | 0.252573 us |
+
+The fresh differential eye is 4.464708256 V × 3.932764896 us, margin 2.032351933 V. Timestep and section peak deltas are 2.30168 nV and 1.78676 uV. Single-ended has no completed new eye or section comparison. Level 3 has no completed measurement after its 0.8 us gate; signed NEXT/FEXT remains unavailable. These failures are not zero-noise measurements.
+
+Local verification: `IBIS_MODEL_DIR=models NGSPICE_BIN=/opt/homebrew/bin/ngspice npm test` passed 223 of 225 tests, with two optional tests skipped and no failures. Typecheck, lint, module and vocabulary checks pass; lint retains the existing 521-line mesh warning. Local checks use the existing unpublished sibling-schema overlay. CI remains blocked on the published circuit-json package lacking the SI exports. The investigation/regression is published; the single-ended/Level 3 physics issue remains unresolved.
+
 The actual RFC DDR3 TSX asset is in `examples/levels/level4-ddr3-write.tsx`. `IBIS_MODEL_DIR=models node --import tsx scripts/check-ddr3.tsx` rendered it using real AM335x/Winbond files and stopped with `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.` before any native call. This is the RFC's documented boundary, not DDR compliance validation.
 
 Extracted PDN, coupled package matrices and branched routed graphs have the RFC's explicit not-implemented errors. Finite transient eyes do not establish BER, hardware accuracy or protocol compliance. Unit tests with analytic waveforms or canned matrix outputs are synthetic checks, not native evidence.
