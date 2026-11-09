@@ -2,6 +2,7 @@ import React from 'react'
 import { execFileSync } from 'node:child_process'
 import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
+import { gzipSync } from 'node:zlib'
 import { dirname } from 'node:path'
 import { renderSignals } from '../tests/support/signal-render'
 import { runPipeline } from '../src'
@@ -14,6 +15,11 @@ import Three from '../examples/levels/level3-three-signals'
 const modelDir = process.env.IBIS_MODEL_DIR ?? 'models'
 const ibisSources = Object.fromEntries(await Promise.all(['sn74lvc1g04.ibs', 'sn65hvd72.ibs'].map(async file => [`models/${file}`, await readFile(`${modelDir}/${file}`)])))
 const selected = process.argv[2]
+/** Retain large solver artifacts losslessly without exhausting the local evidence volume. */
+const archive = async (path: string, body: string): Promise<void> => {
+  if (body.length > 2_000_000) await writeFile(`${path}.gz`, gzipSync(body, { level: 1 }))
+  else await writeFile(path, body)
+}
 const timeoutMs = Number(process.env.SI_NATIVE_TIMEOUT_MS ?? 600000)
 const extractionCache = new Map<string, { directory: string; result: { stdout: string; stderr: string; files: Record<string, string> } }>()
 if (process.env.SI_EXTRACTION_CACHE) for (const entry of await readdir(process.env.SI_EXTRACTION_CACHE)) {
@@ -49,14 +55,14 @@ for (const [name, Board] of Object.entries({ single: Single, differential: Diffe
     await mkdir(dir, { recursive: true })
     await writeFile(`${dir}/request.json`, JSON.stringify(request, null, 2))
     await writeFile(`${root}/native-calls.json`, JSON.stringify(calls, null, 2))
-    for (const [file, body] of Object.entries(request.files)) await writeFile(`${dir}/${file}`, body)
+    for (const [file, body] of Object.entries(request.files)) await archive(`${dir}/${file}`, body)
     const output = cached?.result ?? await native(request)
     await writeFile(`${dir}/stdout.log`, output.stdout)
     await writeFile(`${dir}/stderr.log`, output.stderr)
-    for (const [file, body] of Object.entries(output.files)) await writeFile(`${dir}/${file}`, body)
+    for (const [file, body] of Object.entries(output.files)) await archive(`${dir}/${file}`, body)
     return output
   }
-  const provenance = { name, ...(process.env.SI_BLOCK ? { isolated_block: process.env.SI_BLOCK } : {}), native_timeout_ms: timeoutMs, implementation_head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), sources: Object.fromEntries(Object.entries(ibisSources).map(([file, bytes]) => [file, digest(bytes)])),
+  const provenance = { name, large_artifacts: 'gzip_level_1_above_2_MB', runner_sha256: digest(await readFile(new URL(import.meta.url))), ...(process.env.SI_BLOCK ? { isolated_block: process.env.SI_BLOCK } : {}), native_timeout_ms: timeoutMs, implementation_head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), sources: Object.fromEntries(Object.entries(ibisSources).map(([file, bytes]) => [file, digest(bytes)])),
     circuit_json_schema_sha256: digest(await readFile('node_modules/circuit-json/dist/index.mjs')) }
   try {
     const result = await runPipeline({ circuitJson, ibisSources, runSolver: solver, onProgress: console.log })
@@ -68,7 +74,7 @@ for (const [name, Board] of Object.entries({ single: Single, differential: Diffe
     await writeFile(`${root}/summary.json`, JSON.stringify(summary, null, 2) + '\n')
     for (const [file, body] of Object.entries(result.files)) {
       await mkdir(`${root}/${dirname(file)}`, { recursive: true })
-      await writeFile(`${root}/${file}`, body)
+      await archive(`${root}/${file}`, body)
     }
     console.log(JSON.stringify(summary))
   } catch (error) {

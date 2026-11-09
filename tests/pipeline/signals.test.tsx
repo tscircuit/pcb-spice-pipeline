@@ -44,6 +44,13 @@ test('full unrouted check reaches the segment after a series passive', { skip: !
   const circuit = await renderSignals(<Board missing />, ['pcb_trace_missing_error', 'pcb_port_not_connected_error'])
   const ibis = await sources()
   assert.throws(() => prepareBlocks(circuit, ibis), /is not routed between/)
+  const geometryOnly = circuit.filter(record => !record.type.endsWith('_error'))
+  assert.throws(() => prepareBlocks(geometryOnly, ibis), /is not routed between/)
+  const block = circuit.find(record => record.type === 'simulation_signal_integrity')!
+  if (block.type !== 'simulation_signal_integrity') throw new Error('Missing block')
+  block.unrouted = 'ideal'
+  const [prepared] = prepareBlocks(circuit, ibis)
+  assert.ok(geometryFromCircuitJson(prepared.circuit, prepared.settings).cells[0].routedCopper)
 })
 
 test('same-end return contacts keep the original 3D routed copper', { skip: !modelDir }, async () => {

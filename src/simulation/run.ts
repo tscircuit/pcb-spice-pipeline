@@ -1,5 +1,4 @@
-// The per-experiment ngspice part of general-pipeline.ts runPipeline, plus the plan-level checks
-// it performed around declarations. Messages, artifact paths and bytes unchanged.
+// Private native transient and undisturbed-idle execution.
 import { safeId, sha256, type Artifact, type ArtifactScope, type Produced } from '../kernel'
 import { invoke, type SolverContext } from '../solver'
 import { type Geometry } from '../board'
@@ -68,29 +67,34 @@ export function experimentResult<A>(run: ExperimentRun, assembly: A[]): Experime
 
 /** Solve the same circuit's undisturbed DC point with all aggressors held at their initial levels. */
 export async function runIdle(ctx: SolverContext, scope: ArtifactScope, bound: BoundExperiments, index: number,
-  geometry: Pick<Geometry, 'mappings'>, modeling: { sections: number }, extracted: readonly StageMatrices[]): Promise<Produced<number[]>> {
+  geometry: Pick<Geometry, 'mappings'>, modeling: { sections: number }, extracted: readonly StageMatrices[]): Promise<Produced<{ voltages: number[]; solverInvocations: number }>> {
   const original = bound.plans[index]
   const duration = Math.max(...original.stimuli.map(s => s.start_time_ms / 1000 + 16 * s.bit_duration_ms / 1000), original.durationSeconds / 100)
   const plan = { ...original, durationSeconds: duration, maxStepSeconds: duration / 2000 }
   const files = { 'simulation.cir': generalSimulationSpice(plan, geometry, modeling, extracted, bound.compiled[index], bound.nodes, bound.electrical) }
+  /** Require a complete, settled recording before using its final voltage as the idle reference. */
+  const settledVoltages = (stdout: string, stderr: string, waveform: string): number[] => {
+    if (/(?:error|fatal|aborted|timestep too small|no convergence|operating point failed)/i.test(stdout + stderr)) throw new Error('Floating quiet victim has no undisturbed idle operating point.')
+    const rows = probeWaveformRows(waveform, plan.probes)
+    const last = rows.at(-1)!
+    if (rows[0][0] > plan.maxStepSeconds || Math.abs(last[0] - duration) > duration * 1e-8) throw new Error('Undisturbed idle transient did not complete the declared recording')
+    const voltages = last.slice(1)
+    if (rows.some(row => row[0] >= duration * .9 && voltages.some((value, i) => Math.abs(row[i + 1] - value) > 1e-5))) throw new Error('Undisturbed idle transient did not settle to a unique operating point')
+    return voltages
+  }
   const solve = await invoke(ctx, scope, { solver: 'ngspice', files, args: ['-n', '-b', 'simulation.cir'], outputFiles: ['waveform.dat'] })
   const output = solve.value
-  if (/(?:error|fatal|no convergence|operating point failed)/i.test(output.stdout + output.stderr)) throw new Error('Floating quiet victim has no undisturbed idle operating point.')
-  const rows = probeWaveformRows(output.outputs['waveform.dat'], plan.probes)
-  const last = rows.at(-1)!
-  const idle = last.slice(1)
-  for (const row of rows) if (row[0] >= duration * .9 && idle.some((value, i) => Math.abs(row[i + 1] - value) > 1e-5)) throw new Error('Undisturbed idle transient did not settle to a unique operating point')
+  const idle = settledVoltages(output.stdout, output.stderr, output.outputs['waveform.dat'])
   const artifacts = [...solve.artifacts, scope.json('idle-voltages.json', { duration_s: duration, voltage_levels: idle })]
-  const disabled = original.states.filter(state => state.is_output && !state.is_output_enabled)
-  if (disabled.length) {
-    // Capacitive off victims can appear stable solely because ngspice picked an arbitrary initial charge.
-    const initial = disabled.map(state => `v(${bound.nodes.node(state.source_port_id)})=1`).join(' ')
+  const disabled = [...new Set(original.states.filter(state => state.is_output && !state.is_output_enabled).map(state => bound.nodes.node(state.source_port_id)))].filter(node => node !== '0')
+  for (const [index, selected] of disabled.entries()) {
+    // Independent charge perturbations detect differential floating modes that a common-mode shift hides.
+    const initial = disabled.map(node => `v(${node})=${Number(node === selected)}`).join(' ')
     const alternateFiles = { 'simulation.cir': files['simulation.cir'].replace('.control', `.ic ${initial}\n.control`) }
-    const alternate = await invoke(ctx, scope.child('alternate-initial-charge'), { solver: 'ngspice', files: alternateFiles, args: ['-n', '-b', 'simulation.cir'], outputFiles: ['waveform.dat'] })
+    const alternate = await invoke(ctx, scope.child(`alternate-initial-charge-${index}`), { solver: 'ngspice', files: alternateFiles, args: ['-n', '-b', 'simulation.cir'], outputFiles: ['waveform.dat'] })
     artifacts.push(...alternate.artifacts)
-    if (/(?:error|fatal|no convergence|operating point failed)/i.test(alternate.value.stdout + alternate.value.stderr)) throw new Error('Floating quiet victim has no undisturbed idle operating point.')
-    const last = probeWaveformRows(alternate.value.outputs['waveform.dat'], plan.probes).at(-1)!
-    if (idle.some((value, i) => Math.abs(last[i + 1] - value) > 1e-5)) throw new Error('Floating quiet victim has no undisturbed idle operating point.')
+    const voltages = settledVoltages(alternate.value.stdout, alternate.value.stderr, alternate.value.outputs['waveform.dat'])
+    if (idle.some((value, i) => Math.abs(voltages[i] - value) > 1e-5)) throw new Error('Floating quiet victim has no undisturbed idle operating point.')
   }
-  return { value: idle, artifacts }
+  return { value: { voltages: idle, solverInvocations: disabled.length + 1 }, artifacts }
 }

@@ -178,7 +178,7 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
   const skin = Math.sqrt(1 / (Math.PI * modelHz * 4e-7 * Math.PI * 5.8e7))
   let filaments = 3
   while (thickness / 1000 / (2 * (2 ** ((filaments + 1) / 2) - 1)) > skin) filaments += 2
-  const groundCandidates = [...new Set([...pins.values()].filter(pin => lanes.some(l => l.to.sourcePortId === pin.port)).map(pin => pin.ground))].sort()
+  const groundCandidates = [...new Set(signals.flatMap(signal => signal.receivers.flatMap(endpointPorts)).map(port => pins.get(port)!.ground))].sort()
   const settings: NumericalSettings = {
     measurementGate: timing.gate, reduction: 'routed-copper', allowIdeal: block.unrouted === 'ideal', simplifyParallel: true, sections: Math.max(2, Math.ceil(length / 1000 * Math.sqrt(stack.relativePermittivity) / 299792458 / edge * 10)),
     lanes, channelReference: { sourcePortId: reference }, groundReturn: { sourcePortId: groundCandidates[0] },

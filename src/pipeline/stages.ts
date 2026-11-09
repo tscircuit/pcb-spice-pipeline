@@ -56,6 +56,9 @@ export const extract: Stage<'bound', 'extracted'> = {
   },
 }
 
+/** Large adaptive waveforms are retained for the accepted run; refinement history keeps hashes and native requests. */
+const waveformArtifact = (artifact: Artifact): boolean => /(?:^|\/)waveform\.(?:dat|csv|json)$/.test(artifact.path)
+
 export const simulate: Stage<'extracted', 'simulated'> = {
   name: 'simulate', from: 'extracted', to: 'simulated',
   run: async (state, ctx) => {
@@ -65,14 +68,14 @@ export const simulate: Stage<'extracted', 'simulated'> = {
       const base = rootScope('simulation').child('experiments', plan.simulationExperimentId)
       let scope = base
       let assembly = ibisAssembly(state.compiled[index], scope.handTo('buffers'))
-      let run = await runExperiment(ctx, scope, state.bound, index, state.geometry, state.modeling, state.channel.matrices)
-      artifacts.push(...assembly.artifacts, ...run.artifacts)
       const idlePlan = { ...plan, stimuli: plan.stimuli.map(stimulus => ({ ...stimulus, initial_state: Number(stimulus.transmission_pattern.bits[0]) as 0 | 1,
         transmission_pattern: { ...stimulus.transmission_pattern, bits: stimulus.transmission_pattern.bits[0] } })) }
       const idleModels = compileBuffers(state.buffers, [idlePlan], modelRunDefinition)
       const idleBound = { ...state.bound, plans: [idlePlan], compiled: idleModels }
       const idle = await runIdle(ctx, base.child('undisturbed-idle'), idleBound, 0, state.geometry, state.modeling, state.channel.matrices)
       artifacts.push(...idle.artifacts)
+      let run = await runExperiment(ctx, scope, state.bound, index, state.geometry, state.modeling, state.channel.matrices)
+      artifacts.push(...assembly.artifacts, ...run.artifacts.filter(artifact => !waveformArtifact(artifact)))
       const convergence: unknown[] = []
       const settled = { time: false, space: false }
       const gate = state.modeling.measurementGate ?? 0
@@ -90,11 +93,11 @@ export const simulate: Stage<'extracted', 'simulated'> = {
         run = await runExperiment(ctx, scope, state.bound, index, state.geometry, state.modeling, state.channel.matrices).catch(error => {
           throw Object.assign(error, { convergence })
         })
-        artifacts.push(...assembly.artifacts, ...run.artifacts)
-        const check = waveformConvergence(previous.value.rows, run.value.rows, gate, idle.value)
+        artifacts.push(...assembly.artifacts, ...run.artifacts.filter(artifact => !waveformArtifact(artifact)))
+        const check = waveformConvergence(previous.value.rows, run.value.rows, gate, idle.value.voltages)
         settled[dimension] = check.accepted
         if (!check.accepted) settled[dimension === 'time' ? 'space' : 'time'] = false
-        convergence.push({ dimension, sections: state.modeling.sections, step_s: plan.maxStepSeconds, ...check })
+        convergence.push({ previous_waveform_csv_sha256: previous.value.waveformCsvSha256, waveform_csv_sha256: run.value.waveformCsvSha256, dimension, sections: state.modeling.sections, step_s: plan.maxStepSeconds, ...check })
         ctx.progress(`${plan.name}: sections=${state.modeling.sections}, step=${plan.maxStepSeconds}, peaks=${check.probes.map(p => p.peak_change_v).join(',')}, accepted=${check.accepted}`)
         if (settled.time && settled.space) {
           accepted = true
@@ -102,8 +105,9 @@ export const simulate: Stage<'extracted', 'simulated'> = {
         }
       }
       if (!accepted) throw Object.assign(new Error(`${plan.name}: sections/timestep and per-probe signed peaks did not converge within 1% + 1 mV after ten independent refinements`), { convergence })
+      artifacts.push(...run.artifacts.filter(waveformArtifact))
       artifacts.push(base.json('numerical-convergence.json', { definition: 'Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge', relative_tolerance: .01, absolute_tolerance_v: .001, checks: convergence }))
-      runs.push({ run: run.value, assembly: assembly.value, solverInvocations: convergence.length + 2, idleVoltages: idle.value })
+      runs.push({ run: run.value, assembly: assembly.value, solverInvocations: convergence.length + 1 + idle.value.solverInvocations, idleVoltages: idle.value.voltages })
     }
     return { state: { ...state, phase: 'simulated', runs }, artifacts }
   },

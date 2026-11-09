@@ -83,6 +83,12 @@ export function validateSignalGraph(circuit: CircuitJson, signals: import('../bo
     const driver = signal.driver.kind === 'single' ? [signal.driver.source_port_id] : [signal.driver.p_source_port_id, signal.driver.n_source_port_id]
     for (const [leg, port] of driver.entries()) {
       const topology = signalTopology(circuit, port, rails)
+      if (unrouted === 'error') {
+        const traces = new Set(circuit.filter(record => record.type === 'source_trace').filter(trace => trace.connected_source_port_ids.some(id => topology.has(id)) && !trace.connected_source_port_ids.some(id => rails.has(id))).map(trace => trace.source_trace_id))
+        const selected = new Set(ports.filter(pin => topology.has(pin.source_port_id) && !rails.has(pin.source_port_id)).map(pin => pin.pcb_port_id))
+        const error = circuit.find(record => (record.type === 'pcb_trace_missing_error' && traces.has(record.source_trace_id)) || (record.type === 'pcb_port_not_connected_error' && record.pcb_port_ids.some(id => selected.has(id))))
+        if (error) throw new Error(`Signal "${signal.name}" is not routed between ${port} and its receivers (${error.type}).`)
+      }
       const starts = terminals.get(port) ?? []
       const connected = reachable(starts, graph)
       const copper = reachable(starts, copperGraph)

@@ -15,22 +15,24 @@ flowchart LR
   check -->|"no"| extract
   bars --> extract["extraction: native R/L/C and convergence"]
   derive --> buffers["buffers: selected vendor models and package networks"]
-  buffers --> simulate["simulation: native transient"]
+  buffers --> simulate["simulation: undisturbed idle, then native transient<br/>independent section and timestep refinement"]
   extract --> simulate
   simulate --> observe["observation: finite eyes and timing"]
   observe --> results["pipeline: RFC result records and artifact ledger"]
+  derive -->|"no SI blocks"| results
 ```
 
 ```mermaid
 stateDiagram-v2
   [*] --> input
   input --> admitted: schema and derived settings
+  input --> sealed: no SI blocks
   admitted --> declared: 3D copper model (2D bars if straight parallel) and declarations
   declared --> bound: buffers and probe scope
   bound --> extracted: mesh copper, native R/L/C
-  extracted --> simulated: native transient
+  extracted --> simulated: undisturbed idle, then converged transient
   simulated --> observed: measurements
-  observed --> declared: extend automatic strobe recording
+  observed --> input: extend automatic strobe recording
   observed --> sealed: results and artifacts
   input --> failed
   admitted --> failed
@@ -64,3 +66,7 @@ R/L use the signal-minus-return loop transform. C and G use the floating finite-
 The runtime imports the shared circuit-json schemas. Local validation must build the sibling RFC branch until circuit-json#983 is released. No absolute local dependency links are committed. The render adapter exists only for the unpublished core#5286 intrinsics; unknown strobes are errors.
 
 Core#5286 now emits JLC preset plating (0.018 mm), preserving explicit imported stackup plating. The temporary adapter matches the built core fork exactly for source SI/IBIS and stackup records in the SE, differential and three-block examples; `tests/evidence/signal-levels/core-adapter-parity.json` records the comparison. Pipeline via geometry requires the declared shared stackup thickness and never guesses it from dielectric dimensions.
+
+The idle solve precedes switching. Only the accepted transient waveform is retained in library artifacts; earlier refinement steps keep native requests, logs, sample counts, scalar convergence data and waveform digests. The evidence runner separately archives raw native outputs (large files use lossless gzip). This prevents refinement history from retaining many gigabytes of duplicate adaptive traces in memory.
+
+Disabled output nodes receive independent initial-charge perturbations, so a common-mode shift cannot hide a floating differential mode. Every idle trial must complete its recording and settle before becoming a crosstalk reference; solver counts include these trials.

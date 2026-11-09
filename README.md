@@ -65,12 +65,14 @@ flowchart TD
   s5 <-->|"runSolver"| ng{{"ngspice"}}
   s5 --> s6["6. Measure: eyes, NEXT/FEXT, strobe margins<br/><small>observation</small>"]
   s6 --> out[/"Result records + solver evidence"/]
+  s1 -->|"no SI blocks"| out
 ```
 
 ```mermaid
 stateDiagram-v2
   [*] --> validate
   validate --> derive
+  validate --> sealed: no SI blocks
   derive --> extract: 3D copper model (2D bars if straight parallel)
   extract --> extract: refine mesh
   extract --> simulate: converged

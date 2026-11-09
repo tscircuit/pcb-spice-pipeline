@@ -1,0 +1,323 @@
+{
+  "name": "single",
+  "implementation_head": "a5e85f3e2b9c1603a04319467a7e73494c9083be",
+  "sources": {
+    "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+    "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+  },
+  "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+  "status": "failed_native",
+  "seconds": 3581.672,
+  "code": "native_timeout",
+  "case": "single",
+  "accepted_results": false,
+  "summary_sha256": "13bab4f84d52a626ff2dd4f9ca718b75a9d64b5f28c1a4c0997b3860a695f434",
+  "native_input_sha256": "94978fd819c40c4da6bad31d8d7da03f6d9e8f083a0dc424997b3b18f11cabf7",
+  "native_execution": [
+    {
+      "solver": "fasthenry",
+      "request_sha256": "87e4d8a72b55452ea4ece1af99a9fb566af6e4d85b3f2d8d6e5edfddbab9199b",
+      "args": [
+        "channel.inp"
+      ]
+    },
+    {
+      "solver": "fasthenry",
+      "request_sha256": "88de8593abba04471eccac9682c94cf62963041497febf00ded3aa55ab82c08e",
+      "args": [
+        "channel.inp"
+      ]
+    },
+    {
+      "solver": "fasthenry",
+      "request_sha256": "81c3d2d3cfd34b4af7301d0a0457feb18ed2c8e97b65fd415c97f3be28e0cfad",
+      "args": [
+        "channel.inp"
+      ]
+    },
+    {
+      "solver": "fasthenry",
+      "request_sha256": "2cf982ebf3bb1fac37afcaafe33b81b659f70b6af5b6620a7a139233765468fe",
+      "args": [
+        "channel.inp"
+      ]
+    },
+    {
+      "solver": "fasthenry",
+      "request_sha256": "724a04b2b8026f53a4ddbc9e4eabf3f13fa90d6262e697f7e5af6b7544420317",
+      "args": [
+        "channel.inp"
+      ]
+    },
+    {
+      "solver": "fasthenry",
+      "request_sha256": "5ec5efbe27c36f4eaac787a888ca7cd4da41d296e3b66b296a269fad6bdb39aa",
+      "args": [
+        "channel.inp"
+      ]
+    },
+    {
+      "solver": "fastercap",
+      "request_sha256": "f8a1a453e83982eb0f4b887a806aeff2bf61bd9bdeb4d1d9cf5efd7add9ade1b",
+      "args": [
+        "channel.lst",
+        "-b",
+        "-a0.02",
+        "-e"
+      ]
+    },
+    {
+      "solver": "ngspice",
+      "request_sha256": "ef35f9f5f97ee34ab25943d0ef3120816aae08534bf5bf89fd04f73958efc458",
+      "args": [
+        "-n",
+        "-b",
+        "simulation.cir"
+      ]
+    },
+    {
+      "solver": "ngspice",
+      "request_sha256": "0b47e93d01ff036c9c9a6cfbb9267536115c93194a803696e7105b7705c7dc0f",
+      "args": [
+        "-n",
+        "-b",
+        "simulation.cir"
+      ]
+    },
+    {
+      "solver": "ngspice",
+      "request_sha256": "fed41e73cd48d035e407730c548a5c365c7c11ed47e4ba8465a80143438c30ce",
+      "args": [
+        "-n",
+        "-b",
+        "simulation.cir"
+      ]
+    },
+    {
+      "solver": "ngspice",
+      "request_sha256": "48a1d62275b6ef87b477f34591827e9b9cdf60fab25adb3a9b537d257e897f4b",
+      "args": [
+        "-n",
+        "-b",
+        "simulation.cir"
+      ]
+    },
+    {
+      "solver": "ngspice",
+      "request_sha256": "e4c7e80edd5aceb1fe42e266589534815d90bd769f60d0bd72226290f4c665fc",
+      "args": [
+        "-n",
+        "-b",
+        "simulation.cir"
+      ]
+    },
+    {
+      "solver": "ngspice",
+      "request_sha256": "8de201f15f7a835e5e699f3e25820dedc4feb1e21c8a0e0a3c1898fea5f2d3e5",
+      "args": [
+        "-n",
+        "-b",
+        "simulation.cir"
+      ]
+    },
+    {
+      "solver": "ngspice",
+      "request_sha256": "c13a297d435a748ac2b810319f339309157778c61f23a68cff041646aa6c220c",
+      "args": [
+        "-n",
+        "-b",
+        "simulation.cir"
+      ]
+    },
+    {
+      "solver": "ngspice",
+      "request_sha256": "bf9e7b1a2082d0fe8199c99f1a6ce7fab19d7f4e7fcee1f472d1e37d9bb22ce6",
+      "args": [
+        "-n",
+        "-b",
+        "simulation.cir"
+      ]
+    },
+    {
+      "solver": "ngspice",
+      "request_sha256": "968bc1547190aaa79a4f254a3edab9d7975136a5d842e3e05466bc7d3ead97d8",
+      "args": [
+        "-n",
+        "-b",
+        "simulation.cir"
+      ]
+    },
+    {
+      "solver": "ngspice",
+      "request_sha256": "69029293bdd6dd620fbe6095da18103b06d97bad32d43b82a09af158fba2e558",
+      "args": [
+        "-n",
+        "-b",
+        "simulation.cir"
+      ]
+    }
+  ],
+  "error": "native_timeout: ngspice: exceeded 600000 ms process timeout; Command failed: /opt/homebrew/bin/ngspice -n -b simulation.cir",
+  "last_reported_time_s": 2.29547e-06,
+  "duration_s": 2.4e-06,
+  "gate_s": 8e-07,
+  "transient_convergence": {
+    "relative_tolerance": 0.01,
+    "absolute_tolerance_v": 0.001,
+    "checks": [
+      {
+        "dimension": "time",
+        "sections": 2,
+        "step_s": 1.457612935665808e-11,
+        "accepted": true,
+        "probes": [
+          {
+            "column": 1,
+            "samples": 7554894,
+            "rms_v": 6.281353492712902e-05,
+            "scale_v": 6.026390616617127,
+            "peak_change_v": 0.00039736047105787264,
+            "positive_v": 0.8851236256511292,
+            "negative_v": -5.141213613149865,
+            "accepted": true
+          }
+        ]
+      },
+      {
+        "dimension": "space",
+        "sections": 4,
+        "step_s": 1.457612935665808e-11,
+        "accepted": false,
+        "probes": [
+          {
+            "column": 1,
+            "samples": 7927485,
+            "rms_v": 0.11631134113071676,
+            "scale_v": 6.076894507606437,
+            "peak_change_v": 0.05051252980714427,
+            "positive_v": 0.8851683646494282,
+            "negative_v": -5.191726142957009,
+            "accepted": false
+          }
+        ]
+      },
+      {
+        "dimension": "time",
+        "sections": 4,
+        "step_s": 7.28806467832904e-12,
+        "accepted": true,
+        "probes": [
+          {
+            "column": 1,
+            "samples": 8335332,
+            "rms_v": 5.285339799188415e-05,
+            "scale_v": 6.076917500355357,
+            "peak_change_v": 0.0001289150005554518,
+            "positive_v": 0.8851913573983481,
+            "negative_v": -5.1915972279564535,
+            "accepted": true
+          }
+        ]
+      },
+      {
+        "dimension": "space",
+        "sections": 8,
+        "step_s": 7.28806467832904e-12,
+        "accepted": false,
+        "probes": [
+          {
+            "column": 1,
+            "samples": 10580902,
+            "rms_v": 0.255166969017257,
+            "scale_v": 12.382525267537723,
+            "peak_change_v": 3.485882776651758,
+            "positive_v": 4.371074134050106,
+            "negative_v": -8.011451133487617,
+            "accepted": false
+          }
+        ]
+      },
+      {
+        "dimension": "time",
+        "sections": 8,
+        "step_s": 3.64403233916452e-12,
+        "accepted": true,
+        "probes": [
+          {
+            "column": 1,
+            "samples": 12897319,
+            "rms_v": 0.0002490183007347755,
+            "scale_v": 12.382612843519802,
+            "peak_change_v": 8.757598208042339e-05,
+            "positive_v": 4.371058426298333,
+            "negative_v": -8.011538709469697,
+            "accepted": true
+          }
+        ]
+      },
+      {
+        "dimension": "space",
+        "sections": 16,
+        "step_s": 3.64403233916452e-12,
+        "accepted": false,
+        "probes": [
+          {
+            "column": 1,
+            "samples": 11924264,
+            "rms_v": 0.2413008187908883,
+            "scale_v": 12.38259713576803,
+            "peak_change_v": 2.045053266043551,
+            "positive_v": 3.6941144641833334,
+            "negative_v": -5.966485443426146,
+            "accepted": false
+          }
+        ]
+      },
+      {
+        "dimension": "time",
+        "sections": 16,
+        "step_s": 1.82201616958226e-12,
+        "accepted": true,
+        "probes": [
+          {
+            "column": 1,
+            "samples": 11359103,
+            "rms_v": 0.0002099043698085056,
+            "scale_v": 9.663178297585945,
+            "peak_change_v": 0.0017695067537468745,
+            "positive_v": 3.6958839709370803,
+            "negative_v": -5.967294326648865,
+            "accepted": true
+          }
+        ]
+      }
+    ]
+  },
+  "accepted_eye": null,
+  "signed_next_fext": null,
+  "unconverged_eye_candidate": {
+    "status": "unconverged_native_candidate",
+    "not_an_accepted_pipeline_result": true,
+    "native_directory": "runs/rfc-final/single/native-15-ngspice",
+    "request_sha256": "968bc1547190aaa79a4f254a3edab9d7975136a5d842e3e05466bc7d3ead97d8",
+    "sections": 16,
+    "step_s": 1.82201616958226e-12,
+    "duration_s": 2.4e-06,
+    "gate_s": 8e-07,
+    "native_samples": 7629166,
+    "eye_height_v": 3.2981061399460754,
+    "eye_width_s": 4.51856823019168e-08,
+    "mask_margin_v": 0.7981055525593034,
+    "thresholds_v": {
+      "vih": 2,
+      "vil": 0.8
+    },
+    "folded_windows": 31,
+    "output_range_v": [
+      -2.6675526734474304,
+      6.9956256241385155
+    ],
+    "calculation": "Independent streaming linear interpolation at 0.5 UI and exact threshold-valid interval intersections. Native section refinement has not converged; these values must not be treated as accepted results."
+  },
+  "interpretation": "Timestep checks pass, but section checks do not. The next 32-section solve exceeded the 600 s process limit. The independently measured 16-section eye is a candidate, not an accepted result. This case has no quiet victim."
+}
