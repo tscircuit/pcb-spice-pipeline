@@ -4,7 +4,7 @@
 
 Earlier strip-fixture eyes and FEXT figures retained in Git history at `f79e808` remain superseded and were not reused.
 
-The five unchanged TSX files (including `parts.tsx`) match RFC `a235ddd1ba93de1245ab07f3497511a860c81345` byte-for-byte. Only `level1-differential.tsx` differs, as requested: explicit pair/tap paths, explicit GND vias, `routeRemaining={false}`, a rotated 0603 termination and ideal model rails without power copper. The RFC repository, core, capacity-autorouter, props and circuit-json were not edited. The DDR3 string key and all RFC `unbroken` pour fixes are included without suppressions.
+The RFC examples are illustrative; these are the boards the pipeline runs. The five unchanged TSX files (including `parts.tsx`) currently match RFC `a235ddd1ba93de1245ab07f3497511a860c81345`. `level1-differential.tsx` differs: explicit pair/tap paths, explicit GND vias, `routeRemaining={false}`, a rotated 0603 termination and ideal model rails without power copper. The RFC repository, core, capacity-autorouter, props and circuit-json were not edited. The DDR3 string key and all RFC `unbroken` pour fixes are included without suppressions.
 
 `tests/evidence/signal-levels/rfc-boards.json` records native request hashes, source/model/schema/core hashes, binary hashes, geometry-derived lengths, raw rejected matrices, component convergence and explicit null measurements. The real-core bundle hash is `67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a`. Its JLC stackup declares 0.018 mm plating, 0.03 mm outer copper, 1.43 mm FR-4 and er=4.42. Ignored `runs/` retains exact native decks and logs; vendor bytes and dependency overlays are never committed.
 

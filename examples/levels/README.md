@@ -1,6 +1,6 @@
 # Signal-integrity API levels
 
-The sources match RFC `a235ddd` byte-for-byte except the differential example, which now uses explicit paths, ground vias and ideal model power rails. Images are regenerated from these TSX sources through real core at image-generation time. Top and bottom copper are shown separately, without silkscreen. All numerical labels and blocking messages come from committed native evidence.
+These are the boards the pipeline actually runs. The RFC examples are illustrative and need not match them exactly; these sources started from RFC `a235ddd`, and the differential example adds explicit paths, ground vias and ideal model power rails. Images are regenerated from these TSX sources through real core at image-generation time. Top and bottom copper are shown separately, without silkscreen. All numerical labels and blocking messages come from committed native evidence.
 
 **No RFC channel currently passes all native acceptance checks.** The images therefore show the blocking messages instead of fabricated eyes or quiet-victim waveforms. Missing measurements are unavailable, never zero. See [native evidence and limits](../../docs/native-signal-levels.md).
 
