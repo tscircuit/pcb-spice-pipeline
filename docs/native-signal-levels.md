@@ -8,7 +8,9 @@ Extraction uses native FastHenry R/L and FasterCap Maxwell C, with mesh, recipro
 
 Transient convergence independently halves timestep and doubles sections. Each probe must meet both time-integrated RMS and signed peak tolerances (1% + 1 mV). Comparison uses every timestamp from both adaptive native traces, without a sparse display grid. First-order Gear with ngspice's default truncation setting and tight IBIS tolerances avoid accepting ringing based only on RMS. NEXT/FEXT retain both signs and use a separate constant-drive, settled idle solve; disabled victims also undergo an alternate-initial-charge check.
 
-Status while these runs are refreshed: Level 1 SE, Level 1 differential and Level 3 (traffic, quiet-low, quiet-high) are native candidates until their summaries say `verified_native`. The exact signed results and convergence tables will be recorded after successful completion. No old numerical claim remains valid evidence for this revision.
+The final-RFC differential run at `a5e85f3` completed in 329.910 s (see the committed summary for the exact time). Eye height is 4.464708 V, width 3.932765 µs, mask margin 2.032352 V. The timestep check at 2 sections had 2.30 nV peak change; the independent section check at 4 sections had 1.79 µV peak change. Both passed the per-probe RMS and peak criteria. This case has no quiet victim, so no NEXT/FEXT record is applicable.
+
+Level 1 SE and Level 3 (traffic, quiet-low, quiet-high) are still native candidates until their summaries say `verified_native`. Signed results and convergence tables will be recorded after successful completion. The earlier `trtol=1` SE/Level3 attempts timed out and have no accepted measurements. No old RMS-only numerical claim remains valid evidence for this revision.
 
 The actual RFC DDR3 TSX asset is in `examples/levels/level4-ddr3-write.tsx`. `IBIS_MODEL_DIR=models node --import tsx scripts/check-ddr3.tsx` rendered it using real AM335x/Winbond files and stopped with `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.` before any native call. This is the RFC's documented boundary, not DDR compliance validation.
 
