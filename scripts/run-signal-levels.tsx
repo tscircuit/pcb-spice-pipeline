@@ -99,7 +99,7 @@ for (const [key, Board] of Object.entries(boards) as [keyof typeof boards, typeo
     }
   }
   const provenance = { level, core_module: process.env.SI_CORE_MODULE, example_sha256: digest(await readFile(`examples/${level}/${level}.tsx`)), native_timeout_ms: timeoutMs,
-    implementation_head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), ibis_sha256: Object.fromEntries(Object.entries(ibisSources).map(([file, bytes]) => [file, digest(bytes)])) }
+    acquisition_checkout_head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), working_tree_dirty: Boolean(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim()), ibis_sha256: Object.fromEntries(Object.entries(ibisSources).map(([file, bytes]) => [file, digest(bytes)])) }
   let circuitJson: CircuitJson = []
   try {
     circuitJson = await renderCoreSignals(<Board />)

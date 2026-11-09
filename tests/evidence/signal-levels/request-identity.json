@@ -1,0 +1,168 @@
+{
+  "method": "Sequential exact-byte replay using original real-core TSX input records and their assigned IDs; every completed native request and waveform/RLGC result verified unchanged; fresh physical identity is checked by the image generator; no native processes launched",
+  "source_files": {
+    "src/buffers/inspect.ts": "6fafd37821249aed926aa41e8c59902f8e1332b46f49f6fcf81b6560be5266af",
+    "src/buffers/package.ts": "ffcdcc17bf09674c9c33c55505edad7824f7604589426e17abc3307d143d02a5",
+    "src/pipeline/signals.ts": "c17250cc146961ed5773002e254d62fb3ce4287f1e3ddb85c58a539bf8d08de2"
+  },
+  "cases": [
+    {
+      "case": "single",
+      "input_sha256": "4b645737fa75d464ee60bf8c805a469afaa39bcec59b1b1bf41fe544555f6cdc",
+      "matched_requests": [
+        "21dd368ca9f459c442d6b348c9a404259865812c934746b494361eb06bd4f2aa",
+        "8285e23d103e084e9c461d463cef0aab258db0715b5ec70852c9d9096aa06793",
+        "4fefd3c34b72f84a704304a1cdc59b1bfd52cf6a2b1d8ccbc45f78f27e30f919",
+        "0d3aa63299a2b05c500d6a982eecbddc2e4b8a9487ef2ecd1ede38e210701370",
+        "a8a2bdf2ee09f013ce7ec447e1620daa51961c71aa5c36cccfb1e02ae9a7ce1f",
+        "66d6db490e9535625e0df1e17ff852033927031862db6e63d985f383df110662",
+        "9f9c0ae46056c6622b86e4856ae42fa7f0d14a901117aeb63b9eb888a046bc5b"
+      ],
+      "waveform_records": [
+        {
+          "id": "simulation_signal_0_0",
+          "sha256": "ecf5a4223f7e4edd32c5764d03c0fc3559e10a06599194989904175d219654a1"
+        }
+      ],
+      "native_processes": 0
+    },
+    {
+      "case": "differential",
+      "input_sha256": "593ff19d9513ff50ca82a7ab9df931e163e1b7ed4374d1a1986dd602da846d45",
+      "matched_requests": [
+        "e6d6638cdc596fe73ca2c36335a603ec73c214469fc0784253790155a2f23311",
+        "81411f6118c020060b1c19cb494cde0d51fa0852f1a430d25a4ecf8bc111d0a5",
+        "06c685e0a3d098b9d8bf4a5f21c9515d75d627a5db98e068ef34ab96d2038ad3",
+        "3d7d448b74413322ad790dd8eef6fb631dddb3d7f149f1779d61d0b7ded6763f",
+        "6eb0706886d3318796c8fe4133e2753ebfef5052ca47ca60f4ce8032104dad17",
+        "7aa3e859b59ebf5af3c3f6f69216beb3bbbeff83aa5cd47088f30d9c0aeda8a2",
+        "8a48910016665d7444a9ddfa444f32fe0b224ccaa4921503520c4bc37f92ebe4",
+        "ad4d7c6da82daa0507444a501297fa810b3bd998e636a00e859b1aae912d18db",
+        "33473b8b6026c2a4a150b88eceaa5e89ddd707f0c970761a17c2584e9afba48a"
+      ],
+      "waveform_records": [
+        {
+          "id": "simulation_signal_0_0",
+          "sha256": "5f1814d570380beb4af9a2564c014e43bc03aba174dbfe0ad4216f54240b4b48"
+        }
+      ],
+      "native_processes": 0
+    },
+    {
+      "case": "two",
+      "input_sha256": "9c464e3706d149f0c864a593422a12da9419c645a26807f5caf93cdd54015d3b",
+      "matched_requests": [
+        "57eadee540e72a3774e739b5737fc8b3186225d98ba76a84dbfefb679ad9d903",
+        "daa0399cec81d6c309e741ef4cd97e19904c408675ded67623fe4a2eb5199ffb",
+        "972c838a0bd28247ae11ebe06e69f5da4b21078d19fbb678d047bec608fe870a",
+        "d4c7222dbe580947edbb8a673a1e6dc3360cf370c5fac05d65a04bc32a9bc070",
+        "75fb1c31fc3515249dd1b670bd582bee1bcad6706a5082b4cf21e010da591054",
+        "322ecd1edb9d675b9046b90d95fd7e45abbb6b77b537cabd042926857fa59710",
+        "518121becc0d1f065d126e52880cdfa397a0bf25ee99c4e29c15c14300081aac"
+      ],
+      "waveform_records": [
+        {
+          "id": "simulation_signal_0_0",
+          "sha256": "72a5b5076bb675fa7eca7732f2f97557fc431ffe41eddd6539c318ba079e043c"
+        },
+        {
+          "id": "simulation_signal_1_0",
+          "sha256": "527c06205404f615420f5f161e02765f93b3e7b76c870d362b37d69aaf10ea1b"
+        }
+      ],
+      "native_processes": 0
+    },
+    {
+      "case": "three/TRAFFIC",
+      "input_sha256": "f4f0546ce2463918ef8dfb02fd4328230d174a59c877bb69de6731341906799e",
+      "matched_requests": [
+        "ce0b39ec6bee3669c5b4756813afaa672473f703ed5fe8b9356801593bfd460a",
+        "11fe0fed83cabab914953d781d811648533ee8d8cc6f6c0ed47a7e6eb3a8c7d3",
+        "31c58fbc585910e59cbcd85483a00e98e2f0fc91b38dee2acbaa127e46e07186",
+        "1ab4d15f6d87ec5fcc6df344d5acffa7fa3943f5d691876367c0e243433773ee",
+        "c31bcdd031d43056b3e1179b1048f39c4f5e75a63a59240856ddc42343392602",
+        "fed23a2e4e697c1eca44dea78a93bba8b28f56402a0ddd48a13b16db7c70a05f",
+        "4016b229830a30c59afd359b032ce40918826447e96f42d81d537c1435037e65"
+      ],
+      "waveform_records": [
+        {
+          "id": "simulation_signal_0_0",
+          "sha256": "938e78ff45a49e4baaedaf4707302d10d0ce48eeb964744d9bffaf97096cebde"
+        },
+        {
+          "id": "simulation_signal_1_0",
+          "sha256": "48383d148a156d1db523663c1763ccd5a40035e73c14bc44817be4f38ad08db2"
+        },
+        {
+          "id": "simulation_signal_2_0",
+          "sha256": "c7d8deebcefe89ba0f9c40240b2f1b5c8f1c6258fac8df4d4cc7971b94dc74e2"
+        }
+      ],
+      "native_processes": 0
+    },
+    {
+      "case": "three/XTALK_LOW",
+      "input_sha256": "32ae39e3c611d24e6e0fad77a2ad5f128e20d604a9662ac5f1831d934b81fb34",
+      "matched_requests": [
+        "ce0b39ec6bee3669c5b4756813afaa672473f703ed5fe8b9356801593bfd460a",
+        "11fe0fed83cabab914953d781d811648533ee8d8cc6f6c0ed47a7e6eb3a8c7d3",
+        "31c58fbc585910e59cbcd85483a00e98e2f0fc91b38dee2acbaa127e46e07186",
+        "cc185152952837f00d42438f40629e59acd5bb9b4d0a19c759fcf8161a4033a5",
+        "e8d0f7261c7ff6350c32b7edc453348b743919113501a5461349bde1a6ba4f0d",
+        "8c1ed2e0d3d1a0bdae11519db50c044f36b6c32bd7a2c774c06a51c4b48f3078",
+        "bbb8c44935e994ea391c31a6e78e3709d50efb89ab59603dbad006b80355f7ac"
+      ],
+      "waveform_records": [
+        {
+          "id": "simulation_signal_0_0",
+          "sha256": "3f80601c10629badcc7184285a4286087e5529f7381b03c0bec585f905f38c4e"
+        },
+        {
+          "id": "simulation_signal_1_0",
+          "sha256": "cb30691fceff9451659788dc14551441e7a1d6f6ecc70f6c2f6089f1fee14e78"
+        },
+        {
+          "id": "simulation_signal_1_1",
+          "sha256": "beafd7989826ee5217ac426d24e5ef2bf47ad35192a88e7e9fa05f7a4cb7d543"
+        },
+        {
+          "id": "simulation_signal_2_0",
+          "sha256": "8b28f2555efbcb31d96f8209fe2bc72623bb7595c7b284677aa2efbf70f4a982"
+        }
+      ],
+      "native_processes": 0
+    },
+    {
+      "case": "three/XTALK_HIGH",
+      "input_sha256": "08755968d2727c75bdbd099017925a0bb0c6366f922e53e6263ac0ebd3852c0c",
+      "matched_requests": [
+        "ce0b39ec6bee3669c5b4756813afaa672473f703ed5fe8b9356801593bfd460a",
+        "11fe0fed83cabab914953d781d811648533ee8d8cc6f6c0ed47a7e6eb3a8c7d3",
+        "31c58fbc585910e59cbcd85483a00e98e2f0fc91b38dee2acbaa127e46e07186",
+        "58a8d2f58a6e9242b8642c28b09854336517f37420538929762792592cabb90b",
+        "5106d7c1aa99aca6fdf2239347af14448cde88b69c8b99803b3a4e1b52414281",
+        "37ee30efdb29dc4f2cd31b4b260956adad6a8ce799ee6f79ed75ac2083c129e9",
+        "bcd325c4b3bbe79166ed224998887c563a621da949a1b94c6c983e10250986d6"
+      ],
+      "waveform_records": [
+        {
+          "id": "simulation_signal_3_0",
+          "sha256": "1e25b1a5488c9415a59f5b44cf2654175094c19721276cfef3758c3614ae255e"
+        },
+        {
+          "id": "simulation_signal_4_0",
+          "sha256": "c2acfdf8fe6b7622b98e584996c3ac0d98ede5b59be94446b9df53d4da3469a1"
+        },
+        {
+          "id": "simulation_signal_4_1",
+          "sha256": "3f89767db98fd10b7aa4fa69f6872168b164a900757fb328de2240d6e2c141a4"
+        },
+        {
+          "id": "simulation_signal_5_0",
+          "sha256": "c78a9c2b4b518595679da4fe0d45336e44be77b555d07f0c10294291b4156019"
+        }
+      ],
+      "native_processes": 0
+    }
+  ]
+}

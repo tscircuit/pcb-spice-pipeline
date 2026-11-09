@@ -1,5 +1,9 @@
 # FastHenry full-plane refinement
 
+This is the historical R/L mesh investigation, before the RFC adopted grounded
+signal-block capacitance. Its primitive-C rejections and 600-second runner bound
+are superseded by [the current per-level evidence](native-signal-levels.md).
+
 The reproduction commit is `a13ffe4`: the actual `escape-via-plane.tsx` board
 keeps the same two footprints and routed signal while increasing pour area 16×.
 The old refined deck grows from 4,617 to 66,288 plane edges. Its regression
@@ -42,7 +46,7 @@ byte-identical capacitance replay is explicitly identified in `native_calls`.
 ## Native results
 
 **All four R/L component extractions pass the unchanged mesh, DC-R,
-reciprocity and passivity checks. Every whole channel remains rejected by C.**
+reciprocity and passivity checks. Whole channels were rejected by the then-used primitive-C check.**
 The Level 3 refined process finishes in 580.437 seconds, leaving only about
 20 seconds below the unchanged deadline; this is an observed completion, not
 a guarantee of that runtime on other machines or under other loads.
@@ -107,6 +111,6 @@ node --import tsx scripts/run-signal-levels.tsx two
 ```
 
 The R/L mesh tolerance remains 5%, the independent signal DC-R tolerance 0.2%,
-FasterCap automatic refinement 2%, and primitive reciprocity 2.5%. Rejected
+FasterCap automatic refinement 2%, and the then-used primitive reciprocity 2.5%. Rejected
 capacitance cannot enter a transient. The capacitance/dielectric implementation
 is unchanged by this work.

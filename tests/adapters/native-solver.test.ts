@@ -135,7 +135,7 @@ test('loadIbisSources rejects traversal and symlinks escaping baseDir, follows c
   assert.equal(new TextDecoder().decode(sources['models/link.ibs'] as Uint8Array),'inside')
 })
 
-// Extraction-only source: legacy synthetic eye/stimulus declarations were removed.
+// Extraction-only source fixture.
 let ddr: ReturnType<typeof nativeDdrTimeout> | undefined
 /** Renders the DDR timeout board once, on first use, so the lifecycle tests above do not pay for it. */
 const fixture = (): ReturnType<typeof nativeDdrTimeout> => (ddr ??= nativeDdrTimeout())

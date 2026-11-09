@@ -1,5 +1,6 @@
 import { convertIbisModelToSpice, parseIbis, type ConvertedGeneralIbisComponent } from '@tscircuit/ibis-to-spice'
 import type { ModelRunDefinition } from './types'
+import { referenceVoltages } from './inspect'
 
 /** Convert die buffers, retaining every vendor pin package under the supported ideal PDN. */
 export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): ConvertedGeneralIbisComponent {
@@ -19,8 +20,14 @@ export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): C
   if (ground.length !== 1) throw new Error(`${component.name}: per-bank package ground requires an explicit package model`)
   const groundTerminal = Object.entries(converted.spicePinMapping).find(([, port]) => port === ground[0])?.[0]
   if (!groundTerminal) throw new Error(`${component.name}: package ground is not mapped`)
-  const voltage = document.getBuffer(converted.metadata.pins[0].model).voltage[corner]
-  if (voltage === null) throw new Error(`${component.name}: missing selected-corner voltage`)
+  const voltages = new Map<string, number>()
+  for (const pin of converted.metadata.pins) {
+    for (const [role, voltage] of Object.entries(referenceVoltages(document.getBuffer(pin.model), corner))) {
+      const port = pin.references[role as keyof ReturnType<typeof referenceVoltages>]
+      if (voltages.has(port) && Math.abs(voltages.get(port)! - voltage) > 1e-8) throw new Error(`${port}: incompatible IBIS die voltages`)
+      voltages.set(port, voltage)
+    }
+  }
   const referenceNodes = new Map(Object.entries(converted.spicePinMapping).flatMap(([terminal, port], i) => {
     const physical = Object.entries(input.definition.pinMap).find(([, mapped]) => mapped === port)?.[0]
     const pin = physical ? component.pins[physical] : undefined
@@ -43,7 +50,9 @@ export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): C
     }
     const reference = referenceNodes.get(terminal)
     if (reference) {
-      elements.push(`VPDN${i} ${reference} 0 ${/^power$/i.test(pin.model) ? voltage : 0}`, `VPKG${i} ${node} ${reference} 0`)
+      const voltage = voltages.get(port) ?? (/^gnd$/i.test(pin.model) ? 0 : undefined)
+      if (voltage === undefined) throw new Error(`${port}: no selected model defines this die rail`)
+      elements.push(`VPDN${i} ${reference} 0 ${voltage}`, `VPKG${i} ${node} ${reference} 0`)
       nodes.set(terminal, reference)
     } else nodes.set(terminal, node)
     const value = pin.capacitance ?? component.package.capacitance?.[corner]

@@ -14,7 +14,7 @@ const modelDir = process.env.IBIS_MODEL_DIR
 /** Real vendor bytes, never an invented model. */
 const sources = async (): Promise<Record<string, Uint8Array>> => ({ 'models/sn74lvc1g04.ibs': await readFile(`${modelDir}/sn74lvc1g04.ibs`) })
 /** Regression boards stay ordinary TSX, including the deliberately incomplete route after RS. */
-function Board({ missing = false, via = false, branch = false, sameEnd = false, unlisted = false, offset = 0 }: { missing?: boolean; via?: boolean; branch?: boolean; sameEnd?: boolean; unlisted?: boolean; offset?: number }): React.JSX.Element {
+function Board({ missing = false, via = false, branch = false, sameEnd = false, unlisted = false, offset = 0, unrouted = 'error' }: { missing?: boolean; via?: boolean; branch?: boolean; sameEnd?: boolean; unlisted?: boolean; offset?: number; unrouted?: 'error' | 'ideal' }): React.JSX.Element {
   return <board width={18} height={12} layers={4} thickness={1.6} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled isViaInPadAllowed allowBlindAndBuriedVias>
     <Inverter name="TX" x={-5} y={0} driver /><Inverter name="RX" x={5} y={0} driver={false} groundX={sameEnd ? -8 : 0} />
     <Reference />
@@ -35,20 +35,23 @@ function Board({ missing = false, via = false, branch = false, sameEnd = false, 
       <Inverter name="TX1" x={-5} y={1} driver /><Inverter name="RX1" x={5} y={1} driver={false} />
       <trace from={branch ? '.TX > .Y' : '.TX1 > .Y'} to=".RX1 > .A" width={.2} pcbPath={branch ? ['.TX > .Y', { x: 5, y: 1 }, '.RX1 > .A'] : ['.TX1 > .Y', '.RX1 > .A']} />
     </>}
-    <simulation.pcbtransientchannelsimulation bitRate="20Mbps">
+    <simulation.pcbtransientchannelsimulation bitRate="20Mbps" unrouted={unrouted}>
       <simulation.pcbchannel offset={offset} name="D81" driverRef=".TX > .Y" receiverRef={branch ? ['.RX > .A', '.RX1 > .A'] : '.RX > .A'} />
     </simulation.pcbtransientchannelsimulation>
   </board>
 }
 
 test('full unrouted check reaches the segment after a series passive', { skip: !modelDir }, async () => {
-  const circuit = await renderSignals(<Board missing />, ['pcb_trace_missing_error', 'pcb_port_not_connected_error'])
+  await assert.rejects(renderSignals(<Board missing />), /is not routed between/)
+  // Render the same physical gap under the explicit ideal policy, then test admission of saved Circuit JSON under error.
+  const circuit = await renderSignals(<Board missing unrouted="ideal" />, ['pcb_trace_missing_error', 'pcb_port_not_connected_error'])
+  const block = circuit.find(record => record.type === 'simulation_signal_integrity')!
+  if (block.type !== 'simulation_signal_integrity') throw new Error('Missing block')
+  block.unrouted = 'error'
   const ibis = await sources()
   assert.throws(() => prepareBlocks(circuit, ibis), /is not routed between/)
   const geometryOnly = circuit.filter(record => !record.type.endsWith('_error'))
   assert.throws(() => prepareBlocks(geometryOnly, ibis), /is not routed between/)
-  const block = circuit.find(record => record.type === 'simulation_signal_integrity')!
-  if (block.type !== 'simulation_signal_integrity') throw new Error('Missing block')
   block.unrouted = 'ideal'
   const [prepared] = prepareBlocks(circuit, ibis)
   assert.ok(geometryFromCircuitJson(prepared.circuit, prepared.settings).cells[0].routedCopper)
@@ -103,6 +106,7 @@ test('PRBS7 has a complete stable 127-bit period with decorrelated seeds', () =>
   assert.equal(a, signalBits(signal, 1000))
   assert.notEqual(a, signalBits({ ...signal, seed: 41 }, 127))
   for (const pattern of ['prbs15', 'prbs31']) assert.equal(signalBits({ ...signal, pattern }, 20).length, 21)
+  assert.equal(signalBits({ ...signal, pattern: 'prbs31', offset_s: 1000 }, 1002).length, 3)
   assert.throws(() => signalBits({ ...signal, seed: 0 }, 20), /integer in 1..127/)
   assert.throws(() => signalBits({ ...signal, seed: 0, quiet: 'high' }, 20), /integer in 1..127/)
 })
@@ -131,11 +135,11 @@ test('explicit duration stays exact even before startup ends; automatic duration
   block.duration_s = 1e-9
   const [prepared] = prepareBlocks(circuit, ibis)
   assert.equal(prepared.duration, 1e-9)
-  assert.equal(prepared.circuit.find(record => record.type === 'simulation_experiment')?.end_time_ms, 1e-6)
+  assert.ok(Math.abs((prepared.circuit.find(record => record.type === 'simulation_experiment')?.end_time_ms ?? NaN) - 1e-6) < 1e-20)
 })
 
 test('numeric TSX offsets are seconds, with startup added before the finite capture', { skip: !modelDir }, async () => {
   const [prepared] = prepareBlocks(await renderSignals(<Board offset={.5} />), await sources())
   assert.equal(prepared.signals[0].offset_s, .5)
-  assert.equal(prepared.duration, .5 + 144 / 20e6)
+  assert.ok(Math.abs(prepared.duration - (.5 + 144 / 20e6)) < 1e-15)
 })

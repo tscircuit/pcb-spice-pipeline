@@ -43,13 +43,7 @@
     "modules": "pass",
     "vocabulary": "pass; 88.9%"
   },
-  "measurements": {
-    "eyes": null,
-    "NEXT": null,
-    "FEXT": null,
-    "transient_convergence": null,
-    "reason": "Level 3 primitive capacitance reciprocity rejected; no transient executed"
-  },
+  "transient_status": "Level 3 primitive capacitance reciprocity rejected; no transient executed",
   "criteria": {
     "R_L_mesh": 0.05,
     "dc_signal_resistance": 0.002,

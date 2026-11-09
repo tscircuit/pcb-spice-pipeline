@@ -8,7 +8,7 @@ import ts from 'typescript'
 const repo = fileURLToPath(new URL('../../', import.meta.url))
 const src = join(repo, 'src')
 
-// Pinned diagnostics after removal of the folded-eye and timing measurement paths.
+// Pinned diagnostic codes.
 const RAISED = [
   'analytic_resistance', 'analytic_return', 'artifact_collision', 'artifact_path', 'cap_convergence',
   'capacitance_sign', 'channel_fanout', 'channel_model', 'channel_net', 'channel_short',

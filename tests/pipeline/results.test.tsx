@@ -30,6 +30,10 @@ test('public RLGC selects listed legs and sums section totals; quiet waveform id
   const [prepared] = prepareBlocks(circuit, { 'models/sn74lvc1g04.ibs': await readFile(`${process.env.IBIS_MODEL_DIR}/sn74lvc1g04.ibs`) })
   const geometry = geometryFromCircuitJson(prepared.circuit, prepared.settings)
   assert.equal(geometry.mappings.length, 2)
+  const driver = prepared.signals[0].driver
+  if (driver.kind !== 'single') throw new Error('Expected a single-ended driver')
+  const listed = geometry.mappings.findIndex(mapping => mapping.from === driver.source_port_id)
+  assert.notEqual(listed, -1)
   const id = prepared.signals[0].simulation_signal_id
   // A synthetic numerical oracle, not a native solve. Metadata unused by this projection is omitted.
   const result = {
@@ -37,7 +41,15 @@ test('public RLGC selects listed legs and sums section totals; quiet waveform id
     experiments: [{ waveform: { rows: [[0, .2, .3], [prepared.duration, .4, .5]] }, probes: [
       { simulationVoltageProbeId: `${id}_0`, column: 1 }, { simulationVoltageProbeId: `${id}_1`, column: 2 },
     ] }],
-    matrices: [1, 2].map(scale => ({ frequencyHz: 1e6, R: [[scale, .1], [.1, 9]], L: [[scale * 1e-9, 0], [0, 9e-9]], C: [[scale * 1e-12, -1e-13], [-1e-13, 9e-12]], G: [[0, 0], [0, 0]] })),
+    matrices: [1, 2].map(scale => {
+      const diagonal = geometry.mappings.map((_, i) => i === listed ? scale : 9)
+      return { frequencyHz: 1e6,
+        R: diagonal.map((value, i) => diagonal.map((_, j) => i === j ? value : .1)),
+        L: diagonal.map((value, i) => diagonal.map((_, j) => i === j ? value * 1e-9 : 0)),
+        C: diagonal.map((value, i) => diagonal.map((_, j) => i === j ? value * 1e-12 : -1e-13)),
+        G: diagonal.map(() => diagonal.map(() => 0)),
+      }
+    }),
   } as PreparedResult
   const records = signalResults(prepared, result)
   assert.deepEqual(records.map(record => record.type), ['simulation_signal_waveform', 'simulation_signal_waveform', 'simulation_signal_integrity_rlgc'])
@@ -48,7 +60,7 @@ test('public RLGC selects listed legs and sums section totals; quiet waveform id
   assert.deepEqual(rlgc.conductors, [{ simulation_signal_id: id, leg: 'single' }])
   assert.deepEqual(rlgc.matrices[0].r_ohm, [[3]])
   assert.ok(Math.abs(rlgc.matrices[0].l_h[0][0] - 3e-9) < 1e-23)
-  assert.deepEqual(rlgc.matrices[0].c_f, [[3e-12]])
+  assert.ok(Math.abs(rlgc.matrices[0].c_f[0][0] - 3e-12) < 1e-26)
   delete result.idleVoltages
   assert.throws(() => signalResults(prepared, result), /no undisturbed idle/)
 })

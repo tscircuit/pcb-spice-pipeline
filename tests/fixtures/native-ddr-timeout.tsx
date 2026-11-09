@@ -7,8 +7,7 @@ import { fastHenryDeck } from '../../src/extraction'
 
 const lanes = ['DQ', 'DQS', 'DQSn'] as const
 /**
- * Extraction-only reduction of the AM3352 DDR timeout. No vendor model or eye
- * result is needed to reproduce the process deadline before transient analysis.
+ * Extraction-only reduction of the AM3352 DDR process deadline, before transient analysis.
  */
 export default function NativeDdrTimeout(): React.JSX.Element {
   return <board width={20} height={14} layers={4} thickness={1.6}

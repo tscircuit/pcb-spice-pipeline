@@ -57,7 +57,7 @@
       "sha256": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
       "file": "sn74lvc1g04.ibs",
       "fileBytes": 254207,
-      "component": "LVC1G04_DCK",
+      "component": "LVC1G04_DBV",
       "signalPins": {
         "2": {
           "signal": "A",

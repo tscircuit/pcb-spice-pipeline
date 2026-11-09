@@ -58,6 +58,9 @@ part's original record positions; `circuit-results.json` then holds the other
 records. Reassembling those indexed parts preserves every sample and record.
 Ordinary-sized aggregate artifacts keep their existing format, and
 `simulationResultCircuitJson` always contains the complete in-memory result.
+Consumers should write the supplied `files` map and its index for oversized data.
+CLI #5736 still needs to guard its additional aggregate `JSON.stringify` so it can
+use these indexed parts rather than hitting the same V8 string limit.
 
 ## General workflow
 

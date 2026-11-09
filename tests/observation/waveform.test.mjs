@@ -1,4 +1,4 @@
-// Copied from tests/general.test.mjs (the probeWaveformRows test; its foldProbeEye test lives in fold.test.ts).
+// Probe waveform regression.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {probeWaveformRows} from '../../src/observation/index.js'

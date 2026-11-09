@@ -7,6 +7,15 @@ export interface InspectedPin {
   port: string; pin: string; model: SimulationIbisModel; component: IbisComponent; document: IbisDocument
   buffer: IbisBuffer; text: string; ground: string; power: string
 }
+/** Selected ideal reference voltages, including the vendor's explicit overrides. */
+export function referenceVoltages(buffer: IbisBuffer, corner: number): Record<'pullup' | 'pulldown' | 'powerClamp' | 'groundClamp', number> {
+  const ranges = { pullup: buffer.pullupReference ?? buffer.voltage, pulldown: buffer.pulldownReference ?? [0, 0, 0], powerClamp: buffer.powerClampReference ?? buffer.voltage, groundClamp: buffer.groundClampReference ?? [0, 0, 0] }
+  return Object.fromEntries(Object.entries(ranges).map(([role, range]) => {
+    const voltage = range[corner]
+    if (voltage === null || voltage === undefined) throw new Error(`${buffer.name}: missing selected-corner ${role} voltage`)
+    return [role, voltage]
+  })) as ReturnType<typeof referenceVoltages>
+}
 /** Parse a numeric IBIS token, including vendor unit suffixes. */
 export function ibisNumber(token: string): number {
   const match = /^([+-]?(?:\d*\.)?\d+(?:[eE][+-]?\d+)?)([TGMkmunpf]?)/.exec(token)
@@ -46,7 +55,7 @@ export function inspectPins(circuit: CircuitJson, sources: IbisSources): Map<str
   }
   return pins
 }
-/** Exact [Model] body, retaining [Receiver Thresholds] and [Ramp] subsections. */
+/** Exact [Model] body, retaining vendor waveform and ramp subsections. */
 export function modelText(pin: InspectedPin): string {
   const sections = pin.text.split(/^\s*\[Model\]\s+/gmi).slice(1)
   const section = sections.find(s => s.split(/\s/)[0].toLowerCase() === pin.buffer.name.toLowerCase())

@@ -5,13 +5,20 @@ This draft follows RFC #28 at `89a2635`. The examples now use the actual
 `simulation.ibismodel` elements rendered by the sibling core build. Public results
 contain only receiver/quiet-driver waveforms and listed-leg total RLGC matrices.
 
-| Case | Current verified outcome |
-| --- | --- |
-| Level 1 single-ended | Accepted 7.2 µs capture; 1,580,521 native samples; final independent RMS 1.542 mV and signed-extrema delta 1.987 mV; 400.664 s runner wall time. |
-| Level 1 differential | Native verification in progress. |
-| Level 2 | Native verification pending the differential case. |
-| Level 3 TRAFFIC / XTALK_LOW / XTALK_HIGH | Native verification pending Level 2; prior quiet captures are retained separately and cannot substitute for changed native requests. |
-| Level 4 DDR3 write | Real-core physical rendering: 14 traces, 16 vias, two pours. Core and pipeline package admission reject the coupled package; zero native calls. |
+The six supported cases passed native timestep and section convergence. All
+transient solves were fresh; completed extraction requests were reused only when
+their bytes matched exactly. Wall times below measure the runner through result
+creation, before final evidence archiving, and include extraction-cache replay.
+
+| Case | Capture (µs) | Native samples per waveform | Wall (s) | Maximum RMS delta (mV) | Maximum signed-extrema delta (mV) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| single | 7.2 | 1,580,521 | 400.664 | 1.54168 | 1.9867 |
+| differential | 576 | 2,196,064 | 758.844 | 0.000188717 | 0.000174743 |
+| two | 7.2 | 2,649,092 | 761.938 | 1.65273 | 4.79143 |
+| three/TRAFFIC | 7.2 | 3,894,336 | 1939.218 | 1.69384 | 6.33039 |
+| three/XTALK_LOW | 7.2 | 3,345,110 | 1450.878 | 1.39482 | 2.795 |
+| three/XTALK_HIGH | 7.2 | 3,143,310 | 2177.713 | 1.47553 | 2.60305 |
+| DDR3 write | — | 0 | 1.698 | — | — |
 
 The exact DDR3 stop is `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.`
 The physical layout uses the user's preplaced byte-lane routes, rather than an
@@ -28,10 +35,11 @@ are superseded.
 
 Transient acceptance independently refines timestep and section count. Every probe
 must satisfy time-weighted RMS and both signed-extrema comparisons on all native
-adaptive times, at the unchanged 1% + 1 mV limits. There are no eye, mask, receiver
-threshold, crosstalk-peak or setup/hold measurements. Quiet waveforms carry the
+adaptive times, at the unchanged 1% + 1 mV limits. Quiet waveforms carry the
 separately solved undisturbed idle voltage. `pdn="ideal"` constrains die rails and
-retains scalar package R/L/C on signal, power and ground pins. Extracted PDN,
+retains scalar package R/L/C on signal, power and ground pins. Each selected
+model’s explicit pullup, pulldown and clamp reference voltages override its
+corner defaults; conflicting shared references fail. Extracted PDN,
 coupled packages and branched routed graphs retain explicit errors.
 
 ## Reproduction
@@ -59,6 +67,22 @@ ignored `runs/final-rfc/`. Committed evidence contains hashes, convergence histo
 and provenance; no vendor bytes or solver decks are redistributed. Example CSVs
 use only actual native samples and are decimated only when the full long-format
 file exceeds 10 MB. The generation command and outcomes are in `examples/README.md`.
-All five output panels and complete repository checks will be refreshed after
-sequential native verification finishes. This remains a draft; published sibling
-dependencies do not yet contain the shared RFC schemas.
+The image generator checks each accepted physical board against the freshly
+rendered TSX and records output hashes in
+`tests/evidence/signal-levels/rfc-boards.json`. The final source is also replayed
+against every exact native request using the original core-assigned record IDs;
+unchanged waveform and RLGC bytes are recorded
+in `tests/evidence/signal-levels/request-identity.json`, with zero new native calls.
+Acquisition checkout heads record Git HEAD while working edits were present;
+request hashes and final-source replay establish the exact simulation identity.
+
+This remains a draft until the sibling dependencies are published. GitHub CI at
+the first implementation push failed because the published circuit-json version
+lacks the shared RFC schemas; local checks use the listed sibling builds. The CLI
+call boundary is unchanged, but its extra aggregate JSON write must use the
+pipeline’s indexed result parts when the full result exceeds V8’s string limit.
+
+Local validation with the listed sibling overlays passed lint (one existing mesh
+file-length warning), module checks, vocabulary (88.2%), source/test/example
+typechecks, script typechecks, and `npm test`: 219 passed, three optional tests
+skipped, zero failed. All five PNGs were visually inspected.

@@ -20,7 +20,8 @@ test('oversized TSX result artifacts preserve every waveform sample, record and 
   for (const part of index.parts) JSON.parse(files[part.file]).forEach((record: CircuitJson[number], i: number) => {
     restored[part.indices[i]] = record
   })
-  assert.deepEqual(restored, records)
+  // Core may emit undefined optional properties; JSON omits those properties.
+  assert.deepEqual(restored, JSON.parse(JSON.stringify(records)))
   assert.deepEqual(signalResultFiles(records), { 'circuit-results.json': jsonBody(records) })
   assert.throws(() => signalResultFiles(records, () => {
     throw new TypeError('bad JSON')

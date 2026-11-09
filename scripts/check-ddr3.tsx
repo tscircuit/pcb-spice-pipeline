@@ -11,7 +11,8 @@ await assert.rejects(renderCoreSignals(<DDR3 />), { message })
 const tree = DDR3()
 const physical = React.cloneElement(tree, {}, React.Children.toArray(tree.props.children).filter(child => !React.isValidElement(child) || child.type !== simulation.pcbtransientchannelsimulation))
 const circuit = await renderCoreSignals(physical)
-const cpu = circuit.find(record => record.type === 'source_component' && record.name === 'CPU')!
+const cpu = circuit.find(record => record.type === 'source_component' && record.name === 'CPU')
+if (cpu?.type !== 'source_component') throw new Error('Missing CPU')
 const model = circuit.find(record => record.type === 'simulation_ibis_model' && record.source_component_id === cpu.source_component_id)!
 if (model.type !== 'simulation_ibis_model') throw new Error('Missing CPU model')
 const bytes = await readFile(`${process.env.IBIS_MODEL_DIR ?? 'models'}/sprm552c.ibs`)

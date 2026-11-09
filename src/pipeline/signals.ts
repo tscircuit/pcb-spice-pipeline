@@ -1,5 +1,5 @@
 import { connectedSourceIds, stackupFromCircuitJson, type CircuitJson, type SignalEndpoint, type SimulationSignal, type SimulationSignalIntegrity } from '../board'
-import { inspectPins, edgeSeconds, type InspectedPin, type IbisSources } from '../buffers'
+import { inspectPins, edgeSeconds, referenceVoltages, type InspectedPin, type IbisSources } from '../buffers'
 import { safeId } from '../kernel'
 import type { NumericalSettings } from './modeling'
 import { signalTopology, validateSignalGraph } from './topology'
@@ -28,7 +28,7 @@ export function signalBits(signal: SimulationSignal, duration: number): string {
     return signal.pattern
   }
   let state = signal.seed!
-  const count = Math.min(mask, Math.ceil(duration * signal.bit_rate_bps) + 1)
+  const count = Math.min(mask, Math.ceil(Math.max(0, duration - signal.offset_s) * signal.bit_rate_bps) + 1)
   const tap = width === 7 ? 6 : width === 15 ? 14 : 28
   let bits = ''
   for (let i = 0; i < count; i++) {
@@ -172,14 +172,19 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
   }
   const values = new Map<string, number>()
   for (const pin of pins.values()) {
-    const voltage = pin.buffer.voltage[corner]
-    if (voltage === null) throw new Error(`${pin.port}: [Voltage Range] missing at corner ${block.corner}`)
+    const voltages = referenceVoltages(pin.buffer, corner)
+    const refs = pin.model.ibis_pin_name_to_reference_source_port_ids![pin.pin]
+    const ports = { pullup: refs.pullup_reference_source_port_id ?? pin.power, pulldown: refs.pulldown_reference_source_port_id ?? pin.ground, powerClamp: refs.power_clamp_reference_source_port_id ?? pin.power, groundClamp: refs.ground_clamp_reference_source_port_id ?? pin.ground }
     const net = [...connectedSourceIds(circuit, pin.power)].sort().join(',')
-    if (values.has(net) && Math.abs(values.get(net)! - voltage) > 1e-8) throw new Error(`${pin.port}: shared reference VCC has incompatible IBIS corner voltages.`)
-    if (!values.has(net)) {
-      values.set(net, voltage)
+    const supplied = values.has(net)
+    for (const [role, voltage] of Object.entries(voltages)) {
+      const key = [...connectedSourceIds(circuit, ports[role as keyof typeof ports])].sort().join(',')
+      if (values.has(key) && Math.abs(values.get(key)! - voltage) > 1e-8) throw new Error(`${pin.port}: shared reference has incompatible IBIS corner voltages.`)
+      values.set(key, voltage)
+    }
+    if (!supplied) {
       settings.supplies ??= []
-      settings.supplies.push({ positive: { sourcePortId: pin.power }, negative: { sourcePortId: pin.ground }, voltageV: voltage })
+      settings.supplies.push({ positive: { sourcePortId: pin.power }, negative: { sourcePortId: pin.ground }, voltageV: voltages.pullup })
     }
   }
   for (let i = circuit.length - 1; i >= 0; i--) if (circuit[i].type === 'simulation_voltage_source') circuit.splice(i, 1)
