@@ -51,3 +51,11 @@ The native opt-in gap test passed. Its source is the original physical TSX; requ
 are in `runs/2d-baseline/rs485-*/native-*`. This board differs from the repository's default
 RS-485 example, whose original explicit 0.35 mm return profile gives 30.447940 nH in the separate
 BEFORE run. These layouts/settings must not be conflated.
+
+The fresh three-link SC70 routed-copper check also completed with its expected named failure:
+`mesh_convergence`, R refinement residual **0.128292996947 > 0.05**, after **3667.640 s**.
+This is the current three-link TSX with its fabricator-preset stackup, not the historical single-link
+0.271606591 measurement. It used the explicit BEFORE controls in the opt-in test (5/9 filaments,
+0.765/0.3825 mm ground meshes), without a harness timeout. The test passed by observing this exact
+class of R convergence diagnostic; unrelated native errors cannot satisfy it. Its two actual native
+requests/responses and elapsed time are retained in `runs/2d-baseline/crosstalk*`.
