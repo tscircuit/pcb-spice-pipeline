@@ -250,8 +250,12 @@ test('explicit references resolve same-chip ports outside the physical pin map',
 
 test('component net bindings preserve distinct channel endpoints', async () => {
   const circuit = await nativeChannel({ netBindings: true })
-  const geometry = geometryFromCircuitJson(circuit, modeling)
-  const nodes = circuitNodes(circuit, geometry, modeling)
-  const lane = geometry.mappings[0]
+  // This is an electrical-connectivity test; reference-via field extraction is unsupported.
+  const from = selectPort(circuit, modeling.lanes[0].from).source_port_id
+  const to = selectPort(circuit, modeling.lanes[0].to).source_port_id
+  const trace = circuit.find(r => r.type === 'source_trace' && r.connected_source_port_ids.includes(from) && r.connected_source_port_ids.includes(to))
+  assert.ok(trace)
+  const lane = { from, to, port: 'DQ', sourceTraceId: trace.source_trace_id }
+  const nodes = circuitNodes(circuit, { mappings: [lane] }, modeling)
   assert.notEqual(nodes.node(lane.from), nodes.node(lane.to))
 })

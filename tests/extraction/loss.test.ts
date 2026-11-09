@@ -34,3 +34,16 @@ test('review 9: loss accuracy is contractual across the excitation band, with ad
 test('review 9: a non-Foster loss target fails explicitly instead of returning a bad fit', () => {
   assert.throws(() => fitLoss([1,2,4], [1,10,100]), {code:'loss_fit'})
 })
+
+test('review 9: tiny nonzero loss samples retain the same maximum relative-error contract', () => {
+  const frequencies = Array.from({length:81}, (_, i) => 10 ** (12 * i / 80))
+  const target = frequencies.map(f => f * f / (f * f + 1e6))
+  const fit = fitLoss(frequencies, target)
+  const maximum = Math.max(...target.map((v, i) => Math.abs(fittedLoss(fit, frequencies[i]) / v - 1)))
+  assert.ok(maximum <= .02, `actual maximum relative error ${maximum}; reported ${fit.maxRelative}`)
+})
+
+
+test('review 9: a continuous-pole certificate rejects nonconcave loss without a branch cap', () => {
+  assert.throws(() => fitLoss([1, 2, 4], [1, 1.01, 4]), error => error instanceof Error && /loss_fit: Continuous-pole dual certificate/.test(error.message))
+})

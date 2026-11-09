@@ -58,11 +58,6 @@ export const numerics = {
   frequencySamples: 41,
   /** Relative objective stagnation is numerical convergence, not an iteration cap. */
   fitRelativeChange: 1e-11,
-  /** Normalize tiny/zero loss samples against a millionth of the band's peak to keep the
-   * relative least-squares objective finite. Reported fit residuals use these same weights.
-   * This weighting never changes a solved field matrix or its entry-wise convergence check.
-   */
-  fitZeroRelative: 1e-6,
   /** Differential dielectric sensitivity step; truncation O(step) is below mesh tolerance. */
   dielectricRelativeStep: .001,
   /** Near-DC skin loss must scale as f², becoming sqrt(f) in the surface-current regime. */
