@@ -10,9 +10,9 @@ const output = 'tests/evidence/signal-levels'
 const binaries = Object.fromEntries(await Promise.all(['fasthenry', 'FasterCap', 'ngspice'].map(async name => [name, createHash('sha256').update(await readFile(`/opt/homebrew/bin/${name}`)).digest('hex')])))
 const sources = Object.fromEntries(await Promise.all(['sn74lvc1g04.ibs', 'sn65hvd72.ibs'].map(async file => [`models/${file}`, await readFile(`${process.env.IBIS_MODEL_DIR ?? 'models'}/${file}`)])))
 const runs = [
-  ['level1-single-ended', undefined, 'runs/layered-rfc-v3/single'],
-  ['level1-differential', undefined, 'runs/layered-rfc-v3/differential'],
-  ['level2-two-signals', undefined, 'runs/layered-rfc-v3/two'],
+  ['level1-single-ended', undefined, 'runs/cap-review-final/single'],
+  ['level1-differential', undefined, 'runs/cap-review-final/differential'],
+  ['level2-two-signals', undefined, 'runs/cap-review-final/two'],
   ['level3-three-signals', 'TRAFFIC', 'runs/layered-rfc-v3-traffic/three'],
   ['level3-three-signals', 'XTALK_LOW', 'runs/layered-rfc-v3-low/three'],
   ['level3-three-signals', 'XTALK_HIGH', 'runs/layered-rfc-v3-high/three'],

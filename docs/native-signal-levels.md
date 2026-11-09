@@ -45,6 +45,43 @@ For the minimal 28.118503 mm route, the raw grounded diagonal is **37.958635 pF/
 
 **That C matrix remains rejected at 10.704% primitive reciprocity error.** Its 1.724% automatic refinement figure is insufficient evidence. Bounded Galerkin / tighter-GMRES diagnostics remained nonreciprocal; a current-deck `-a0.005` attempt and a stringent manual solve reached their 180 s deadlines. No further parameter search was made after those bounded checks; final default-setting calls only refreshed evidence for the committed deck. No coefficient or waveform was fitted, rescaled, or accepted to force agreement. An earlier diagnostic value of 36.03 pF/m reduced an invalid primitive matrix; it has been removed as an extracted C′ result. Accepted charge-neutral C′ remains unavailable.
 
+## Bounded microstrip reciprocity reproduction (PR #62 follow-up)
+
+**The requested capacitance fix is unresolved. No production deck/mesh change survived this investigation.** The new `tests/fixtures/layered-microstrip.tsx` supplies a straight 40 mm × 0.15 mm top trace and an optional second trace at 0.75 mm pitch over a real unbroken bottom pour. Real core supplies the 50 × 14 mm board, 1.43 mm FR-4 (er=4.42) and 0.03 mm copper. Both reference pads are on bottom; there are no bends or vias. This rules out trace bends and via/lead surfaces as necessary causes of the failure, but does not isolate the defect in the layered deck or mesher.
+
+Reproduction commit `2c43ab8` adds two opt-in native regression tests, both **failing** at the unchanged 0.025 primitive reciprocity limit. Default tests skip these two solver checks. A separate deterministic test now verifies that D panels plus reversed FR-4-contact C faces enclose the declared FR-4 volume, have zero net oriented area, and place every `D ... -` reference on the intended side. All six D-face directions are present. Every D-panel centroid avoids the copper contact polygons at the same z; independent polygon intersections of all 9,558 horizontal D panels with touching copper find zero positive-area overlaps on a 1e-8 mm grid; trace undersides and plane tops use er=4.42, and all other C faces use air. Across exactly shared C/D input edges, the maximum ratio of panel longest-edge sizes is 3.742× in the baseline and 1.697× in the edge-graded candidate (partial T-junction edges are excluded from this statistic). The graded candidate still fails reciprocity at 12.127%. These geometric checks pass; they do not establish numerical accuracy.
+
+`scripts/check-layered-capacitance.tsx` uniformly subdivides only dielectric panels, holding copper, physical geometry, native arguments and acceptance criteria fixed. Each original triangle becomes four per refinement; quadrilaterals are first triangulated. Native matrices and request hashes are in `tests/evidence/signal-levels/layered-capacitance-investigation.json`; exact requests/logs remain in ignored `runs/`.
+
+| Fixture | Interface refinement | D panels | Primitive reciprocity | Auto residual |
+| --- | ---: | ---: | ---: | ---: |
+| Single | 0 | 9,606 | 13.3505% | 1.25243% |
+| Single | 1 | 38,616 | 13.3003% | 1.25071% |
+| Single | 2 | 154,464 | 13.8204% | 0.813949% |
+| Coupled | 0 | 14,416 | 9.85126% | 0.99034% |
+| Coupled | 1 | 57,856 | 10.4418% | 1.21801% |
+| Coupled | 2 | 231,424 | 9.75350% | 1.73641% |
+
+Uniform interface refinement alone therefore does not resolve reciprocity. Additional bounded checks also failed: fourfold return-only / signal-only / both-conductor refinement gave 16.8627% / 13.9526% / 17.2715%; grading both meshes by copper-edge distance and thickness gave 12.1266% single / 11.2403% coupled; matching XY-projected sizing gave 16.3538% / 10.6607%. The two sizing candidates were reverted. Reversing material-specific C file order and equivalent per-panel inward/outward reference conventions reproduced the original matrix exactly. Splitting D files into 2 mm XY tiles gave 16.7017%. An all-air, no-interface control gave 0.177171%, but represents a different physical problem and cannot replace FR-4.
+
+Manual `-t0.000001` in auto mode reproduced the original output; this does not prove auto mode honored that manual option. `-d0.1` gave 12.0053%; a single `-d0.01` attempt stopped at its 90 s deadline. These were diagnostics only; production solver arguments and all tolerances remain unchanged. No output was fitted, rescaled, symmetrized or reduced to bypass primitive acceptance.
+
+The single fixture's **rejected raw grounded diagonal** is 38.030 pF/m versus the same zero-thickness Hammerstad/Jensen 37.565933 pF/m estimate (+1.235%). This close diagonal agreement cannot validate its nonreciprocal matrix. Finite ends/board edges, 30 µm copper and numerical error remain mixed; their residual contributions were not isolated. Accepted charge-neutral C′ and its requested few-percent analytic validation remain unavailable.
+
+Fresh, uncached Level 1 single/differential and Level 2 native attempts use `runs/cap-review-final/` and 600 s per-process limits. All three fresh uncached attempts completed native R/L and then reproduced the original C reciprocity errors exactly: 10.703865%, 9.499614% and 9.675332%, in 414.717 / 306.247 / 672.726 s total. The per-process limit is 600 s, not a whole-case limit. A supplementary Level 2 run replayed only byte-identical earlier R/L and freshly recomputed the same rejected C in 4.017 s; it is labelled separately in the investigation evidence. The collector points to the three new uncached attempts; Level 3's retained evidence belongs to the earlier investigation and is outside this capacitance task. No FastHenry source, other worktree, RFC or sibling repository was edited.
+
+Reproduce the bounded sweep and the intentionally failing native regressions:
+
+```sh
+SI_RUN_ROOT=runs/layered-capacitance SI_INTERFACE_REFINEMENT=0,1,2 node --import tsx scripts/check-layered-capacitance.tsx
+SI_TEST_NATIVE_CAPACITANCE=1 node --import tsx --test tests/extraction/dielectric.test.ts
+SI_RUN_ROOT=runs/cap-review-final SI_NATIVE_TIMEOUT_MS=600000 node --import tsx scripts/run-signal-levels.tsx single
+SI_RUN_ROOT=runs/cap-review-final SI_NATIVE_TIMEOUT_MS=600000 node --import tsx scripts/run-signal-levels.tsx differential
+SI_RUN_ROOT=runs/cap-review-final SI_NATIVE_TIMEOUT_MS=600000 node --import tsx scripts/run-signal-levels.tsx two
+```
+
+Use the overlay/native environment below. The next useful increment requires isolating why the otherwise closed, correctly sided layered surfaces produce nonreciprocal charge; the present evidence does not justify a deck fix or a transient run.
+
 ## Differential layout and internal receiver taps
 
 The manual example is rendered through real core with `routeRemaining={false}`: all pair/tap paths and GND leads are preplaced and no copper/courtyard/dangling-path errors remain. Actual soic8 pads are TX A/B=(-22.85, ∓0.635) mm and RX A/B=(22.15, ∓0.635) mm. The 0603 is at (23.8, 0), rotated 90°; its pads are (23.8, ∓0.825) mm. The 0.15 mm trunks have 0.25 mm pitch, then fan around RX on opposite sides. Model POWER/GND rails remain ideal; physical power copper is omitted explicitly.
@@ -67,7 +104,7 @@ The native solver callback count is zero. The image command additionally attempt
 
 ## Verification and reproduction
 
-Final local verification: **232 tests, 230 pass, 2 optional skips, 0 failures**; source/test/example typechecks and explicit script typechecks pass. Lint passes with the existing mesh-length warning (now 523 lines). Module checks pass; vocabulary is 88.9%. All five final PNGs were opened and visually inspected. These are local overlay checks, not accepted RFC simulation results or proof that published-dependency CI is ready.
+Final local verification: **235 tests, 231 pass, 4 optional skips, 0 failures**; source/test/example typechecks and explicit script typechecks pass. Lint passes with the existing mesh-length warning (now 523 lines). Module checks pass; vocabulary is 88.9%. All five final PNGs were opened and visually inspected. These are local overlay checks, not accepted RFC simulation results or proof that published-dependency CI is ready.
 
 Local checks use ignored sibling overlays and local vendor models. Export the same JSX configuration for tests and scripts:
 

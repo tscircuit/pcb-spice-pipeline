@@ -8,12 +8,12 @@ export default function LayeredMicrostrip({ coupled = false }: { coupled?: boole
     {(['TX', 'RX'] as const).map((name, i) => <chip key={name} name={name} pcbX={i ? 20 : -20}
       pinLabels={{ pin1: 'S0', pin2: 'S1', pin3: 'GND' }} connections={{ GND: 'net.GND' }}
       footprint={<footprint>
-        {Array.from({ length: count }, (_, j) => <smtpad key={j} portHints={[`pin${j + 1}`]} pcbX={0} pcbY={j * .75}
-          width={.15} height={.15} shape="rect" />)}
+        {Array.from({ length: count }, (_, j) => <React.Fragment key={j}><smtpad portHints={[`pin${j + 1}`]} pcbX={0} pcbY={j * .75}
+          width={.15} height={.15} shape="rect" /></React.Fragment>)}
         <smtpad portHints={['pin3']} pcbX={0} pcbY={-3} width={.3} height={.3} shape="rect" layer="bottom" />
       </footprint>} />)}
-    {Array.from({ length: count }, (_, j) => <trace key={j} from={`.TX > .S${j}`} to={`.RX > .S${j}`}
-      width={.15} pcbPath={[`.TX > .S${j}`, `.RX > .S${j}`]} />)}
+    {Array.from({ length: count }, (_, j) => <React.Fragment key={j}><trace from={`.TX > .S${j}`} to={`.RX > .S${j}`}
+      width={.15} pcbPath={[`.TX > .S${j}`, `.RX > .S${j}`]} /></React.Fragment>)}
     <copperpour connectsTo="net.GND" layer="bottom" unbroken />
   </board>
 }

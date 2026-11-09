@@ -4,11 +4,12 @@ import { createHash } from 'node:crypto'
 import { renderCoreSignals } from '../tests/support/core-render'
 import Board, { modeling } from '../tests/fixtures/layered-microstrip'
 import { geometryFromCircuitJson } from '../src/board'
-import { fasterCapDeck, parseFasterCap } from '../src/extraction'
+import { fasterCapDeck, parseFasterCap, validateMatrix } from '../src/extraction'
+import { checkNativeRun } from '../src/extraction/parse'
 import { createNativeSolver } from '../src/adapters'
 
 const root = process.env.SI_RUN_ROOT ?? 'runs/layered-capacitance'
-const native = createNativeSolver({ timeoutMs: 180000, tools: { fastercap: '/opt/homebrew/bin/FasterCap' } })
+const native = createNativeSolver({ timeoutMs: Number(process.env.SI_NATIVE_TIMEOUT_MS ?? 180000), tools: { fastercap: '/opt/homebrew/bin/FasterCap' } })
 const results = []
 for (const coupled of [false, true]) {
   const circuit = await renderCoreSignals(<Board coupled={coupled} />)
@@ -43,11 +44,19 @@ for (const coupled of [false, true]) {
     const run = await native(request)
     await writeFile(`${dir}/stdout.log`, run.stdout)
     await writeFile(`${dir}/stderr.log`, run.stderr)
+    checkNativeRun(run, dir, 'fastercap')
     const matrix = parseFasterCap(run.stdout).matrix.map(row => row.map(v => v * .001))
     const reciprocity = Math.max(...matrix.flatMap((row, i) => row.map((v, j) => Math.abs(v - matrix[j][i])))) / Math.max(...matrix.flat().map(Math.abs))
-    const result = { coupled, refinement, seconds: (Date.now() - start) / 1000, request_sha256: createHash('sha256').update(JSON.stringify(request)).digest('hex'),
+    const autoResidual = Number([...run.stdout.matchAll(/Weighted Frobenius norm of the difference between capacitance \(auto option\):\s*([\deE+.-]+)/g)].at(-1)?.[1])
+    let rejection: string | undefined
+    try {
+      if (!Number.isFinite(autoResidual) || autoResidual < 0 || autoResidual > settings.extraction.capTolerance) throw new Error('FasterCap auto refinement did not meet the unchanged criterion')
+      validateMatrix(matrix, 'C primitive', settings.extraction.reciprocityTolerance)
+    }
+    catch (error) { rejection = (error as Error).message }
+    const result = { accepted: !rejection, rejection, coupled, refinement, seconds: (Date.now() - start) / 1000, request_sha256: createHash('sha256').update(JSON.stringify(request)).digest('hex'),
       matrix, reciprocity, grounded_diagonal_pf_per_m: matrix.slice(0, -1).map((row, i) => row[i] / cell.conductors[i].lengthM * 1e12),
-      auto_residual: Number([...run.stdout.matchAll(/Weighted Frobenius norm of the difference between capacitance \(auto option\):\s*([\deE+.-]+)/g)].at(-1)?.[1]),
+      auto_residual: autoResidual,
       dielectric_panels: Object.entries(files).filter(([file]) => file.startsWith('dielectric-')).reduce((sum, [, text]) => sum + text.split('\n').filter(row => /^[TQ] /.test(row)).length, 0) }
     results.push(result)
     await writeFile(`${root}/summary.json`, JSON.stringify(results, null, 2) + '\n')

@@ -21,15 +21,15 @@
       "example_sha256": "093f3e7e71183158635ed1b002bd6d5b2f87331caaf044704b1e247de4a8597b",
       "large_artifacts": "gzip_level_1_above_2_MB",
       "runner_sha256": "3cb8aafad69a80a6ce96d581bb2dafb00b57077bc4fc9ee3770efbaf737916bc",
-      "native_timeout_ms": 180000,
-      "implementation_head": "24d32ea5123cd5e403dbc3e55b085f13a7bf526f",
+      "native_timeout_ms": 600000,
+      "implementation_head": "2c43ab83c2f4471b2822e86f0fba3cdbc12c7c6e",
       "sources": {
         "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
         "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
       },
       "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
       "status": "failed_native",
-      "seconds": 12.051,
+      "seconds": 414.717,
       "error": "reciprocity: C primitive: residual 0.1070386498482376 > 0.025",
       "code": "reciprocity",
       "native_execution": [
@@ -40,8 +40,7 @@
             "-p",
             "seg",
             "channel.inp"
-          ],
-          "exact_native_extraction_replay_from": "runs/layered-rfc-v2/single/native-0-fasthenry"
+          ]
         },
         {
           "solver": "fasthenry",
@@ -50,8 +49,7 @@
             "-p",
             "seg",
             "channel.inp"
-          ],
-          "exact_native_extraction_replay_from": "runs/layered-rfc-v2/single/native-1-fasthenry"
+          ]
         },
         {
           "solver": "fastercap",
@@ -130,7 +128,7 @@
       "extraction": {
         "R_ohm": [
           [
-            0.958938
+            0.9589386
           ]
         ],
         "L_h": [
@@ -150,7 +148,7 @@
           ]
         ],
         "selected_R_L": "refined",
-        "R_mesh_delta": 0.01339231524874384,
+        "R_mesh_delta": 0.01339293256106276,
         "L_mesh_delta": 0.001227244379769905,
         "cap_auto_residual": 0.0172399,
         "channel_accepted": false,
@@ -174,16 +172,16 @@
       "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
       "example_sha256": "b3cb14ebd181f54bd05a3fffb875a45590cc16233ffde8b0974c5cd7d63247be",
       "large_artifacts": "gzip_level_1_above_2_MB",
-      "runner_sha256": "d8365a3d396bc3445de00bbe403c90e76708d92eb928fd890ccbadf47c238c07",
+      "runner_sha256": "3cb8aafad69a80a6ce96d581bb2dafb00b57077bc4fc9ee3770efbaf737916bc",
       "native_timeout_ms": 600000,
-      "implementation_head": "9a0f5009d0a8850dff363623e5f64502f3af518d",
+      "implementation_head": "2c43ab83c2f4471b2822e86f0fba3cdbc12c7c6e",
       "sources": {
         "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
         "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
       },
       "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
       "status": "failed_native",
-      "seconds": 190.753,
+      "seconds": 306.247,
       "error": "reciprocity: C primitive: residual 0.0949961368297065 > 0.025",
       "code": "reciprocity",
       "native_execution": [
@@ -392,16 +390,16 @@
       "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
       "example_sha256": "7b78e046f3bcbe934a2e376cfaa49345ed5fc36a4475c7fa77d98b738a11f3b4",
       "large_artifacts": "gzip_level_1_above_2_MB",
-      "runner_sha256": "d8365a3d396bc3445de00bbe403c90e76708d92eb928fd890ccbadf47c238c07",
+      "runner_sha256": "3cb8aafad69a80a6ce96d581bb2dafb00b57077bc4fc9ee3770efbaf737916bc",
       "native_timeout_ms": 600000,
-      "implementation_head": "9a0f5009d0a8850dff363623e5f64502f3af518d",
+      "implementation_head": "2c43ab83c2f4471b2822e86f0fba3cdbc12c7c6e",
       "sources": {
         "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
         "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
       },
       "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
       "status": "failed_native",
-      "seconds": 482.645,
+      "seconds": 672.726,
       "error": "reciprocity: C primitive: residual 0.09675331594056424 > 0.025",
       "code": "reciprocity",
       "native_execution": [
