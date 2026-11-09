@@ -1154,7 +1154,7 @@
       "real_core_error": ".CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.",
       "native_solver_calls": 0,
       "example": "level4-ddr3-write",
-      "example_sha256": "9d2dde35aac3f1a86ef412dc5a415005fab82e61a3edbff04738cdfc3f66cd52",
+      "example_sha256": "c27778848c2cb0f3e7d12efb6628b21d5172b2f330b8ae0680b8c9013602f8e1",
       "accepted": false,
       "eyes": null,
       "quiet_NEXT_FEXT": null,

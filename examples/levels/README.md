@@ -30,9 +30,9 @@ TRAFFIC switches all three signals; XTALK_LOW and XTALK_HIGH hold D1 quiet while
 
 ### Level 4 — DDR3 write illustration
 
-The AM335x/Winbond write example still stops at `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.` Source preflight makes zero native solver calls. The image attempts the unchanged full board through real core with a 180 s layout deadline; an incomplete layout is labelled partial. No DDR eye or protocol-compliance result is claimed.
+An AM3352 → Winbond W631GG6MB-12 lower byte lane (DQ0–7 plus the DQS pair) on an 8-layer board. The routes are preplaced: they were extracted from the user's routed board [`0hmX/am3352-ddr-track-a-local-dfm-wip-20261007`](https://tscircuit.com/0hmX/am3352-ddr-track-a-local-dfm-wip-20261007) (v0.0.14) with its exact BGA pad geometry and in-byte DQ swaps, so real core renders it in well under a second with no autorouting. The stackup (JLC preset) and the single VDDQ plane are illustrative. Simulation still stops at `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.` with zero native solver calls. No DDR eye or protocol-compliance result is claimed.
 
-![Level 4 partial PCB and exact coupled-package boundary](level4-ddr3-write.png)
+![Level 4 routed PCB and exact coupled-package boundary](level4-ddr3-write.png)
 
 Regenerate all five 1600 px PNGs with one script after installing dependencies and building the sibling overlays. Vendor models stay local; no vendor bytes or overlays are committed.
 

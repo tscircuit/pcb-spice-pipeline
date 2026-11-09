@@ -116,13 +116,17 @@ for (const [name, Board] of Object.entries(boards)) {
     execFileSync(process.execPath, ['--import', 'tsx', 'scripts/render-example-images.tsx', '--ddr3-layout'], { stdio: 'inherit', timeout: 190000 })
     const layout = JSON.parse(await readFile(`${directory}/ddr3-layout.json`, 'utf8'))
     records = layout.records
-    if (layout.status !== 'rendered') layoutStatus = layout.status === 'partial_layout_deadline' ? 'Partial real-core PCB: full autorouting exceeded 180 s' : 'Partial real-core PCB: source admission failed'
+    const routed = records.some(record => record.type === 'pcb_trace')
+    if (layout.status === 'partial_layout_deadline') layoutStatus = 'Partial real-core PCB: full autorouting exceeded 180 s'
+    else if (layout.status !== 'rendered') layoutStatus = routed ? 'Preplaced routes rendered through real core; SI admission stops below' : 'Partial real-core PCB: source admission failed'
   } else records = await renderCoreSignals(<Board />)
   const copper = records.filter(record => record.type.startsWith('pcb_') && !record.type.includes('silkscreen')) as Parameters<typeof convertCircuitJsonToPcbSvg>[0]
   let body = `<rect width="1600" height="100%" fill="#101b2b"/><g fill="#edf4ff" font-family="DejaVu Sans, sans-serif"><text x="55" y="48" font-size="30">${escape(name)}</text><text x="55" y="82" font-size="19" fill="#b7c9df">${escape(layoutStatus)} · no silkscreen</text>`
-  for (const [i, layer] of ['top', 'bottom'].entries()) {
-    const svg = convertCircuitJsonToPcbSvg(copper, { width: 735, height: 350, layer: layer as 'top' | 'bottom', shouldDrawErrors: false, shouldDrawRatsNest: false, showCourtyards: false, showPcbGroups: false, showSolderMask: false, showSolderPaste: false, showPcbNotes: false, showFabricationNotes: false, includeVersion: false, backgroundColor: '#0b1422' })
-    body += `<text x="${55 + i * 780}" y="120" font-size="22">${layer === 'top' ? 'Top copper' : records.some(r => r.type === 'pcb_copper_pour' && r.layer === 'bottom') ? 'Bottom copper / ground pour' : 'Bottom copper'}</text><svg x="${45 + i * 780}" y="140" width="735" height="350">${svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '')}</svg>`
+  // Boards with inner copper show every layer in the second panel, so inner-layer routes stay visible.
+  const inner = records.some(record => record.type === 'pcb_board' && (record.num_layers ?? 2) > 2)
+  for (const [i, layer] of ['top', inner ? 'all' : 'bottom'].entries()) {
+    const svg = convertCircuitJsonToPcbSvg(copper, { width: 735, height: 350, ...(layer === 'all' ? {} : { layer: layer as 'top' | 'bottom' }), shouldDrawErrors: false, shouldDrawRatsNest: false, showCourtyards: false, showPcbGroups: false, showSolderMask: false, showSolderPaste: false, showPcbNotes: false, showFabricationNotes: false, includeVersion: false, backgroundColor: '#0b1422' })
+    body += `<text x="${55 + i * 780}" y="120" font-size="22">${layer === 'top' ? 'Top copper' : layer === 'all' ? 'All copper layers' : records.some(r => r.type === 'pcb_copper_pour' && r.layer === 'bottom') ? 'Bottom copper / ground pour' : 'Bottom copper'}</text><svg x="${45 + i * 780}" y="140" width="735" height="350">${svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '')}</svg>`
   }
   body += `<text x="55" y="525" font-size="17" fill="#b7c9df">${records.filter(r => r.type === 'pcb_trace').length} traces · ${records.filter(r => r.type === 'pcb_via').length} vias · ${records.filter(r => r.type === 'pcb_copper_pour').length} ground pour(s) · source ${sourceHash.slice(0, 12)}</text>`
   let y = 570
