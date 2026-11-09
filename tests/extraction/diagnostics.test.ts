@@ -51,15 +51,15 @@ test('native results that fail a physical check never produce matrices', async (
   await solverRun.rejects({}, 'cap_convergence', /FasterCap did not report converged automatic refinement/, { ...modeling, extraction: { ...modeling.extraction, capTolerance: 1e-4 } })
 })
 
-test('underflowing capacitance fails the neutral charge/energy reconstruction', async () => {
+test('nonfinite grounded energy reconstruction is rejected', async () => {
   const base = consistentSolver(geometry, modeling)
-  /** The canned solver, but with every FasterCap capacitance shrunk until it underflows. */
+  /** The canned solver with finite capacitance entries whose test-voltage energy overflows. */
   const tiny: typeof base = async (request: SolverRequest): Promise<SolverResult> => {
     const out = await base(request)
-    return request.solver === 'fastercap' ? { ...out, stdout: out.stdout.replace(/e-12\b/g, 'e-170') } : out
+    return request.solver === 'fastercap' ? { ...out, stdout: out.stdout.replace(/4e-12\b/g, '1.5e308').replace(/-1e-12\b/g, '-1e307') } : out
   }
   await assert.rejects(extractChannel(geometry, modeling, rootScope('extraction'), { runSolver: tiny, progress: () => {} }),
-    { code: 'reference_energy', message: 'reference_energy: Neutral finite-return charge/energy reconstruction failed' })
+    { code: 'reference_energy', message: 'reference_energy: Grounded-return energy reconstruction failed' })
 })
 
 test('channel.cir needs 1..128 sections; a hole outside its outline is not a meshable copper ring', () => {

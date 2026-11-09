@@ -27,7 +27,7 @@ export function channelSpice(extracted: readonly StageMatrices[], sections: numb
   }
   const inputs = Array.from({ length: n }, (_, i) => `IN${i}`)
   const outputs = Array.from({ length: n }, (_, i) => `OUT${i}`)
-  const lines = ['* Constant-frequency passive matrix pi channel; explicit reference terminal', `.subckt CHANNEL ${[...inputs, ...outputs, ...taps.map(tap => tap.name), 'REF'].join(' ')}`]
+  const lines = ['* Constant-frequency matrix pi channel; explicit reference terminal', `.subckt CHANNEL ${[...inputs, ...outputs, ...taps.map(tap => tap.name), 'REF'].join(' ')}`]
   const cuts = [...new Set([...Array.from({ length: sections + 1 }, (_, i) => i / sections), ...taps.map(tap => tap.fraction)])].sort((a, b) => a - b)
   let global = 0
   for (const [stage, e] of extracted.entries()) for (let section = 0; section < cuts.length - 1; section++) {

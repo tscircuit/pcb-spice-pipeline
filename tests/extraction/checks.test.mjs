@@ -35,6 +35,7 @@ test('Option A grounds C while lossless G remains zero', () => {
   const primitive = [[4, -1, -1], [-1, 4, -1], [-1, -1, 4]]
   assert.deepEqual(referenceCapacitance(primitive).matrix, [[4, -1], [-1, 4]])
   assert.deepEqual(referenceConductance(primitive.map(row => row.map(() => 0))), [[0, 0], [0, 0]])
+  assert.throws(() => referenceConductance([[-1, 0], [0, -1]]), /reference/)
 })
 
 test('signal-block rejection keeps the 2.5% limit, signs and positive energy', () => {
