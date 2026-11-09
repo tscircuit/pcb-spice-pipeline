@@ -73,22 +73,6 @@ export function interpolate(timestamps, voltages, time) {
 }
 
 // Compute integer symbol indices directly instead of copying a runner's loop.
-export function completeWindows({ unitInterval, timeOrigin, startTime, endTime, timestamps }) {
-  assert.ok(Number.isFinite(unitInterval) && unitInterval > 0)
-  assert.ok(Number.isFinite(timeOrigin))
-  const lower = Math.max(startTime ?? timestamps[0], timestamps[0])
-  const upper = Math.min(endTime ?? timestamps.at(-1), timestamps.at(-1))
-  assert.ok(lower <= upper, 'Measurement gate is ordered')
-  const first = Math.ceil((lower - timeOrigin) / unitInterval + 0.5 - 1e-10)
-  const last = Math.floor((upper - timeOrigin) / unitInterval - 1.5 + 1e-10)
-  assert.ok(first <= last, 'At least one complete eye window exists')
-  return Array.from({ length: last - first + 1 }, (_, i) => ({
-    symbolIndex: first + i,
-    start: timeOrigin + (first + i - 0.5) * unitInterval,
-    end: timeOrigin + (first + i + 1.5) * unitInterval,
-  }))
-}
-
 export function strictTimes(timestamps, label) {
   assert.ok(timestamps.length > 1)
   for (let i = 0; i < timestamps.length; i++) {

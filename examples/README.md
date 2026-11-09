@@ -1,0 +1,7 @@
+# Native transient channel examples
+
+With the built sibling overlays and local vendor files, run `OMP_NUM_THREADS=1 IBIS_MODEL_DIR=models SI_CORE_MODULE="$(cd ../core && pwd)/dist/index.js" TSX_TSCONFIG_PATH=examples/tsconfig.json NGSPICE_BIN=/opt/homebrew/bin/ngspice node --max-old-space-size=6000 --import tsx scripts/render-example-images.tsx` to regenerate every PNG and CSV from the full accepted evidence in `runs/final-rfc`. To recreate that evidence first, use the same environment with `scripts/run-signal-levels.tsx`; every case/block runs sequentially, each process has a 1200000 ms bound, and DDR3 must stop before native execution. Exact completed native requests can be reused with `SI_EXTRACTION_CACHE=<directories separated by colons> SI_REPLAY_COMPLETE_NATIVE=1`. PNG lower panels plot the exported CSV in actual time and volts.
+
+**level1-single-ended.** simulation_signal_integrity_0: accepted 7.2 µs capture in 400.7 s wall time (387.6 s fresh native execution); final independent checks RMS ≤ 0.001542 V, signed-extrema delta ≤ 0.001987 V. CSV only is decimated by native min/max buckets (81640 rows; full CSV would be 155102889 bytes). Full accepted waveforms, exact requests, hashes and convergence histories remain losslessly archived under `runs/final-rfc` (ignored local evidence; vendor sources/decks are not redistributed).
+
+![level1-single-ended](level1-single-ended/level1-single-ended.png)

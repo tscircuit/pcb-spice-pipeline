@@ -35,8 +35,8 @@ test('synthetic transient IO covers public result schemas and retains only accep
     return { stdout: '', stderr: '', files: { 'waveform.dat': 'time voltage\n' + rows.map(row => row.join(' ')).join('\n') + '\n' } }
   } })
   validateCircuitRecords(result.blocks[0].results)
-  const eye = result.blocks[0].results.find(record => record.type === 'simulation_signal_eye')!
-  assert.ok(eye.type === 'simulation_signal_eye' && eye.eye_height_v < 0, 'a wrong-bit waveform fails the transmitted-bit eye')
+  assert.equal(result.blocks[0].simulation_signal_integrity_id, 'simulation_signal_integrity_0')
+  assert.deepEqual(result.blocks[0].results.map(record => record.type), ['simulation_signal_waveform'])
   const waveforms = Object.keys(result.files).filter(path => path.endsWith('/waveform.dat'))
   assert.equal(waveforms.length, 2, 'settled idle and accepted transient')
   assert.ok(waveforms.every(path => /undisturbed-idle|numerical-refinement-2/.test(path)))
@@ -59,8 +59,8 @@ test('real I/O capability permits quiet-off and counts the alternate-charge idle
   } })
   assert.equal(calls, 6, 'idle, two charge-basis trials, switching and two independent refinements')
   assert.equal(result.experiments[0].solverInvocations, calls)
-  const noise = result.blocks[0].results.filter(record => record.type === 'simulation_signal_crosstalk')
-  assert.deepEqual(noise.map(record => [record.end, record.idle_voltage_v, record.peak_positive_v, record.peak_negative_v]), [['far', 0, 0, 0], ['near', 0, 0, 0]])
+  const noise = result.blocks[0].results.filter(record => record.type === 'simulation_signal_waveform')
+  assert.deepEqual(noise.map(record => [record.end, record.idle_voltage_v]), [['far', 0], ['near', 0]])
   validateCircuitRecords(result.blocks[0].results)
 })
 

@@ -1,35 +1,26 @@
 import React from 'react'
-import { readFile, writeFile } from 'node:fs/promises'
-import { renderSignals } from '../tests/support/signal-render'
+import assert from 'node:assert/strict'
+import { readFile, mkdir, writeFile } from 'node:fs/promises'
+import { simulation } from '@tscircuit/core'
+import DDR3 from '../examples/level4-ddr3-write/level4-ddr3-write'
 import { renderCoreSignals } from '../tests/support/core-render'
-import { runPipeline } from '../src'
-import DDR3 from '../examples/levels/level4-ddr3-write'
+import { convertPackaged } from '../src/buffers/package'
 
-// Coupled-package admission precedes route/extraction admission. Avoid the bounded-out
-// BGA autoroute in this independent source preflight; never claim this is a full layout.
-const tree = React.cloneElement(DDR3(), { routeRemaining: false })
-const circuitJson = await renderSignals(tree, ['pcb_trace_missing_error', 'pcb_port_not_connected_error'])
-const ibisSources = Object.fromEntries(await Promise.all(['sprm552c.ibs', 'W631GG6MB-12.ibs'].map(async file => [`models/${file}`, await readFile(`models/${file}`)])))
-let calls = 0
-try {
-  await runPipeline({ circuitJson, ibisSources, runSolver: async () => {
-    calls++
-    throw new Error('Unexpected native solver before the coupled-package boundary')
-  } })
-  throw new Error('DDR3 must stop at the coupled-package boundary')
-} catch (error) {
-  const message = (error as Error).message
-  if (message !== '.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.' || calls) throw error
-  let realCoreError: string | undefined
-  if (process.env.SI_CORE_MODULE) {
-    try {
-      await renderCoreSignals(tree)
-    } catch (error) {
-      realCoreError = (error as Error).message
-    }
-    if (realCoreError !== message) throw new Error(`Core source preflight disagrees: ${realCoreError}`)
-  }
-  const summary = { status: 'expected_error', rendering: 'source_preflight_routeRemaining_false_not_full_layout', error: message, real_core_error: realCoreError, native_solver_calls: calls }
-  await writeFile('runs/ddr3-boundary.json', JSON.stringify(summary, null, 2) + '\n')
-  console.log(summary)
-}
+const message = '.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.'
+await assert.rejects(renderCoreSignals(<DDR3 />), { message })
+const tree = DDR3()
+const physical = React.cloneElement(tree, {}, React.Children.toArray(tree.props.children).filter(child => !React.isValidElement(child) || child.type !== simulation.pcbtransientchannelsimulation))
+const circuit = await renderCoreSignals(physical)
+const cpu = circuit.find(record => record.type === 'source_component' && record.name === 'CPU')!
+const model = circuit.find(record => record.type === 'simulation_ibis_model' && record.source_component_id === cpu.source_component_id)!
+if (model.type !== 'simulation_ibis_model') throw new Error('Missing CPU model')
+const bytes = await readFile(`${process.env.IBIS_MODEL_DIR ?? 'models'}/sprm552c.ibs`)
+// Package admission precedes any conversion or solver; the supplied run cannot be used.
+assert.throws(() => convertPackaged(bytes, {
+  definition: { source: { content: bytes.toString() }, component: model.ibis_component_name, pinMap: model.ibis_pin_name_to_source_port_id, corner: 'typical', packagePolicy: 'vendor' },
+  run: { duration: 1e-9, pinStates: {}, stimuli: {} },
+}), /coupled \[Package Model\] not implemented yet; scalar fallback is forbidden/)
+await mkdir('runs', { recursive: true })
+const summary = { status: 'expected_error', error: message, real_core_error: message, native_solver_calls: 0, physical_records: Object.fromEntries(['pcb_trace', 'pcb_via', 'pcb_copper_pour'].map(type => [type, circuit.filter(record => record.type === type).length])) }
+await writeFile('runs/ddr3-boundary.json', JSON.stringify(summary, null, 2) + '\n')
+console.log(summary)

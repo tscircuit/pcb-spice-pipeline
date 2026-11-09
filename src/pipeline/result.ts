@@ -53,9 +53,9 @@ export interface PipelineOptions {
   runSolver: RunSolver
   onProgress?: (message: string) => void
 }
-export interface BlockResult {
+export interface PipelineBlockResult {
   duration_s: number
-  simulationSignalIntegrityId: string
+  simulation_signal_integrity_id: string
   name: string
   geometry: ChannelGeometry
   matrices: ChannelMatrices
@@ -67,10 +67,13 @@ export interface BlockResult {
 export interface PipelineResult {
   circuitJson: CircuitJson
   simulationResultCircuitJson: CircuitJson
-  blocks: BlockResult[]
+  blocks: PipelineBlockResult[]
   geometry?: ChannelGeometry
   matrices: ChannelMatrices
   experiments: ExperimentResult[]
   limitations: string[]
   files: FileMap
 }
+
+/** Historical type name retained for consumers; fields follow the RFC. */
+export type BlockResult = PipelineBlockResult

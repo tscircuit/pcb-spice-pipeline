@@ -1,7 +1,7 @@
 import React from 'react'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import Differential from '../../../examples/levels/level1-differential'
+import Differential from '../../../examples/level1-differential/level1-differential'
 import { renderCoreSignals } from '../../support/core-render'
 import { prepareBlocks } from '../../../src/pipeline/signals'
 import { geometryFromCircuitJson } from '../../../src/board'

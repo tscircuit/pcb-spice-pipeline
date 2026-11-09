@@ -1,10 +1,8 @@
-import { cpuFootprint, dramFootprint } from "./ddr3-parts"
+import { simulation } from "@tscircuit/core"
+import { cpuFootprint, dramFootprint } from "../ddr3-parts"
 /* LEVEL 4: AM3352 -> W631GG6MB-12 DDR3 lower-byte write illustration, not JEDEC compliance.
  * Currently stops with: .CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.
- * Typ corner is 1.5 V. DQS is delayed 0.5 UI to centre-align write sampling.
- * Setup/hold reuse the DDR3-1600 base values (10/45 ps), without slew derating
- * or separate AC/DC checks: Winbond A03, Table 54, p. 158:
- * https://media.digikey.com/pdf/Data%20Sheets/Winbond%20PDFs/W631GG6MB_A03.pdf#page=158
+ * Typical corner is 1.5 V. DQS is delayed 0.5 UI to centre-align write stimulus.
  * Exact native source footprint coordinates (CPU 0.4 mm pads, DRAM 0.350012 mm pads).
  * Source byte-lane swaps are retained; pin labels still identify actual IBIS [Pin] signals.
  * Eight-layer 1.2 mm board; JLC preset is illustrative, not a qualified source stackup.
@@ -95,7 +93,7 @@ export default () => (
       footprint={dramFootprint}
       pinLabels={dramPins}
     />
-    <ibismodel
+    <simulation.ibismodel
       componentRef=".CPU"
       ibisModelAsset={{
         project_relative_path: "models/sprm552c.ibs",
@@ -113,7 +111,7 @@ export default () => (
         "VSS",
       )}
     />
-    <ibismodel
+    <simulation.ibismodel
       componentRef=".DRAM"
       ibisModelAsset={{
         project_relative_path: "models/W631GG6MB-12.ibs",
@@ -148,14 +146,14 @@ export default () => (
     {/* Ideal shared rail for the two representative VDDQ balls; source power network omitted. */}
     <copperpour connectsTo="net.VDDQ" layer="inner5" unbroken />
 
-    <signalintegrity name="WRITE" bitRate="800Mbps" corner="typ">
-      <signal
+    <simulation.pcbtransientchannelsimulation name="WRITE" bitRate="800Mbps" corner="typical">
+      <simulation.pcbchannel
         name="DQS"
-        driver={{
+        driverRef={{
           pin: { p: ".CPU > .DDR_DQS0", n: ".CPU > .DDR_DQSN0" },
           model: { p: "Model_579", n: "Model_771" },
         }}
-        receiver={{
+        receiverRef={{
           pin: { p: ".DRAM > .DQSL", n: ".DRAM > .DQSL_N" },
           model: { p: "ODT_off", n: "ODT_off" },
         }}
@@ -163,15 +161,13 @@ export default () => (
         offset="0.5UI"
       />
       {cpuDq.map((_, i) => (
-        <signal
+        <simulation.pcbchannel
           key={String(i)}
           name={`DQ${i}`}
-          driver={{ pin: `.CPU > .DDR_D${i}`, model: "Model_257" }}
-          receiver={{ pin: `.DRAM > .DQL${dramBitOrder[i]}`, model: "ODT_off" }}
-          strobe="DQS"
-          mask={{ setup: "10ps", hold: "45ps" }}
+          driverRef={{ pin: `.CPU > .DDR_D${i}`, model: "Model_257" }}
+          receiverRef={{ pin: `.DRAM > .DQL${dramBitOrder[i]}`, model: "ODT_off" }}
         />
       ))}
-    </signalintegrity>
+    </simulation.pcbtransientchannelsimulation>
   </board>
 )

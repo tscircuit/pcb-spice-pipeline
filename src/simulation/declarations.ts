@@ -111,10 +111,10 @@ export function circuitNodes(circuit: CircuitJson,geometry: Pick<Geometry,'mappi
 
 /**
  * Reads the simulation_* records into one validated plan per pcb_spice transient experiment, with timing,
- * states, stimuli, probes and eye requests. Every reference is checked here, before any solver runs.
+ * states, stimuli, probes. Every reference is checked here, before any solver runs.
  */
 export function generalDeclarations(circuit: CircuitJson,geometry: Pick<Geometry,'mappings'>,modeling: SimulationModeling): Declarations {
-  for(const type of ['simulation_experiment','simulation_ibis_model','simulation_voltage_probe','simulation_eye_diagram','source_port','source_net','source_component']) {
+  for(const type of ['simulation_experiment','simulation_ibis_model','simulation_voltage_probe','source_port','source_net','source_component']) {
     const seen=new Set<string>()
     for(const record of circuit.filter(e=>e.type===type)) {
       const id: unknown=Reflect.get(record,`${type}_id`)

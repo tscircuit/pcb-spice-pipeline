@@ -6,7 +6,7 @@ This is the only agent rules file. Do not add CLAUDE.md, GEMINI.md, .cursorrules
 
 1. Every diagram in this repo is a fenced ```` ```mermaid ```` block inside Markdown: README, `docs/`, and PR descriptions alike.
    Never commit or upload diagram images (PNG/SVG/JPG renders, screenshots of diagrams).
-   **Exception:** `examples/levels/*.png` are generated example result images (routed PCB snapshot plus simulation output), not diagrams. They are committed only in this repo, regenerated with `scripts/render-example-images.tsx`, and embedded only from `examples/levels/README.md`.
+   **Exception:** `examples/<level>/<level>.png` are generated example result images (routed PCB snapshot plus simulation output), not diagrams. They are shared with RFC #28, regenerated with `scripts/render-example-images.tsx`, and embedded only from `examples/README.md`.
 2. Each diagram is one of exactly two concepts:
    - **Workflow:** `flowchart` (data or call flow: what happens, which module owns each step).
    - **State machine:** `stateDiagram-v2` (phases, transitions, terminal and failure states).

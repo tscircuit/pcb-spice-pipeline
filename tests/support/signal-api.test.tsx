@@ -1,3 +1,4 @@
+import { simulation } from '@tscircuit/core'
 import React from 'react'
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -5,12 +6,11 @@ import { readFile } from 'node:fs/promises'
 import { renderSignals } from './signal-render'
 import { prepareBlocks } from '../../src/pipeline/signals'
 import { geometryFromCircuitJson } from '../../src/board'
-import { inspectPins, receiverThresholds, admitBuffers, compileBuffers } from '../../src/buffers'
+import { admitBuffers, compileBuffers } from '../../src/buffers'
 import { generalDeclarations, modelRunDefinition } from '../../src/simulation'
 import { rootScope } from '../../src/kernel'
 import Single from './unit-single-ended'
 import Differential from './unit-differential'
-import Strobe from './strobe-other-chip'
 import { Inverter, Reference } from './signal-parts'
 
 const modelDir = process.env.IBIS_MODEL_DIR
@@ -25,13 +25,13 @@ function Four(): React.JSX.Element {
       <trace from={`.TX${i} > .Y`} to={`.RX${i} > .A`} width={.2} pcbPath={[`.TX${i} > .Y`, `.RX${i} > .A`]} />
     </React.Fragment>)}
     <Reference />
-    <signalintegrity name="FOUR" bitRate={20e6} duration={48 / 20e6}>
-      {[0, 1, 2, 3].map(i => <signal key={i} name={`D${i}`} driver={`.TX${i} > .Y`} receiver={`.RX${i} > .A`} />)}
-    </signalintegrity>
+    <simulation.pcbtransientchannelsimulation name="FOUR" bitRate={20e6} duration={48 / 20e6}>
+      {[0, 1, 2, 3].map(i => <simulation.pcbchannel key={i} name={`D${i}`} driverRef={`.TX${i} > .Y`} receiverRef={`.RX${i} > .A`} />)}
+    </simulation.pcbtransientchannelsimulation>
   </board>
 }
 
-test('TSX adapter renders source records and core-owned stackup for unit boards', async () => {
+test('Real core renders source records and core-owned stackup for unit boards', async () => {
   for (const Board of [Single, Differential, Four]) {
     const records = await renderSignals(<Board />)
     assert.equal(records.filter(r => r.type === 'pcb_stackup').length, 1)
@@ -53,15 +53,13 @@ test('four-conductor derivation and geometry are invariant under signal record o
   geometry.cells[0].conductors.slice(0, -1).map(c => c.yM).sort().forEach((value, i) => assert.ok(Math.abs(value - i * .0004) < 1e-15))
 })
 
-test('RS485 thresholds and the placed termination are derived from real vendor data and TSX', { skip: !modelDir }, async () => {
+test('RS485 differential identity and the placed termination are derived from real vendor data and TSX', { skip: !modelDir }, async () => {
   const circuit = await renderSignals(<Differential />)
   const ibis = await sources()
   const prepared = prepareBlocks(circuit, ibis)[0]
   const receiver = prepared.signals[0].receivers[0]
   assert.equal(receiver.kind, 'differential')
   if (receiver.kind !== 'differential') return
-  const pin = inspectPins(circuit, ibis).get(receiver.p_source_port_id)!
-  assert.deepEqual(receiverThresholds(pin, true, 'ibis', 0), { vih: .2, vil: -.2 })
   const resistor = circuit.filter(r => r.type === 'source_component').find(r => r.name === 'RTERM')!
   assert.ok(prepared.settings.passiveComponents?.some(p => p.sourceComponentId === resistor.source_component_id))
 })
@@ -87,14 +85,4 @@ test('signal packages and vendor reference evidence remain present; quiet-off re
     assert.equal(model.metadata.packageData.mappedPins.filter(p => p.role === 'reference').length, 2)
   }
   assert.ok(compiled[0].metadata.pins.some(p => p.runState.mode === 'output' && p.runState.enabled))
-})
-
-test('a sole strobe receiver on a different chip cannot silently sample data', { skip: !modelDir }, async () => {
-  const circuit = await renderSignals(<Strobe />)
-  const ibis = await sources()
-  assert.throws(() => prepareBlocks(circuit, ibis), /expected exactly one DQS receiver/)
-})
-
-test('temporary adapter rejects unknown strobes instead of silently dropping them', async () => {
-  await assert.rejects(renderSignals(<Strobe strobe="MISSING" />), /strobe "MISSING" is not a signal/)
 })

@@ -533,4 +533,3 @@ export function copperPanelSizing(copper: RoutedCopper, maxPanelLengthMm: number
   }))
   return { aspectLimit: panelAspectLimit, sizeAt: p => Math.min(maxPanelLengthMm, minimum + panelGrading * distance(p)) }
 }
-

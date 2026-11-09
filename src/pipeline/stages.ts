@@ -9,7 +9,7 @@ import {
 import { waveformConvergence } from '../observation'
 import type { Chain, ObservedRun, Stage } from './state'
 
-/** Private native stages; public RFC measurements are assembled after numerical acceptance. */
+/** Private native stages; public RFC waveforms are assembled after numerical acceptance. */
 export const admit: Stage<'input', 'admitted'> = {
   name: 'admit', from: 'input', to: 'admitted',
   run: ({ options }) => {
@@ -126,7 +126,7 @@ export const seal: Stage<'observed', 'sealed'> = {
   run: state => {
     const limitations = [...state.geometry.approximations, ...state.compiled.flatMap(models => models.flatMap(model => model.warnings ?? [])),
       'Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded',
-      'Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim',
+      'Finite transient capture; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim',
       'Maximum solver integration step and display resolution are separate settings']
     return {
       state: { phase: 'sealed', result: {

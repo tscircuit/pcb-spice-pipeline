@@ -1,7 +1,7 @@
 /**
  * simulation — experiments as declared on the board, and running them in ngspice.
  * Owns: SimulationPlan declaration from simulation_* records (timing, probes, stimuli, pin
- * states, eye requests), electrical node mapping + ideal sources/passives, the converter run
+ * states), electrical node mapping + ideal sources/passives, the converter run
  * definition per model, probe-scope validation, the experiment netlist, ngspice diagnostics,
  * waveform coverage checks, and simulation_transient_voltage_graph result records.
  * Order (today's runPipeline): generalDeclarations -> electricalSources -> safeSimulationPlans

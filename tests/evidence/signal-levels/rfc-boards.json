@@ -1,1164 +1,178 @@
 {
-  "rfc_head": "a235ddd1ba93de1245ab07f3497511a860c81345",
-  "native_binary_sha256": {
-    "fasthenry": "211cdb2b30dbd6f7bcef16e78f4a56e2f6cbcfffe9b8de398386dd90b89ff0b7",
-    "FasterCap": "7bc18e61a66a9814d7a893cd1e7a7ffbf9246607a6f1128028870a467165c101",
-    "ngspice": "9ccc39c9b87a717db0244770596eeb01fc51e635f39dc32d77b3dc9ce4e17922"
-  },
-  "acceptance": {
-    "R_L_mesh": 0.05,
-    "C_auto": 0.02,
-    "reciprocity": 0.025,
-    "transient": "1% + 1 mV; integrated RMS and signed extrema, independent timestep and section refinements"
-  },
-  "note": "No RFC channel is accepted. Raw rejected matrices are plausibility diagnostics only; no transient uses them.",
+  "rfc_head": "89a263537ebc143315849f005024f84c1efa5635",
+  "native_timeout_ms": 1200000,
+  "OMP_NUM_THREADS": 1,
+  "maximum_native_processes": 1,
   "cases": [
     {
-      "name": "single",
-      "rendering": "real_core_without_adapter",
+      "level": "level1-single-ended",
       "core_module": "/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si/../core/dist/index.js",
-      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
-      "example_sha256": "093f3e7e71183158635ed1b002bd6d5b2f87331caaf044704b1e247de4a8597b",
-      "large_artifacts": "gzip_level_1_above_2_MB",
-      "runner_sha256": "3cb8aafad69a80a6ce96d581bb2dafb00b57077bc4fc9ee3770efbaf737916bc",
-      "native_timeout_ms": 600000,
-      "implementation_head": "2c43ab83c2f4471b2822e86f0fba3cdbc12c7c6e",
-      "sources": {
+      "example_sha256": "8b4824a11ecb77e195f56856da4d3e352ff7338ee038bc828bb878e51ab1e0d1",
+      "native_timeout_ms": 1200000,
+      "implementation_head": "67b8438acb29d49a7f0cfad786eb489a5939434c",
+      "ibis_sha256": {
         "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
         "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
       },
-      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
-      "status": "failed_native",
-      "seconds": 414.717,
-      "error": "reciprocity: C primitive: residual 0.1070386498482376 > 0.025",
-      "code": "reciprocity",
-      "native_execution": [
+      "status": "verified_native",
+      "seconds": 400.664,
+      "native_requests": [
         {
           "solver": "fasthenry",
-          "request_sha256": "f16460314993baa73357590b4d0a86a616c7d5540f0b789ccf39c80997bca3db",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ]
+          "request_sha256": "21dd368ca9f459c442d6b348c9a404259865812c934746b494361eb06bd4f2aa",
+          "reused_from": "runs/grounded-final/single/native-0-fasthenry",
+          "wall_seconds": 0.002
         },
         {
           "solver": "fasthenry",
-          "request_sha256": "7104760a2e8877d47cb3823f913f2a26cbfeaf0280ecc89a7888be0d1a7d5364",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ]
+          "request_sha256": "8285e23d103e084e9c461d463cef0aab258db0715b5ec70852c9d9096aa06793",
+          "reused_from": "runs/grounded-final/single/native-1-fasthenry",
+          "wall_seconds": 0.001
         },
         {
           "solver": "fastercap",
           "request_sha256": "4fefd3c34b72f84a704304a1cdc59b1bfd52cf6a2b1d8ccbc45f78f27e30f919",
-          "args": [
-            "channel.lst",
-            "-b",
-            "-a0.02",
-            "-ap",
-            "-e"
+          "reused_from": "runs/grounded-final/single/native-2-fastercap",
+          "wall_seconds": 0.002
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "0d3aa63299a2b05c500d6a982eecbddc2e4b8a9487ef2ecd1ede38e210701370",
+          "wall_seconds": 2.868
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "a8a2bdf2ee09f013ce7ec447e1620daa51961c71aa5c36cccfb1e02ae9a7ce1f",
+          "wall_seconds": 141.018
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "66d6db490e9535625e0df1e17ff852033927031862db6e63d985f383df110662",
+          "wall_seconds": 124.73
+        },
+        {
+          "solver": "ngspice",
+          "request_sha256": "9f9c0ae46056c6622b86e4856ae42fa7f0d14a901117aeb63b9eb888a046bc5b",
+          "wall_seconds": 118.994
+        }
+      ],
+      "convergence": {
+        "blocks/simulation_signal_integrity_0/experiments/simulation_signal_integrity_0/numerical-convergence.json": {
+          "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
+          "relative_tolerance": 0.01,
+          "absolute_tolerance_v": 0.001,
+          "checks": [
+            {
+              "previous_waveform_csv_sha256": "625bc8d6eb371b687dfec96409ee380e019acb5fe9a6112ff6ef63a43b982cdf",
+              "waveform_csv_sha256": "f0f9232067b2996eb80b8d6941d560dc56fded7504f9d5973cbd54923fdd9a47",
+              "dimension": "time",
+              "sections": 4,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 2988850,
+                  "rms_v": 0.00007033157095175677,
+                  "scale_v": 5.8814366259469555,
+                  "peak_change_v": 0.00013617520943132178,
+                  "positive_v": 1.684011901848573,
+                  "negative_v": -4.197285611815837,
+                  "accepted": true
+                }
+              ]
+            },
+            {
+              "previous_waveform_csv_sha256": "f0f9232067b2996eb80b8d6941d560dc56fded7504f9d5973cbd54923fdd9a47",
+              "waveform_csv_sha256": "f9e52baedae9972e8b16cdb8e58174dfd453f7e45f3929c776c9ae0f154bc45f",
+              "dimension": "space",
+              "sections": 8,
+              "step_s": 1.457612935665808e-11,
+              "accepted": true,
+              "probes": [
+                {
+                  "column": 1,
+                  "samples": 2982961,
+                  "rms_v": 0.0015416765931905712,
+                  "scale_v": 5.881297513664411,
+                  "peak_change_v": 0.0019866951037679215,
+                  "positive_v": 1.6837180393270192,
+                  "negative_v": -4.195298916712069,
+                  "accepted": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "name": "simulation_signal_integrity_0",
+          "simulation_signal_integrity_id": "simulation_signal_integrity_0",
+          "duration_s": 0.0000072,
+          "results": [
+            {
+              "type": "simulation_signal_waveform",
+              "simulation_signal_waveform_id": "simulation_signal_0_0",
+              "simulation_signal_id": "simulation_signal_0",
+              "end": "far",
+              "source_port_id": "source_port_6",
+              "samples": 1580521
+            },
+            {
+              "type": "simulation_signal_integrity_rlgc",
+              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_0",
+              "simulation_signal_integrity_id": "simulation_signal_integrity_0",
+              "conductors": [
+                {
+                  "simulation_signal_id": "simulation_signal_0",
+                  "leg": "single"
+                }
+              ],
+              "matrices": [
+                {
+                  "frequency_hz": 858000000,
+                  "r_ohm": [
+                    [
+                      0.9584266
+                    ]
+                  ],
+                  "l_h": [
+                    [
+                      2.501299861102654e-8
+                    ]
+                  ],
+                  "c_f": [
+                    [
+                      1.06734e-12
+                    ]
+                  ],
+                  "g_s": [
+                    [
+                      0
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "limitations": [
+            "Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup",
+            "FastHenry full ground polygons use fine rectangular return-current corridors within one trace height, graded spacing farther away and locally resolved finite contacts; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; ground mesh and skin-depth edge filaments refined together; electrically thin planes use one thickness filament",
+            "FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential",
+            "Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted",
+            "Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded",
+            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted",
+            "Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted",
+            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
+            "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
+            "Finite transient capture; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
+            "Maximum solver integration step and display resolution are separate settings"
           ]
         }
       ],
-      "physical_records": {
-        "pcb_trace": 4,
-        "pcb_via": 2,
-        "pcb_copper_pour": 1
-      },
-      "example": "level1-single-ended",
-      "accepted": false,
-      "input_sha256": "3f169f74061911884765f6d8ef0ce304ef6bd1f5de914928d5eb6e144da22251",
-      "numerical_settings": {
-        "measurementGate": 8e-7,
-        "reduction": "routed-copper",
-        "allowIdeal": false,
-        "simplifyParallel": true,
-        "sections": 4,
-        "lanes": [
-          {
-            "port": "DATA_source_trace_4",
-            "from": {
-              "sourcePortId": "source_port_3"
-            },
-            "to": {
-              "sourcePortId": "source_port_6"
-            },
-            "sourceTraceId": "source_trace_4"
-          }
-        ],
-        "channelReference": {
-          "sourcePortId": "source_port_2"
-        },
-        "groundReturn": {
-          "sourcePortId": "source_port_7"
-        },
-        "relativePermittivity": 4.42,
-        "extraction": {
-          "minimumHz": 0.858,
-          "modelHz": 858000000,
-          "maximumHz": 858000000,
-          "filaments": 3,
-          "refinementFilaments": 7,
-          "convergenceTolerance": 0.05,
-          "capTolerance": 0.02,
-          "reciprocityTolerance": 0.025,
-          "dcResistanceTolerance": 0.002,
-          "maxPanelLengthMm": 2.86,
-          "groundMeshMm": 1.43
-        },
-        "passiveComponents": [],
-        "viaPlatingMm": 0.018,
-        "viaEquivalentWidthMm": 0.23600000000000002,
-        "omitThroughViaStubs": true,
-        "supplies": [
-          {
-            "positive": {
-              "sourcePortId": "source_port_4"
-            },
-            "negative": {
-              "sourcePortId": "source_port_2"
-            },
-            "voltageV": 3.3
-          }
-        ]
-      },
-      "extraction": {
-        "R_ohm": [
-          [
-            0.9589386
-          ]
-        ],
-        "L_h": [
-          [
-            2.4984729131624206e-8
-          ]
-        ],
-        "C_f": null,
-        "primitive_C_f": [
-          [
-            1.06734e-12,
-            -7.446290000000001e-13
-          ],
-          [
-            -1.0253400000000002e-12,
-            2.62252e-12
-          ]
-        ],
-        "selected_R_L": "refined",
-        "R_mesh_delta": 0.01339293256106276,
-        "L_mesh_delta": 0.001227244379769905,
-        "cap_auto_residual": 0.0172399,
-        "channel_accepted": false,
-        "per_length": [
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 8.885511876101675e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": 3.795863543637239e-11
-          }
-        ]
-      },
-      "eyes": null,
-      "quiet_NEXT_FEXT": null,
-      "timestep_section_deltas": null
-    },
-    {
-      "name": "differential",
-      "rendering": "real_core_without_adapter",
-      "core_module": "/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si/../core/dist/index.js",
-      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
-      "example_sha256": "b3cb14ebd181f54bd05a3fffb875a45590cc16233ffde8b0974c5cd7d63247be",
-      "large_artifacts": "gzip_level_1_above_2_MB",
-      "runner_sha256": "3cb8aafad69a80a6ce96d581bb2dafb00b57077bc4fc9ee3770efbaf737916bc",
-      "native_timeout_ms": 600000,
-      "implementation_head": "2c43ab83c2f4471b2822e86f0fba3cdbc12c7c6e",
-      "sources": {
-        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
-        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
-      },
-      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
-      "status": "failed_native",
-      "seconds": 306.247,
-      "error": "reciprocity: C primitive: residual 0.0949961368297065 > 0.025",
-      "code": "reciprocity",
-      "native_execution": [
-        {
-          "solver": "fasthenry",
-          "request_sha256": "9afba4f51f2e6deae438c2cfdf4610d67a532c868d40c505ba85e88e5253c9ad",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ]
-        },
-        {
-          "solver": "fasthenry",
-          "request_sha256": "36df4d3aeafa1c657ab8adb58474fca677330a2d14a4519692747f61d1238bb4",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ]
-        },
-        {
-          "solver": "fastercap",
-          "request_sha256": "06c685e0a3d098b9d8bf4a5f21c9515d75d627a5db98e068ef34ab96d2038ad3",
-          "args": [
-            "channel.lst",
-            "-b",
-            "-a0.02",
-            "-ap",
-            "-e"
-          ]
-        }
-      ],
-      "physical_records": {
-        "pcb_trace": 6,
-        "pcb_via": 2,
-        "pcb_copper_pour": 1
-      },
-      "example": "level1-differential",
-      "accepted": false,
-      "input_sha256": "1f7630b325da2c742bb64c1c73ddc2568f950d1548705b3355e5d0126b685898",
-      "numerical_settings": {
-        "measurementGate": 0.000064,
-        "reduction": "routed-copper",
-        "allowIdeal": false,
-        "simplifyParallel": true,
-        "sections": 2,
-        "lanes": [
-          {
-            "port": "BUS_source_trace_4",
-            "from": {
-              "sourcePortId": "source_port_13"
-            },
-            "to": {
-              "sourcePortId": "source_port_16"
-            },
-            "sourceTraceId": "source_trace_4"
-          },
-          {
-            "port": "BUS_source_trace_5",
-            "from": {
-              "sourcePortId": "source_port_14"
-            },
-            "to": {
-              "sourcePortId": "source_port_17"
-            },
-            "sourceTraceId": "source_trace_5"
-          },
-          {
-            "port": "BUS_source_trace_2",
-            "from": {
-              "sourcePortId": "source_port_5"
-            },
-            "to": {
-              "sourcePortId": "source_port_13"
-            },
-            "sourceTraceId": "source_trace_2"
-          },
-          {
-            "port": "BUS_source_trace_3",
-            "from": {
-              "sourcePortId": "source_port_6"
-            },
-            "to": {
-              "sourcePortId": "source_port_14"
-            },
-            "sourceTraceId": "source_trace_3"
-          }
-        ],
-        "channelReference": {
-          "sourcePortId": "source_port_4"
-        },
-        "groundReturn": {
-          "sourcePortId": "source_port_12"
-        },
-        "relativePermittivity": 4.42,
-        "extraction": {
-          "minimumHz": 0.844,
-          "modelHz": 844000,
-          "maximumHz": 844000,
-          "filaments": 3,
-          "refinementFilaments": 7,
-          "convergenceTolerance": 0.05,
-          "capTolerance": 0.02,
-          "reciprocityTolerance": 0.025,
-          "dcResistanceTolerance": 0.002,
-          "maxPanelLengthMm": 2.86,
-          "groundMeshMm": 1.43
-        },
-        "passiveComponents": [
-          {
-            "sourceComponentId": "source_component_2"
-          }
-        ],
-        "viaPlatingMm": 0.018,
-        "viaEquivalentWidthMm": 0.23600000000000002,
-        "omitThroughViaStubs": true,
-        "supplies": [
-          {
-            "positive": {
-              "sourcePortId": "source_port_7"
-            },
-            "negative": {
-              "sourcePortId": "source_port_4"
-            },
-            "voltageV": 3.3
-          },
-          {
-            "positive": {
-              "sourcePortId": "source_port_15"
-            },
-            "negative": {
-              "sourcePortId": "source_port_12"
-            },
-            "voltageV": 3.3
-          }
-        ]
-      },
-      "extraction": {
-        "R_ohm": [
-          [
-            0.24076513,
-            0.01930515
-          ],
-          [
-            0.01931474,
-            0.24075400000000002
-          ]
-        ],
-        "L_h": [
-          [
-            4.8015669753710406e-8,
-            2.224575017012445e-8
-          ],
-          [
-            2.224412844914034e-8,
-            4.813035937028445e-8
-          ]
-        ],
-        "C_f": null,
-        "primitive_C_f": [
-          [
-            2.75259e-12,
-            -1.19178e-12,
-            -1.11918e-12
-          ],
-          [
-            -1.1908799999999999e-12,
-            2.73279e-12,
-            -1.08273e-12
-          ],
-          [
-            -1.51474e-12,
-            -1.5093699999999999e-12,
-            4.491130000000001e-12
-          ]
-        ],
-        "selected_R_L": "refined",
-        "R_mesh_delta": 0.0005626230010965621,
-        "L_mesh_delta": 0.0016733552555539238,
-        "cap_auto_residual": 0.0179571,
-        "channel_accepted": false,
-        "per_length": [
-          {
-            "length_m": 0.05741215228546241,
-            "L_h_per_m": 8.363328640767343e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": 4.7944379202397466e-11
-          },
-          {
-            "length_m": 0.05741215228546241,
-            "L_h_per_m": 8.383305180926261e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": 4.7599504481422865e-11
-          }
-        ]
-      },
-      "eyes": null,
-      "quiet_NEXT_FEXT": null,
-      "timestep_section_deltas": null
-    },
-    {
-      "name": "two",
-      "rendering": "real_core_without_adapter",
-      "core_module": "/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si/../core/dist/index.js",
-      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
-      "example_sha256": "7b78e046f3bcbe934a2e376cfaa49345ed5fc36a4475c7fa77d98b738a11f3b4",
-      "large_artifacts": "gzip_level_1_above_2_MB",
-      "runner_sha256": "3cb8aafad69a80a6ce96d581bb2dafb00b57077bc4fc9ee3770efbaf737916bc",
-      "native_timeout_ms": 600000,
-      "implementation_head": "2c43ab83c2f4471b2822e86f0fba3cdbc12c7c6e",
-      "sources": {
-        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
-        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
-      },
-      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
-      "status": "failed_native",
-      "seconds": 672.726,
-      "error": "reciprocity: C primitive: residual 0.09675331594056424 > 0.025",
-      "code": "reciprocity",
-      "native_execution": [
-        {
-          "solver": "fasthenry",
-          "request_sha256": "dde23efc3d9e433081abe548523bafe5ecbb6548c3758f282fd7b2514f68f13a",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ]
-        },
-        {
-          "solver": "fasthenry",
-          "request_sha256": "db873f83c869d289ff5d67f1ec0c64ddc6ad0b73ec4c926e60469c235dd9cabb",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ]
-        },
-        {
-          "solver": "fastercap",
-          "request_sha256": "972c838a0bd28247ae11ebe06e69f5da4b21078d19fbb678d047bec608fe870a",
-          "args": [
-            "channel.lst",
-            "-b",
-            "-a0.02",
-            "-ap",
-            "-e"
-          ]
-        }
-      ],
-      "physical_records": {
-        "pcb_trace": 9,
-        "pcb_via": 4,
-        "pcb_copper_pour": 1
-      },
-      "example": "level2-two-signals",
-      "accepted": false,
-      "input_sha256": "28c0a21eedc2058b3c391cd8b564bb10b30b6a54d56a6c0e5bfd5fb7936a3ddb",
-      "numerical_settings": {
-        "measurementGate": 8e-7,
-        "reduction": "routed-copper",
-        "allowIdeal": false,
-        "simplifyParallel": true,
-        "sections": 4,
-        "lanes": [
-          {
-            "port": "D0_source_trace_8",
-            "from": {
-              "sourcePortId": "source_port_3"
-            },
-            "to": {
-              "sourcePortId": "source_port_11"
-            },
-            "sourceTraceId": "source_trace_8"
-          },
-          {
-            "port": "D1_source_trace_9",
-            "from": {
-              "sourcePortId": "source_port_8"
-            },
-            "to": {
-              "sourcePortId": "source_port_16"
-            },
-            "sourceTraceId": "source_trace_9"
-          }
-        ],
-        "channelReference": {
-          "sourcePortId": "source_port_2"
-        },
-        "groundReturn": {
-          "sourcePortId": "source_port_12"
-        },
-        "relativePermittivity": 4.42,
-        "extraction": {
-          "minimumHz": 0.858,
-          "modelHz": 858000000,
-          "maximumHz": 858000000,
-          "filaments": 3,
-          "refinementFilaments": 7,
-          "convergenceTolerance": 0.05,
-          "capTolerance": 0.02,
-          "reciprocityTolerance": 0.025,
-          "dcResistanceTolerance": 0.002,
-          "maxPanelLengthMm": 2.86,
-          "groundMeshMm": 1.43
-        },
-        "passiveComponents": [],
-        "viaPlatingMm": 0.018,
-        "viaEquivalentWidthMm": 0.23600000000000002,
-        "omitThroughViaStubs": true,
-        "supplies": [
-          {
-            "positive": {
-              "sourcePortId": "source_port_4"
-            },
-            "negative": {
-              "sourcePortId": "source_port_2"
-            },
-            "voltageV": 3.3
-          }
-        ]
-      },
-      "extraction": {
-        "R_ohm": [
-          [
-            0.9769872,
-            0.1195669
-          ],
-          [
-            0.1196132,
-            0.9777970999999999
-          ]
-        ],
-        "L_h": [
-          [
-            2.5200645627846772e-8,
-            4.081916200709444e-9
-          ],
-          [
-            4.0851067193821495e-9,
-            2.5913244263489927e-8
-          ]
-        ],
-        "C_f": null,
-        "primitive_C_f": [
-          [
-            1.06013e-12,
-            -2.1533099999999998e-14,
-            -6.96907e-13
-          ],
-          [
-            -2.16981e-14,
-            1.05466e-12,
-            -6.844159999999999e-13
-          ],
-          [
-            -1.00662e-12,
-            -1.00224e-12,
-            3.2848899999999997e-12
-          ]
-        ],
-        "selected_R_L": "refined",
-        "R_mesh_delta": 0.013922111243733364,
-        "L_mesh_delta": 0.0015655243898250247,
-        "cap_auto_residual": 0.0137133,
-        "channel_accepted": false,
-        "per_length": [
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 8.962299924566187e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": 3.7702220646805574e-11
-          },
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 9.215726872144605e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": 3.750768681893727e-11
-          }
-        ]
-      },
-      "eyes": null,
-      "quiet_NEXT_FEXT": null,
-      "timestep_section_deltas": null
-    },
-    {
-      "name": "three",
-      "rendering": "real_core_without_adapter",
-      "core_module": "/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si/../core/dist/index.js",
-      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
-      "example_sha256": "85904533400618f54d6cc44406cfbeae28da6d2dbb553a496d98124944b2aa21",
-      "large_artifacts": "gzip_level_1_above_2_MB",
-      "runner_sha256": "d8365a3d396bc3445de00bbe403c90e76708d92eb928fd890ccbadf47c238c07",
-      "isolated_block": "TRAFFIC",
-      "native_timeout_ms": 600000,
-      "implementation_head": "9a0f5009d0a8850dff363623e5f64502f3af518d",
-      "sources": {
-        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
-        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
-      },
-      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
-      "status": "failed_native",
-      "seconds": 604.287,
-      "error": "native_timeout: fasthenry: exceeded 600000 ms process timeout; Command failed: /opt/homebrew/bin/fasthenry -p seg channel.inp",
-      "code": "native_timeout",
-      "native_execution": [
-        {
-          "solver": "fasthenry",
-          "request_sha256": "c6c2558e9e9597e976ab7b3e3ef6ac18c9c410af2b2d42c71ed4ac200f4f2af6",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ],
-          "exact_native_extraction_replay_from": "runs/layered-rfc-v2-traffic/three/native-0-fasthenry"
-        },
-        {
-          "solver": "fasthenry",
-          "request_sha256": "03d3b7b7ed4b597251ed532390e7b68f7280bab666547180013461086e3a32d3",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ]
-        }
-      ],
-      "physical_records": {
-        "pcb_trace": 14,
-        "pcb_via": 6,
-        "pcb_copper_pour": 1
-      },
-      "example": "level3-three-signals",
-      "block": "TRAFFIC",
-      "accepted": false,
-      "input_sha256": "bad956cf18f858fd22a2e6f4f9e322b5f58330337136e2612410a29033f25d58",
-      "numerical_settings": {
-        "measurementGate": 8e-7,
-        "reduction": "routed-copper",
-        "allowIdeal": false,
-        "simplifyParallel": true,
-        "sections": 4,
-        "lanes": [
-          {
-            "port": "D2_source_trace_14",
-            "from": {
-              "sourcePortId": "source_port_13"
-            },
-            "to": {
-              "sourcePortId": "source_port_26"
-            },
-            "sourceTraceId": "source_trace_14"
-          },
-          {
-            "port": "D0_source_trace_12",
-            "from": {
-              "sourcePortId": "source_port_3"
-            },
-            "to": {
-              "sourcePortId": "source_port_16"
-            },
-            "sourceTraceId": "source_trace_12"
-          },
-          {
-            "port": "D1_source_trace_13",
-            "from": {
-              "sourcePortId": "source_port_8"
-            },
-            "to": {
-              "sourcePortId": "source_port_21"
-            },
-            "sourceTraceId": "source_trace_13"
-          }
-        ],
-        "channelReference": {
-          "sourcePortId": "source_port_12"
-        },
-        "groundReturn": {
-          "sourcePortId": "source_port_17"
-        },
-        "relativePermittivity": 4.42,
-        "extraction": {
-          "minimumHz": 0.858,
-          "modelHz": 858000000,
-          "maximumHz": 858000000,
-          "filaments": 3,
-          "refinementFilaments": 7,
-          "convergenceTolerance": 0.05,
-          "capTolerance": 0.02,
-          "reciprocityTolerance": 0.025,
-          "dcResistanceTolerance": 0.002,
-          "maxPanelLengthMm": 2.86,
-          "groundMeshMm": 1.43
-        },
-        "passiveComponents": [],
-        "viaPlatingMm": 0.018,
-        "viaEquivalentWidthMm": 0.23600000000000002,
-        "omitThroughViaStubs": true,
-        "supplies": [
-          {
-            "positive": {
-              "sourcePortId": "source_port_4"
-            },
-            "negative": {
-              "sourcePortId": "source_port_2"
-            },
-            "voltageV": 3.3
-          }
-        ]
-      },
-      "extraction": {
-        "R_ohm": [
-          [
-            0.9566158,
-            0.10536178,
-            0.1107938
-          ],
-          [
-            0.10538691,
-            0.9559717,
-            0.1103022
-          ],
-          [
-            0.1108127,
-            0.1102642,
-            0.9565647
-          ]
-        ],
-        "L_h": [
-          [
-            2.6253498240312144e-8,
-            3.4826922751103066e-9,
-            4.598186640818257e-9
-          ],
-          [
-            3.4818018978062962e-9,
-            2.620847853787811e-8,
-            4.584144648752923e-9
-          ],
-          [
-            4.59518161741722e-9,
-            4.583180073340245e-9,
-            2.5964478057524873e-8
-          ]
-        ],
-        "C_f": null,
-        "primitive_C_f": null,
-        "selected_R_L": "coarse_only_unaccepted",
-        "R_mesh_delta": null,
-        "L_mesh_delta": null,
-        "cap_auto_residual": null,
-        "channel_accepted": false,
-        "per_length": [
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 9.336734017590016e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": null
-          },
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 9.320723313670482e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": null
-          },
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 9.233947541376478e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": null
-          }
-        ]
-      },
-      "eyes": null,
-      "quiet_NEXT_FEXT": null,
-      "timestep_section_deltas": null
-    },
-    {
-      "name": "three",
-      "rendering": "real_core_without_adapter",
-      "core_module": "/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si/../core/dist/index.js",
-      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
-      "example_sha256": "85904533400618f54d6cc44406cfbeae28da6d2dbb553a496d98124944b2aa21",
-      "large_artifacts": "gzip_level_1_above_2_MB",
-      "runner_sha256": "3cb8aafad69a80a6ce96d581bb2dafb00b57077bc4fc9ee3770efbaf737916bc",
-      "isolated_block": "XTALK_LOW",
-      "native_timeout_ms": 600000,
-      "implementation_head": "24d32ea5123cd5e403dbc3e55b085f13a7bf526f",
-      "sources": {
-        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
-        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
-      },
-      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
-      "status": "blocked_by_shared_extraction",
-      "seconds": 45.629,
-      "error": "native_timeout: fasthenry: exceeded 600000 ms process timeout; Command failed: /opt/homebrew/bin/fasthenry -p seg channel.inp",
-      "code": "native_solver",
-      "native_execution": [
-        {
-          "solver": "fasthenry",
-          "request_sha256": "c6c2558e9e9597e976ab7b3e3ef6ac18c9c410af2b2d42c71ed4ac200f4f2af6",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ],
-          "exact_native_extraction_replay_from": "runs/layered-rfc-v3-traffic/three/native-0-fasthenry"
-        },
-        {
-          "solver": "fasthenry",
-          "request_sha256": "03d3b7b7ed4b597251ed532390e7b68f7280bab666547180013461086e3a32d3",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ]
-        }
-      ],
-      "physical_records": {
-        "pcb_trace": 14,
-        "pcb_via": 6,
-        "pcb_copper_pour": 1
-      },
-      "example": "level3-three-signals",
-      "block": "XTALK_LOW",
-      "blocked_by_request_sha256": "03d3b7b7ed4b597251ed532390e7b68f7280bab666547180013461086e3a32d3",
-      "quiet_native_attempt": "coarse native output replayed; identical refinement attempt cancelled after the TRAFFIC refinement reached its 600000 ms deadline",
-      "interrupted_quiet_error": "native_solver: fasthenry: Command failed: /opt/homebrew/bin/fasthenry -p seg channel.inp",
-      "accepted": false,
-      "input_sha256": "74d7c78ec1aa15219aa4cfb497cbaeb86d6e887d076b67e536ea647bc041f755",
-      "numerical_settings": {
-        "measurementGate": 8e-7,
-        "reduction": "routed-copper",
-        "allowIdeal": false,
-        "simplifyParallel": true,
-        "sections": 4,
-        "lanes": [
-          {
-            "port": "D2_source_trace_14",
-            "from": {
-              "sourcePortId": "source_port_13"
-            },
-            "to": {
-              "sourcePortId": "source_port_26"
-            },
-            "sourceTraceId": "source_trace_14"
-          },
-          {
-            "port": "D0_source_trace_12",
-            "from": {
-              "sourcePortId": "source_port_3"
-            },
-            "to": {
-              "sourcePortId": "source_port_16"
-            },
-            "sourceTraceId": "source_trace_12"
-          },
-          {
-            "port": "D1_source_trace_13",
-            "from": {
-              "sourcePortId": "source_port_8"
-            },
-            "to": {
-              "sourcePortId": "source_port_21"
-            },
-            "sourceTraceId": "source_trace_13"
-          }
-        ],
-        "channelReference": {
-          "sourcePortId": "source_port_12"
-        },
-        "groundReturn": {
-          "sourcePortId": "source_port_17"
-        },
-        "relativePermittivity": 4.42,
-        "extraction": {
-          "minimumHz": 0.858,
-          "modelHz": 858000000,
-          "maximumHz": 858000000,
-          "filaments": 3,
-          "refinementFilaments": 7,
-          "convergenceTolerance": 0.05,
-          "capTolerance": 0.02,
-          "reciprocityTolerance": 0.025,
-          "dcResistanceTolerance": 0.002,
-          "maxPanelLengthMm": 2.86,
-          "groundMeshMm": 1.43
-        },
-        "passiveComponents": [],
-        "viaPlatingMm": 0.018,
-        "viaEquivalentWidthMm": 0.23600000000000002,
-        "omitThroughViaStubs": true,
-        "supplies": [
-          {
-            "positive": {
-              "sourcePortId": "source_port_4"
-            },
-            "negative": {
-              "sourcePortId": "source_port_2"
-            },
-            "voltageV": 3.3
-          }
-        ]
-      },
-      "extraction": {
-        "R_ohm": [
-          [
-            0.9566158,
-            0.10536178,
-            0.1107938
-          ],
-          [
-            0.10538691,
-            0.9559717,
-            0.1103022
-          ],
-          [
-            0.1108127,
-            0.1102642,
-            0.9565647
-          ]
-        ],
-        "L_h": [
-          [
-            2.6253498240312144e-8,
-            3.4826922751103066e-9,
-            4.598186640818257e-9
-          ],
-          [
-            3.4818018978062962e-9,
-            2.620847853787811e-8,
-            4.584144648752923e-9
-          ],
-          [
-            4.59518161741722e-9,
-            4.583180073340245e-9,
-            2.5964478057524873e-8
-          ]
-        ],
-        "C_f": null,
-        "primitive_C_f": null,
-        "selected_R_L": "coarse_only_unaccepted",
-        "R_mesh_delta": null,
-        "L_mesh_delta": null,
-        "cap_auto_residual": null,
-        "channel_accepted": false,
-        "per_length": [
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 9.336734017590016e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": null
-          },
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 9.320723313670482e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": null
-          },
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 9.233947541376478e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": null
-          }
-        ]
-      },
-      "eyes": null,
-      "quiet_NEXT_FEXT": null,
-      "timestep_section_deltas": null
-    },
-    {
-      "name": "three",
-      "rendering": "real_core_without_adapter",
-      "core_module": "/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si/../core/dist/index.js",
-      "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
-      "example_sha256": "85904533400618f54d6cc44406cfbeae28da6d2dbb553a496d98124944b2aa21",
-      "large_artifacts": "gzip_level_1_above_2_MB",
-      "runner_sha256": "3cb8aafad69a80a6ce96d581bb2dafb00b57077bc4fc9ee3770efbaf737916bc",
-      "isolated_block": "XTALK_HIGH",
-      "native_timeout_ms": 600000,
-      "implementation_head": "24d32ea5123cd5e403dbc3e55b085f13a7bf526f",
-      "sources": {
-        "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
-        "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
-      },
-      "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
-      "status": "blocked_by_shared_extraction",
-      "seconds": 44.419,
-      "error": "native_timeout: fasthenry: exceeded 600000 ms process timeout; Command failed: /opt/homebrew/bin/fasthenry -p seg channel.inp",
-      "code": "native_solver",
-      "native_execution": [
-        {
-          "solver": "fasthenry",
-          "request_sha256": "c6c2558e9e9597e976ab7b3e3ef6ac18c9c410af2b2d42c71ed4ac200f4f2af6",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ],
-          "exact_native_extraction_replay_from": "runs/layered-rfc-v3-traffic/three/native-0-fasthenry"
-        },
-        {
-          "solver": "fasthenry",
-          "request_sha256": "03d3b7b7ed4b597251ed532390e7b68f7280bab666547180013461086e3a32d3",
-          "args": [
-            "-p",
-            "seg",
-            "channel.inp"
-          ]
-        }
-      ],
-      "physical_records": {
-        "pcb_trace": 14,
-        "pcb_via": 6,
-        "pcb_copper_pour": 1
-      },
-      "example": "level3-three-signals",
-      "block": "XTALK_HIGH",
-      "blocked_by_request_sha256": "03d3b7b7ed4b597251ed532390e7b68f7280bab666547180013461086e3a32d3",
-      "quiet_native_attempt": "coarse native output replayed; identical refinement attempt cancelled after the TRAFFIC refinement reached its 600000 ms deadline",
-      "interrupted_quiet_error": "native_solver: fasthenry: Command failed: /opt/homebrew/bin/fasthenry -p seg channel.inp",
-      "accepted": false,
-      "input_sha256": "ecba8053adc44a51643aafadfe849c82a176f54f340895aef3a0682636eaed73",
-      "numerical_settings": {
-        "measurementGate": 8e-7,
-        "reduction": "routed-copper",
-        "allowIdeal": false,
-        "simplifyParallel": true,
-        "sections": 4,
-        "lanes": [
-          {
-            "port": "D2_source_trace_14",
-            "from": {
-              "sourcePortId": "source_port_13"
-            },
-            "to": {
-              "sourcePortId": "source_port_26"
-            },
-            "sourceTraceId": "source_trace_14"
-          },
-          {
-            "port": "D0_source_trace_12",
-            "from": {
-              "sourcePortId": "source_port_3"
-            },
-            "to": {
-              "sourcePortId": "source_port_16"
-            },
-            "sourceTraceId": "source_trace_12"
-          },
-          {
-            "port": "D1_source_trace_13",
-            "from": {
-              "sourcePortId": "source_port_8"
-            },
-            "to": {
-              "sourcePortId": "source_port_21"
-            },
-            "sourceTraceId": "source_trace_13"
-          }
-        ],
-        "channelReference": {
-          "sourcePortId": "source_port_12"
-        },
-        "groundReturn": {
-          "sourcePortId": "source_port_17"
-        },
-        "relativePermittivity": 4.42,
-        "extraction": {
-          "minimumHz": 0.858,
-          "modelHz": 858000000,
-          "maximumHz": 858000000,
-          "filaments": 3,
-          "refinementFilaments": 7,
-          "convergenceTolerance": 0.05,
-          "capTolerance": 0.02,
-          "reciprocityTolerance": 0.025,
-          "dcResistanceTolerance": 0.002,
-          "maxPanelLengthMm": 2.86,
-          "groundMeshMm": 1.43
-        },
-        "passiveComponents": [],
-        "viaPlatingMm": 0.018,
-        "viaEquivalentWidthMm": 0.23600000000000002,
-        "omitThroughViaStubs": true,
-        "supplies": [
-          {
-            "positive": {
-              "sourcePortId": "source_port_4"
-            },
-            "negative": {
-              "sourcePortId": "source_port_2"
-            },
-            "voltageV": 3.3
-          }
-        ]
-      },
-      "extraction": {
-        "R_ohm": [
-          [
-            0.9566158,
-            0.10536178,
-            0.1107938
-          ],
-          [
-            0.10538691,
-            0.9559717,
-            0.1103022
-          ],
-          [
-            0.1108127,
-            0.1102642,
-            0.9565647
-          ]
-        ],
-        "L_h": [
-          [
-            2.6253498240312144e-8,
-            3.4826922751103066e-9,
-            4.598186640818257e-9
-          ],
-          [
-            3.4818018978062962e-9,
-            2.620847853787811e-8,
-            4.584144648752923e-9
-          ],
-          [
-            4.59518161741722e-9,
-            4.583180073340245e-9,
-            2.5964478057524873e-8
-          ]
-        ],
-        "C_f": null,
-        "primitive_C_f": null,
-        "selected_R_L": "coarse_only_unaccepted",
-        "R_mesh_delta": null,
-        "L_mesh_delta": null,
-        "cap_auto_residual": null,
-        "channel_accepted": false,
-        "per_length": [
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 9.336734017590016e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": null
-          },
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 9.320723313670482e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": null
-          },
-          {
-            "length_m": 0.028118502884254444,
-            "L_h_per_m": 9.233947541376478e-7,
-            "C_f_per_m": null,
-            "raw_grounded_C_f_per_m": null
-          }
-        ]
-      },
-      "eyes": null,
-      "quiet_NEXT_FEXT": null,
-      "timestep_section_deltas": null
-    },
-    {
-      "status": "expected_error",
-      "rendering": "source_preflight_routeRemaining_false_not_full_layout",
-      "error": ".CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.",
-      "real_core_error": ".CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.",
-      "native_solver_calls": 0,
-      "example": "level4-ddr3-write",
-      "example_sha256": "c27778848c2cb0f3e7d12efb6628b21d5172b2f330b8ae0680b8c9013602f8e1",
-      "accepted": false,
-      "eyes": null,
-      "quiet_NEXT_FEXT": null,
-      "timestep_section_deltas": null
+      "run_directory": "runs/final-rfc/single"
     }
   ]
 }

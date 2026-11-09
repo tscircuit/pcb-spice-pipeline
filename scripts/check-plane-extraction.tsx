@@ -75,10 +75,10 @@ const summary = { status: rejection ? 'rejected_native_extraction' : 'verified_n
     L_delta: Math.abs(loopImpedance(impedanceSamples(outputs[0].files['Zc.mat'], cell).find(sample => sample.frequencyHz === settings.extraction.modelHz)!.L)[0][0] / L[0][0] - 1), tolerance: settings.extraction.convergenceTolerance },
   native_calls: calls, length_m: length, L_h_per_m: L[0][0] / length, C_f_per_m: C ? C[0][0] / length : null,
   raw_grounded_C_f_per_m: primitiveC[0][0] / length,
-  raw_C_definition: 'Raw primitive diagonal with physical return and infinity held at zero; rejected reciprocity, not a charge-neutral channel. No invalid matrix is symmetrized or reduced to manufacture accepted C.' ,
+  raw_C_definition: 'Ground-referenced primitive signal diagonal; the signal block must pass reciprocity before symmetrization and channel use.' ,
   capacitance_auto_residual: Number([...cap.stdout.matchAll(/Weighted Frobenius norm of the difference between capacitance \(auto option\):\s*([\deE+.-]+)/g)].at(-1)?.[1]),
   estimate: { source: 'https://qucs.sourceforge.net/tech/node75.html', width_mm: .15, dielectric_height_mm: 1.43, copper_thickness_mm: .03, er,
-    approximation: 'zero-thickness infinite plane; raw rejected grounded diagonal C is a plausibility diagnostic only; excludes finite board, end contacts, bends, via and internal inductance', effective_er: effectiveEr,
+    approximation: 'zero-thickness infinite plane; grounded diagonal C comparison is a plausibility diagnostic only; excludes finite board, end contacts, bends, via and internal inductance', effective_er: effectiveEr,
     impedance_ohm: airImpedance / Math.sqrt(effectiveEr), L_h_per_m: airImpedance / 299792458, C_f_per_m: effectiveEr / (airImpedance * 299792458),
     homogeneous_C_f_per_m: er / (airImpedance * 299792458) } }
 await writeFile(`${root}/summary.json`, JSON.stringify(summary, null, 2) + '\n')

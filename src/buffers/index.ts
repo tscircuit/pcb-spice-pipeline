@@ -11,5 +11,5 @@
 export type { IbisSources, ModelSourceRequest, ModelRunDefinition, SourceEvidence, LoadedModelSource, AdmittedBuffers, CompiledBuffer, AssemblyEntry } from './types'
 export { relativeFile, loadModelSource } from './source'
 export { assertConverter, admitBuffers, compileBuffers, ibisAssembly } from './buffers'
-export { inspectPins, edgeSeconds, receiverThresholds, pinCapabilities, ibisNumber } from './inspect'
+export { inspectPins, edgeSeconds, pinCapabilities, ibisNumber } from './inspect'
 export type { InspectedPin } from './inspect'

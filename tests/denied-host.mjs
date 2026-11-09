@@ -32,7 +32,6 @@ if(input.circuitJson.length){
   assert.equal(result.blocks.length,1)
   assert.equal(result.matrices.length,0)
   assert.equal(result.experiments[0].solverInvocations,requests.length)
-  assert.ok(result.blocks[0].results.some(record=>record.type==='simulation_signal_eye'))
   assert.ok(result.blocks[0].results.some(record=>record.type==='simulation_signal_waveform'))
   const report=generateReport(result)
   assert.match(report['results.html'],/id="simulation-data"/)

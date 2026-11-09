@@ -1,5 +1,7 @@
-// LEVEL 2: two signals.
-import { Inverter } from "./parts"
+import { simulation } from "@tscircuit/core"
+
+// LEVEL 2: two receiver waveforms, including coupling between the channels.
+import { Inverter } from "../parts"
 
 export default () => (
   <board width="40mm" height="20mm" layers={2} fabricatorPreset="jlcpcb_standard">
@@ -12,9 +14,9 @@ export default () => (
     <trace from=".TX1 > .Y" to=".RX1 > .A" />
     <copperpour connectsTo="net.GND" layer="bottom" unbroken />
 
-    <signalintegrity bitRate="20Mbps">
-      <signal name="D0" driver=".TX0 > .Y" receiver=".RX0 > .A" />
-      <signal name="D1" driver=".TX1 > .Y" receiver=".RX1 > .A" />
-    </signalintegrity>
+    <simulation.pcbtransientchannelsimulation bitRate="20Mbps">
+      <simulation.pcbchannel name="D0" driverRef=".TX0 > .Y" receiverRef=".RX0 > .A" />
+      <simulation.pcbchannel name="D1" driverRef=".TX1 > .Y" receiverRef=".RX1 > .A" />
+    </simulation.pcbtransientchannelsimulation>
   </board>
 )

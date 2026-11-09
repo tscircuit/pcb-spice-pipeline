@@ -1,3 +1,4 @@
+import { simulation } from '@tscircuit/core'
 import React from 'react'
 
 /** Local vendor asset descriptor; vendor bytes are never redistributed. */
@@ -15,7 +16,7 @@ export function Inverter({ name, x, y, driver, groundX = 0 }: { name: string; x:
         <smtpad portHints={['pin5']} pcbX={0} pcbY={2} width={.5} height={.5} shape="rect" />
       </footprint>} />
     <via name={`G_${name}`} pcbX={x + groundX} pcbY={y - 3.5} fromLayer="top" toLayer="bottom" holeDiameter={.15} outerDiameter={.3} connectsTo={`.${name} > .GND`} />
-    <ibismodel componentRef={`.${name}`} ibisModelAsset={asset('sn74lvc1g04.ibs')} ibisComponentName="LVC1G04_DCK"
+    <simulation.ibismodel componentRef={`.${name}`} ibisModelAsset={asset('sn74lvc1g04.ibs')} ibisComponentName="LVC1G04_DCK"
       ibisPinNameToPortLabel={{ [pin]: label, '3': 'GND', '5': 'VCC' }}
       ibisPinNameToModelName={{ [pin]: driver ? 'LVC1G04_OUT_33' : 'LVC1G04_IN_33' }}
       ibisPinNameToReferencePortLabels={{ [pin]: { pullup: 'VCC', pulldown: 'GND', powerClamp: 'VCC', groundClamp: 'GND' } }} />
@@ -32,7 +33,7 @@ export function Transceiver({ name, x }: { name: string; x: number }): React.JSX
         <smtpad portHints={['pin8']} pcbX={0} pcbY={2} width={.5} height={.5} shape="rect" />
       </footprint>} />
     <via name={`G_${name}`} pcbX={x} pcbY={-3.5} fromLayer="top" toLayer="bottom" holeDiameter={.15} outerDiameter={.3} connectsTo={`.${name} > .GND`} />
-    <ibismodel componentRef={`.${name}`} ibisModelAsset={asset('sn65hvd72.ibs')} ibisComponentName="SN65HVD72D"
+    <simulation.ibismodel componentRef={`.${name}`} ibisModelAsset={asset('sn65hvd72.ibs')} ibisComponentName="SN65HVD72D"
       ibisPinNameToPortLabel={{ '5': 'GND', '6': 'A', '7': 'B', '8': 'VCC' }} ibisPinNameToModelName={{ '6': 'a_b_p', '7': 'a_b_n' }}
       ibisPinNameToReferencePortLabels={{ '6': { pullup: 'VCC', pulldown: 'GND', powerClamp: 'VCC', groundClamp: 'GND' }, '7': { pullup: 'VCC', pulldown: 'GND', powerClamp: 'VCC', groundClamp: 'GND' } }} />
   </>

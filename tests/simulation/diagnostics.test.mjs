@@ -56,8 +56,6 @@ const MESSAGES={
  "stimulus_pattern": "stimulus_pattern: A nonempty binary string or array of numeric 0/1 bits is required",
  "stimulus_coverage": "stimulus_coverage: stimulus0: nonrepeating bits do not cover the complete run",
  "probe_reference": "probe_reference: diff: unknown signal/reference source",
- "eye_timing": "eye_timing: diff: measurement gate must fit the recorded run and contain a complete two-UI window",
- "eye_reference": "eye_reference: diff: unknown or unsupported transient experiment",
  "channel_short": "channel_short: Extracted endpoints are shorted by another ideal source trace or reference",
  "electrical_input": "electrical_input: declared supply: explicit finite value required",
  "supply_reference": "supply_reference: Voltage sources require explicit positive and negative source port/net terminals",
@@ -156,4 +154,3 @@ test('orphan ideal sources and unsupplied IBIS reference rails fail preflight',(
   const models=[{name:'test',spicePinMapping:{PAD:'p0',REF:'vspos'},metadata:{pins:[{physicalPin:'1',references:{pullup:'vspos'}}]}}]
   assert.throws(()=>validateProbeScope(declarations.plans[0],g,models,declarations.nodes,electrical),/floating_reference.*pullup/)
 })
-

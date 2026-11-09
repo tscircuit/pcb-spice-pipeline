@@ -22,7 +22,7 @@ async function fixture(): Promise<{ bytes: Uint8Array; prepared: ReturnType<type
   return { bytes, prepared, geometry, declarations: generalDeclarations(prepared.circuit, geometry, prepared.settings) }
 }
 
-test('ideal PDN keeps die references on perfect rails and preserves every signal package at each corner', { skip: !modelDir }, async () => {
+test('ideal PDN keeps die references on perfect rails and preserves every pin package at each corner', { skip: !modelDir }, async () => {
   const { bytes, declarations } = await fixture()
   const document = parseIbis(new TextDecoder().decode(bytes))
   for (const [corner, selection] of ['typical', 'minimum', 'maximum'].entries()) for (const model of declarations.models) {
@@ -34,21 +34,18 @@ test('ideal PDN keeps die references on perfect rails and preserves every signal
     for (const [i, [terminal, port]] of Object.entries(converted.spicePinMapping).entries()) {
       const physical = Object.keys(input.definition.pinMap).find(pin => input.definition.pinMap[pin] === port)!
       const pin = component.pins[physical]
-      if (/^(power|gnd)$/i.test(pin.model)) {
-        assert.doesNotMatch(converted.source, new RegExp(`^[RLC]PKG${i}[ab]? `, 'm'))
-        assert.ok(converted.source.includes(terminal))
-      } else {
-        assert.ok(converted.source.includes(`RPKG${i} ${terminal} PKGR${i} ${pin.resistance ?? component.package.resistance![corner]}`))
-        assert.ok(converted.source.includes(`LPKG${i} PKGR${i} PKGL${i} ${pin.inductance ?? component.package.inductance![corner]}`))
-        assert.ok(converted.source.includes(`CPKG${i}a ${terminal} `))
-        assert.ok(converted.source.includes(`CPKG${i}b PKGL${i} `))
-      }
+      assert.ok(converted.source.includes(`RPKG${i} ${terminal} PKGR${i} ${pin.resistance ?? component.package.resistance![corner]}`))
+      assert.ok(converted.source.includes(`LPKG${i} PKGR${i} PKGL${i} ${pin.inductance ?? component.package.inductance![corner]}`))
+      assert.ok(converted.source.includes(`CPKG${i}a ${terminal} `))
+      assert.ok(converted.source.includes(`CPKG${i}b PKGL${i} `))
+      if (/^(power|gnd)$/i.test(pin.model)) assert.match(converted.source, new RegExp(`VPDN${i} DIE${i} 0 `))
     }
-    // The converter's rail references and unbounded KU/KD must survive verbatim.
-    const buffers = converted.source.match(/^XBUF.*$/gm)!
-    assert.deepEqual(buffers.map(line => line.replace(/PKGL\d+/g, 'PAD0')), die.source.match(/^XBUF.*$/gm))
-    assert.deepEqual(converted.source.match(/^VK[UD].*$/gm), die.source.match(/^VK[UD].*$/gm))
-    assert.match(converted.metadata.omissions.join(' '), /pdn="ideal"/)
+    // Renaming only package nodes must preserve the converter's rail references and KU/KD.
+    /** Recover original terminal names to compare the unchanged die buffer and drive tables. */
+    const normalize = (line: string): string => line.replace(/PKGL\d+/g, 'PAD0').replace(/DIE(\d+)/g, (_, index) => Object.keys(converted.spicePinMapping)[Number(index)])
+    assert.deepEqual(converted.source.match(/^XBUF.*$/gm)?.map(normalize), die.source.match(/^XBUF.*$/gm))
+    assert.deepEqual(converted.source.match(/^VK[UD].*$/gm)?.map(normalize), die.source.match(/^VK[UD].*$/gm))
+    assert.deepEqual(converted.metadata.omissions, [])
   }
 })
 

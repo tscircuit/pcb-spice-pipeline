@@ -76,7 +76,7 @@ residual. Its capacitance call is fresh native execution; the Level 1/2 C
 requests replay byte-identical native outputs from the first candidate and
 retain their same rejections. No C matrix is accepted or adjusted. Per the
 requested stopping condition, TRAFFIC has no transient, XTALK_LOW/HIGH are
-not run, and eyes, NEXT/FEXT and transient convergence deltas are unavailable.
+not run, and waveforms and transient convergence deltas are unavailable.
 
 Verification: `npm test` reports 233 tests, 231 pass, two optional skips and no
 failures. `typecheck`, `lint`, `check:modules` and `check:vocabulary` pass; lint

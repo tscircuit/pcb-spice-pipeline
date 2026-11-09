@@ -30,8 +30,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --import tsx --test 'tests/**/*.test.mjs' 'tests/**/*.test.ts' 'tests/**/*.test.tsx'",
-    "test:native": "npm run build && node --import tsx --test tests/general.integration.mjs",
+    "test": "node --import tsx --test --test-concurrency=1 'tests/**/*.test.mjs' 'tests/**/*.test.ts' 'tests/**/*.test.tsx'",
+    "test:native": "npm run build && node --import tsx --test --test-concurrency=1 tests/general.integration.mjs",
     "typecheck": "tsc --noEmit && tsc -p tests/tsconfig.json && tsc -p examples/tsconfig.json --noEmit",
     "build": "node scripts/build-client.mjs --clean && tsc && node scripts/fix-dist-imports.mjs && node scripts/bundle.mjs",
     "prepack": "npm run build",

@@ -11,7 +11,6 @@ import {createNativeSolver,loadIbisSources,writePipelineOutput} from '../../src/
 import {reportFixture as runPipeline} from '../support/report-fixture'
 import {generateReport} from '../../src/report'
 import type {RunSolver} from '../../src/solver'
-import {inMemoryInput,fixtureSolver} from '../fixtures/in-memory.mjs'
 
 /** Makes a scratch directory that is deleted when the test finishes. */
 const temporary=async(t: {after:(fn:()=>Promise<void>)=>void}): Promise<string>=>{

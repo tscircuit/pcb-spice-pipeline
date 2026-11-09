@@ -241,10 +241,9 @@ export function routedCopperGeometry(circuit: CircuitJson, m: ResolvedModeling, 
       'Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup',
       'FastHenry full ground polygons use fine rectangular return-current corridors within one trace height, graded spacing farther away and locally resolved finite contacts; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; ground mesh and skin-depth edge filaments refined together; electrically thin planes use one thickness filament',
       'FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential',
-      'Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted',
+      'Only endpoint reference leads/vias are geometrically extracted; die rails remain ideal and vendor scalar packages are added separately',
       'Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded',
-      'Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted',
+      'Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, dielectric loss and copper roughness omitted',
       'Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted',
     ] }
 }
-

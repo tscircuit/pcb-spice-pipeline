@@ -17,8 +17,12 @@ test('oversized TSX result artifacts preserve every waveform sample, record and 
   const files = signalResultFiles(records, limited)
   const index = JSON.parse(files['circuit-results.index.json']) as { parts: { file: string; indices: number[] }[] }
   const restored: CircuitJson = []
-  for (const part of index.parts) JSON.parse(files[part.file]).forEach((record: CircuitJson[number], i: number) => { restored[part.indices[i]] = record })
+  for (const part of index.parts) JSON.parse(files[part.file]).forEach((record: CircuitJson[number], i: number) => {
+    restored[part.indices[i]] = record
+  })
   assert.deepEqual(restored, records)
   assert.deepEqual(signalResultFiles(records), { 'circuit-results.json': jsonBody(records) })
-  assert.throws(() => signalResultFiles(records, () => { throw new TypeError('bad JSON') }), /bad JSON/)
+  assert.throws(() => signalResultFiles(records, () => {
+    throw new TypeError('bad JSON')
+  }), /bad JSON/)
 })

@@ -90,7 +90,7 @@ test('TSX dielectric and contact faces form one closed FR-4 boundary with consis
 })
 
 // Recorded native matrices come from the actual TSX fixture, not hand-authored Circuit JSON.
-test('recorded TSX microstrip asymmetry is confined to return entries; symmetrize only the passing signal block', async () => {
+test('recorded TSX microstrips reject the full primitive but accept and symmetrize signal blocks', async () => {
   const { readFile } = await import('node:fs/promises')
   const evidence = JSON.parse(await readFile(new URL('../evidence/signal-levels/layered-capacitance-investigation.json', import.meta.url), 'utf8'))
   for (const sample of evidence.final_baseline_confirmation) {

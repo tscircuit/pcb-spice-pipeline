@@ -83,7 +83,7 @@ export interface ExperimentRun {
   /** `experiments/<id>`. */
   readonly directory: string
   readonly rows: number[][]
-  /** SHA-256 of `<directory>/waveform.csv`, the eye descriptors' sourceSha256. */
+  /** SHA-256 of `<directory>/waveform.csv`, the accepted waveform's identity. */
   readonly waveformCsvSha256: string
 }
 /** Today's PipelineResult.experiments[] entry. Key order is serialized. */

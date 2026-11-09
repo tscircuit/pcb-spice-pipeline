@@ -46,7 +46,7 @@ try {
   const input={circuitJson:[],ibisSources:{}}
   if(process.env.IBIS_MODEL_DIR){
     const {renderSignals}=await import('../tests/support/signal-render.tsx')
-    const {default:Single}=await import('../examples/levels/level1-single-ended.tsx')
+    const {default:Single}=await import('../examples/level1-single-ended/level1-single-ended.tsx')
     input.circuitJson=(await renderSignals(React.createElement(Single))).filter(record=>record.type!=='pcb_trace')
     for(const record of input.circuitJson)if(record.type==='simulation_signal_integrity')record.unrouted='ideal'
     input.ibisSources['models/sn74lvc1g04.ibs']=await readFile(join(process.env.IBIS_MODEL_DIR,'sn74lvc1g04.ibs'),'utf8')
@@ -64,7 +64,7 @@ import {createNativeSolver,loadIbisSources,writePipelineOutput} from '@tscircuit
 import {fixtureSolver} from './solver.mjs';
 const input=JSON.parse(readFileSync('input.json','utf8'));
 await assert.rejects(runPipeline({...input,modeling:{},runSolver:fixtureSolver}),{code:'signal_integrity_input'});
-if(input.circuitJson.length){const result=await runPipeline({...input,runSolver:fixtureSolver});assert.equal(result.blocks.length,1);assert.ok(result.blocks[0].results.some(r=>r.type==='simulation_signal_eye'));assert.ok(generateReport(result)['results.html']);}
+if(input.circuitJson.length){const result=await runPipeline({...input,runSolver:fixtureSolver});assert.equal(result.blocks.length,1);assert.ok(result.blocks[0].results.some(r=>r.type==='simulation_signal_waveform'));assert.ok(generateReport(result)['results.html']);}
 else assert.deepEqual((await runPipeline({...input,runSolver:fixtureSolver})).blocks,[]);
 assert.equal(typeof createNativeSolver,'function');assert.equal(typeof loadIbisSources,'function');assert.equal(typeof writePipelineOutput,'function');`
   await writeFile(join(consumer,'smoke.mjs'),smoke)

@@ -5,7 +5,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { auditMatrices } from '../../scripts/verification/audit-matrices.mjs'
 import { auditGroundCopper } from '../../scripts/verification/audit-general.mjs'
-import { independentlyCheckMatrices } from '../../scripts/audit-eye.mjs'
 
 // Hand-written native-output fixtures: no pipeline geometry or matrix helpers.
 async function nativeFixture(t, routed, lanes) {
@@ -44,7 +43,7 @@ async function nativeFixture(t, routed, lanes) {
   return { out, dir, cell, modeling, extraction, save, resistance }
 }
 
-for (const [label, audit] of [['general', auditMatrices], ['package', independentlyCheckMatrices]]) {
+for (const [label, audit] of [['matrix', auditMatrices]]) {
   test(`${label} independent audit preserves legacy metres and routed millimetres for one to three signals`, async t => {
     for (const routed of [false, true]) for (const lanes of [1, 3]) await t.test(`${routed ? 'routed' : 'legacy'}: ${lanes} lanes`, async t => {
       const fixture = await nativeFixture(t, routed, lanes)

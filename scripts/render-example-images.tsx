@@ -1,156 +1,240 @@
 import React from 'react'
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
-import { writeFileSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
+import { simulation } from '@tscircuit/core'
+import { access, readFile, writeFile, mkdir, readdir, open } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { gunzipSync } from 'node:zlib'
 import { Resvg } from '@resvg/resvg-js'
 import { convertCircuitJsonToPcbSvg } from 'circuit-to-svg'
 import { renderCoreSignals } from '../tests/support/core-render'
-import { sampleVoltage } from '../src/observation'
+import Single from '../examples/level1-single-ended/level1-single-ended'
+import Differential from '../examples/level1-differential/level1-differential'
+import Two from '../examples/level2-two-channels/level2-two-channels'
+import Three from '../examples/level3-three-channels/level3-three-channels'
+import DDR3 from '../examples/level4-ddr3-write/level4-ddr3-write'
 import type { CircuitJson } from '../src/board'
-import Single from '../examples/levels/level1-single-ended'
-import Differential from '../examples/levels/level1-differential'
-import Two from '../examples/levels/level2-two-signals'
-import Three from '../examples/levels/level3-three-signals'
-import DDR3 from '../examples/levels/level4-ddr3-write'
+import type { SimulationSignalWaveform } from 'circuit-json'
 
-const boards = { 'level1-single-ended': Single, 'level1-differential': Differential, 'level2-two-signals': Two, 'level3-three-signals': Three, 'level4-ddr3-write': DDR3 }
-const evidence = JSON.parse(await readFile('tests/evidence/signal-levels/rfc-boards.json', 'utf8')) as any
-const directory = 'runs/example-images'
-await mkdir(directory, { recursive: true })
-
-// Isolate DDR3's bounded full-layout attempt so autorouter workers cannot outlive the image command.
-if (process.argv[2] === '--ddr3-layout') {
-  const { Circuit } = await import(process.env.SI_CORE_MODULE ?? '@tscircuit/core')
-  const circuit = new Circuit({ platform: { partsEngineDisabled: true, platformFetch: async (url: string) => new Response(await readFile(`${process.env.IBIS_MODEL_DIR ?? 'models'}/${String(url).split('/').at(-1)}`)) } })
-  /** Save actual partial copper before terminating a failed or bounded-out render. */
-  const save = (status: string, error?: string): void => {
-    writeFileSync(`${directory}/ddr3-layout.json`, JSON.stringify({ status, error, records: circuit.db.toArray() }))
-    process.exit(0)
-  }
-  setTimeout(() => save('partial_layout_deadline', 'Full DDR3 layout exceeded the 180000 ms image-render deadline.'), 180000)
-  try {
-    circuit.add(<DDR3 />)
-    await circuit.renderUntilSettled()
-    save('rendered')
-  } catch (error) { save('partial_core_error', (error as Error).message) }
-}
-
-/** Escape data-derived text before inserting it into SVG. */
+const levels = [
+  { name: 'level1-single-ended', Board: Single, runs: ['single'] },
+  { name: 'level1-differential', Board: Differential, runs: ['differential'] },
+  { name: 'level2-two-channels', Board: Two, runs: ['two'] },
+  { name: 'level3-three-channels', Board: Three, runs: ['three/TRAFFIC', 'three/XTALK_LOW', 'three/XTALK_HIGH'] },
+  { name: 'level4-ddr3-write', Board: DDR3, runs: ['ddr3'] },
+]
+const root = process.env.SI_RUN_ROOT ?? 'runs/final-rfc'
+const evidence: unknown[] = []
+const paragraphs: string[] = []
+/** Escape data-derived labels in SVG. */
 const escape = (value: unknown): string => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
-/** Fixed precision for readable engineering labels. */
+/** Compact engineering labels, without changing the data. */
 const number = (value: number): string => Number(value.toPrecision(4)).toString()
-/** Wrap an exact blocking message without truncating its contents. */
-function wrapped(value: string, x: number, y: number, width: number = 105): string {
+/** Read a full accepted waveform, archived losslessly by the native runner. */
+async function waveform(directory: string, id: string): Promise<SimulationSignalWaveform> {
+  const file = `${directory}/waveforms/${id}.json`
+  try {
+    return JSON.parse(await readFile(file, 'utf8')) }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    return JSON.parse(gunzipSync(await readFile(`${file}.gz`)).toString())
+  }
+}
+/** Retain the first/last sample and native extrema in each display/export bucket. */
+function selectedIndices(values: number[], stride: number): number[] {
+  if (stride === 1) return Array.from({ length: values.length }, (_, i) => i)
+  const indices = new Set([0, values.length - 1])
+  for (let i = 0; i < values.length; i += stride) {
+    let low = i
+    let high = i
+    for (let j = i; j < Math.min(values.length, i + stride); j++) {
+      if (values[j] < values[low]) low = j
+      if (values[j] > values[high]) high = j
+    }
+    indices.add(low)
+    indices.add(high)
+  }
+  return [...indices].sort((a, b) => a - b)
+}
+/** Wrap a stop message in the figure without clipping it. */
+function wrapped(value: string, y: number): { svg: string; height: number } {
   const lines: string[] = []
   let line = ''
   for (const word of value.split(/\s+/)) {
-    if (line.length + word.length > width && line) {
+    if (line.length + word.length > 110 && line) {
       lines.push(line)
       line = ''
     }
     line += `${line ? ' ' : ''}${word}`
   }
   if (line) lines.push(line)
-  return lines.map((line, i) => `<text x="${x}" y="${y + i * 29}" font-size="21">${escape(line)}</text>`).join('')
+  return { svg: lines.map((text, i) => `<text x="75" y="${y + 75 + 27 * i}" font-size="19">${escape(text)}</text>`).join(''), height: 110 + 27 * lines.length }
 }
-/** Custom two-UI eye drawn from committed adaptive receiver samples, with full-resolution measurements. */
-function eyePanel(block: any, signal: any, eye: any, waveform: any, y: number): string {
-  const ui = 1 / signal.bit_rate_bps
-  const threshold = signal.thresholds[eye.source_port_id]
-  const rows = waveform.timestamps_s.map((time: number, i: number) => [time, waveform.voltage_levels[i]])
-  const minimum = Math.min(...waveform.voltage_levels, threshold.vil) - .15
-  const maximum = Math.max(...waveform.voltage_levels, threshold.vih) + .15
-  const left = 120
-  const top = y + 65
-  const width = 1360
-  const height = 295
-  /** Map voltage to the plot's vertical coordinate. */
-  const py = (value: number): number => top + height * (maximum - value) / (maximum - minimum)
-  let svg = `<text x="70" y="${y + 30}" font-size="24">${escape(block.name)} / ${escape(signal.name)} · ${number(eye.eye_height_v)} V × ${number(eye.eye_width_s * 1e9)} ns</text>`
-  svg += `<rect x="${left}" y="${top}" width="${width}" height="${height}" fill="#08111e" stroke="#41536d"/>`
-  const first = Math.ceil((block.gate_s - signal.offset_s) / ui - 1e-10)
-  const end = rows.at(-1)![0]
-  for (let bit = first; signal.offset_s + (bit + 2) * ui <= end * (1 + 1e-12); bit++) {
-    const start = signal.offset_s + bit * ui
-    const points = Array.from({ length: 401 }, (_, i) => `${left + width * i / 400},${py(sampleVoltage(rows, 1, start + 2 * ui * i / 400))}`).join(' ')
-    svg += `<polyline points="${points}" fill="none" stroke="#55e2d0" stroke-opacity="0.17" stroke-width="1.2"/>`
+/** Plot CSV samples in volts and actual time, with an idle line for every quiet endpoint. */
+function panel(block: string, rows: { channel: string; end: string; time: number; voltage: number; idle?: number }[], y: number): string {
+  let low = Infinity
+  let high = -Infinity
+  let end = 0
+  for (const row of rows) {
+    low = Math.min(low, row.voltage, row.idle ?? row.voltage)
+    high = Math.max(high, row.voltage, row.idle ?? row.voltage)
+    end = Math.max(end, row.time)
   }
-  const setup = signal.mask === 'ibis' ? 0 : signal.mask.setup_s ?? 0
-  const hold = signal.mask === 'ibis' ? 0 : signal.mask.hold_s ?? 0
-  svg += `<rect x="${left + width * (.5 - setup / ui) / 2}" y="${py(threshold.vih)}" width="${Math.max(1, width * (setup + hold) / ui / 2)}" height="${py(threshold.vil) - py(threshold.vih)}" fill="#ff718740" stroke="#ff7187"/><text x="${left + width * .31}" y="${py(threshold.vih) - 10}" font-size="17" fill="#ff9dad">mask ${number(threshold.vil)}–${number(threshold.vih)} V</text>`
-  for (const fraction of [0, .5, 1, 1.5, 2]) svg += `<text x="${left + fraction / 2 * width}" y="${top + height + 27}" text-anchor="middle" font-size="17">${fraction} UI</text>`
-  svg += `<text x="${left}" y="${top + height + 56}" font-size="17">Folded after gate ${number(block.gate_s * 1e9)} ns · measurements from ${waveform.full_resolution_samples} full-resolution samples</text>`
-  return svg
-}
-/** Quiet-victim noise relative to the independently settled idle, retaining signed full-resolution peaks. */
-function noisePanel(block: any, signal: any, peak: any, waveform: any, y: number): string {
-  const samples = waveform.timestamps_s.flatMap((time: number, i: number) => time >= block.gate_s ? [[time, waveform.voltage_levels[i] - peak.idle_voltage_v]] : [])
-  const maximum = Math.max(Math.abs(peak.peak_positive_v), Math.abs(peak.peak_negative_v), 1e-6) * 1.3
-  const start = samples[0][0]
-  const end = samples.at(-1)![0]
-  /** Plot y coordinate relative to undisturbed idle. */
-  const py = (v: number): number => y + 210 - v / maximum * 130
-  const points = samples.map((row: number[]) => `${120 + (row[0] - start) / (end - start) * 1360},${py(row[1])}`).join(' ')
-  let svg = `<text x="70" y="${y + 30}" font-size="24">${escape(block.name)} / ${escape(signal.name)} · ${peak.end === 'near' ? 'NEXT' : 'FEXT'} relative to idle ${number(peak.idle_voltage_v)} V</text>`
-  svg += `<rect x="120" y="${y + 65}" width="1360" height="290" fill="#08111e" stroke="#41536d"/><path d="M120 ${py(0)} H1480" stroke="#64748b"/><polyline points="${points}" fill="none" stroke="#aab6ff" stroke-width="1.4"/>`
-  for (const [label, value] of [['positive', peak.peak_positive_v], ['negative', peak.peak_negative_v]] as const) {
-    const nearest = samples.reduce((a: number[], b: number[]) => Math.abs(b[1] - value) < Math.abs(a[1] - value) ? b : a)
-    const x = 120 + (nearest[0] - start) / (end - start) * 1360
-    svg += `<circle cx="${x}" cy="${py(value)}" r="5" fill="#ffbe6a"/><text x="${Math.min(1200, Math.max(130, x + 10))}" y="${py(value) + (label === 'positive' ? -15 : 28)}" font-size="18" fill="#ffbe6a">${value >= 0 ? '+' : ''}${number(value * 1000)} mV</text>`
+  const margin = Math.max(.015, (high - low) * .08)
+  low -= margin
+  high += margin
+  const scale = end < 1e-6 ? 1e9 : 1e6
+  const unit = scale === 1e9 ? 'ns' : 'µs'
+  const top = y + 85
+  const height = 265
+  /** Vertical position in volts. */
+  const py = (value: number): number => top + height * (high - value) / (high - low)
+  let svg = `<text x="60" y="${y + 28}" font-size="25">${escape(block)}</text><rect x="125" y="${top}" width="1380" height="${height}" fill="#08111e" stroke="#40536a"/>`
+  const groups = new Map<string, typeof rows>()
+  for (const row of rows) {
+    const key = `${row.channel} / ${row.end}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(row)
   }
-  svg += `<text x="120" y="${y + 390}" font-size="17">${number(start * 1e6)}–${number(end * 1e6)} µs · signed peak labels use the full-resolution measurement</text>`
-  return svg
+  const colors = ['#56d9ed', '#ffcc66', '#c49bff', '#ff8195']
+  let index = 0
+  for (const [name, values] of groups) {
+    const color = colors[index % colors.length]
+    const stride = Math.max(1, Math.ceil(values.length / 5000))
+    const points = selectedIndices(values.map(row => row.voltage), stride).map(i => `${125 + 1380 * values[i].time / end},${py(values[i].voltage)}`).join(' ')
+    svg += `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.3"/>`
+    const idle = values[0].idle
+    if (idle !== undefined) svg += `<path d="M125 ${py(idle)}H1505" stroke="${color}" stroke-dasharray="9 7" stroke-opacity=".8"/>`
+    svg += `<text x="${125 + index * 330}" y="${y + 61}" font-size="18" fill="${color}">${escape(name)}${idle === undefined ? '' : ` · idle ${number(idle)} V`}</text>`
+    index++
+  }
+  for (let i = 0; i <= 4; i++) {
+    const x = 125 + 1380 * i / 4
+    const voltage = low + (high - low) * i / 4
+    svg += `<path d="M${x} ${top}v${height}" stroke="#ffffff15"/><text x="${x}" y="${top + height + 27}" text-anchor="middle" font-size="17">${number(end * scale * i / 4)}</text><text x="110" y="${py(voltage) + 6}" text-anchor="end" font-size="17">${number(voltage)}</text>`
+  }
+  return svg + `<text x="815" y="${top + height + 58}" font-size="19">Time (${unit})</text><text x="48" y="${top + 130}" font-size="19" transform="rotate(-90 48 ${top + 130})">Voltage (V)</text>`
 }
-
-for (const [name, Board] of Object.entries(boards)) {
-  if (process.env.SI_IMAGE_ONLY && process.env.SI_IMAGE_ONLY !== name) continue
-  const source = await readFile(`examples/levels/${name}.tsx`)
-  const sourceHash = createHash('sha256').update(source).digest('hex')
-  const cases = evidence.cases.filter((item: any) => item.example === name)
-  if (cases.some((item: any) => item.example_sha256 && item.example_sha256 !== sourceHash)) throw new Error(`${name}: committed evidence does not match the TSX`)
+for (const { name, Board, runs } of levels) {
+  if (process.argv[2] && process.argv[2] !== name) continue
+  const directory = `examples/${name}`
+  await mkdir(directory, { recursive: true })
+  const summaries: any[] = []
+  const traces: { directory: string; block: string; channel: string; record: SimulationSignalWaveform; fullBytes: number }[] = []
+  let totalBytes = 0
+  for (const run of runs) {
+    const path = `${root}/${run}`
+    const summary = JSON.parse(await readFile(`${path}/summary.json`, 'utf8'))
+    const input = JSON.parse(await readFile(`${path}/input.json`, 'utf8')) as CircuitJson
+    const sourceHash = createHash('sha256').update(await readFile(`${directory}/${name}.tsx`)).digest('hex')
+    if (summary.example_sha256 !== sourceHash) throw new Error(`${name}: evidence does not match the current TSX`)
+    const extraction: unknown[] = []
+    for (const block of summary.blocks ?? []) {
+      const directory = `${path}/blocks/${block.simulation_signal_integrity_id}`
+      for (const stage of await readdir(directory)) if (/^stage-\d+$/.test(stage)) {
+        const matrix = JSON.parse(await readFile(`${directory}/${stage}/extraction.json`, 'utf8'))
+        extraction.push({ stage: matrix.stage, frequency_hz: matrix.frequencyHz, R_mesh_delta: matrix.checks.convergence.R, L_mesh_delta: matrix.checks.convergence.L, C_auto_residual: matrix.checks.capConvergence, signal_C_reciprocity: matrix.checks.C.reciprocityResidual })
+      }
+    }
+    const clean = { ...summary, core_module: '../core/dist/index.js', extraction, error: summary.error?.split('\n')[0], run_directory: path }
+    summaries.push(clean)
+    evidence.push(clean)
+    if (summary.status !== 'verified_native') continue
+    for (const block of summary.blocks) for (const result of block.results) {
+      if (result.type !== 'simulation_signal_waveform') continue
+      const record = await waveform(path, result.simulation_signal_waveform_id)
+      result.full_resolution_sha256 = createHash('sha256').update(JSON.stringify(record)).digest('hex')
+      const fullPath = `${path}/waveforms/${result.simulation_signal_waveform_id}.json`
+      result.full_resolution_evidence = await access(`${fullPath}.gz`).then(() => `${fullPath}.gz`, () => fullPath)
+      const source = input.find(source => source.type === 'simulation_signal' && source.simulation_signal_id === record.simulation_signal_id)
+      const channel = source?.type === 'simulation_signal' ? source.name : record.simulation_signal_id
+      let fullBytes = 0
+      for (let i = 0; i < record.timestamps_s.length; i++) fullBytes += `${block.name},${channel},${record.end},${record.source_port_id},${record.timestamps_s[i]},${record.voltage_levels[i]},${record.idle_voltage_v ?? ''}\n`.length
+      totalBytes += fullBytes
+      traces.push({ directory: path, block: block.name, channel, record, fullBytes })
+    }
+  }
+  const decimated = totalBytes > 10_000_000
+  const exportFile = await open(`${directory}/simoutput.csv`, 'w')
+  const hasQuiet = traces.some(trace => trace.record.idle_voltage_v !== undefined)
+  await exportFile.write(`block,channel,end,pin,time_s,voltage_v${hasQuiet ? ',idle_voltage_v' : ''}\n`)
+  let exported = 0
+  for (const trace of traces) {
+    const { record } = trace
+    const stride = decimated ? Math.max(2, Math.ceil(totalBytes / 8_500_000) * 2) : 1
+    const indices = selectedIndices(record.voltage_levels, stride)
+    let buffer = ''
+    for (const i of indices) {
+      buffer += `${trace.block},${trace.channel},${record.end},${record.source_port_id},${record.timestamps_s[i]},${record.voltage_levels[i]}${hasQuiet ? `,${record.idle_voltage_v ?? ''}` : ''}\n`
+      if (buffer.length > 100000) {
+        await exportFile.write(buffer)
+        buffer = ''
+      }
+    }
+    if (buffer) await exportFile.write(buffer)
+    exported += indices.length
+  }
+  await exportFile.close()
+  // The physical DDR layout can render independently of its intentionally unsupported SI block.
+  const tree = Board()
+  const physical = name === 'level4-ddr3-write' ? React.cloneElement(tree, {}, React.Children.toArray(tree.props.children).filter(child => !React.isValidElement(child) || child.type !== simulation.pcbtransientchannelsimulation)) : tree
   let records: CircuitJson
-  let layoutStatus = 'Routed through real core at image-generation time'
-  if (name === 'level4-ddr3-write') {
-    execFileSync(process.execPath, ['--import', 'tsx', 'scripts/render-example-images.tsx', '--ddr3-layout'], { stdio: 'inherit', timeout: 190000 })
-    const layout = JSON.parse(await readFile(`${directory}/ddr3-layout.json`, 'utf8'))
-    records = layout.records
-    const routed = records.some(record => record.type === 'pcb_trace')
-    if (layout.status === 'partial_layout_deadline') layoutStatus = 'Partial real-core PCB: full autorouting exceeded 180 s'
-    else if (layout.status !== 'rendered') layoutStatus = routed ? 'Preplaced routes rendered through real core; SI admission stops below' : 'Partial real-core PCB: source admission failed'
-  } else records = await renderCoreSignals(<Board />)
-  const copper = records.filter(record => record.type.startsWith('pcb_') && !record.type.includes('silkscreen')) as Parameters<typeof convertCircuitJsonToPcbSvg>[0]
-  let body = `<rect width="1600" height="100%" fill="#101b2b"/><g fill="#edf4ff" font-family="DejaVu Sans, sans-serif"><text x="55" y="48" font-size="30">${escape(name)}</text><text x="55" y="82" font-size="19" fill="#b7c9df">${escape(layoutStatus)} · no silkscreen</text>`
-  // Boards with inner copper show every layer in the second panel, so inner-layer routes stay visible.
-  const inner = records.some(record => record.type === 'pcb_board' && (record.num_layers ?? 2) > 2)
-  for (const [i, layer] of ['top', inner ? 'all' : 'bottom'].entries()) {
-    const svg = convertCircuitJsonToPcbSvg(copper, { width: 735, height: 350, ...(layer === 'all' ? {} : { layer: layer as 'top' | 'bottom' }), shouldDrawErrors: false, shouldDrawRatsNest: false, showCourtyards: false, showPcbGroups: false, showSolderMask: false, showSolderPaste: false, showPcbNotes: false, showFabricationNotes: false, includeVersion: false, backgroundColor: '#0b1422' })
-    body += `<text x="${55 + i * 780}" y="120" font-size="22">${layer === 'top' ? 'Top copper' : layer === 'all' ? 'All copper layers' : records.some(r => r.type === 'pcb_copper_pour' && r.layer === 'bottom') ? 'Bottom copper / ground pour' : 'Bottom copper'}</text><svg x="${45 + i * 780}" y="140" width="735" height="350">${svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '')}</svg>`
+  try {
+    records = await renderCoreSignals(physical)
   }
-  body += `<text x="55" y="525" font-size="17" fill="#b7c9df">${records.filter(r => r.type === 'pcb_trace').length} traces · ${records.filter(r => r.type === 'pcb_via').length} vias · ${records.filter(r => r.type === 'pcb_copper_pour').length} ground pour(s) · source ${sourceHash.slice(0, 12)}</text>`
+  catch (error) {
+    const partial = (error as { circuitJson?: CircuitJson }).circuitJson
+    if (!partial?.some(record => record.type === 'pcb_trace')) throw error
+    records = partial
+  }
+  const copper = records.filter(record => record.type.startsWith('pcb_') && !record.type.includes('silkscreen')) as Parameters<typeof convertCircuitJsonToPcbSvg>[0]
+  const multilayer = records.some(record => record.type === 'pcb_board' && (record.num_layers ?? 2) > 2)
+  let body = `<rect width="1600" height="100%" fill="#101b2b"/><g fill="#edf4ff" font-family="DejaVu Sans, sans-serif"><text x="55" y="48" font-size="30">${name}</text><text x="55" y="82" font-size="18" fill="#b7c9df">Routed PCB rendered from this TSX through real core at generation time · no silkscreen</text>`
+  for (const [i, layer] of ['top', multilayer ? 'all' : 'bottom'].entries()) {
+    const svg = convertCircuitJsonToPcbSvg(copper, { width: 735, height: 350, ...(layer === 'all' ? {} : { layer: layer as 'top' | 'bottom' }), shouldDrawErrors: false, shouldDrawRatsNest: false, showCourtyards: false, showPcbGroups: false, showSolderMask: false, showSolderPaste: false, showPcbNotes: false, showFabricationNotes: false, includeVersion: false, backgroundColor: '#0b1422' })
+    body += `<text x="${55 + i * 780}" y="120" font-size="22">${layer === 'all' ? 'All copper layers' : `${layer} copper`}</text><svg x="${45 + i * 780}" y="140" width="735" height="350">${svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '')}</svg>`
+  }
+  body += `<text x="55" y="525" font-size="17" fill="#b7c9df">${records.filter(record => record.type === 'pcb_trace').length} traces · ${records.filter(record => record.type === 'pcb_via').length} vias · ${records.filter(record => record.type === 'pcb_copper_pour').length} pours · ${exported} CSV rows${decimated ? ' (CSV decimated; full accepted data retained in evidence)' : ''}</text>`
+  const csvRows = (await readFile(`${directory}/simoutput.csv`, 'utf8')).trim().split('\n').slice(1).map(line => {
+    const [block, channel, end, pin, time, voltage, idle] = line.split(',')
+    return { block, channel, end, pin, time: Number(time), voltage: Number(voltage), ...(idle ? { idle: Number(idle) } : {}) }
+  })
   let y = 570
-  for (const item of cases) {
-    if (item.status !== 'verified_native') {
-      const message = item.error.split('\n\n')[0]
-      body += `<rect x="45" y="${y}" width="1510" height="165" rx="8" fill="#352431"/><text x="70" y="${y + 37}" font-size="24" fill="#ffb7c4">${escape(item.block ?? 'Simulation')} · no accepted simulation output</text>`
-      if (item.blocked_by_request_sha256) body += `<text x="70" y="${y + 65}" font-size="17" fill="#b7c9df">Shared TRAFFIC request ${item.blocked_by_request_sha256.slice(0, 12)}; no quiet transient ran.</text>`
-      body += wrapped(message, 70, y + (item.blocked_by_request_sha256 ? 100 : 79))
-      y += 190
+  for (const summary of summaries) {
+    if (summary.status !== 'verified_native') {
+      const block = summary.run_directory.split('/').at(-1)
+      const message = wrapped(summary.error, y)
+      body += `<rect x="45" y="${y}" width="1510" height="${message.height}" rx="8" fill="#352431"/><text x="75" y="${y + 37}" font-size="24" fill="#ffb7c4">${escape(block)} · ${summary.native_requests.length} solver calls · no accepted waveform</text>${message.svg}`
+      y += message.height + 25
       continue
     }
-    const blocks = JSON.parse(gunzipSync(await readFile(`tests/evidence/signal-levels/${item.plot_file}`)).toString())
-    for (const block of blocks) for (const record of block.results) {
-      if (!['simulation_signal_eye', 'simulation_signal_crosstalk'].includes(record.type)) continue
-      const signal = block.signals.find((signal: any) => signal.simulation_signal_id === record.simulation_signal_id)
-      const waveform = block.results.find((wave: any) => wave.type === 'simulation_signal_waveform' && wave.simulation_signal_id === record.simulation_signal_id && wave.source_port_id === record.source_port_id)
-      body += record.type === 'simulation_signal_eye' ? eyePanel(block, signal, record, waveform, y) : noisePanel(block, signal, record, waveform, y)
-      y += 440
+    for (const block of summary.blocks) {
+      const rows = csvRows.filter(row => row.block === block.name)
+      const switching = rows.filter(row => row.idle === undefined)
+      if (switching.length) {
+        body += panel(`${block.name} · receiver waveforms`, switching, y)
+        y += 445
+      }
+      const quiet = rows.filter(row => row.idle !== undefined)
+      if (quiet.length) {
+        body += panel(`${block.name} · quiet receiver and driver (dashed = undisturbed idle)`, quiet, y)
+        y += 445
+      }
     }
   }
-  body += `<text x="55" y="${y + 22}" font-size="17" fill="#b7c9df">Native acceptance criteria remain unchanged. Missing measurements are unavailable, never zero.</text></g>`
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="${y + 55}" viewBox="0 0 1600 ${y + 55}">${body}</svg>`
-  await writeFile(`${directory}/${name}.svg`, svg)
-  await writeFile(`examples/levels/${name}.png`, new Resvg(svg, { fitTo: { mode: 'width', value: 1600 }, font: { loadSystemFonts: true } }).render().asPng())
-  console.log(`${name}.png: 1600 × ${y + 55}`)
+  body += `<text x="55" y="${y + 20}" font-size="16" fill="#b7c9df">1% + 1 mV waveform convergence; R/L mesh 5%; C auto 2%; raw signal-block reciprocity 2.5%.</text></g>`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="${y + 50}" viewBox="0 0 1600 ${y + 50}">${body}</svg>`
+  await writeFile(`${directory}/${name}.png`, new Resvg(svg, { fitTo: { mode: 'width', value: 1600 }, font: { loadSystemFonts: true } }).render().asPng())
+  const outcome = summaries.map(summary => {
+    if (summary.status !== 'verified_native') return `${summary.run_directory.split('/').at(-1)}: stopped after ${number(summary.seconds)} s, ${summary.native_requests.length} solver calls: \`${summary.error}\`.`
+    return summary.blocks.map((block: any) => {
+      const checks = Object.entries(summary.convergence).filter(([path]) => path.endsWith('numerical-convergence.json')).flatMap(([, value]: any) => value.checks.slice(-2).flatMap((check: any) => check.probes))
+      const extraction = summary.extraction.map((check: any) => `R/L mesh deltas ${number(check.R_mesh_delta * 100)}%/${number(check.L_mesh_delta * 100)}%, C auto residual ${number(check.C_auto_residual * 100)}%, raw signal-block reciprocity ${number(check.signal_C_reciprocity * 100)}%`).join('; ')
+      return `${block.name}: accepted ${number(block.duration_s * 1e6)} µs capture in ${number(summary.seconds)} s wall time (${number(summary.native_requests.reduce((sum: number, call: any) => sum + (call.reused_from ? 0 : call.wall_seconds), 0))} s fresh native execution); final independent checks RMS ≤ ${number(Math.max(...checks.map((check: any) => check.rms_v)))} V, signed-extrema delta ≤ ${number(Math.max(...checks.map((check: any) => check.peak_change_v)))} V; ${extraction}.`
+    }).join(' ')
+  }).join(' ')
+  const detail = `${decimated ? `CSV only is decimated by native min/max buckets (${exported} rows; full CSV would be ${totalBytes} bytes).` : `CSV retains all ${exported} native sample rows.`} Full accepted waveforms, exact requests, hashes and convergence histories remain losslessly archived under \`${root}\` (ignored local evidence; vendor sources/decks are not redistributed).`
+  await writeFile(`${directory}/README.md`, `${outcome}\n\n${detail}\n`)
+  paragraphs.push(`**${name}.** ${outcome} ${detail}\n\n![${name}](${name}/${name}.png)`)
+  console.log(`${name}: ${exported} CSV rows, ${1600} × ${y + 50}`)
 }
+await writeFile('tests/evidence/signal-levels/rfc-boards.json', JSON.stringify({ rfc_head: '89a263537ebc143315849f005024f84c1efa5635', native_timeout_ms: 1200000, OMP_NUM_THREADS: 1, maximum_native_processes: 1, cases: evidence }, null, 2) + '\n')
+await writeFile('examples/README.md', `# Native transient channel examples\n\nWith the built sibling overlays and local vendor files, run \`OMP_NUM_THREADS=1 IBIS_MODEL_DIR=models SI_CORE_MODULE="$(cd ../core && pwd)/dist/index.js" TSX_TSCONFIG_PATH=examples/tsconfig.json NGSPICE_BIN=/opt/homebrew/bin/ngspice node --max-old-space-size=6000 --import tsx scripts/render-example-images.tsx\` to regenerate every PNG and CSV from the full accepted evidence in \`${root}\`. To recreate that evidence first, use the same environment with \`scripts/run-signal-levels.tsx\`; every case/block runs sequentially, each process has a 1200000 ms bound, and DDR3 must stop before native execution. Exact completed native requests can be reused with \`SI_EXTRACTION_CACHE=<directories separated by colons> SI_REPLAY_COMPLETE_NATIVE=1\`. PNG lower panels plot the exported CSV in actual time and volts.\n\n${paragraphs.join('\n\n')}\n`)

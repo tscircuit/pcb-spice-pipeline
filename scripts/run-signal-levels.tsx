@@ -1,127 +1,130 @@
 import React from 'react'
 import { execFileSync } from 'node:child_process'
-import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises'
+import { access, readFile, readdir, mkdir, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
-import { gzipSync } from 'node:zlib'
+import { gzipSync, gunzipSync } from 'node:zlib'
 import { dirname } from 'node:path'
 import { renderCoreSignals } from '../tests/support/core-render'
-import { runPipeline } from '../src'
+import { runPipeline, type SolverRequest, type SolverResult } from '../src'
 import { createNativeSolver } from '../src/adapters'
-import type { SolverRequest } from '../src'
-import Single from '../examples/levels/level1-single-ended'
-import Differential from '../examples/levels/level1-differential'
-import Two from '../examples/levels/level2-two-signals'
-import Three from '../examples/levels/level3-three-signals'
+import Single from '../examples/level1-single-ended/level1-single-ended'
+import Differential from '../examples/level1-differential/level1-differential'
+import Two from '../examples/level2-two-channels/level2-two-channels'
+import Three from '../examples/level3-three-channels/level3-three-channels'
+import DDR3 from '../examples/level4-ddr3-write/level4-ddr3-write'
 import type { CircuitJson } from '../src/board'
-import { prepareBlocks } from '../src/pipeline/signals'
-import { receiverThresholds } from '../src/buffers'
 
-const modelDir = process.env.IBIS_MODEL_DIR ?? 'models'
-const ibisSources: Record<string, Uint8Array> = Object.fromEntries(await Promise.all(['sn74lvc1g04.ibs', 'sn65hvd72.ibs'].map(async file => [`models/${file}`, await readFile(`${modelDir}/${file}`)])))
-const selected = process.argv[2]
-/** Retain large solver artifacts losslessly without exhausting the local evidence volume. */
-const archive = async (path: string, body: string): Promise<void> => {
-  if (body.length > 2_000_000) await writeFile(`${path}.gz`, gzipSync(body, { level: 1 }))
-  else await writeFile(path, body)
-}
-const timeoutMs = Number(process.env.SI_NATIVE_TIMEOUT_MS ?? 180000)
-const extractionCache = new Map<string, { directory: string; result: { stdout: string; stderr: string; files: Record<string, string> } }>()
-if (process.env.SI_EXTRACTION_CACHE) for (const entry of await readdir(process.env.SI_EXTRACTION_CACHE)) {
-  if (!/^native-\d+-(fasthenry|fastercap)$/.test(entry)) continue
-  const directory = `${process.env.SI_EXTRACTION_CACHE}/${entry}`
-  const request = JSON.parse(await readFile(`${directory}/request.json`, 'utf8')) as SolverRequest
-  try {
-    const files = Object.fromEntries(await Promise.all(request.outputFiles.map(async file => [file, await readFile(`${directory}/${file}`, 'utf8')])) )
-    extractionCache.set(createHash('sha256').update(JSON.stringify(request)).digest('hex'), { directory, result: { files, stdout: await readFile(`${directory}/stdout.log`, 'utf8'), stderr: await readFile(`${directory}/stderr.log`, 'utf8') } })
-  } catch { /* Incomplete native calls cannot enter the cache. */ }
-}
-/** Stable native-request digest; raw files stay in ignored runs/, with no vendor redistribution. */
+process.env.OMP_NUM_THREADS = '1'
+const boards = { single: Single, differential: Differential, two: Two, three: Three, ddr3: DDR3 }
+const names = { single: 'level1-single-ended', differential: 'level1-differential', two: 'level2-two-channels', three: 'level3-three-channels', ddr3: 'level4-ddr3-write' }
+const timeoutMs = Number(process.env.SI_NATIVE_TIMEOUT_MS ?? 1200000)
+const cache = new Map<string, string>()
+/** Stable exact-byte request and source identity. */
 const digest = (value: string | Uint8Array): string => createHash('sha256').update(value).digest('hex')
-for (const [name, Board] of Object.entries({ single: Single, differential: Differential, two: Two, three: Three })) {
-  if (selected && selected !== name) continue
-  const started = Date.now()
-  let circuitJson: CircuitJson = []
-  const root = `${process.env.SI_RUN_ROOT ?? 'runs/rfc-final'}/${name}`
-  await mkdir(root, { recursive: true })
-  const native = createNativeSolver({ timeoutMs, tools: { fasthenry: '/opt/homebrew/bin/fasthenry', fastercap: '/opt/homebrew/bin/FasterCap', ngspice: '/opt/homebrew/bin/ngspice' } })
-  const calls: unknown[] = []
-  /** Capture exact requests and native outputs, including the request when execution is interrupted. */
-  const solver = async (request: SolverRequest): ReturnType<typeof native> => {
-    const dir = `${root}/native-${calls.length}-${request.solver}`
-    const cached = request.solver === 'ngspice' ? undefined : extractionCache.get(digest(JSON.stringify(request)))
-    calls.push({ solver: request.solver, request_sha256: digest(JSON.stringify(request)), args: request.args, ...(cached ? { exact_native_extraction_replay_from: cached.directory } : {}) })
-    await mkdir(dir, { recursive: true })
-    await writeFile(`${dir}/request.json`, JSON.stringify(request, null, 2))
-    await writeFile(`${root}/native-calls.json`, JSON.stringify(calls, null, 2))
-    for (const [file, body] of Object.entries(request.files)) await archive(`${dir}/${file}`, body)
-    const output = cached?.result ?? await native(request)
-    await writeFile(`${dir}/stdout.log`, output.stdout)
-    await writeFile(`${dir}/stderr.log`, output.stderr)
-    for (const [file, body] of Object.entries(output.files)) await archive(`${dir}/${file}`, body)
-    return output
+/** Losslessly archive large evidence, retaining every native timestamp. */
+const archive = async (path: string, body: string): Promise<void> => {
+  await mkdir(dirname(path), { recursive: true })
+  await writeFile(body.length > 2_000_000 ? `${path}.gz` : path, body.length > 2_000_000 ? gzipSync(body, { level: 1 }) : body)
+}
+/** Read exact archived native bytes. */
+const readArchive = async (path: string): Promise<string> => {
+  try {
+    return await readFile(path, 'utf8') }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    return gunzipSync(await readFile(`${path}.gz`)).toString()
   }
-  const provenance = { name, rendering: 'real_core_without_adapter', core_module: process.env.SI_CORE_MODULE ?? '@tscircuit/core',
-    core_sha256: digest(await readFile(process.env.SI_CORE_MODULE ?? import.meta.resolve('@tscircuit/core').replace('file://', ''))),
-    example_sha256: digest(await readFile(new URL(`../examples/levels/${({ single: 'level1-single-ended', differential: 'level1-differential', two: 'level2-two-signals', three: 'level3-three-signals' })[name]}.tsx`, import.meta.url))),
-    large_artifacts: 'gzip_level_1_above_2_MB', runner_sha256: digest(await readFile(new URL(import.meta.url))), ...(process.env.SI_BLOCK ? { isolated_block: process.env.SI_BLOCK } : {}), native_timeout_ms: timeoutMs, implementation_head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), sources: Object.fromEntries(Object.entries(ibisSources).map(([file, bytes]) => [file, digest(bytes)])),
-    circuit_json_schema_sha256: digest(await readFile('node_modules/circuit-json/dist/index.mjs')) }
+}
+/** Index completed requests only; adaptive traces are never synthesized or approximately matched. */
+async function indexCache(directory: string): Promise<void> {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const path = `${directory}/${entry.name}`
+    if (!/^native-\d+-/.test(entry.name)) {
+      await indexCache(path)
+      continue
+    }
+    try {
+      const request = JSON.parse(await readFile(`${path}/request.json`, 'utf8')) as SolverRequest
+      if (request.solver === 'ngspice' && process.env.SI_REPLAY_COMPLETE_NATIVE !== '1') continue
+      await Promise.all(['stdout.log', 'stderr.log', ...request.outputFiles].map(file => access(`${path}/${file}`).catch(() => access(`${path}/${file}.gz`))))
+      cache.set(digest(JSON.stringify(request)), path)
+    } catch { /* Interrupted or missing native output is not reusable. */ }
+  }
+}
+for (const directory of (process.env.SI_EXTRACTION_CACHE ?? '').split(':').filter(Boolean)) await indexCache(directory)
+for (const [key, Board] of Object.entries(boards) as [keyof typeof boards, typeof Single][]) {
+  if ((process.argv[2] && process.argv[2] !== key) || process.env.SI_SKIP_LEVEL === key) continue
+  for (const selectedBlock of key === 'three' ? ['TRAFFIC', 'XTALK_LOW', 'XTALK_HIGH'] : [undefined]) {
+    if (process.env.SI_BLOCK && process.env.SI_BLOCK !== selectedBlock) continue
+  const level = names[key]
+  const root = `${process.env.SI_RUN_ROOT ?? 'runs/final-rfc'}/${key}${selectedBlock ? `/${selectedBlock}` : ''}`
+  await mkdir(root, { recursive: true })
+  const started = Date.now()
+  const calls: { solver: string; request_sha256: string; reused_from?: string; wall_seconds?: number }[] = []
+  const ibisSources: Record<string, Uint8Array> = Object.fromEntries(await Promise.all((key === 'ddr3' ? ['sprm552c.ibs', 'W631GG6MB-12.ibs'] : ['sn74lvc1g04.ibs', 'sn65hvd72.ibs']).map(async file => [`models/${file}`, await readFile(`${process.env.IBIS_MODEL_DIR ?? 'models'}/${file}`)])))
+  const native = createNativeSolver({ timeoutMs, tools: { fasthenry: '/opt/homebrew/bin/fasthenry', fastercap: '/opt/homebrew/bin/FasterCap', ngspice: '/opt/homebrew/bin/ngspice' } })
+  /** Run exactly one solver, recording memory before each uncached call and refusing overlap. */
+  const solver = async (request: SolverRequest): Promise<SolverResult> => {
+    const hash = digest(JSON.stringify(request))
+    const previous = cache.get(hash)
+    const directory = `${root}/native-${calls.length}-${request.solver}`
+    calls.push({ solver: request.solver, request_sha256: hash, ...(previous ? { reused_from: previous } : {}) })
+    await mkdir(directory, { recursive: true })
+    await writeFile(`${directory}/request.json`, JSON.stringify(request, null, 2))
+    await writeFile(`${root}/native-calls.json`, JSON.stringify(calls, null, 2))
+    if (key === 'ddr3') throw new Error('DDR3 invoked a native solver before its documented package boundary')
+    if (!previous) {
+      if (process.env.SI_REQUIRE_COMPLETE_CACHE === '1') throw new Error(`Exact complete cache missing for ${request.solver}`)
+      const processes = execFileSync('ps', ['-axo', 'pid=,comm='], { encoding: 'utf8' })
+      if (processes.split('\n').some(line => /\/(?:FasterCap|fasthenry|ngspice)\s*$/.test(line))) throw new Error('Another native solver is running')
+      const memory = execFileSync('vm_stat', { encoding: 'utf8' })
+      await writeFile(`${directory}/memory-before.log`, memory)
+      const pageSize = Number(/page size of (\d+)/.exec(memory)?.[1] ?? 16384)
+      const available = [...memory.matchAll(/Pages (?:free|inactive|purgeable):\s+(\d+)/g)].reduce((sum, match) => sum + Number(match[1]) * pageSize, 0)
+      if (available < 512 * 1024 ** 2) throw new Error(`Insufficient available memory before ${request.solver}: ${available} bytes`)
+      console.log(`Starting ${request.solver} #${calls.length - 1}; available ${Math.round(available / 1024 ** 2)} MiB; timeout ${timeoutMs} ms`)
+    }
+    const began = Date.now()
+    try {
+      const output: SolverResult = previous ? { stdout: await readArchive(`${previous}/stdout.log`), stderr: await readArchive(`${previous}/stderr.log`), files: Object.fromEntries(await Promise.all(request.outputFiles.map(async file => [file, await readArchive(`${previous}/${file}`)]))) } : await native(request)
+      await archive(`${directory}/stdout.log`, output.stdout)
+      await archive(`${directory}/stderr.log`, output.stderr)
+      for (const [file, body] of Object.entries(output.files)) await archive(`${directory}/${file}`, body)
+      cache.set(hash, directory)
+      return output
+    } finally {
+      calls.at(-1)!.wall_seconds = (Date.now() - began) / 1000
+      await writeFile(`${root}/native-calls.json`, JSON.stringify(calls, null, 2))
+    }
+  }
+  const provenance = { level, core_module: process.env.SI_CORE_MODULE, example_sha256: digest(await readFile(`examples/${level}/${level}.tsx`)), native_timeout_ms: timeoutMs,
+    implementation_head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), ibis_sha256: Object.fromEntries(Object.entries(ibisSources).map(([file, bytes]) => [file, digest(bytes)])) }
+  let circuitJson: CircuitJson = []
   try {
     circuitJson = await renderCoreSignals(<Board />)
-    if (process.env.SI_BLOCK) {
-      const block = circuitJson.find(record => record.type === 'simulation_signal_integrity' && record.name === process.env.SI_BLOCK)
-      if (block?.type !== 'simulation_signal_integrity') throw new Error(`Unknown block ${process.env.SI_BLOCK}`)
+    if (selectedBlock) {
+      const block = circuitJson.find(record => record.type === 'simulation_signal_integrity' && record.name === selectedBlock)
+      if (block?.type !== 'simulation_signal_integrity') throw new Error(`Unknown block ${selectedBlock}`)
       circuitJson = circuitJson.filter(record => record.type === 'simulation_signal_integrity' ? record === block : record.type === 'simulation_signal' ? record.simulation_signal_integrity_id === block.simulation_signal_integrity_id : true)
     }
     await writeFile(`${root}/input.json`, JSON.stringify(circuitJson, null, 2))
     const result = await runPipeline({ circuitJson, ibisSources, runSolver: solver, onProgress: console.log })
-    const prepared = prepareBlocks(circuitJson, ibisSources)
-    const plot = result.blocks.map((block, index) => ({ name: block.name, gate_s: block.numericalSettings.measurementGate,
-      signals: prepared[index].signals.map(signal => ({ ...signal, thresholds: Object.fromEntries(signal.receivers.map(receiver => {
-        const port = receiver.kind === 'single' ? receiver.source_port_id : receiver.p_source_port_id
-        return [port, receiverThresholds(prepared[index].pins.get(port)!, receiver.kind === 'differential', signal.mask, { typ: 0, min: 1, max: 2 }[prepared[index].block.corner])]
-      })) })),
-      results: block.results.map(record => {
-        if (record.type === 'simulation_signal_eye') return { ...record, folded_traces: undefined }
-        if (record.type !== 'simulation_signal_waveform') return record
-        const stride = Math.max(1, Math.ceil(record.timestamps_s.length / 30000))
-        const indices = new Set([0, record.timestamps_s.length - 1])
-        for (let i = 0; i < record.timestamps_s.length; i += stride) {
-          let low = i
-          let high = i
-          for (let j = i; j < Math.min(i + stride, record.timestamps_s.length); j++) {
-            if (record.voltage_levels[j] < record.voltage_levels[low]) low = j
-            if (record.voltage_levels[j] > record.voltage_levels[high]) high = j
-          }
-          indices.add(low)
-          indices.add(high)
-        }
-        const ordered = [...indices].sort((a, b) => a - b)
-        return { ...record, full_resolution_samples: record.timestamps_s.length,
-          full_resolution_sha256: digest(JSON.stringify(record)), timestamps_s: ordered.map(i => record.timestamps_s[i]), voltage_levels: ordered.map(i => record.voltage_levels[i]) }
-      }) }))
-    await writeFile(`${root}/plot-evidence.json.gz`, gzipSync(JSON.stringify(plot), { level: 9 }))
-    const summary = { ...provenance, status: 'verified_native', seconds: (Date.now() - started) / 1000,
-      native_execution: JSON.parse(result.files['native-execution.json']), native_requests: calls,
-      transient_convergence: Object.fromEntries(Object.entries(result.files).filter(([file]) => file.endsWith('numerical-convergence.json')).map(([file, body]) => [file, JSON.parse(body)])),
-      blocks: result.blocks.map(block => ({ name: block.name, duration_s: block.duration_s, numericalSettings: block.numericalSettings,
-        extraction: block.matrices.map((matrix, stage) => ({ ...matrix, per_length: matrix.L.map((row, i) => ({ length_m: block.geometry.cells[stage].conductors[i].lengthM,
-          L_h_per_m: row[i] / block.geometry.cells[stage].conductors[i].lengthM, C_f_per_m: matrix.C[i][i] / block.geometry.cells[stage].conductors[i].lengthM })) })),
-        results: block.results.filter(r => r.type !== 'simulation_signal_waveform').map(r => r.type === 'simulation_signal_eye' ? { ...r, folded_traces: undefined } : r), limitations: block.limitations })) }
+    for (const block of result.blocks) for (const record of block.results) if (record.type === 'simulation_signal_waveform') await archive(`${root}/waveforms/${record.simulation_signal_waveform_id}.json`, JSON.stringify(record))
+    const summary = { ...provenance, status: 'verified_native', seconds: (Date.now() - started) / 1000, native_requests: calls,
+      convergence: Object.fromEntries(Object.entries(result.files).filter(([file]) => /(?:convergence|checks)\.json$/.test(file)).map(([file, body]) => [file, JSON.parse(body)])),
+      blocks: result.blocks.map(block => ({ name: block.name, simulation_signal_integrity_id: block.simulation_signal_integrity_id, duration_s: block.duration_s,
+        results: block.results.map(record => record.type === 'simulation_signal_waveform' ? { ...record, timestamps_s: undefined, voltage_levels: undefined, samples: record.timestamps_s.length } : record), limitations: block.limitations })) }
     await writeFile(`${root}/summary.json`, JSON.stringify(summary, null, 2) + '\n')
-    for (const [file, body] of Object.entries(result.files)) {
-      await mkdir(`${root}/${dirname(file)}`, { recursive: true })
-      await archive(`${root}/${file}`, body)
-    }
-    console.log(JSON.stringify(summary))
+    for (const [file, body] of Object.entries(result.files)) await archive(`${root}/${file}`, body)
+    console.log(`${level}: verified native in ${summary.seconds}s`)
   } catch (error) {
     const failure = error as Error & { code?: string; convergence?: unknown; circuitJson?: CircuitJson }
     circuitJson = failure.circuitJson ?? circuitJson
     await writeFile(`${root}/input.json`, JSON.stringify(circuitJson, null, 2))
-    const summary = { ...provenance, status: calls.length ? 'failed_native' : 'rejected_before_native', seconds: (Date.now() - started) / 1000, error: failure.message, code: failure.code, convergence: failure.convergence, native_execution: calls,
-      physical_records: Object.fromEntries(['pcb_trace', 'pcb_via', 'pcb_copper_pour'].map(type => [type, circuitJson.filter(record => record.type === type).length])) }
-    await writeFile(`${root}/summary.json`, JSON.stringify(summary, null, 2) + '\n')
-    await writeFile(`${root}/plot-evidence.json.gz`, gzipSync(JSON.stringify([]), { level: 9 }))
-    console.error(JSON.stringify(summary))
-    process.exitCode = 1
+    await writeFile(`${root}/summary.json`, JSON.stringify({ ...provenance, status: calls.length ? 'failed_native' : 'rejected_before_native', seconds: (Date.now() - started) / 1000, error: failure.message, code: failure.code, convergence: failure.convergence, native_requests: calls }, null, 2) + '\n')
+    console.error(failure.message)
+    if (key !== 'ddr3' || failure.message !== '.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.' || calls.length) process.exitCode = 1
   }
+}
 }

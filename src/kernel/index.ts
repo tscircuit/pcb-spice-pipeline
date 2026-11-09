@@ -8,4 +8,3 @@ export { Diagnostic, diagnostics, type DiagnosticSubject, type DiagnosticInit } 
 export { type Artifact, type ArtifactPath, type ArtifactScope, type FileMap, type Produced, ArtifactLedger, rootScope, artifactPath, jsonBody } from './artifacts'
 export { type SafeId, safeId } from './ids'
 export { sha256 } from './hash'
-

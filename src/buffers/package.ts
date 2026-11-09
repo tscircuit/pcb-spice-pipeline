@@ -1,7 +1,7 @@
 import { convertIbisModelToSpice, parseIbis, type ConvertedGeneralIbisComponent } from '@tscircuit/ibis-to-spice'
 import type { ModelRunDefinition } from './types'
 
-/** Convert die buffers, retaining vendor signal-pin packages under the supported ideal PDN. */
+/** Convert die buffers, retaining every vendor pin package under the supported ideal PDN. */
 export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): ConvertedGeneralIbisComponent {
   const document = parseIbis(new TextDecoder().decode(bytes))
   const component = document.components[input.definition.component]
@@ -19,14 +19,18 @@ export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): C
   if (ground.length !== 1) throw new Error(`${component.name}: per-bank package ground requires an explicit package model`)
   const groundTerminal = Object.entries(converted.spicePinMapping).find(([, port]) => port === ground[0])?.[0]
   if (!groundTerminal) throw new Error(`${component.name}: package ground is not mapped`)
-  // pdn="ideal" promises perfect die rails. Non-power-aware IBIS assumes ideal die
-  // voltages: without Composite Current/ISSO/split C_comp data or on-die decoupling,
-  // feeding die rails through bare package inductance is unphysical. Keep signal RLC.
+  const voltage = document.getBuffer(converted.metadata.pins[0].model).voltage[corner]
+  if (voltage === null) throw new Error(`${component.name}: missing selected-corner voltage`)
+  const referenceNodes = new Map(Object.entries(converted.spicePinMapping).flatMap(([terminal, port], i) => {
+    const physical = Object.entries(input.definition.pinMap).find(([, mapped]) => mapped === port)?.[0]
+    const pin = physical ? component.pins[physical] : undefined
+    return pin && /^(power|gnd)$/i.test(pin.model) ? [[terminal, `DIE${i}`] as const] : []
+  }))
+  const dieGround = referenceNodes.get(groundTerminal)!
   for (const [i, [terminal, port]] of Object.entries(converted.spicePinMapping).entries()) {
     const physical = Object.entries(input.definition.pinMap).filter(([, value]) => value === port)
     if (physical.length !== 1) throw new Error(`${port}: package pin mapping is ambiguous`)
     const pin = component.pins[physical[0][0]]
-    if (/^(power|gnd)$/i.test(pin.model)) continue
     let node = terminal
     for (const [field, kind] of [['resistance', 'R'], ['inductance', 'L']] as const) {
       const value = pin[field] ?? component.package[field]?.[corner]
@@ -37,17 +41,21 @@ export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): C
         node = next
       }
     }
-    nodes.set(terminal, node)
+    const reference = referenceNodes.get(terminal)
+    if (reference) {
+      elements.push(`VPDN${i} ${reference} 0 ${/^power$/i.test(pin.model) ? voltage : 0}`, `VPKG${i} ${node} ${reference} 0`)
+      nodes.set(terminal, reference)
+    } else nodes.set(terminal, node)
     const value = pin.capacitance ?? component.package.capacitance?.[corner]
     if (value === undefined || value === null || value < 0) throw new Error(`${physical[0][0]}: vendor package capacitance missing`)
     if (value > 0) {
-      elements.push(`CPKG${i}a ${terminal} ${groundTerminal} ${value / 2}`, `CPKG${i}b ${node} ${groundTerminal} ${value / 2}`)
+      elements.push(`CPKG${i}a ${terminal} ${dieGround} ${value / 2}`, `CPKG${i}b ${node} ${dieGround} ${value / 2}`)
     }
   }
   const body = wrapper.map((line, index) => index <= header ? line : line.replace(/\S+/g, token => nodes.get(token) ?? token))
   converted.source = [...body, ...elements].join('\n') + converted.source.slice(top)
   converted.metadata.packagePolicy = 'vendor'
-  converted.metadata.omissions = ['POWER/GND package R/L/C omitted under pdn="ideal"; die references connect directly to ideal rails']
-  converted.warnings = ['Vendor signal-pin package RLC as a pi network with split shunt C; pdn="ideal" connects die POWER/GND references directly to perfect rails']
+  converted.metadata.omissions = []
+  converted.warnings = ['Vendor pin package RLC retained; pdn="ideal" constrains die POWER/GND nodes, including behind the reference-pin packages']
   return converted
 }

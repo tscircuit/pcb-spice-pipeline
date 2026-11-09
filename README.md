@@ -1,16 +1,18 @@
 ## What is it?
 
 Native signal-integrity simulation for tscircuit boards. Describe each test with
-`<signalintegrity>` and `<signal>`; the pipeline consumes the resulting Circuit JSON,
+`<simulation.pcbtransientchannelsimulation>` and `<signal>`; the pipeline consumes the resulting Circuit JSON,
 extracts coupled copper with FastHenry/FasterCap, and runs IBIS buffers in ngspice.
 This draft implements the pipeline entry of [RFC #28](https://github.com/tscircuit/rfc/pull/28).
 
 ## How to use it?
 
 ```tsx
-<signalintegrity name="DATA_TEST" bitRate="20Mbps">
-  <signal name="DATA" driver=".TX > .Y" receiver=".RX > .A" />
-</signalintegrity>
+import { simulation } from "@tscircuit/core"
+
+<simulation.pcbtransientchannelsimulation name="DATA_TEST" bitRate="20Mbps">
+  <simulation.pcbchannel name="DATA" driverRef=".TX > .Y" receiverRef=".RX > .A" />
+</simulation.pcbtransientchannelsimulation>
 ```
 
 ```ts
@@ -29,15 +31,15 @@ Circuit JSON is the electrical input. `ibisSources`, `runSolver` and `onProgress
 are IO ports. There is no `modeling` option or separate simulation configuration.
 Each `result.blocks` entry owns its matrices, results, numerical settings evidence
 and limitations. `simulationResultCircuitJson` retains the input and appends only
-the RFC's five new result record kinds. Re-running replaces prior SI results. A board with no SI blocks returns an empty block/result collection without invoking a solver. Automatic duration stays absent in source records and is reported on each result block.
+the RFC's waveform and RLGC result record kinds. Re-running replaces prior SI results. A board with no SI blocks returns an empty block/result collection without invoking a solver. Automatic duration stays absent in source records and is reported on each result block.
 
 The draft explicitly rejects extracted PDN, branched routes and coupled package matrices; the RFC lists these as not implemented yet.
 Under `pdn="ideal"`, die POWER/GND references connect directly to perfect rails;
-vendor package R/L/C remains enabled on signal pins. See the [model rationale](docs/native-signal-levels.md).
+vendor package R/L/C remains between every mapped pin and its die node. See the [model rationale](docs/native-signal-levels.md).
 
-See [the TSX levels](examples/levels) and [native evidence](docs/native-signal-levels.md).
-The installed core predates the sibling intrinsic-element PRs: the native runner
-uses a temporary adapter to render physical TSX and emit the new source records.
+See [the TSX levels](examples) and [native evidence](docs/native-signal-levels.md).
+Local native verification uses the sibling core build through `SI_CORE_MODULE`;
+its real TSX rendering emits the source records without a rendering adapter.
 It never substitutes synthetic IBIS. Vendor files remain local and ignored by git.
 
 ```sh
@@ -61,7 +63,7 @@ Ordinary-sized aggregate artifacts keep their existing format, and
 
 ```mermaid
 flowchart TD
-  board[/"Your board<br/>(Circuit JSON with signalintegrity blocks)"/] --> s1["1. Read the board, group the blocks, derive drivers, receivers, pin states and patterns<br/><small>pipeline</small>"]
+  board[/"Your board<br/>(Circuit JSON with transient channel blocks)"/] --> s1["1. Read the board, group the blocks, derive drivers, receivers, pin states and patterns<br/><small>pipeline</small>"]
   chips[/"Chip models<br/>(IBIS files)"/] --> s4
   s1 --> s2["2. Build 3D copper and layered dielectric; join series paths and retain receiver taps<br/><small>board</small>"]
   s2 --> q{"Straight parallel traces over<br/>one rectangular return<br/>with contacts at opposite ends?"}
@@ -69,10 +71,10 @@ flowchart TD
   q -->|"no"| s3
   s2b --> s3["3. Extract R/L and layered C; check mesh convergence, reciprocity and passivity<br/><small>extraction</small>"]
   s3 <-->|"runSolver"| fs{{"FastHenry + FasterCap"}}
-  s3 --> s4["4. Build one circuit per block: wires + chip buffers + signal packages + ideal die rails<br/><small>buffers, simulation</small>"]
+  s3 --> s4["4. Build one circuit per block: wires + chip buffers + pin packages + ideal die rails<br/><small>buffers, simulation</small>"]
   s4 --> s5["5. Solve undisturbed idle, then signals; independently refine sections and timestep until RMS and signed peaks converge<br/><small>simulation</small>"]
   s5 <-->|"runSolver"| ng{{"ngspice"}}
-  s5 --> s6["6. Measure: eyes, NEXT/FEXT, strobe margins<br/><small>observation</small>"]
+  s5 --> s6["6. Emit receiver waveforms, quiet near/far idle levels and listed-leg RLGC<br/><small>observation</small>"]
   s6 --> out[/"Result records + solver evidence"/]
   s1 -->|"no SI blocks"| out
 ```
@@ -86,14 +88,13 @@ stateDiagram-v2
   extract --> extract: refine mesh
   extract --> simulate: converged
   simulate --> simulate: refine sections and timestep
-  simulate --> measure: RMS and signed peaks converged
-  measure --> simulate: automatic strobe duration needs extension
-  measure --> sealed
+  simulate --> record: RMS and signed peaks converged
+  record --> sealed
   validate --> failed
   derive --> failed
   extract --> failed
   simulate --> failed
-  measure --> failed
+  record --> failed
   sealed --> [*]
   failed --> [*]
 ```
@@ -107,10 +108,10 @@ every other route is extracted from the 3D geometry. Capacitance retains the phy
 holds the bars, not the 3D copper.
 
 Every block produces an independent run. A differential endpoint drives opposite
-physical levels and measures P minus N. Quiet signals remain connected, with
-near/far probes and no eye. Single-ended probes use their chip's ground unless
-`probe="global"` is requested. The settling gate is the largest switching offset plus 16 UI. Eyes use the RFC sampling instants and IBIS DC thresholds at the selected corner; differential DC thresholds override `[Diff_pin]`. Quiet peaks are signed deviations from a separate undisturbed idle solve, never the switching waveform mean.
-
-Results describe finite observed simulations. They do not establish BER, protocol
-compliance, hardware accuracy, or a validated DDR memory interface. The evidence
-document distinguishes verified fixtures from outstanding implementation limits.
+physical levels and measures P minus N. Quiet channels remain connected and return
+near/far waveforms with separately solved undisturbed idle levels. Single-ended
+probes use their chip's ground unless `probe="global"` is requested. Numeric offsets
+are seconds; automatic duration is startup plus 128 of the slowest UI (32 UI for
+quiet-only blocks). Explicit durations are never extended. The corner is `typical`,
+`minimum` or `maximum`. Public RLGC matrices select only listed legs; all coupled
+copper remains in the private model.

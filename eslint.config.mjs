@@ -41,7 +41,7 @@ export default tseslint.config(
   },
   {
     // Keep the upstream RFC assets byte-identical, including their example-style signatures.
-    files: ['examples/levels/*.tsx'],
+    files: ['examples/**/*.tsx'],
     rules: { 'jsdoc/require-jsdoc': 'off', 'local/typed-signature': 'off' },
   },
   {

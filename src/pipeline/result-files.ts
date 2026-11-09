@@ -3,7 +3,8 @@ import { jsonBody, type FileMap } from '../kernel'
 
 /** Preserve the aggregate artifact when it fits; split full-resolution waveforms losslessly at V8's string limit. */
 export function signalResultFiles(records: CircuitJson, serialize: (value: unknown) => string = jsonBody): FileMap {
-  try { return { 'circuit-results.json': serialize(records) } }
+  try {
+    return { 'circuit-results.json': serialize(records) } }
   catch (error) {
     if (!(error instanceof RangeError) || !records.some(record => record.type === 'simulation_signal_waveform')) throw error
     const files: FileMap = {}

@@ -1,3 +1,5 @@
+import { simulation } from "@tscircuit/core"
+
 // Shared TI inverter and transceiver models used by the examples.
 export const Inverter = (props: { name: string; pcbX: number; pcbY?: number }) => (
   <>
@@ -9,7 +11,7 @@ export const Inverter = (props: { name: string; pcbX: number; pcbY?: number }) =
       pcbY={props.pcbY ?? 0}
       pinLabels={{ pin1: "NC", pin2: "A", pin3: "GND", pin4: "Y", pin5: "VCC" }}
     />
-    <ibismodel
+    <simulation.ibismodel
       componentRef={`.${props.name}`}
       ibisModelAsset={{
         project_relative_path: "models/sn74lvc1g04.ibs",
