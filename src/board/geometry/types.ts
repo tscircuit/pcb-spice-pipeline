@@ -45,6 +45,8 @@ export type RoutedPoint = Exclude<RoutePoint, { route_type: 'through_pad' }>
 
 export interface LaneMapping {
   port: string; sourceTraceId: string; pcbTraceId: string; from: string; to: string
+  sourceTraceIds?: string[]
+  intermediatePorts?: { sourcePortId: string; fraction: number }[]
   pcbPorts: string[]; stages: RouteStage[]; originalRoute: RoutedPoint[]
 }
 

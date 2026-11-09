@@ -181,7 +181,8 @@ export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geom
   if (extracted.some(stage => stage.R.length !== geometry.mappings.length)) fail('matrix_dimension', 'Extracted channels must match every selected signal')
   const channel = [...geometry.mappings.map(mapping => nodes.node(mapping.from)), ...geometry.mappings.map(mapping => nodes.node(mapping.to))]
   if (channel.includes('0') || new Set(channel).size !== channel.length) fail('channel_short', 'Every selected signal must have distinct driver and receiver nodes separate from the reference')
-  if (channel.length) lines.push(channelSpice(extracted, modeling.sections), `XCHAN ${[...channel, '0'].join(' ')} CHANNEL`)
+  const taps = geometry.mappings.flatMap((mapping, conductor) => (mapping.intermediatePorts ?? []).map((tap, i) => ({ ...tap, conductor, name: `TAP${conductor}_${i}` })))
+  if (channel.length) lines.push(channelSpice(extracted, modeling.sections, taps), `XCHAN ${[...channel, ...taps.map(tap => nodes.node(tap.sourcePortId)), '0'].join(' ')} CHANNEL`)
   validateProbeScope(plan, geometry, models, nodes, electrical)
   // IBIS behavioral sources reference internal voltage-source currents. Probe-only
   // saves discard those branch vectors in upstream ngspice; preserve them all.

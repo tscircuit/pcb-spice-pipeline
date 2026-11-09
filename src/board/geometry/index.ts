@@ -7,6 +7,7 @@ import { stackupFromCircuitJson, defaultCopperConductivitySm } from '../stackup'
 import { selectPort, resolveRouteVias } from './ports'
 import { routedCopperGeometry } from './routed'
 import { parallelCopperGeometry } from './parallel'
+import { joinSeriesMappings } from './series'
 import type { BoardModeling as Modeling, Geometry, LaneMapping, ResolvedModeling, RouteStage, RoutedPoint } from './types'
 
 /** Returns `v` when it is a positive finite number; otherwise fails 'modeling_input' naming `label`. */
@@ -48,13 +49,10 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
   const routes: RouteStage[][]=[]
   const mappings: LaneMapping[]=[]
   const selectedTraces=new Set<string>()
-  const selectedPorts=new Set<string>()
   for(const lane of m.lanes) {
     const from=selectPort(cj,lane.from)
     const to=selectPort(cj,lane.to)
-    if(from.source_port_id===to.source_port_id||[from.source_port_id,to.source_port_id].some(id=>selectedPorts.has(id))) fail('pin_mapping',`${lane.port}: selected lanes require distinct physical source and receiver ports`)
-    selectedPorts.add(from.source_port_id)
-    selectedPorts.add(to.source_port_id)
+    if(from.source_port_id===to.source_port_id) fail('pin_mapping',`${lane.port}: selected lane requires distinct physical source and receiver ports`)
     const sources=cj.filter(e=>e.type==='source_trace').filter(e=>(lane.sourceTraceId?e.source_trace_id===lane.sourceTraceId:e.connected_source_port_ids?.includes(from.source_port_id)&&e.connected_source_port_ids?.includes(to.source_port_id)))
     if(sources.length!==1) fail('route_selection',`${lane.port}: expected one source trace; specify sourceTraceId`)
     const src=sources[0]
@@ -136,7 +134,7 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
     routes.push(stages)
     mappings.push({port:lane.port,sourceTraceId:src.source_trace_id,pcbTraceId:traces[0].pcb_trace_id,from:from.source_port_id,to:to.source_port_id,pcbPorts:ports.map(p=>p.pcb_port_id),stages,originalRoute:route})
   }
-  const geometry = {...routedCopperGeometry(cj,m,mappings),stackup}
+  const geometry = {...routedCopperGeometry(cj,m,joinSeriesMappings(mappings)),stackup}
   return m.simplifyParallel ? parallelCopperGeometry(geometry) : geometry
 }
 

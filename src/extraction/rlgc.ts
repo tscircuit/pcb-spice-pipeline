@@ -10,7 +10,7 @@ export interface StageMatrices { R: Matrix; L: Matrix; C: Matrix }
 const num = (value: number): string => Number(value.toPrecision(12)).toString()
 
 /** Writes the RLGC channel as a SPICE subcircuit: each stage is split into equal pi sections with coupled R, L and C between signals. */
-export function channelSpice(extracted: readonly StageMatrices[], sections: number): string {
+export function channelSpice(extracted: readonly StageMatrices[], sections: number, taps: { conductor: number; fraction: number; name: string }[] = []): string {
   if (!Number.isInteger(sections) || sections < 1 || sections > 128) fail('sections', 'sections must be an integer 1..128')
   if (!extracted.length || !extracted[0].R.length) fail('matrix_dimension', 'At least one extracted channel stage is required')
   const n = extracted[0].R.length
@@ -25,17 +25,18 @@ export function channelSpice(extracted: readonly StageMatrices[], sections: numb
   }
   const inputs = Array.from({ length: n }, (_, i) => `IN${i}`)
   const outputs = Array.from({ length: n }, (_, i) => `OUT${i}`)
-  const lines = ['* Constant-frequency passive matrix pi channel; explicit reference terminal', `.subckt CHANNEL ${[...inputs, ...outputs, 'REF'].join(' ')}`]
+  const lines = ['* Constant-frequency passive matrix pi channel; explicit reference terminal', `.subckt CHANNEL ${[...inputs, ...outputs, ...taps.map(tap => tap.name), 'REF'].join(' ')}`]
+  const cuts = [...new Set([...Array.from({ length: sections + 1 }, (_, i) => i / sections), ...taps.map(tap => tap.fraction)])].sort((a, b) => a - b)
   let global = 0
-  for (const [stage, e] of extracted.entries()) for (let section = 0; section < sections; section++) {
+  for (const [stage, e] of extracted.entries()) for (let section = 0; section < cuts.length - 1; section++) {
     const g = global++
-    const R: Matrix = scale(e.R, 1 / sections)
-    const L: Matrix = scale(e.L, 1 / sections)
-    const C: Matrix = scale(e.C, 1 / sections)
+    const R: Matrix = scale(e.R, cuts[section + 1] - cuts[section])
+    const L: Matrix = scale(e.L, cuts[section + 1] - cuts[section])
+    const C: Matrix = scale(e.C, cuts[section + 1] - cuts[section])
     const first = g === 0
-    const last = stage === extracted.length - 1 && section === sections - 1
-    const before = inputs.map((input, i) => first ? input : `N${g}_${i}`)
-    const after = outputs.map((output, i) => last ? output : `N${g + 1}_${i}`)
+    const last = stage === extracted.length - 1 && section === cuts.length - 2
+    const before = inputs.map((input, i) => first ? input : taps.find(tap => tap.conductor === i && tap.fraction === cuts[section])?.name ?? `N${g}_${i}`)
+    const after = outputs.map((output, i) => last ? output : taps.find(tap => tap.conductor === i && tap.fraction === cuts[section + 1])?.name ?? `N${g + 1}_${i}`)
     for (let i = 0; i < n; i++) {
       lines.push(`VS${g}_${i} ${before[i]} S${g}_${i} 0`, `R${g}_${i} S${g}_${i} R${g}_${i} ${num(R[i][i])}`)
       // The shared return contributes cross resistance R_ij * I_j as well as mutual inductance.
