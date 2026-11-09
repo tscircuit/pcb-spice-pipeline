@@ -51,8 +51,10 @@ export const numerics = {
   minimumFrequencyPerBitRate: .1,
   maximumFrequencyPerInverseRise: 5,
   kneeFrequencyPerInverseRise: .5,
-  /** Four positive-real Foster branches (amendment's 2–4), sampled on a logarithmic grid. */
+  /** Initial positive-real Foster branches; doubled until the maximum relative error contract passes. */
   lossBranches: 4,
+  lossFitMaximumRelative: .02,
+  lossPoleExtension: 100,
   frequencySamples: 41,
   /** Relative objective stagnation is numerical convergence, not an iteration cap. */
   fitRelativeChange: 1e-11,

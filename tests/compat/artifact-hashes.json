@@ -1,6 +1,6 @@
 {
   "in-memory": {
-    "channel.cir": "369425b7fa8ce8df6d9dd20cd15e80ac3170afa7c786e175e966a4bab5a50158",
+    "channel.cir": "a674b6c21efd21cd23ed20fff68a29146f4577976cacddbcef318a5145af20c5",
     "circuit-results.json": "80ee9578e6778ce3650efe3d93dd30b6e03d844fe7dcaa54be9e7a46d763efb5",
     "electrical-node-map.json": "5ee0e3f1e790184db2a41e9d2012ca95c51a0b9bbe7244b6dfaa1dada50408bd",
     "experiments/run/experiment.json": "5e917a2917061f40ac1e31f42d230084629da1cf550391e65f285d26c525954e",
@@ -12,14 +12,14 @@
     "experiments/run/model-0.lib": "a7989a0ee525de0f4f58a0e2a95bf983df61c587db98ebaa065f8202b3b768c1",
     "experiments/run/model-1.lib": "6fe52658fe25884bf3fda5bc25a034b17c45f5d75aaf8d12f5f0dc24561404e0",
     "experiments/run/native-ibis-assembly.json": "63090333b93230aaef84ea53ca00be861d4267dc96b80e2e97518eac74ced895",
-    "experiments/run/ngspice.request.json": "927642a74b0caa8eda3ad632dbe77e49541fde75eeed890f222c4a82d399be94",
+    "experiments/run/ngspice.request.json": "2dbc3fb1bea9861b487c949f0cec88dac3a7093eee6069ffb0cccdda86660f7e",
     "experiments/run/ngspice.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "experiments/run/ngspice.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "experiments/run/simulation.cir": "4b9c66114d1889bd03fad86cfd99b218482fac0cb79bbc79d6af6f59b1fc4ede",
+    "experiments/run/simulation.cir": "ce2d64fc309d290aeacf28fabb6e900d874c7521a6c364de5f7e76f8a684f3c3",
     "experiments/run/waveform.csv": "6c5e09eaf8b7312af66dfc39a6c6b6721665dbe43e8fb3373b31475db494d013",
     "experiments/run/waveform.dat": "1e19d640212f2ee09181d5518d6cfc0c55c8833822e830369fbd95dcc998e423",
     "experiments/run/waveform.json": "f5d0a8f56aab2c5c59027df2bf68426c4a17d8a456dae76b4a4fd83774dea56b",
-    "geometry.json": "a1f979df514248f292d11860df5c47910e4ab8b0763490ad6d42f424836fb299",
+    "geometry.json": "1961fdcaea5194af87590274f96ad843a45c03416618f735f788a2aab168e95f",
     "inputs/circuit.json": "4ec17c95ca59c350b9704d21accce757fb0a2c0d8d81c2f9aa9af65f7a81634d",
     "inputs/ibis/model-0.ibs": "689e7c29e216bc7427b86476ede2e240d11f1ec720c68bac602f7182760974a6",
     "inputs/ibis/model-1.ibs": "689e7c29e216bc7427b86476ede2e240d11f1ec720c68bac602f7182760974a6",
@@ -27,12 +27,12 @@
     "mesh-convergence.json": "772733aef299fca2ad4e6bf89f6a34129380e09ae6e1deee028da7d1f6ca4fa5",
     "segment-map.json": "89e0935410fa40d48cf4c833d0481b4eea22d305b529d1e8d8aee6cee73b618f",
     "slices/0161c56f536e9bf2240ee81dc1e6ef8e6abf4b8f5dfbc765ca2e631a92ce8bed/rlgc-per-metre.json": "5d04d870ad0c232b02f1e9b27de51c334e91cbaf3ed5f97f8d1783ddc164d095",
-    "stage-0/extraction.json": "1a3e2ae1b8e16572a5d96fe60c8e7e268514ae99f7f2697504102f2560f3915a",
+    "stage-0/extraction.json": "9048ec4d842762f5c580c016ab7333751bb768c52494385d674e93d0847ffaee",
     "vendor-sources.json": "855909a5cef761b52139f6948bfc5ac787722752d4781d559c8303c1f0135c4a",
-    "<result-without-files>": "ae3b44074bf828cb966a039cc0c6769a6ebfa416f3525cc171c2ac8eb4748322"
+    "<result-without-files>": "c4a9af2c1e97d3d95b040d087a05e4a368ac2495cc1e77a8dbd6e23af45dea93"
   },
   "rerun": {
-    "channel.cir": "369425b7fa8ce8df6d9dd20cd15e80ac3170afa7c786e175e966a4bab5a50158",
+    "channel.cir": "a674b6c21efd21cd23ed20fff68a29146f4577976cacddbcef318a5145af20c5",
     "circuit-results.json": "077f303ce58b6f96f4d9bea2b040932cfce325a76c428c57faf44715f18b3f2b",
     "electrical-node-map.json": "5ee0e3f1e790184db2a41e9d2012ca95c51a0b9bbe7244b6dfaa1dada50408bd",
     "experiments/run/experiment.json": "5e917a2917061f40ac1e31f42d230084629da1cf550391e65f285d26c525954e",
@@ -44,14 +44,14 @@
     "experiments/run/model-0.lib": "a7989a0ee525de0f4f58a0e2a95bf983df61c587db98ebaa065f8202b3b768c1",
     "experiments/run/model-1.lib": "6fe52658fe25884bf3fda5bc25a034b17c45f5d75aaf8d12f5f0dc24561404e0",
     "experiments/run/native-ibis-assembly.json": "63090333b93230aaef84ea53ca00be861d4267dc96b80e2e97518eac74ced895",
-    "experiments/run/ngspice.request.json": "927642a74b0caa8eda3ad632dbe77e49541fde75eeed890f222c4a82d399be94",
+    "experiments/run/ngspice.request.json": "2dbc3fb1bea9861b487c949f0cec88dac3a7093eee6069ffb0cccdda86660f7e",
     "experiments/run/ngspice.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "experiments/run/ngspice.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "experiments/run/simulation.cir": "4b9c66114d1889bd03fad86cfd99b218482fac0cb79bbc79d6af6f59b1fc4ede",
+    "experiments/run/simulation.cir": "ce2d64fc309d290aeacf28fabb6e900d874c7521a6c364de5f7e76f8a684f3c3",
     "experiments/run/waveform.csv": "00591348160ac63b63d341001ea9e5646eef57d77cc0b674312bfe440f2e561f",
     "experiments/run/waveform.dat": "5960561ded65c1ed387a769740c32e33cfe87ffbd2dcc6c566722abb982c2395",
     "experiments/run/waveform.json": "25479e18f899b33ade3622683255227839ff74dbf466d50e729ab1468f1eaad2",
-    "geometry.json": "a1f979df514248f292d11860df5c47910e4ab8b0763490ad6d42f424836fb299",
+    "geometry.json": "1961fdcaea5194af87590274f96ad843a45c03416618f735f788a2aab168e95f",
     "inputs/circuit.json": "80ee9578e6778ce3650efe3d93dd30b6e03d844fe7dcaa54be9e7a46d763efb5",
     "inputs/ibis/model-0.ibs": "689e7c29e216bc7427b86476ede2e240d11f1ec720c68bac602f7182760974a6",
     "inputs/ibis/model-1.ibs": "689e7c29e216bc7427b86476ede2e240d11f1ec720c68bac602f7182760974a6",
@@ -59,8 +59,8 @@
     "mesh-convergence.json": "772733aef299fca2ad4e6bf89f6a34129380e09ae6e1deee028da7d1f6ca4fa5",
     "segment-map.json": "89e0935410fa40d48cf4c833d0481b4eea22d305b529d1e8d8aee6cee73b618f",
     "slices/0161c56f536e9bf2240ee81dc1e6ef8e6abf4b8f5dfbc765ca2e631a92ce8bed/rlgc-per-metre.json": "5d04d870ad0c232b02f1e9b27de51c334e91cbaf3ed5f97f8d1783ddc164d095",
-    "stage-0/extraction.json": "1a3e2ae1b8e16572a5d96fe60c8e7e268514ae99f7f2697504102f2560f3915a",
+    "stage-0/extraction.json": "9048ec4d842762f5c580c016ab7333751bb768c52494385d674e93d0847ffaee",
     "vendor-sources.json": "855909a5cef761b52139f6948bfc5ac787722752d4781d559c8303c1f0135c4a",
-    "<result-without-files>": "50287435c054dabd91815f1c920a94099e4c3e09bcdd50e61c996fdd45a7e6c2"
+    "<result-without-files>": "dbae940297dcede259753f1aa96306f8e1aa8a6cc38e6f34daffd7b5cb918b08"
   }
 }

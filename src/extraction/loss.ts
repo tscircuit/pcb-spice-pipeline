@@ -2,35 +2,44 @@ import { fail } from './diagnostics'
 import { numerics, max } from '../kernel'
 import type { LossFit } from './types'
 
-/** Four nonnegative Foster branches fitted over the automatically derived frequency band. */
+/** Nonnegative Foster fitting with an explicit maximum-error contract and no branch cap. */
 export function fitLoss(frequencies: number[], target: number[]): LossFit {
-  if (!frequencies.length || frequencies.length !== target.length || frequencies.some(f => !Number.isFinite(f) || f <= 0) || target.some(v => !Number.isFinite(v) || v < 0)) fail('loss_fit', 'Finite positive frequencies and matching nonnegative loss samples are required')
-  const poles = Array.from({ length: numerics.lossBranches }, (_, i) => 2 * Math.PI * frequencies[0] * (frequencies.at(-1)! / frequencies[0]) ** (i / (numerics.lossBranches - 1)))
-  if (target.every(v => v === 0)) return {poles, weights:poles.map(() => 0), relativeRms:0, maxRelative:0}
-  const basis = frequencies.map(f => poles.map(p => (2 * Math.PI * f) ** 2 / ((2 * Math.PI * f) ** 2 + p ** 2)))
-  const weights = poles.map(() => 0)
+  if (!frequencies.length || frequencies.length !== target.length || frequencies.some((f, i) => !Number.isFinite(f) || f <= 0 || (i > 0 && f <= frequencies[i - 1])) || target.some(v => !Number.isFinite(v) || v < 0)) fail('loss_fit', 'Increasing positive frequencies and matching finite nonnegative loss samples are required')
+  if (target.every(v => v === 0)) return {poles: [], weights: [], relativeRms: 0, maxRelative: 0}
+  // Every positive Foster branch increases monotonically, with logarithmic slope in [0,2].
+  for (let i = 1; i < target.length; i++) if (target[i] < target[i - 1] || target[i] > target[i - 1] * (frequencies[i] / frequencies[i - 1]) ** 2 * (1 + numerics.lossFitMaximumRelative)) fail('loss_fit', 'Target violates the monotonicity/slope bounds of a passive RL/RC Foster network')
   const floor = max(target) * numerics.fitZeroRelative
   const scale = target.map(v => Math.max(v, floor))
-  let previous = Infinity
+  let count = numerics.lossBranches as number
+  let previousFit = Infinity
   for (;;) {
-    for (let j = 0; j < poles.length; j++) {
-      let numerator = 0
-      let denominator = 0
-      for (let i = 0; i < target.length; i++) {
-        const remaining = target[i] - basis[i].reduce((s, v, k) => s + (k === j ? 0 : v * weights[k]), 0)
-        numerator += remaining * basis[i][j] / scale[i] ** 2
-        denominator += basis[i][j] ** 2 / scale[i] ** 2
+    // Out-of-band poles are essential for representing loss near either band endpoint.
+    const lower = frequencies[0] / numerics.lossPoleExtension
+    const upper = frequencies.at(-1)! * numerics.lossPoleExtension
+    const poles = Array.from({length: count}, (_, i) => 2 * Math.PI * lower * (upper / lower) ** (i / (count - 1)))
+    const basis = poles.map(p => frequencies.map((f, i) => (2 * Math.PI * f) ** 2 / ((2 * Math.PI * f) ** 2 + p ** 2) / scale[i]))
+    const norm = basis.map(column => column.reduce((sum, v) => sum + v * v, 0))
+    const weights = poles.map(() => 0)
+    const residual = target.map((v, i) => v / scale[i])
+    let previous = Infinity
+    for (;;) {
+      for (let j = 0; j < poles.length; j++) {
+        const next = Math.max(0, weights[j] + basis[j].reduce((sum, v, i) => sum + v * residual[i], 0) / norm[j])
+        const change = next - weights[j]
+        for (let i = 0; i < residual.length; i++) residual[i] -= change * basis[j][i]
+        weights[j] = next
       }
-      weights[j] = Math.max(0, numerator / denominator)
+      const error = residual.reduce((sum, v) => sum + v * v, 0)
+      if (!Number.isFinite(error)) fail('loss_fit', 'Nonfinite Foster objective')
+      if (previous - error <= numerics.fitRelativeChange * Math.max(1, previous) && Number.isFinite(previous)) break
+      previous = error
     }
-    const error = target.reduce((s, v, i) => s + ((basis[i].reduce((a, b, j) => a + b * weights[j], 0) - v) / scale[i]) ** 2, 0)
-    if (error > previous * (1 + numerics.fitRelativeChange)) fail('loss_fit', 'Foster coordinate descent increased the objective beyond roundoff')
-    if (!Number.isFinite(error)) fail('loss_fit', 'Nonfinite Foster fit objective')
-    if (previous - error <= numerics.fitRelativeChange * Math.max(1, previous) && Number.isFinite(previous)) break
-    previous = error
+    const maximum = max(residual.map(Math.abs))
+    if (maximum <= numerics.lossFitMaximumRelative) return {poles, weights, maxRelative: maximum, relativeRms: Math.sqrt(residual.reduce((sum, v) => sum + v * v, 0) / residual.length)}
+    if (previousFit - maximum <= Number.EPSILON * Math.max(1, previousFit) && Number.isFinite(previousFit)) fail('loss_fit', `Foster refinement cannot meet maximum relative error ${numerics.lossFitMaximumRelative}; residual ${maximum}`)
+    previousFit = maximum
+    count *= 2
   }
-  const errors = target.map((v, i) => Math.abs(basis[i].reduce((s, b, j) => s + b * weights[j], 0) - v) / scale[i])
-  return { poles, weights, relativeRms: Math.sqrt(errors.reduce((s, e) => s + e * e, 0) / errors.length), maxRelative: max(errors) }
 }
 /** Real part of a fitted positive-real Foster impedance/admittance. */
 export function fittedLoss(fit: LossFit, frequency: number): number {

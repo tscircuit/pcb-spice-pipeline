@@ -87,7 +87,7 @@ export async function extractChannel(geometry: Geometry, band: ExtractionModelin
       skin: { matrix: skin, fit: skinFit }, dielectric: { matrix: dielectric, fit: dielectricFit }, mesh, sliceHash, geometry: cell }
     matrices.push(result)
     artifacts.push(scope.child(`stage-${cell.stage}`).json('extraction.json', result))
-    ctx.progress(`Segment ${cell.stage}: automatic ${result.cells} cells; skin fit RMS ${skinFit.relativeRms}; dielectric fit RMS ${dielectricFit.relativeRms}`)
+    ctx.progress(`Segment ${cell.stage}: automatic ${result.cells} cells; skin fit ${skinFit.weights.length} branches max ${skinFit.maxRelative} RMS ${skinFit.relativeRms}; dielectric fit ${dielectricFit.weights.length} branches max ${dielectricFit.maxRelative} RMS ${dielectricFit.relativeRms}`)
   }
   const spice = channelSpice(matrices, geometry.mappings.length)
   artifacts.push(scope.text('channel.cir', spice), scope.json('mesh-convergence.json', [...cache].map(([hash, r]) => ({ hash, steps: r.steps }))))
