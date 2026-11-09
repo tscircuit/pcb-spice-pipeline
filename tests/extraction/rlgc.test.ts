@@ -149,3 +149,26 @@ test('invalid internal taps cannot create negative pi sections or extra SPICE te
   for (const fraction of [0, 1, -1, NaN]) assert.throws(() => channelSpice(matrices, 2, [{ conductor: 0, fraction, name: 'RX' }]), /Internal taps/)
   assert.throws(() => channelSpice(matrices, 2, [{ conductor: 0, fraction: .5, name: 'RX REF' }]), /Internal taps/)
 })
+
+test('native AC columns retain both unequal TSX signal mutual coefficients without averaging', { skip: !process.env.NGSPICE_BIN }, async () => {
+  const evidence = JSON.parse(await readFile(new URL('../evidence/signal-levels/layered-capacitance-investigation.json', import.meta.url), 'utf8'))
+  const raw: Matrix = evidence.final_baseline_confirmation.find((sample: { coupled: boolean }) => sample.coupled).matrix
+  const C = raw.slice(0, -1).map(row => row.slice(0, -1))
+  const channel = channelSpice([{ R: [[1, 0], [0, 1]], L: [[1e-9, 0], [0, 1e-9]], C }], 1)
+  assert.notEqual(C[0][1], C[1][0])
+  assert.match(channel, /^FC/m)
+  const frequency = 1e8
+  const omega = 2 * Math.PI * frequency
+  const solve = createNativeSolver({ timeoutMs: 15000, tools: { ngspice: process.env.NGSPICE_BIN } })
+  for (let column = 0; column < 2; column++) {
+    const deck = ['Raw grounded C matrix columns', 'VREF ref 0 1.7', `V0 p0 ref AC ${Number(column === 0)}`, `V1 p1 ref AC ${Number(column === 1)}`,
+      channel, 'XCHAN p0 p1 p0 p1 ref CHANNEL', '.control', 'set wr_singlescale', 'set wr_vecnames', 'set numdgt=17',
+      `ac lin 1 ${frequency} ${frequency}`, 'wrdata charge.dat i(V0) i(V1)', 'quit', '.endc', '.end'].join('\n')
+    const output = await solve({ solver: 'ngspice', args: ['-n', '-b', 'charge.cir'], files: { 'charge.cir': deck }, outputFiles: ['charge.dat'] })
+    const values = output.files['charge.dat'].trim().split('\n')[1].trim().split(/\s+/).map(Number)
+    for (let row = 0; row < 2; row++) {
+      assert.ok(Math.abs(values[1 + 2 * row]) < 1e-12)
+      close(-values[2 + 2 * row] / omega, C[row][column])
+    }
+  }
+})

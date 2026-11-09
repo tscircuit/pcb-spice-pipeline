@@ -13,7 +13,7 @@ flowchart LR
   board3d --> check{"straight parallel traces,<br/>one rectangular return<br/>with contacts at opposite ends?"}
   check -->|"yes"| bars["board: extra 2D bar reduction for R/L<br/>C retains physical copper and dielectric"]
   check -->|"no"| extract
-  bars --> extract["extraction: native R/L and layered C<br/>convergence and reciprocity checks"]
+  bars --> extract["extraction: native R/L and layered C<br/>R/L convergence; grounded signal-block C reciprocity"]
   derive --> buffers["buffers: vendor models, signal packages and ideal die rails"]
   buffers --> simulate["simulation: undisturbed idle, then native transient<br/>independent section and timestep refinement"]
   extract --> simulate

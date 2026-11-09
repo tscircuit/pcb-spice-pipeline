@@ -3,15 +3,21 @@ import { fail } from './diagnostics'
 import { multiply, sum, symmetrize, transpose, type Matrix } from './linalg'
 
 export interface MatrixCheck { matrix: Matrix; reciprocityResidual: number; cholesky: Matrix }
-export interface CapacitanceCheck extends MatrixCheck { denominator: number; convention: string }
+export interface CapacitanceCheck { matrix: Matrix; reciprocityResidual: number; convention: string; positiveEnergy: string }
+
+/** Checks finite square shape and returns max absolute transpose mismatch divided by max absolute entry. */
+export function reciprocityResidual(a: Matrix, name: string): number {
+  if (!a.length || a.some(r => r.length !== a.length || r.some(v => !Number.isFinite(v)))) fail('matrix_format', `${name}: finite square matrix required`)
+  const norm = Math.max(...a.flat().map(Math.abs))
+  if (!norm) fail('matrix_zero', name)
+  return Math.max(...a.flatMap((r, i) => r.map((v, j) => Math.abs(v - a[j][i])))) / norm
+}
 
 /** Rejects a matrix that is not finite, square, reciprocal within tolerance and positive definite; returns its symmetric part and Cholesky factor as proof. */
 export function validateMatrix(a: Matrix, name: string, tolerance: number = 0.02): MatrixCheck {
   const n=a.length
-  if (!n || a.some(r => r.length!==n || r.some(v => !Number.isFinite(v)))) fail('matrix_format', `${name}: finite square matrix required`)
+  const residual=reciprocityResidual(a,name)
   const norm=Math.max(...a.flat().map(Math.abs))
-  if (!norm) fail('matrix_zero',name)
-  const residual=Math.max(...a.flatMap((r,i) => r.map((v,j) => Math.abs(v-a[j][i]))))/norm
   if (residual>tolerance) fail('reciprocity', `${name}: residual ${residual} > ${tolerance}`)
   const m=symmetrize(a)
   const l: Matrix=m.map(() => Array(n).fill(0))
@@ -31,16 +37,21 @@ export function loopImpedance(a: Matrix): Matrix {
   const A=Array.from({length:n+1},(_,i)=>Array.from({length:n},(_,j)=>i===n?-1:Number(i===j)))
   return multiply(multiply(transpose(A),a),A)
 }
-/** Turns a Maxwell capacitance matrix referenced to infinity into one referenced to the finite return conductor, then checks its signs. */
-export function referenceCapacitance(c: Matrix): CapacitanceCheck {
-  const row=c.map(sum)
-  const denominator=sum(row)
-  if(denominator<=0) fail('reference', 'C to infinity must have positive total common capacitance')
-  const n=c.length-1
-  const matrix=c.slice(0,n).map((r,i)=>r.slice(0,n).map((v,j)=>v-row[i]*row[j]/denominator))
-  const checked=validateMatrix(matrix,'C loop')
-  if(checked.matrix.some((r,i)=>r.some((v,j)=>i!==j&&v>0)||sum(r)<=0)) fail('capacitance_sign', 'Referenced Maxwell C needs nonpositive mutual C and positive shunt C')
-  return {...checked,denominator,convention:'Q_total=0; Vsignal relative to finite return; infinity common voltage eliminated'}
+/** Checks grounded Maxwell signs, reciprocity and positive quadratic energy without changing any coefficient. */
+export function validateCapacitance(matrix: Matrix, tolerance: number = 0.025): CapacitanceCheck {
+  const residual = reciprocityResidual(matrix, 'C signal block')
+  if (residual > tolerance) fail('reciprocity', `C signal block: residual ${residual} > ${tolerance}`)
+  if (matrix.some((r, i) => r.some((v, j) => i !== j && v > 0) || sum(r) <= 0)) fail('capacitance_sign', 'Grounded Maxwell C needs nonpositive mutual C and positive shunt C')
+  // Positive row AND column sums make the symmetric quadratic form strictly
+  // diagonally dominant. No averaged matrix or Cholesky of an altered C is used.
+  if (transpose(matrix).some(r => sum(r) <= 0)) fail('passivity', 'C signal block needs positive column sums for positive quadratic energy')
+  return { matrix, reciprocityResidual: residual, convention: 'Vreturn=0 relative to infinity; C=Cprim[signals,signals]; total charge may be nonzero', positiveEnergy: 'Strict row and column diagonal dominance with Maxwell signs; residual asymmetry retained' }
+}
+
+/** Holds the joined physical return (all ground pours and connections) at zero and selects only signal excitations and charges. */
+export function referenceCapacitance(c: Matrix, tolerance: number = 0.025): CapacitanceCheck {
+  if (c.length < 2) fail('matrix_dimension', 'At least one signal plus a return required')
+  return validateCapacitance(c.slice(0, -1).map(row => row.slice(0, -1)), tolerance)
 }
 
 /** Floating finite-return, zero-total-current reduction for a primitive Maxwell conductance matrix. */

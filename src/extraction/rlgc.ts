@@ -1,6 +1,6 @@
 // Coupled RLGC pi-section subcircuit text.
 import { fail } from './diagnostics'
-import { validateMatrix } from './checks'
+import { validateMatrix, validateCapacitance } from './checks'
 import { scale, sum, type Matrix } from './linalg'
 
 /** One stage's loop matrices (spice.ts called this `ChannelMatrices`). */
@@ -10,7 +10,7 @@ export interface StageMatrices { R: Matrix; L: Matrix; C: Matrix }
 const num = (value: number): string => Number(value.toPrecision(12)).toString()
 
 /** Writes the RLGC channel as a SPICE subcircuit: each stage is split into equal pi sections with coupled R, L and C between signals. */
-export function channelSpice(extracted: readonly StageMatrices[], sections: number, taps: { conductor: number; fraction: number; name: string }[] = []): string {
+export function channelSpice(extracted: readonly StageMatrices[], sections: number, taps: { conductor: number; fraction: number; name: string }[] = [], reciprocityTolerance: number = 0.025): string {
   if (!Number.isInteger(sections) || sections < 1 || sections > 128) fail('sections', 'sections must be an integer 1..128')
   if (!extracted.length || !extracted[0].R.length) fail('matrix_dimension', 'At least one extracted channel stage is required')
   const n = extracted[0].R.length
@@ -18,7 +18,8 @@ export function channelSpice(extracted: readonly StageMatrices[], sections: numb
   for (const [stage, matrices] of extracted.entries()) {
     for (const kind of ['R', 'L', 'C'] as const) {
       if (matrices[kind].length !== n) fail('matrix_dimension', `Stage ${stage} ${kind}: channel dimensions disagree`)
-      validateMatrix(matrices[kind], `Stage ${stage} ${kind}`, 1e-10)
+      if (kind === 'C') validateCapacitance(matrices.C, reciprocityTolerance)
+      else validateMatrix(matrices[kind], `Stage ${stage} ${kind}`, 1e-10)
     }
     if (matrices.C.some((row, i) => row.some((entry, j) => i !== j && entry > 0) || sum(row) <= 0)) {
       fail('capacitance_sign', `Stage ${stage}: referenced Maxwell C requires nonpositive mutual and positive shunt capacitance`)
@@ -46,6 +47,17 @@ export function channelSpice(extracted: readonly StageMatrices[], sections: numb
     }
     for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) lines.push(`K${g}_${i}_${j} L${g}_${i} L${g}_${j} ${num(L[i][j] / Math.sqrt(L[i][i] * L[j][j]))}`)
     for (const [label, nodes] of [['a', before], ['b', after]] as const) {
+      if (C.some((row, i) => row.some((value, j) => value !== C[j][i]))) {
+        // Sense each diagonal capacitor current and copy C_ij/C_jj into row i.
+        // This realizes I=C*dV/dt exactly, retaining both raw mutual entries.
+        for (let j = 0; j < n; j++) {
+          const sense = `VC${g}${label}${j}`
+          const node = `CS${g}${label}${j}`
+          lines.push(`${sense} ${nodes[j]} ${node} 0`, `CG${g}${label}${j} ${node} REF ${num(C[j][j] / 2)}`)
+          for (let i = 0; i < n; i++) if (i !== j && C[i][j]) lines.push(`FC${g}${label}${i}_${j} ${nodes[i]} REF ${sense} ${num(C[i][j] / C[j][j])}`)
+        }
+        continue
+      }
       for (let i = 0; i < n; i++) lines.push(`CG${g}${label}${i} ${nodes[i]} REF ${num(sum(C[i]) / 2)}`)
       for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (C[i][j] < 0) lines.push(`CM${g}${label}${i}_${j} ${nodes[i]} ${nodes[j]} ${num(-C[i][j] / 2)}`)
     }
