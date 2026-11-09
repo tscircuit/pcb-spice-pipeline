@@ -24,6 +24,13 @@ These are prior measurements, not reruns of this new board. Raw evidence remains
 repository in `si-api-review/iter1/e2e/out` and `logs`. A fresh baseline can be run on this commit
 with `SI_3D_BASELINE=1 node --import tsx --test tests/support/2d-baseline.native.mjs`.
 It runs a single extraction with no harness timeout and saves the result/error and elapsed time.
+Each native request and response is also saved immediately, so an interrupted later solve does not
+discard completed evidence.
+
+`SI_3D_GAP=1 node --import tsx --test tests/support/2d-baseline.native.mjs` renders the original
+RS-485 TSX board in `tests/fixtures/rs485-gap.tsx` and checks both reductions against the historical
+11.716/4.169 nH results at the original 5% refinement tolerance. Native failures propagate; a
+different failure cannot pass as the expected SC70 convergence result.
 Do not enable it on the fix branch: 3D extraction is removed there.
 
 ```mermaid
