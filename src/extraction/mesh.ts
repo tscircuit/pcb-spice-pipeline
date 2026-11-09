@@ -12,10 +12,11 @@ import { fail } from './diagnostics'
 const finite = (value: number): boolean => Number.isFinite(value)
 
 /** Same edge-strip discretization as a rectangular plane mesh, refined locally
- * around boundaries and finite contacts. Every retained cell lies inside copper.
+ * around boundaries and finite contacts, with fine return-current corridors
+ * within one trace height and graded spacing beyond. The full pour is retained.
  * Adjacent cells contribute half their transverse width to their shared edge.
  */
-export function groundMesh(pour: Solid, meshMm: number, contacts: Array<{point:Point;radius:number}>, contactDivisions: number=2): {points: Point[]; edges: Array<[number,number,number]>; contacts: number[][]} {
+export function groundMesh(pour: Solid, meshMm: number, contacts: Array<{point:Point;radius:number}>, contactDivisions: number=2, paths: Path[]=[]): {points: Point[]; edges: Array<[number,number,number]>; contacts: number[][]} {
   const points: Point[]=[]
   const edges: Array<[number,number,number]>=[]
   const indices=new Map<string,number>()
@@ -41,6 +42,7 @@ export function groundMesh(pour: Solid, meshMm: number, contacts: Array<{point:P
   const xs=ring.map(p=>p[0])
   const ys=ring.map(p=>p[1])
   const boundary=pour.polygon.flatMap(r=>r.map((a,i)=>({a,b:r[(i+1)%r.length]})))
+  const segments=paths.flatMap(p=>p.segments)
   /** Quadtree walk: splits a box until it is fine enough near boundaries and contacts, then keeps it if it lies wholly inside copper. */
   const visit=(x0:number,y0:number,x1:number,y1:number,borders:typeof boundary,depth:number): void=>{
     const crosses=borders.filter(({a,b})=>Math.max(a[0],b[0])>x0+1e-9&&Math.min(a[0],b[0])<x1-1e-9&&Math.max(a[1],b[1])>y0+1e-9&&Math.min(a[1],b[1])<y1-1e-9)
@@ -48,7 +50,18 @@ export function groundMesh(pour: Solid, meshMm: number, contacts: Array<{point:P
     const inside=contains(center,pour.polygon)
     const size=Math.max(x1-x0,y1-y0)
     if(!crosses.length&&!inside) return
-    let target=crosses.length?meshMm/4:meshMm
+    const radius=Math.hypot(x1-x0,y1-y0)/2
+    let target=segments.length?Infinity:meshMm
+    for(const s of segments) {
+      const dx=s.b[0]-s.a[0]
+      const dy=s.b[1]-s.a[1]
+      const length2=dx*dx+dy*dy
+      const t=length2?Math.max(0,Math.min(1,((center[0]-s.a[0])*dx+(center[1]-s.a[1])*dy)/length2)):0
+      const distance=Math.hypot(center[0]-s.a[0]-t*dx,center[1]-s.a[1]-t*dy)-radius-s.widthMm/2
+      const height=Math.max(Math.abs(s.a[2]-(pour.zMinMm+pour.zMaxMm)/2),Math.abs(s.b[2]-(pour.zMinMm+pour.zMaxMm)/2))
+      target=Math.min(target,meshMm+Math.max(0,distance-height)*.5)
+    }
+    if(crosses.length) target=Math.min(target,meshMm/4)
     for(const c of contacts) {
       const dx=Math.max(x0-c.point[0],0,c.point[0]-x1)
       const dy=Math.max(y0-c.point[1],0,c.point[1]-y1)
