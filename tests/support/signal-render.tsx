@@ -17,11 +17,18 @@ function valueWithUnits(value: unknown, ui: number = 1): number {
 /** Temporary rendering adapter until the parallel core/props PRs publish the two intrinsics. */
 export async function renderSignals(tree: React.ReactElement, expectedErrors: string[] = []): Promise<CircuitJson> {
   const blocks: Record<string, unknown>[] = []
+  const plating: (number | undefined)[] = []
   /** Expand local components, removing only the two unpublished intrinsic elements. */
   const strip = (element: React.ReactNode): React.ReactNode => {
     if (Array.isArray(element)) return element.map(strip)
     if (!React.isValidElement<Record<string, unknown>>(element)) return element
     if (typeof element.type === 'function') return strip((element.type as (props: unknown) => React.ReactNode)(element.props))
+    if (element.type === 'board') {
+      const imported = Array.isArray(element.props.circuitJson) ? element.props.circuitJson as CircuitJson : []
+      const board = imported.find(record => record.type === 'pcb_board')
+      const stack = imported.find(record => record.type === 'pcb_stackup' && record.pcb_board_id === (board?.type === 'pcb_board' ? board.pcb_board_id : undefined))
+      plating.push(stack?.type === 'pcb_stackup' ? stack.plated_hole_copper_thickness : element.props.fabricatorPreset ? .018 : undefined)
+    }
     if (element.type === 'signalintegrity') {
       blocks.push(element.props)
       return null
@@ -38,6 +45,11 @@ export async function renderSignals(tree: React.ReactElement, expectedErrors: st
     Reflect.deleteProperty(record, 'model_value_corner')
     Reflect.deleteProperty(record, 'include_package_parasitics')
   }
+  // Match core#5286's imported-stackup precedence and JLC preset's declared 18 µm plating.
+  records.filter(record => record.type === 'pcb_board').forEach((board, index) => {
+    const stack = records.find(record => record.type === 'pcb_stackup' && record.pcb_board_id === board.pcb_board_id)
+    if (stack?.type === 'pcb_stackup' && plating[index] !== undefined) stack.plated_hole_copper_thickness = plating[index]
+  })
   const errors = records.filter(r => r.type.endsWith('_error') && !expectedErrors.includes(r.type))
   if (errors.length) throw new Error(JSON.stringify(errors))
   /** Resolve selector endpoints to exactly the RFC's source-port-id records. */

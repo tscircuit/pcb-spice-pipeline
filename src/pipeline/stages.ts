@@ -81,7 +81,10 @@ export const simulate: Stage<'extracted', 'simulated'> = {
         const previous = run
         const dimension = refinement % 2 ? 'time' : 'space'
         if (dimension === 'time') plan.maxStepSeconds /= 2
-        else state.modeling.sections = Math.min(128, state.modeling.sections * 2)
+        else {
+          if (state.modeling.sections === 128) throw Object.assign(new Error(`${plan.name}: section refinement reached 128 before convergence`), { convergence })
+          state.modeling.sections = Math.min(128, state.modeling.sections * 2)
+        }
         scope = base.child(`numerical-refinement-${refinement}`)
         assembly = ibisAssembly(state.compiled[index], scope.handTo('buffers'))
         run = await runExperiment(ctx, scope, state.bound, index, state.geometry, state.modeling, state.channel.matrices).catch(error => {

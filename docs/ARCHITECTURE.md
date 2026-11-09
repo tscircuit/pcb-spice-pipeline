@@ -63,4 +63,4 @@ R/L use the signal-minus-return loop transform. C and G use the floating finite-
 
 The runtime imports the shared circuit-json schemas. Local validation must build the sibling RFC branch until circuit-json#983 is released. No absolute local dependency links are committed. The render adapter exists only for the unpublished core#5286 intrinsics; unknown strobes are errors.
 
-Preset-via integration currently depends on core emitting `pcb_stackup.plated_hole_copper_thickness`. The installed core and current sibling renderer preserve imported plating but omit preset-derived plating. The adapter now matches that omission; the pipeline rejects absent plating instead of inventing barrel geometry.
+Core#5286 now emits JLC preset plating (0.018 mm), preserving explicit imported stackup plating. The temporary adapter matches the built core fork exactly for source SI/IBIS and stackup records in the SE, differential and three-block examples; `tests/evidence/signal-levels/core-adapter-parity.json` records the comparison. Pipeline via geometry requires the declared shared stackup thickness and never guesses it from dielectric dimensions.

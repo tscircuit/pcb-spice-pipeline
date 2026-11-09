@@ -69,12 +69,15 @@ test('unlisted output-only models drive a steady physical low; D81 receives a le
   assert.equal(stimulus?.type === 'simulation_digital_stimulus' && stimulus.transmission_pattern.bits, '0')
 })
 
-test('TSX vias require declared stackup plating rather than an invented thickness', { skip: !modelDir }, async () => {
+test('TSX vias use core preset plating and respect an explicit stackup thickness', { skip: !modelDir }, async () => {
   const circuit = await renderSignals(<Board via />)
   const ibis = await sources()
-  assert.throws(() => prepareBlocks(circuit, ibis), /pcb_stackup must specify plated_hole_copper_thickness/)
   const stack = circuit.find(record => record.type === 'pcb_stackup')!
   if (stack.type !== 'pcb_stackup') throw new Error('Missing stackup')
+  assert.equal(stack.plated_hole_copper_thickness, .018)
+  assert.equal(prepareBlocks(circuit, ibis)[0].settings.viaPlatingMm, .018)
+  delete stack.plated_hole_copper_thickness
+  assert.throws(() => prepareBlocks(circuit, ibis), /pcb_stackup must specify plated_hole_copper_thickness/)
   stack.plated_hole_copper_thickness = .025
   const [prepared] = prepareBlocks(circuit, ibis)
   assert.equal(prepared.settings.viaPlatingMm, .025)
