@@ -135,3 +135,11 @@ test('native lossless-limit line preserves analytic delay, impedance and section
     assert.ok(Math.abs(values[i] - results[0][i]) < .0005, 'refining or splitting a physical stage preserves the waveform')
   }
 })
+
+test('internal receiver taps split uniform pi cells at their physical position', () => {
+  const deck = channelSpice([{ R: [[10]], L: [[1e-8]], C: [[1e-12]] }], 2, [{ conductor: 0, fraction: .9, name: 'RX' }])
+  assert.match(deck, /\.subckt CHANNEL IN0 OUT0 RX REF/)
+  assert.match(deck, /L1_0 R1_0 RX 4e-9/)
+  assert.match(deck, /VS2_0 RX S2_0 0/)
+  assert.match(deck, /R2_0 S2_0 R2_0 1\b/)
+})
