@@ -17,5 +17,19 @@ test('real core escape vias at the end of ground routes reach the opposite-layer
   for (const path of copper.connections) {
     assert.ok(path.segments.some(segment => segment.a[2] !== segment.b[2]))
     assert.equal(path.contactRadiusMm, .15)
+    const barrel = path.segments.at(-1)!
+    assert.ok(Math.abs(barrel.widthMm * barrel.thicknessMm - Math.PI * (.118 ** 2 - .1 ** 2)) < 1e-12)
+    assert.equal(barrel.b[2], (copper.pours[0].zMinMm + copper.pours[0].zMaxMm) / 2)
+  }
+  for (const kind of ['missing', 'wrong-net', 'bad-plating', 'wrong-span'] as const) {
+    const invalid = structuredClone(circuit)
+    const index = invalid.findIndex(record => record.type === 'pcb_via')
+    const via = invalid[index]
+    if (via.type !== 'pcb_via') throw new Error('Missing physical via')
+    if (kind === 'missing') invalid.splice(index, 1)
+    if (kind === 'wrong-net') via.source_net_id = 'unrelated-net'
+    if (kind === 'bad-plating') via.outer_diameter = .21
+    if (kind === 'wrong-span') via.to_layer = 'top'
+    assert.throws(() => geometryFromCircuitJson(invalid, settings), /via_geometry|ground_connection/, kind)
   }
 })

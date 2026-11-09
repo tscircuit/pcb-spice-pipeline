@@ -161,8 +161,17 @@ function groundConnection(circuit: CircuitJson, m: ResolvedModeling, portId: str
   for (const key of ['start_pcb_port_id', 'end_pcb_port_id'] as const) if (first[key] && first[key] !== port.pcb_port_id) fail('ground_connection', `${portId}: reference route endpoint metadata disagrees with its physical pad`)
   const end = route.at(-1)!
   let contactRadiusMm: number
-  if (end.route_type !== 'wire') fail('ground_connection', `${portId}: ground lead must end on a wire layer`)
-  if (!pours.some(p => p.layer === end.layer && contains([end.x, end.y], p.polygon))) {
+  if (end.route_type === 'via') {
+    const vias = circuit.filter(e => e.type === 'pcb_via').filter(via =>
+      via.pcb_trace_id === traces[0].pcb_trace_id && Math.hypot(via.x - end.x, via.y - end.y) < 1e-5 &&
+      (!via.source_net_id || netIds.has(via.source_net_id)))
+    if (vias.length !== 1) fail('ground_connection', `${portId}: terminal reference via requires one associated physical barrel`)
+    const via = vias[0]
+    const radius = validateReferenceVia(via, m, portId)
+    if (!pours.some(p => p.layer === end.to_layer && viaSpans(via, end.from_layer, p.layer, m) && barrelInside([end.x, end.y], radius, p.polygon)))
+      fail('ground_connection', `${portId}: terminal reference via misses ground copper`)
+    contactRadiusMm = via.outer_diameter / 2
+  } else if (!pours.some(p => p.layer === end.layer && contains([end.x, end.y], p.polygon))) {
     const vias = circuit.filter(e => e.type === 'pcb_via').filter(e => e.source_net_id && netIds.has(e.source_net_id) && e.layers.includes(end.layer) && Math.hypot(e.x - end.x, e.y - end.y) < 1e-5)
     const targets = vias.flatMap(via => pours.filter(p => viaSpans(via, end.layer, p.layer, m) && contains([via.x, via.y], p.polygon)).map(p => ({ via, pour: p })))
     if (targets.length !== 1) fail('ground_connection', `${portId}: reference via must connect unambiguously to actual ground copper`)
