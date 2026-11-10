@@ -1,6 +1,7 @@
 // Today's geometry.json shapes (was geometry.ts + copper.ts types). Serialized: do not reorder or rename.
 import type { CircuitJson } from '../schema'
 import type { BoardStackup, CopperLayer, DielectricLayer } from '../stackup'
+import type { CopperScope } from './scope'
 
 export type PortSelector = { sourcePortId: string; component?: never; port?: never } | { sourcePortId?: never; component: string; port: string }
 export interface ExtractionSettings {
@@ -26,6 +27,7 @@ export interface BoardModeling {
   viaPlatingMm?: number; viaEquivalentWidthMm?: number; omitThroughViaStubs?: boolean
   channelReference?: PortSelector
   description?: string
+  copperScope?: CopperScope
 }
 /** Alias: the geometry-facing Modeling. The full public Modeling is pipeline's intersection of slices. */
 export type Modeling = BoardModeling

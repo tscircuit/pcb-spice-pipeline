@@ -6,6 +6,15 @@ export interface CoupledPackageModel extends SelectedPackageModel {
   mergedPins: Record<string, string>
 }
 
+/** Log and retain source evidence even when a later admission gate rejects the board. */
+export function packageCapacitanceWarnings(selected: SelectedPackageModel | undefined, file: string, sourceSha256: string): string[] {
+  const correction = selected?.capacitanceSignCorrection
+  if (!correction) return []
+  const warning = `${file} SHA-256 ${sourceSha256}: package model ${correction.packageModel}: negated ${correction.negatedEntries} off-diagonal capacitance entries (uniform positive magnitudes, diagonally dominant rows) before Maxwell sign/passivity validation`
+  console.warn(warning)
+  return [warning]
+}
+
 /** IBIS [Pin Numbers]: unlisted pins use scalar data unless their rail bus is merged. */
 export function coupledPackage(text: string, component: IbisComponent, pins: string[]): CoupledPackageModel | undefined {
   if (component.coupledPackage === undefined) return undefined

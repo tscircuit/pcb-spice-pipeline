@@ -8,6 +8,7 @@ import { selectPort, resolveRouteVias } from './ports'
 import { routedCopperGeometry } from './routed'
 import { parallelCopperGeometry } from './parallel'
 import { joinSeriesMappings } from './series'
+import { copperScopeRejections } from './scope'
 import type { BoardModeling as Modeling, Geometry, LaneMapping, ResolvedModeling, RouteStage, RoutedPoint } from './types'
 
 /** Returns `v` when it is a positive finite number; otherwise fails 'modeling_input' naming `label`. */
@@ -45,6 +46,13 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
   const m: ResolvedModeling = {...modeling, stackup: stackup.copperLayers, conductivitySm: defaultCopperConductivitySm,
     relativePermittivity: modeling.relativePermittivity ?? stackup.relativePermittivity, viaPlatingMm: modeling.viaPlatingMm ?? stackup.viaPlatingMm}
   validateModeling(m)
+  if (m.copperScope) {
+    const rejections = copperScopeRejections(m.copperScope)
+    if (rejections.length) throw Object.assign(new Error(rejections[0]), { rejections, copperScope: m.copperScope })
+    cj = cj.filter(record => record.type === 'pcb_trace' ? m.copperScope!.pcbTraceIds.includes(record.pcb_trace_id)
+      : record.type === 'pcb_via' ? m.copperScope!.pcbViaIds.includes(record.pcb_via_id)
+      : record.type === 'pcb_copper_pour' ? m.copperScope!.pcbCopperPourIds.includes(record.pcb_copper_pour_id) : true)
+  }
   if (!m.lanes.length && m.allowIdeal) return { stackup, cells: [], mappings: [], units: { circuitJson: 'mm', geometry: 'm', conductivity: 'S/m' }, approximations: ['Unrouted signal copper is ideal by explicit allow_unrouted_traces=true'] }
   const routes: RouteStage[][]=[]
   const mappings: LaneMapping[]=[]
@@ -135,6 +143,7 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
     mappings.push({port:lane.port,sourceTraceId:src.source_trace_id,pcbTraceId:traces[0].pcb_trace_id,from:from.source_port_id,to:to.source_port_id,pcbPorts:ports.map(p=>p.pcb_port_id),stages,originalRoute:route})
   }
   const geometry = {...routedCopperGeometry(cj,m,joinSeriesMappings(mappings)),stackup}
+  if (m.copperScope) geometry.approximations.push(m.copperScope.approximation)
   const board = cj.find(record => record.type === 'pcb_board')!
   const x = board.center.x
   const y = board.center.y

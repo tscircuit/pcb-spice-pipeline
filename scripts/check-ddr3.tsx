@@ -7,8 +7,6 @@ import { renderCoreSignals } from '../tests/support/core-render'
 import { parsePackageModel } from '../src/buffers/package-model'
 import { prepareBlocks } from '../src/pipeline/signals'
 import { admit, declare, bind } from '../src/pipeline/stages'
-import { compileBuffers } from '../src/buffers'
-import { modelRunDefinition, type PipelineIbisModel } from '../src/simulation'
 import { ddr3Waveforms } from './inspect-ddr3-waveforms'
 
 // Real core, unchanged DDR3 TSX, and no RunSolver capability anywhere in this check.
@@ -36,30 +34,27 @@ const summary = {
 
 const [block] = prepareBlocks(circuit, sources)
 const context = { progress: (): void => {} }
-const admitted = (await admit.run({ phase: 'input', options: { circuitJson: block.circuit, modeling: block.settings, ibisSources: sources } }, context)).state
-const declared = (await declare.run(admitted, context)).state
-// Static pin states exercise both real chip package assemblies without the
-// switching-waveform rejection or any transient/extraction solver.
-const [packages] = compileBuffers(declared.buffers, declared.experiments.plans.slice(0, 1), (model: PipelineIbisModel, plan) => {
-  const input = modelRunDefinition(model, plan)
-  input.run.stimuli = Object.fromEntries(Object.entries(input.run.stimuli).map(([port, stimulus]) => [port,
-    { ...stimulus, initialState: 0 as const, pattern: { ...stimulus.pattern, bits: '0' } }]))
-  return input
-})
-assert.equal(packages.length, 2)
-const bound = (await bind.run(declared, context)).state
-assert.equal(bound.phase, 'bound')
-const switching = bound.compiled.flatMap((models, experiment) => models.flatMap(converted =>
-  (converted.metadata.switchingTails ?? []).map(tail => ({ experiment, component: converted.name, ...tail }))))
-assert.ok(switching.length > 0)
-const diagnostic = {
-  status: 'production_sign_correction',
-  warnings: bound.compiled.flatMap(models => models.flatMap(model => model.warnings)),
-  derived_blocks: 1, passed_stages: ['admit', 'declare', 'bind'], next_stage: 'extract', next_error: null,
-  stopped_before_native_extraction: true, switching_tails: switching,
-  static_packages: packages.map(converted => ({ component: converted.name, matrix_pins: converted.metadata.packageData.matrices?.pins,
-    reference_pins: converted.metadata.packageData.mappedPins.filter(pin => pin.role === 'reference') })),
-}
+const passed = ['prepareBlocks']
+let nextStage = 'admit'
+let firstError: string | null = null
+const warnings = [...block.warnings]
+let switching: object[] = []
+try {
+  const admitted = (await admit.run({ phase: 'input', options: { circuitJson: block.circuit, modeling: block.settings, ibisSources: sources } }, context)).state
+  passed.push('admit')
+  nextStage = 'declare'
+  const declared = (await declare.run(admitted, context)).state
+  passed.push('declare')
+  nextStage = 'bind'
+  const bound = (await bind.run(declared, context)).state
+  passed.push('bind')
+  nextStage = 'extract (not invoked)'
+  switching = bound.compiled.flatMap((models, experiment) => models.flatMap(converted =>
+    (converted.metadata.switchingTails ?? []).map(tail => ({ experiment, component: converted.name, ...tail }))))
+  warnings.push(...bound.compiled.flatMap(models => models.flatMap(model => model.warnings)))
+} catch (error) { firstError = (error as Error).message }
+const diagnostic = { status: 'production_sign_correction', warnings, passed_stages: passed, next_stage: nextStage, first_error: firstError,
+  stopped_before_native_extraction: true, switching_tails: switching }
 await mkdir('runs', { recursive: true })
 await writeFile('runs/ddr3-boundary.json', JSON.stringify({ ...summary, diagnostic }, null, 2) + '\n')
 console.log(JSON.stringify({ ...summary, diagnostic }, null, 2))

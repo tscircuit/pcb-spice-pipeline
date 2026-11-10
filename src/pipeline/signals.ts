@@ -1,6 +1,6 @@
-import { isQuiet, connectedSourceIds, stackupFromCircuitJson, type CircuitJson, type SignalEndpoint, type SimulationSignal, type SimulationSignalIntegrity } from '../board'
-import { inspectPins, edgeSeconds, referenceVoltages, coupledPackage, type InspectedPin, type IbisSources } from '../buffers'
-import { safeId } from '../kernel'
+import { isQuiet, channelCopperScope, connectedSourceIds, stackupFromCircuitJson, type CircuitJson, type SignalEndpoint, type SimulationSignal, type SimulationSignalIntegrity } from '../board'
+import { inspectPins, edgeSeconds, referenceVoltages, coupledPackage, packageCapacitanceWarnings, type InspectedPin, type IbisSources } from '../buffers'
+import { safeId, sha256 } from '../kernel'
 import type { NumericalSettings } from './modeling'
 import { signalTopology, validateSignalGraph } from './topology'
 import { compareNames, recordingTime } from './timing'
@@ -10,6 +10,7 @@ export interface PreparedBlock {
   duration: number; topology: Map<string, Set<string>>;
   block: SimulationSignalIntegrity; signals: SimulationSignal[]; circuit: CircuitJson
   pins: Map<string, InspectedPin>; settings: NumericalSettings
+  warnings: string[]
 }
 /** Ordered physical ports: the sign of a differential signal is P minus N. */
 export function endpointPorts(endpoint: SignalEndpoint): string[] {
@@ -37,6 +38,24 @@ export function signalBits(signal: SimulationSignal, duration: number): string {
   }
   return bits
 }
+/** Audit only selected/nearby routed nets; unsupported neighbours remain visible. */
+export function routedLanes(circuit: CircuitJson, scope: import('../board').CopperScope, topology: Map<string, string>, driven: Set<string>, rails: Set<string>): { lanes: NumericalSettings['lanes']; rejections: string[] } {
+  const lanes: NumericalSettings['lanes'] = []
+  const rejections: string[] = []
+  for (const trace of circuit.filter(r => r.type === 'source_trace').sort((a, b) => a.source_trace_id.localeCompare(b.source_trace_id))) {
+    const ports = trace.connected_source_port_ids
+    const pcb = circuit.filter(r => r.type === 'pcb_trace').filter(r => r.source_trace_id === trace.source_trace_id)
+    if (!pcb.some(route => scope.pcbTraceIds.includes(route.pcb_trace_id)) || [...ports, ...(trace.connected_source_net_ids ?? [])].some(port => rails.has(port))) continue
+    if (ports.length !== 2 || pcb.length !== 1) {
+      rejections.push(`Signal "${topology.get(ports[0]) ?? trace.name ?? trace.display_name ?? trace.source_trace_id}": branched routed graphs are not implemented yet.`)
+      continue
+    }
+    const ordered = [...ports].sort()
+    if (driven.has(ordered[1]) && !driven.has(ordered[0])) ordered.reverse()
+    lanes.push({ port: topology.get(ordered[0]) ? `${topology.get(ordered[0])}_${trace.source_trace_id}` : `passive_${trace.source_trace_id}`, from: { sourcePortId: ordered[0] }, to: { sourcePortId: ordered[1] }, sourceTraceId: trace.source_trace_id })
+  }
+  return { lanes, rejections }
+}
 /** Validate blocks and lower test intent to the private native-solver declarations. */
 export function prepareBlocks(circuitJson: CircuitJson, sources: IbisSources): PreparedBlock[] {
   const blocks = circuitJson.filter(r => r.type === 'simulation_signal_integrity')
@@ -44,10 +63,17 @@ export function prepareBlocks(circuitJson: CircuitJson, sources: IbisSources): P
   const ids = new Set(blocks.map(b => b.simulation_signal_integrity_id))
   if (ids.size !== blocks.length) throw new Error('Duplicate simulation_signal_integrity identifier')
   for (const signal of circuitJson.filter(r => r.type === 'simulation_signal')) if (!ids.has(signal.simulation_signal_integrity_id)) throw new Error(`${signal.name}: unknown signal-integrity block`)
-  return blocks.map(block => prepareBlock(circuitJson, block, sources))
+  return blocks.map(block => {
+    const warnings: string[] = []
+    try {
+      return prepareBlock(circuitJson, block, sources, warnings)
+    } catch (error) {
+      throw Object.assign(error as Error, { warnings })
+    }
+  })
 }
 /** Independent block: model overrides, copper, pin states, references and stimuli. */
-function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sources: IbisSources): PreparedBlock {
+function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sources: IbisSources, warnings: string[]): PreparedBlock {
   const id = safeId(block.simulation_signal_integrity_id, 'simulationSignalIntegrityId')
   const signals = input.filter(r => r.type === 'simulation_signal').filter(r => r.simulation_signal_integrity_id === id).sort((a, b) => compareNames(a.name, b.name))
   if (!signals.length || new Set(signals.map(s => s.name)).size !== signals.length || new Set(signals.map(s => s.simulation_signal_id)).size !== signals.length) throw new Error(`${block.name ?? id}: require distinct named signals`)
@@ -71,9 +97,13 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
     if (!inspected.length || inspected[0].component.coupledPackage === undefined) continue
     const references = new Set(inspected.flatMap(pin => [pin.power, pin.ground, ...Object.values(model.ibis_pin_name_to_reference_source_port_ids?.[pin.pin] ?? {})]))
     const selected = Object.entries(model.ibis_pin_name_to_source_port_id).filter(([pin, port]) => inspected.some(signal => signal.pin === pin) || references.has(port)).map(([pin]) => pin)
-    coupledPackage(inspected[0].text, inspected[0].component, selected)
+    const file = model.ibis_model_asset.project_relative_path
+    warnings.push(...packageCapacitanceWarnings(coupledPackage(inspected[0].text, inspected[0].component, selected), file, sha256(sources[file])))
   }
-  const rails = new Set([...pins.values()].flatMap(pin => [pin.ground, pin.power]).flatMap(port => [...connectedSourceIds(circuit, port)]))
+  const rails = new Set<string>()
+  for (const port of [...pins.values()].flatMap(pin => [pin.ground, pin.power]).concat(circuit.filter(record => record.type === 'source_net').filter(net => net.is_ground || net.is_power).map(net => net.source_net_id))) {
+    if (!rails.has(port)) for (const connected of connectedSourceIds(circuit, port)) rails.add(connected)
+  }
   for (const pin of pins.values()) {
     const model = pin.model
     model.ibis_pin_name_to_reference_source_port_ids ??= {}
@@ -121,25 +151,29 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
   const step = Math.min(1 / rate / 100, edge / 20)
   const reference = pins.get([...driven.keys()].sort()[0])!.ground
   const lanes: NumericalSettings['lanes'] = []
+  const copperScope = channelCopperScope(circuit, new Set(topology.keys()), connectedSourceIds(circuit, reference), rails)
   for (const port of circuit.filter(r => r.type === 'source_port').filter(port => topology.has(port.source_port_id) && !pins.has(port.source_port_id))) {
     const component = circuit.filter(r => r.type === 'source_component').find(component => component.source_component_id === port.source_component_id)
     if (!component || (!['simple_resistor', 'simple_capacitor', 'simple_inductor'].includes(component.ftype) && !circuit.some(r => r.type === 'simulation_spice_subcircuit' && r.source_component_id === component.source_component_id))) throw new Error(`${component?.name ?? port.source_port_id} is on the signal and has no supported SPICE or IBIS model.`)
   }
-  for (const trace of circuit.filter(r => r.type === 'source_trace').sort((a, b) => a.source_trace_id.localeCompare(b.source_trace_id))) {
-    const ports = trace.connected_source_port_ids
-    const pcb = circuit.filter(r => r.type === 'pcb_trace' && r.source_trace_id === trace.source_trace_id)
-    if (!pcb.length || !ports.length || ports.some(port => rails.has(port))) continue
-    if (ports.length !== 2 || pcb.length !== 1) throw new Error(`Signal "${topology.get(ports[0]) ?? trace.source_trace_id}": branched routed graphs are not implemented yet.`)
-    const ordered = [...ports].sort()
-    if (driven.has(ordered[1]) && !driven.has(ordered[0])) ordered.reverse()
-    lanes.push({ port: topology.get(ordered[0]) ? `${topology.get(ordered[0])}_${trace.source_trace_id}` : `passive_${trace.source_trace_id}`, from: { sourcePortId: ordered[0] }, to: { sourcePortId: ordered[1] }, sourceTraceId: trace.source_trace_id })
-  }
+  const routed = routedLanes(circuit, copperScope, topology, new Set(driven.keys()), rails)
+  if (routed.rejections.length) throw Object.assign(new Error(routed.rejections[0]), { rejections: routed.rejections, copperScope })
+  lanes.push(...routed.lanes)
   for (const signal of signals) for (const port of endpointPorts(signal.driver)) if (!lanes.some(l => l.from.sourcePortId === port || l.to.sourcePortId === port)) {
     if (!block.allow_unrouted_traces) throw new Error(`Signal "${signal.name}" is not routed from ${port}.`)
   }
   if (!lanes.length && !block.allow_unrouted_traces) throw new Error('At least one routed conductor is required for native extraction')
   // Stable physical endpoint identities order the matrix; route coordinates set coupling.
   lanes.sort((a, b) => a.from.sourcePortId!.localeCompare(b.from.sourcePortId!))
+  const retained = new Set(topology.keys())
+  for (const lane of lanes) for (const port of [lane.from.sourcePortId!, lane.to.sourcePortId!]) for (const id of connectedSourceIds(circuit, port)) retained.add(id)
+  for (const [port] of pins) if (!retained.has(port)) pins.delete(port)
+  for (const model of circuit.filter(r => r.type === 'simulation_ibis_model')) {
+    const used = [...pins.values()].filter(pin => pin.model === model)
+    const ports = new Set(used.flatMap(pin => [pin.port, pin.power, pin.ground, ...Object.values(model.ibis_pin_name_to_reference_source_port_ids?.[pin.pin] ?? {})]))
+    model.ibis_pin_name_to_source_port_id = Object.fromEntries(Object.entries(model.ibis_pin_name_to_source_port_id).filter(([, port]) => ports.has(port)))
+    if (!used.length) circuit.splice(circuit.indexOf(model), 1)
+  }
   const stack = stackupFromCircuitJson(circuit)
   if (!stack.relativePermittivity) throw new Error('<simulation.pcbtransientchannelsimulation> needs explicit stackup dielectric constants.')
   const routes = circuit.filter(r => r.type === 'pcb_trace').filter(r => lanes.some(l => l.sourceTraceId === r.source_trace_id))
@@ -154,17 +188,17 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
   const groundCandidates = [...new Set(signals.flatMap(signal => signal.receivers.flatMap(endpointPorts)).map(port => pins.get(port)!.ground))].sort()
   const settings: NumericalSettings = {
     measurementGate: Math.min(timing.gate, duration / 2), reduction: 'routed-copper', allowIdeal: block.allow_unrouted_traces, simplifyParallel: true, sections: Math.max(2, Math.ceil(length / 1000 * Math.sqrt(stack.relativePermittivity) / 299792458 / edge * 10)),
-    lanes, channelReference: { sourcePortId: reference }, groundReturn: { sourcePortId: groundCandidates[0] },
+    lanes, copperScope, channelReference: { sourcePortId: reference }, groundReturn: { sourcePortId: groundCandidates[0] },
     relativePermittivity: stack.relativePermittivity,
     extraction: { minimumHz: modelHz / 10 ** decade, modelHz, maximumHz: modelHz, filaments, refinementFilaments: filaments + 4,
       convergenceTolerance: .05, capTolerance: .02, reciprocityTolerance: .025, dcResistanceTolerance: .002,
       maxPanelLengthMm: mesh * 2, groundMeshMm: mesh },
-    passiveComponents: circuit.filter(r => r.type === 'source_component').filter(r => (['simple_resistor', 'simple_capacitor', 'simple_inductor'].includes(r.ftype) || circuit.some(model => model.type === 'simulation_spice_subcircuit' && model.source_component_id === r.source_component_id))).map(r => ({ sourceComponentId: r.source_component_id })),
+    passiveComponents: circuit.filter(r => r.type === 'source_component').filter(r => (['simple_resistor', 'simple_capacitor', 'simple_inductor'].includes(r.ftype) || circuit.some(model => model.type === 'simulation_spice_subcircuit' && model.source_component_id === r.source_component_id)) && circuit.some(port => port.type === 'source_port' && port.source_component_id === r.source_component_id && !rails.has(port.source_port_id) && lanes.some(lane => connectedSourceIds(circuit, lane.from.sourcePortId!).has(port.source_port_id) || connectedSourceIds(circuit, lane.to.sourcePortId!).has(port.source_port_id)))).map(r => ({ sourceComponentId: r.source_component_id })),
   }
-  if (circuit.some(r => r.type === 'pcb_via')) {
+  if (copperScope.pcbViaIds.length) {
     if (!stack.viaPlatingMm) throw new Error('pcb_stackup must specify plated_hole_copper_thickness for routed vias')
     settings.viaPlatingMm = stack.viaPlatingMm
-    settings.viaEquivalentWidthMm = Math.min(...circuit.filter(r => r.type === 'pcb_via').map(v => v.hole_diameter + 2 * stack.viaPlatingMm!))
+    settings.viaEquivalentWidthMm = Math.min(...circuit.filter(r => r.type === 'pcb_via').filter(r => copperScope.pcbViaIds.includes(r.pcb_via_id)).map(v => v.hole_diameter + 2 * stack.viaPlatingMm!))
     settings.omitThroughViaStubs = true
   }
   const values = new Map<string, number>()
@@ -211,5 +245,5 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
     const ref = 'p_source_port_id' in endpoint ? ports[1] : pins.get(ports[0])!.ground
     circuit.push({ type: 'simulation_voltage_probe', simulation_voltage_probe_id: `${signal.simulation_signal_id}_${index}`, name: `${signal.name}_${index}`, signal_input_source_port_id: ports[0], reference_input_source_port_id: ref, subcircuit_id: scope } as never)
   }
-  return { block, signals, circuit, pins, settings, duration, topology: new Map([...driven].map(([port, signal]) => [port, signalTopology(circuit, port, rails, new Set(endpointPorts(signal.driver).filter(other => other !== port)))])) }
+  return { block, signals, circuit, pins, settings, warnings, duration, topology: new Map([...driven].map(([port, signal]) => [port, signalTopology(circuit, port, rails, new Set(endpointPorts(signal.driver).filter(other => other !== port)))])) }
 }

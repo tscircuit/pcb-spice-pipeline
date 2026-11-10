@@ -10,7 +10,7 @@ export function signalTopology(circuit: CircuitJson, seed: string, rails: Set<st
     changed = false
     for (const component of passives) {
       const pins = ports.filter(port => port.source_component_id === component.source_component_id).map(port => port.source_port_id)
-      if (pins.length !== 2 || pins.some(pin => [...connectedSourceIds(circuit, pin)].some(id => stops.has(id))) || pins.some(pin => rails.has(pin)) || !pins.some(pin => found.has(pin))) continue
+      if (pins.length !== 2 || pins.some(pin => rails.has(pin)) || !pins.some(pin => found.has(pin)) || (stops.size && pins.some(pin => [...connectedSourceIds(circuit, pin)].some(id => stops.has(id))))) continue
       for (const pin of pins) for (const id of connectedSourceIds(circuit, pin)) if (!found.has(id)) {
         found.add(id)
         changed = true
@@ -22,8 +22,10 @@ export function signalTopology(circuit: CircuitJson, seed: string, rails: Set<st
 
 /** Verify physical connectivity through passives and reject branched routed graphs independently of source grouping. */
 export function validateSignalGraph(circuit: CircuitJson, signals: import('../board').SimulationSignal[], rails: Set<string>, allowUnroutedTraces: boolean): void {
-  const routes = circuit.filter(r => r.type === 'pcb_trace')
-  const ports = circuit.filter(r => r.type === 'pcb_port')
+  const selected = new Set(signals.flatMap(signal => ('source_port_id' in signal.driver ? [signal.driver.source_port_id] : [signal.driver.p_source_port_id, signal.driver.n_source_port_id]).flatMap(port => [...signalTopology(circuit, port, rails)])))
+  const sourceTraces = new Set(circuit.filter(r => r.type === 'source_trace').filter(trace => trace.connected_source_port_ids.some(port => selected.has(port)) && !trace.connected_source_port_ids.some(port => rails.has(port))).map(trace => trace.source_trace_id))
+  const routes = circuit.filter(r => r.type === 'pcb_trace').filter(r => sourceTraces.has(r.source_trace_id ?? ''))
+  const ports = circuit.filter(r => r.type === 'pcb_port').filter(r => selected.has(r.source_port_id))
   const edges: { a: string; b: string; layer: string; ax: number; ay: number; bx: number; by: number }[] = []
   const points = new Map<string, { x: number; y: number; layer: string }>()
   const graph = new Map<string, Set<string>>()
@@ -64,7 +66,7 @@ export function validateSignalGraph(circuit: CircuitJson, signals: import('../bo
     }).sort((a, b) => a.t - b.t)
     for (let i = 1; i < vertices.length; i++) join(vertices[i - 1].key, vertices[i].key)
   }
-  for (const source of circuit.filter(r => r.type === 'source_port')) if (!terminals.has(source.source_port_id)) {
+  for (const source of circuit.filter(r => r.type === 'source_port').filter(r => selected.has(r.source_port_id))) if (!terminals.has(source.source_port_id)) {
     const copper = connectedSourceIds(circuit, source.source_port_id)
     terminals.set(source.source_port_id, ports.filter(p => copper.has(p.source_port_id)).flatMap(p => terminals.get(p.source_port_id) ?? []))
   }

@@ -28,8 +28,8 @@ and passivity checks before reduction. Mixed signs, non-dominant rows, nonfinite
 values and nonpassive matrices still fail explicitly. An all-zero off-diagonal
 matrix needs no correction. Vendor bytes and their source SHA-256 stay unchanged.
 
-The warning is logged and retained in compiled buffer warnings, assembly JSON
-and result limitations. It names the declared IBIS file, original SHA-256,
+The warning is logged during preflight and conversion, and retained in admission
+error diagnostics, compiled buffer warnings, assembly JSON and result limitations. It names the declared IBIS file, original SHA-256,
 package model and number of symmetric matrix entries negated. The local TI
 `am335x_zcz` has 175 diagonally dominant rows and 15,225 positive pairs:
 **30,450 entries** are corrected. H4 has diagonal 1.19047 pF and off-diagonal
@@ -164,14 +164,20 @@ SI_CORE_MODULE="$(cd ../core && pwd)/dist/index.js" \
 node --import tsx scripts/check-ddr3.tsx
 ```
 
-The unchanged, fully routed DDR3 TSX renders through real core: nine signals,
-14 traces, 16 vias and two pours. Original vendor bytes now pass derivation and
-pure admit/declare/bind, including the production capacitance warning and checked
-[inactive-tail scheduling](ibis-switching.md). `scripts/check-ddr3.tsx` records
-source hashes, waveform inspection, correction warnings and switching-tail
-metadata in ignored `runs/ddr3-boundary.json`. The old in-memory source rewrite
-and `SI_DIAGNOSTIC_MAXWELL_SIGNS` option have been deleted. No native board solver
-is invoked; extraction remains outside this diagnostic's scope.
+The unchanged, routed DDR3 TSX renders through real core: nine signals,
+14 traces, 16 vias and two pours. Original vendor package bytes now pass
+preflight with the production warning. TSX buffer-conversion tests cover package
+realization and checked [inactive-tail scheduling](ibis-switching.md).
+`scripts/check-ddr3.tsx` records source hashes, waveform inspection, correction
+warnings and actual stage/error evidence in ignored `runs/ddr3-boundary.json`.
+The old source rewrite and `SI_DIAGNOSTIC_MAXWELL_SIGNS` option are deleted.
+With the new copper scope, this cropped example's nearby VDDQ rail copper
+and plane are explicit multi-net extraction limits at declare (the first error
+is two routed rail traces); the diagnostic records the boundary instead
+of claiming bind passed. No native solver is invoked.
+
+The full source board, DQM0 addition, spatial neighbour scope, geometry inventory
+and ordered remaining admission gates are documented in [full-board-ddr3.md](full-board-ddr3.md).
 
 Inline TSX tests use original small fixtures. The opt-in package-only ngspice
 AC oracles check full R, signed mutual L and Maxwell C against their equations,

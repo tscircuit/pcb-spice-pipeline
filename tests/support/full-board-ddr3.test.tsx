@@ -6,11 +6,19 @@ import { prepareBlocks } from '../../src/pipeline/signals'
 
 const path = process.env.SI_DDR3_BOARD
 
-test('real full-board DDR3 TSX declarations reach the missing physical stackup boundary', { skip: !path || !process.env.IBIS_MODEL_DIR }, async () => {
+test('real full-board DDR3 preserves nearby unsupported copper while excluding distant nets', { skip: !path || !process.env.IBIS_MODEL_DIR }, async () => {
   const circuit = await fullBoardDdr3(path!)
   assert.equal(circuit.filter(record => record.type === 'simulation_signal').length, 10)
   assert.equal(circuit.filter(record => record.type === 'pcb_trace').length, 651)
   assert.equal(circuit.filter(record => record.type === 'pcb_via').length, 1210)
   const sources = Object.fromEntries(await Promise.all(['sprm552c.ibs', 'W631GG6MB-12.ibs'].map(async file => [`models/${file}`, await readFile(`${process.env.IBIS_MODEL_DIR}/${file}`)])))
-  assert.throws(() => prepareBlocks(circuit, sources), /has no pcb_stackup/)
+  assert.throws(() => prepareBlocks(circuit, sources), error => {
+    const rejected = error as Error & { copperScope: import('../../src/board').CopperScope; warnings: string[] }
+    assert.equal(rejected.message, 'Signal "RN5_INPUT_SYS4_CPU_PULL": branched routed graphs are not implemented yet.')
+    assert.ok(rejected.warnings.some(warning => warning.includes('models/sprm552c.ibs SHA-256 23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be') && warning.includes('negated 30450')))
+    assert.equal(rejected.copperScope.selectedPcbTraceIds.length, 11)
+    assert.ok(rejected.copperScope.omitted.traces > 400)
+    assert.ok(rejected.copperScope.pcbTraceIds.length > 11, 'physically relevant neighbours must stay')
+    return true
+  })
 })

@@ -168,10 +168,10 @@ the tail-hold effect against the same untrimmed IBIS model, not against silicon
 or a transistor-level reference. Local details are in ignored
 `runs/check-buffer-only.ts` and `runs/ddr3-buffer-only.json`.
 
-After building the sibling core, run the documented DDR3 diagnostic command in
-[coupled-package-model.md](coupled-package-model.md). Original vendor bytes pass
-admit/declare/bind with the explicit production capacitance sign correction.
-`runs/ddr3-boundary.json` includes source hashes, waveform/ramp inspection, all
-per-pin/direction truncation records and correction warnings. Native solver calls
-remain zero. The next stage is extraction, deliberately not run; no later error
-is claimed by this small-board check.
+After building the sibling core, run the documented DDR3 diagnostic in
+[coupled-package-model.md](coupled-package-model.md). It records source hashes,
+waveform/ramp inspection and the production capacitance warning. The cropped
+board now stops at declare on its nearby VDDQ rail copper under the explicit copper
+scope; its driver fixture and switching tests remain independent of that
+geometry limit. Native solver calls remain zero. No later board stage passage
+is claimed.

@@ -14,6 +14,7 @@ export { type Board, admitBoard, preparedBoard, circuitArtifact } from './model'
 export { type BoardStackup, type CopperLayer, type DielectricLayer, stackupFromCircuitJson, defaultCopperConductivitySm } from './stackup'
 export { subcircuitTree, type SubcircuitTree } from './subcircuit'
 export { connectedSourceIds } from './connectivity'
+export { channelCopperScope, copperScopeRejections, type CopperScope } from './geometry/scope'
 export type {
   PortSelector, ExtractionSettings, LaneModeling, BoardModeling, Modeling, ResolvedModeling,
   RouteStage, SourcePort, PcbTrace, RoutePoint, RoutedPoint, LaneMapping, Conductor, GeometryCell, Geometry, ChannelGeometry,
