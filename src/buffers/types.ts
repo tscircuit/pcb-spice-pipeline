@@ -2,9 +2,6 @@ import type { ConvertedGeneralIbisComponent, IbisConversionMetadata, IbisModelDe
 import type { SimulationIbisModel } from '../board'
 
 export type IbisSources = Record<string, Uint8Array | string>
-/** buffers' slice of the public `PipelineModeling`. Validated by admitBuffers: project-relative path -> 64-hex SHA-256. */
-export interface BufferModeling { ibisModelAssetSha256?: Record<string, string> }
-
 /** What loading needs from a declared model (today's `Pick<SimulationIbisModel,'ibis_model_asset'> & {pipelineId}`). */
 export type ModelSourceRequest = Pick<SimulationIbisModel, 'ibis_model_asset'> & { pipelineId: string }
 /** Converter input for one model in one experiment (was declarations.ts ModelRunDefinition). */
@@ -24,7 +21,7 @@ export interface SourceEvidence {
 export interface LoadedModelSource { text: string; bytes: Uint8Array; evidence: SourceEvidence }
 
 declare const admittedBrand: unique symbol
-/** Every used model loaded, decoded and (if pinned) hash-verified, in declaration order. Only admitBuffers builds one. */
+/** Every used model loaded and decoded, in declaration order. Only admitBuffers builds one. */
 export interface AdmittedBuffers {
   readonly [admittedBrand]: true
   readonly models: readonly { readonly pipelineId: string }[]

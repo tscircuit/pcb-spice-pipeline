@@ -6,6 +6,7 @@ export function probeWaveformRows(text: string, probes: readonly unknown[]): num
   const rows = text.trim().split(/\r?\n/).slice(1).map(line => line.trim().split(/\s+/).map(Number))
   if (!rows.length || rows.some(row => row.length !== probes.length + 1 || row.some(value => !Number.isFinite(value))))
     fail('waveform', 'Expected actual time and one finite column per declared probe')
-  if (rows.some((row, i) => i > 0 && row[0] <= rows[i - 1][0])) fail('waveform', 'Actual solver timestamps must strictly increase')
-  return rows
+  if (rows.some((row, i) => i > 0 && row[0] < rows[i - 1][0])) fail('waveform', 'Actual solver timestamps must strictly increase')
+  // ngspice can repeat a breakpoint timestamp during convergence; retain its final value.
+  return rows.filter((row, i) => i === rows.length - 1 || row[0] !== rows[i + 1][0])
 }

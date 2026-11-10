@@ -1,36 +1,20 @@
 import { rootScope, type Artifact } from '../kernel'
-import { admitBoard, channelGeometry, circuitArtifact } from '../board'
+import { preparedBoard, channelGeometry, circuitArtifact } from '../board'
 import { extractChannel } from '../extraction'
 import { assertConverter, admitBuffers, compileBuffers, ibisAssembly } from '../buffers'
 import {
   generalDeclarations, electricalSources, safeSimulationPlans, modelRunDefinition, bindExperiments, electricalNodeMap,
-  runExperiment, simulationResultCircuitJson, experimentResult,
+  runIdle, runExperiment, experimentResult,
 } from '../simulation'
-import { foldEyes, type EyeFoldInput } from '../observation'
-import { resolveDdrAssessments, assessDdr } from '../ddr'
-import { modelingFromCircuitJson } from './modeling'
-import type { EyeDescriptor } from './result'
+import { waveformConvergence } from '../observation'
 import type { Chain, ObservedRun, Stage } from './state'
 
-/**
- * The one list of stages. Order here IS execution order, and it is today's runPipeline order
- * (same failure order, same progress messages, same artifact bytes):
- *   admit    input→admitted      modeling (given ?? modelingFromCircuitJson); board.admitBoard; buffers.assertConverter
- *   declare  admitted→declared   board.channelGeometry; simulation.generalDeclarations; ddr.resolveDdrAssessments;
- *                                simulation.electricalSources + safeSimulationPlans; buffers.admitBuffers
- *   bind     declared→bound      buffers.compileBuffers; simulation.bindExperiments      ── validation line
- *   extract  bound→extracted     extraction.extractChannel                (first solver use)
- *   simulate extracted→simulated per experiment, in order: buffers.ibisAssembly; simulation.runExperiment;
- *                                then that run's eyes (ddr.assessDdr -> observation.foldEyes) before the next
- *                                experiment's solver work, so an eye failure stops the run exactly where it did
- *   observe  simulated→observed  simulation.experimentResult per run; simulation.simulationResultCircuitJson
- *   seal     observed→sealed     circuit-results.json; limitations (the ledger itself is sealed in run.ts)
- */
+/** Private native stages; public RFC waveforms are assembled after numerical acceptance. */
 export const admit: Stage<'input', 'admitted'> = {
   name: 'admit', from: 'input', to: 'admitted',
   run: ({ options }) => {
-    const modeling = options.modeling ?? modelingFromCircuitJson(options.circuitJson)
-    const board = admitBoard(options.circuitJson)
+    const modeling = options.modeling
+    const board = preparedBoard(options.circuitJson)
     assertConverter()
     return {
       state: { phase: 'admitted', options, board, modeling },
@@ -45,12 +29,11 @@ export const declare: Stage<'admitted', 'declared'> = {
     const { board, modeling, options } = state
     const geometry = channelGeometry(board, modeling, rootScope('board'))
     const declarations = generalDeclarations(board.circuitJson, geometry.value, modeling)
-    const ddr = resolveDdrAssessments(declarations.plans, geometry.value, modeling.ddrAssessments)
     const electrical = electricalSources(board.circuitJson, modeling, declarations.nodes)
     const plans = safeSimulationPlans(declarations.plans)
     const buffers = admitBuffers(declarations.models, options.ibisSources, modeling, rootScope('buffers'))
     return {
-      state: { ...state, phase: 'declared', geometry: geometry.value, experiments: { ...declarations, electrical }, plans, ddr, buffers: buffers.value },
+      state: { ...state, phase: 'declared', geometry: geometry.value, experiments: { ...declarations, electrical }, plans, buffers: buffers.value },
       artifacts: [...buffers.artifacts, ...geometry.artifacts, electricalNodeMap(declarations.nodes, electrical, rootScope('simulation'))],
     }
   },
@@ -73,25 +56,58 @@ export const extract: Stage<'bound', 'extracted'> = {
   },
 }
 
+/** Large adaptive waveforms are retained for the accepted run; refinement history keeps hashes and native requests. */
+const waveformArtifact = (artifact: Artifact): boolean => /(?:^|\/)waveform\.(?:dat|csv|json)$/.test(artifact.path)
+
 export const simulate: Stage<'extracted', 'simulated'> = {
   name: 'simulate', from: 'extracted', to: 'simulated',
   run: async (state, ctx) => {
     const runs: ObservedRun[] = []
     const artifacts: Artifact[] = []
     for (const [index, plan] of state.plans.entries()) {
-      const scope = rootScope('simulation').child('experiments', plan.simulationExperimentId)
-      const assembly = ibisAssembly(state.compiled[index], scope.handTo('buffers'))
-      const run = await runExperiment(ctx, scope, state.bound, index, state.geometry, state.modeling, state.channel.matrices)
-      const inputs: EyeFoldInput[] = plan.eyes.map(eye => {
-        const assessment = state.ddr.find(a => a.eye === eye)
-        const ddrAssessment = assessment ? assessDdr(run.value.rows, assessment) : undefined
-        return ddrAssessment
-          ? { request: eye, alignment: { kind: 'received-differential-dqs', captureTimesSeconds: ddrAssessment.captureTimesSeconds }, ddrAssessment }
-          : { request: eye, alignment: { kind: 'stimulus-clock' } }
-      })
-      const eyes = foldEyes(run.value.rows, inputs, { sha256: run.value.waveformCsvSha256 }, scope.handTo('observation'))
-      artifacts.push(...assembly.artifacts, ...run.artifacts, ...eyes.artifacts)
-      runs.push({ run: run.value, eyes: eyes.value as EyeDescriptor[], assembly: assembly.value })
+      const base = rootScope('simulation').child('experiments', plan.simulationExperimentId)
+      let scope = base
+      let assembly = ibisAssembly(state.compiled[index], scope.handTo('buffers'))
+      const idlePlan = { ...plan, stimuli: plan.stimuli.map(stimulus => ({ ...stimulus, initial_state: Number(stimulus.transmission_pattern.bits[0]) as 0 | 1,
+        transmission_pattern: { ...stimulus.transmission_pattern, bits: stimulus.transmission_pattern.bits[0] } })) }
+      const idleModels = compileBuffers(state.buffers, [idlePlan], modelRunDefinition)
+      const idleBound = { ...state.bound, plans: [idlePlan], compiled: idleModels }
+      const idle = await runIdle(ctx, base.child('undisturbed-idle'), idleBound, 0, state.geometry, state.modeling, state.channel.matrices)
+      artifacts.push(...idle.artifacts)
+      let run = await runExperiment(ctx, scope, state.bound, index, state.geometry, state.modeling, state.channel.matrices)
+      artifacts.push(...assembly.artifacts, ...run.artifacts.filter(artifact => !waveformArtifact(artifact)))
+      const convergence: unknown[] = []
+      const settled = { time: false, space: false }
+      const gate = state.modeling.measurementGate ?? 0
+      let accepted = false
+      for (let refinement = 1; refinement <= 10; refinement++) {
+        const previous = run
+        const dimension = refinement % 2 ? 'time' : 'space'
+        if (dimension === 'time') plan.maxStepSeconds /= 2
+        else {
+          if (state.modeling.sections === 128) throw Object.assign(new Error(`${plan.name}: section refinement reached 128 before convergence`), { convergence })
+          state.modeling.sections = Math.min(128, state.modeling.sections * 2)
+        }
+        scope = base.child(`numerical-refinement-${refinement}`)
+        assembly = ibisAssembly(state.compiled[index], scope.handTo('buffers'))
+        run = await runExperiment(ctx, scope, state.bound, index, state.geometry, state.modeling, state.channel.matrices).catch(error => {
+          throw Object.assign(error, { convergence })
+        })
+        artifacts.push(...assembly.artifacts, ...run.artifacts.filter(artifact => !waveformArtifact(artifact)))
+        const check = waveformConvergence(previous.value.rows, run.value.rows, gate, idle.value.voltages)
+        settled[dimension] = check.accepted
+        if (!check.accepted) settled[dimension === 'time' ? 'space' : 'time'] = false
+        convergence.push({ previous_waveform_csv_sha256: previous.value.waveformCsvSha256, waveform_csv_sha256: run.value.waveformCsvSha256, dimension, sections: state.modeling.sections, step_s: plan.maxStepSeconds, ...check })
+        ctx.progress(`${plan.name}: sections=${state.modeling.sections}, step=${plan.maxStepSeconds}, peaks=${check.probes.map(p => p.peak_change_v).join(',')}, accepted=${check.accepted}`)
+        if (settled.time && settled.space) {
+          accepted = true
+          break
+        }
+      }
+      if (!accepted) throw Object.assign(new Error(`${plan.name}: sections/timestep and per-probe signed peaks did not converge within 1% + 1 mV after ten independent refinements`), { convergence })
+      artifacts.push(...run.artifacts.filter(waveformArtifact))
+      artifacts.push(base.json('numerical-convergence.json', { definition: 'Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge', relative_tolerance: .01, absolute_tolerance_v: .001, checks: convergence }))
+      runs.push({ run: run.value, assembly: assembly.value, solverInvocations: convergence.length + 1 + idle.value.solverInvocations, idleVoltages: idle.value.voltages })
     }
     return { state: { ...state, phase: 'simulated', runs }, artifacts }
   },
@@ -100,9 +116,8 @@ export const simulate: Stage<'extracted', 'simulated'> = {
 export const observe: Stage<'simulated', 'observed'> = {
   name: 'observe', from: 'simulated', to: 'observed',
   run: state => {
-    const experimentResults = state.runs.map(({ run, eyes, assembly }) => experimentResult(run, eyes, assembly))
-    const results = simulationResultCircuitJson(state.board.circuitJson, state.experiments.plans, state.runs.map(r => r.run))
-    return { state: { ...state, phase: 'observed', experimentResults, results }, artifacts: [] }
+    const experimentResults = state.runs.map(({ run, assembly, solverInvocations }) => ({ ...experimentResult(run, assembly), solverInvocations }))
+    return { state: { ...state, phase: 'observed', experimentResults }, artifacts: [] }
   },
 }
 
@@ -111,14 +126,14 @@ export const seal: Stage<'observed', 'sealed'> = {
   run: state => {
     const limitations = [...state.geometry.approximations, ...state.compiled.flatMap(models => models.flatMap(model => model.warnings ?? [])),
       'Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded',
-      'Finite observed transient eyes; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim',
+      'Finite transient capture; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim',
       'Maximum solver integration step and display resolution are separate settings']
     return {
       state: { phase: 'sealed', result: {
-        circuitJson: state.options.circuitJson, simulationResultCircuitJson: state.results, modeling: state.modeling,
-        geometry: state.geometry, matrices: state.channel.matrices, experiments: state.experimentResults, limitations,
+        circuitJson: state.options.circuitJson, modeling: state.modeling,
+        idleVoltages: state.runs[0]?.idleVoltages, geometry: state.geometry, matrices: state.channel.matrices, experiments: state.experimentResults, limitations,
       } },
-      artifacts: [rootScope('simulation').json('circuit-results.json', state.results)],
+      artifacts: [],
     }
   },
 }

@@ -1,6 +1,6 @@
 // Today's geometry.json shapes (was geometry.ts + copper.ts types). Serialized: do not reorder or rename.
 import type { CircuitJson } from '../schema'
-import type { BoardStackup, CopperLayer } from '../stackup'
+import type { BoardStackup, CopperLayer, DielectricLayer } from '../stackup'
 
 export type PortSelector = { sourcePortId: string; component?: never; port?: never } | { sourcePortId?: never; component: string; port: string }
 export interface ExtractionSettings {
@@ -9,23 +9,19 @@ export interface ExtractionSettings {
   capTolerance: number; maxPanelLengthMm: number; reciprocityTolerance: number; dcResistanceTolerance: number
   groundMeshMm?: number
 }
-export interface ReturnProfile {
-  spacingMm: number; relativePermittivity: number; return: {
-    widthMm: number; thicknessMm: number; lengthFactor: number; centerYMm: number; centerZMm: number
-  }
-}
 export interface LaneModeling { port: string; from: PortSelector; to: PortSelector; sourceTraceId?: string; driverPort?: string; receiverPort?: string }
 /**
  * board's slice of the flat public `Modeling`: every field geometryFromCircuitJson reads or
  * validates (validateModeling also checks `extraction` and `sections`, as today).
- * `ddrAssessments` (ddr), `supplies` / `passiveComponents` (simulation) are other slices.
+ * Electrical sources and passives are owned by simulation.
  */
 export interface BoardModeling {
-  reduction: 'straightened-stages' | 'routed-copper'; sections: number
+  reduction: 'routed-copper'; sections: number
   relativePermittivity?: number
+  allowIdeal?: boolean
+  simplifyParallel?: boolean
   groundReturn?: PortSelector
   lanes: LaneModeling[]
-  profiles?: Record<string, ReturnProfile>
   extraction: ExtractionSettings
   viaPlatingMm?: number; viaEquivalentWidthMm?: number; omitThroughViaStubs?: boolean
   channelReference?: PortSelector
@@ -49,6 +45,8 @@ export type RoutedPoint = Exclude<RoutePoint, { route_type: 'through_pad' }>
 
 export interface LaneMapping {
   port: string; sourceTraceId: string; pcbTraceId: string; from: string; to: string
+  sourceTraceIds?: string[]
+  intermediatePorts?: { sourcePortId: string; fraction: number }[]
   pcbPorts: string[]; stages: RouteStage[]; originalRoute: RoutedPoint[]
 }
 
@@ -74,6 +72,8 @@ export interface GeometryCell {
   /** `parts`: parallel boxes joined at both ends forming one conductor (e.g. a
    * stripline return in both adjacent planes). The scalar fields are part 0. */
   conductors: Conductor[]
+  capacitanceCopper?: RoutedCopper
+  dielectric?: { polygon: CopperPolygon; layers: DielectricLayer[] }
   routedCopper?: RoutedCopper
 }
 export interface Geometry {

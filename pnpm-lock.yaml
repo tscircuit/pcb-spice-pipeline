@@ -27,6 +27,9 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
     devDependencies:
+      '@resvg/resvg-js':
+        specifier: 2.6.2
+        version: 2.6.2
       '@tscircuit/core':
         specifier: 0.0.2217
         version: 0.0.2217(41fc5aca0fb3034bfa433c906c914c77)

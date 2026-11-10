@@ -21,7 +21,6 @@ domain:
   admit: the first stage, which reads the board's Circuit JSON and checks it before anything else uses it
   artifact: a file the pipeline produces (solver deck, log, waveform, report data), recorded in the ledger
   assembly: the bundle of converted IBIS chip models used by one experiment
-  assessment: the DDR timing check for one data signal and its strobe
   asset: an IBIS model file that the board names (ibis_model_asset in Circuit JSON)
   barrel: the plated copper tube that lines a via hole
   bind: the stage that attaches chip models and probes to the planned experiments
@@ -30,7 +29,7 @@ domain:
   brand: a TypeScript type tag that proves a value passed a check (for example an admitted id)
   buffer: an IBIS model of a chip's input or output circuit
   capacitance: how much charge copper stores per volt (the C in RLGC)
-  capture: the moment a receiver samples data, set by the strobe
+  capture: a finite recording of voltages over time
   channel: everything electrical between driver and receiver: lanes, their return paths and nearby copper
   circuit: an electrical network; also the Circuit JSON document that describes the board
   coarse: the first, cheaper solver pass on a rough mesh, before refinement
@@ -39,43 +38,33 @@ domain:
   conductor: one piece of copper the field solver treats as a single electrical body
   convergence: the check that a finer mesh no longer changes the answer
   copper: the metal shapes on the board: traces, pours, pads and vias
-  crossing: the moment a waveform passes a threshold voltage
   deck: an input file for a solver (FastHenry, FasterCap or ngspice)
-  declare: the stage that plans the experiments, probes and eyes before any solver runs
-  derating: a DDR timing adjustment that depends on how fast the signal edges are
+  declare: the stage that plans experiments and probes before any solver runs
   diagnostic: the library's one error type: a short code, the module that failed and the logs that explain it
   dielectric: the insulating material between copper layers
   differential: a signal carried as the voltage difference between two wires
   driver: the chip output that sends a signal
   evidence: data kept in the result that shows how a conclusion was reached
-  experiment: one simulation run: a stimulus, its probes and the eyes measured from it
+  experiment: one transient run with stimuli and probes
   extract: the stage that measures each wire's R, L and C with the field solvers
   extraction: measuring wire R, L and C from board geometry with field solvers (FastHenry, FasterCap)
-  eye: the eye diagram, many bit periods of a waveform overlaid to show how open the signal is
   filament: a thin straight strip of copper that FastHenry splits a conductor into
-  finding: one problem a check reports, such as a DDR timing violation
-  fold: to overlay a waveform's bit periods on top of each other, building an eye
-  gate: the time span of a waveform that an eye or strobe check is allowed to use
+  gate: the start of the interval compared during numerical convergence
   geometry: the board's copper shapes, layers and positions, in millimetres
-  grade: the speed grade of a memory part, which sets its timing limits
   ground: the zero-volt reference copper that signal current returns through
   henry: the unit of inductance; also the second half of FastHenry, the inductance solver
-  hold: DDR hold time, how long data must stay stable after the strobe edge
   impedance: a wire's opposition to changing current, in ohms
   lane: one signal path on the board
   layer: one copper or insulating sheet in the stackup
   ledger: the single record of every artifact path the pipeline writes; a second write to a path fails
   loop: a current loop: out along a conductor and back through its return path
-  margin: how far a measurement is inside its limit
   mesh: the grid of small pieces a field solver splits copper into
-  metric: one number measured from an eye, such as its height or width
   model: a chip model (IBIS) or the electrical model of the channel built from extraction
-  modeling: the settings for a run (extraction, buffers, simulation, DDR), read from the board by default
+  modeling: private numerical settings derived from Circuit JSON
   net: a set of pins and copper that are connected together
-  neutrality: the check that the charges in a capacitance matrix balance out to zero
   node: a named connection point in the SPICE circuit
-  observation: the module that turns simulated waveforms into eyes and their metrics
-  observe: the stage that builds eyes and DDR checks from the simulated waveforms
+  observation: adaptive waveform parsing and numerical convergence
+  observe: the stage that records accepted waveforms and convergence evidence
   pad: the copper area a component pin is soldered to
   panel: a small flat piece of copper surface that FasterCap solves the charge on
   passive: a component that does not amplify: resistor, capacitor or inductor
@@ -98,7 +87,6 @@ domain:
   route: the path a trace follows across the board, as points and vias
   scope: a named folder of artifacts that one module is allowed to write
   seal: the final stage, which sorts and freezes the result's files
-  setup: DDR setup time, how long data must be stable before the strobe edge
   signal: a voltage that carries data along a lane
   simulate: the stage that runs the SPICE circuit in ngspice
   simulation: running the SPICE circuit over time with ngspice
@@ -110,16 +98,13 @@ domain:
   stackup: the order and thickness of the board's copper and insulating layers
   stage: one fixed step of the pipeline (admit, declare, bind, extract, simulate, observe, seal)
   stimulus: the bit pattern a driver sends during an experiment
-  strobe: the DDR timing signal (DQS) that tells the receiver when to sample data
   stub: the unused part of a via beyond the layer where the signal leaves it
   subcircuit: a nested group of components on the board; in SPICE, a reusable circuit block
   subject: the thing a diagnostic points at, such as a cell, port or experiment
   terminal: a connection end of a conductor or source
   trace: a copper wire on one board layer
   via: a plated hole that carries a signal between layers
-  violation: a measurement that breaks its limit
   waveform: voltage over time at one probe
-  window: a span of time: one bit period in an eye, or the time data is valid in a DDR check
   wire: a piece of copper that carries a signal; in plain words, a trace or via
 
 abbreviations:

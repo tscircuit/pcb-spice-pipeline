@@ -12,10 +12,11 @@ import { fail } from './diagnostics'
 const finite = (value: number): boolean => Number.isFinite(value)
 
 /** Same edge-strip discretization as a rectangular plane mesh, refined locally
- * around boundaries and finite contacts. Every retained cell lies inside copper.
+ * around boundaries and finite contacts, with fine return-current corridors
+ * within one trace height and graded spacing beyond. The full pour is retained.
  * Adjacent cells contribute half their transverse width to their shared edge.
  */
-export function groundMesh(pour: Solid, meshMm: number, contacts: Array<{point:Point;radius:number}>, contactDivisions: number=2): {points: Point[]; edges: Array<[number,number,number]>; contacts: number[][]} {
+export function groundMesh(pour: Solid, meshMm: number, contacts: Array<{point:Point;radius:number}>, contactDivisions: number=2, paths: Path[]=[]): {points: Point[]; edges: Array<[number,number,number]>; contacts: number[][]} {
   const points: Point[]=[]
   const edges: Array<[number,number,number]>=[]
   const indices=new Map<string,number>()
@@ -41,6 +42,7 @@ export function groundMesh(pour: Solid, meshMm: number, contacts: Array<{point:P
   const xs=ring.map(p=>p[0])
   const ys=ring.map(p=>p[1])
   const boundary=pour.polygon.flatMap(r=>r.map((a,i)=>({a,b:r[(i+1)%r.length]})))
+  const segments=paths.flatMap(p=>p.segments)
   /** Quadtree walk: splits a box until it is fine enough near boundaries and contacts, then keeps it if it lies wholly inside copper. */
   const visit=(x0:number,y0:number,x1:number,y1:number,borders:typeof boundary,depth:number): void=>{
     const crosses=borders.filter(({a,b})=>Math.max(a[0],b[0])>x0+1e-9&&Math.min(a[0],b[0])<x1-1e-9&&Math.max(a[1],b[1])>y0+1e-9&&Math.min(a[1],b[1])<y1-1e-9)
@@ -48,7 +50,18 @@ export function groundMesh(pour: Solid, meshMm: number, contacts: Array<{point:P
     const inside=contains(center,pour.polygon)
     const size=Math.max(x1-x0,y1-y0)
     if(!crosses.length&&!inside) return
-    let target=crosses.length?meshMm/4:meshMm
+    const radius=Math.hypot(x1-x0,y1-y0)/2
+    let target=segments.length?Infinity:meshMm
+    for(const s of segments) {
+      const dx=s.b[0]-s.a[0]
+      const dy=s.b[1]-s.a[1]
+      const length2=dx*dx+dy*dy
+      const t=length2?Math.max(0,Math.min(1,((center[0]-s.a[0])*dx+(center[1]-s.a[1])*dy)/length2)):0
+      const distance=Math.hypot(center[0]-s.a[0]-t*dx,center[1]-s.a[1]-t*dy)-radius-s.widthMm/2
+      const height=Math.max(Math.abs(s.a[2]-(pour.zMinMm+pour.zMaxMm)/2),Math.abs(s.b[2]-(pour.zMinMm+pour.zMaxMm)/2))
+      target=Math.min(target,meshMm+Math.max(0,distance-height)*.5)
+    }
+    if(crosses.length) target=Math.min(target,meshMm/4)
     for(const c of contacts) {
       const dx=Math.max(x0-c.point[0],0,c.point[0]-x1)
       const dy=Math.max(y0-c.point[1],0,c.point[1]-y1)
@@ -434,19 +447,21 @@ export function meshPolygon(rings: Point[][], size: (p: Point) => number): Point
 }
 
 /** FasterCap panel file for one conductor: slices the solids into z slabs and emits triangulated top/bottom faces plus side-wall quads. */
-export function surfacePanels(solids: Solid[], name: string, sizing?: PanelSizing): string {
-  const levels = [...new Set(solids.flatMap(s => [s.zMinMm, s.zMaxMm]))].sort((a, b) => a - b)
+export function surfacePanels(solids: Solid[], name: string, sizing?: PanelSizing, exclude: Solid[] = [], cuts: number[] = []): string {
+  const levels = [...new Set([...solids.flatMap(s => [s.zMinMm, s.zMaxMm]), ...exclude.flatMap(s => [s.zMinMm, s.zMaxMm]), ...cuts].map(z => Math.round(z * 1e10) / 1e10))].sort((a, b) => a - b)
   const rows = ['* Closed union of actual copper polygons; millimetres; physical capacitance = raw matrix * 0.001']
   const slabs = levels.slice(1).map((high, i) => {
     const low = levels[i]
     const active = solids.filter(s => s.zMinMm < high - 1e-10 && s.zMaxMm > low + 1e-10)
-    return active.length ? copperBoolean(active.map(s=>s.polygon)) : []
+    const holes = exclude.filter(s => s.zMinMm < high - 1e-10 && s.zMaxMm > low + 1e-10)
+    return active.length ? copperBoolean(active.map(s=>s.polygon), holes.length ? holes.map(s => s.polygon) : undefined) : []
   })
   /** Writes one triangle or quadrilateral panel line for this conductor. */
   const emit = (kind: 'T' | 'Q', pts: XYZ[]): number => rows.push(`${kind} ${name} ${pts.flat().join(' ')}`)
   /** Triangulates a horizontal face at height zz, orients it outward (up or down), and checks the triangles cover the polygon area exactly. */
   const face = (polys: Polygon[], zz: number, up: boolean): void => {
-    for (const p of cleanPolygons(polys)) {
+    const touching = exclude.filter(s => s.zMinMm <= zz + 1e-10 && s.zMaxMm >= zz - 1e-10)
+    for (const p of cleanPolygons(touching.length ? copperBoolean(polys, touching.map(s => s.polygon)) : polys)) {
       const rings = p.map(r => r.slice(0, -1))
       const polygonArea = Math.abs(area(rings[0])) - rings.slice(1).reduce((s, r) => s + Math.abs(area(r)), 0)
       let triangles: Point[][]
@@ -518,4 +533,3 @@ export function copperPanelSizing(copper: RoutedCopper, maxPanelLengthMm: number
   }))
   return { aspectLimit: panelAspectLimit, sizeAt: p => Math.min(maxPanelLengthMm, minimum + panelGrading * distance(p)) }
 }
-

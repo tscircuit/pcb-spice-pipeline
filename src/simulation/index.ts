@@ -1,7 +1,7 @@
 /**
  * simulation — experiments as declared on the board, and running them in ngspice.
  * Owns: SimulationPlan declaration from simulation_* records (timing, probes, stimuli, pin
- * states, eye requests), electrical node mapping + ideal sources/passives, the converter run
+ * states), electrical node mapping + ideal sources/passives, the converter run
  * definition per model, probe-scope validation, the experiment netlist, ngspice diagnostics,
  * waveform coverage checks, and simulation_transient_voltage_graph result records.
  * Order (today's runPipeline): generalDeclarations -> electricalSources -> safeSimulationPlans
@@ -12,11 +12,11 @@
  * (Was: declarations.ts, general-spice.ts, stimulus.ts, ngspice part of general-pipeline.ts.)
  */
 export type {
-  SimulationModeling, CircuitNodes, PipelineIbisModel, VoltageProbePlan, EyePlan, SimulationPlan, SafeEyePlan, SafeSimulationPlan,
+  SimulationModeling, CircuitNodes, PipelineIbisModel, VoltageProbePlan, SimulationPlan, SafeSimulationPlan,
   Declarations, ElectricalModel, CompiledModel, ExperimentModel, ElectricalSources, SimulationSpiceOptions,
   Experiments, BoundExperiments, ExperimentRun, ExperimentResult,
 } from './types'
 export { circuitNodes, generalDeclarations, modelRunDefinition } from './declarations'
 export { namespaceSpice, electricalSources, simulationSpiceOptions, generalSimulationSpice, validateProbeScope } from './netlist'
-export { safeSimulationPlans, electricalNodeMap, bindExperiments, runExperiment, simulationResultCircuitJson, experimentResult } from './run'
+export { safeSimulationPlans, electricalNodeMap, bindExperiments, runIdle, runExperiment, experimentResult } from './run'
 export { transmittedBits } from './stimulus'

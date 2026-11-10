@@ -1,0 +1,861 @@
+{
+  "status": "All four native R/L component checks pass; capacitance rejects every whole channel",
+  "baseline_head": "6c73afe",
+  "source_sha256": {
+    "src/extraction/mesh.ts": "66ed85f304c0a2966214089e230d09e1e177ad2fa22e77693caaffbabba9d895",
+    "src/extraction/decks.ts": "10fe79ddb191edaf7628fdcf39297d2a320442b84bea27b02d3a80f1e9eb68e4",
+    "src/board/geometry/routed.ts": "8d7f84f94d4883f904846e8fb06b1fd8744f5d3bc4822f9771212b17a40fc5a9"
+  },
+  "native_binary_sha256": {
+    "fasthenry": "211cdb2b30dbd6f7bcef16e78f4a56e2f6cbcfffe9b8de398386dd90b89ff0b7",
+    "FasterCap": "7bc18e61a66a9814d7a893cd1e7a7ffbf9246607a6f1128028870a467165c101"
+  },
+  "bounded_first_attempt": {
+    "run_root": "runs/graded-v1",
+    "fine_corridor_heights": 2,
+    "grading": 0.75,
+    "three_refined_deck_filaments": 66112,
+    "three_refined_internal_filaments": 81690,
+    "three_refined_plane_edges": 5783,
+    "process_timeout_seconds": 600,
+    "outcome": "FastHenry refinement timed out; not converged"
+  },
+  "signal_and_reference_path_bytes_match_baseline": true,
+  "scaling": {
+    "fixture": "tests/fixtures/escape-via-plane.tsx",
+    "plane_area_ratio": 16,
+    "before_plane_edges": [
+      4617,
+      66288
+    ],
+    "after_plane_edges": [
+      2377,
+      2897
+    ]
+  },
+  "verification": {
+    "tests": 233,
+    "passed": 231,
+    "skipped": 2,
+    "failed": 0,
+    "typecheck": "pass",
+    "lint": "pass; existing mesh file-length warning",
+    "modules": "pass",
+    "vocabulary": "pass; 88.9%"
+  },
+  "transient_status": "Level 3 primitive capacitance reciprocity rejected; no transient executed",
+  "criteria": {
+    "R_L_mesh": 0.05,
+    "dc_signal_resistance": 0.002,
+    "C_auto": 0.02,
+    "C_reciprocity": 0.025,
+    "process_timeout_seconds": 600
+  },
+  "timing_definition": "archive_wall_seconds is request.json archive mtime to stdout.log archive mtime, including file staging/collection; native_cpu_seconds is FastHenry Total. Before outputs are original native executions, not later cache replays. After cases ran concurrently and some coarse runs overlapped focused tests. Timings are observed runs, not controlled benchmarks.",
+  "cases": [
+    {
+      "name": "single",
+      "frequency_hz": 858000000,
+      "input_sha256": "3f169f74061911884765f6d8ef0ce304ef6bd1f5de914928d5eb6e144da22251",
+      "conductors": [
+        {
+          "name": "sig0",
+          "length_m": 0.028118502884254444
+        },
+        {
+          "name": "return",
+          "length_m": 0.03
+        }
+      ],
+      "before": [
+        {
+          "phase": "coarse",
+          "directory": "../pipeline-si/runs/layered-rfc-v2/single/native-0-fasthenry",
+          "request_sha256": "f16460314993baa73357590b4d0a86a616c7d5540f0b789ccf39c80997bca3db",
+          "plane_edges": 1514,
+          "deck_filaments": 11560,
+          "internal_filaments": 13978,
+          "archive_wall_seconds": 26.148,
+          "native_cpu_seconds": 26.0236,
+          "Zc_sha256": "92ad4f85cd29cac705858edaa0ecb59f632b141c15000e307876cdf8590c691e",
+          "R_ohm": [
+            [
+              0.9460956
+            ]
+          ],
+          "L_h": [
+            [
+              2.5015391500031066e-08
+            ]
+          ],
+          "dc_frequency_hz": 0.858,
+          "dc_signal_residuals": [
+            2.5291440965968803e-06
+          ]
+        },
+        {
+          "phase": "refined",
+          "directory": "../pipeline-si/runs/layered-rfc-v2/single/native-1-fasthenry",
+          "request_sha256": "7104760a2e8877d47cb3823f913f2a26cbfeaf0280ecc89a7888be0d1a7d5364",
+          "plane_edges": 4617,
+          "deck_filaments": 52725,
+          "internal_filaments": 63401,
+          "archive_wall_seconds": 102.998,
+          "native_cpu_seconds": 102.658,
+          "Zc_sha256": "9df32b5554dd5da6636cea7596424799a328b2a79bf050adccf0bfdcd5973984",
+          "R_ohm": [
+            [
+              0.958938
+            ]
+          ],
+          "L_h": [
+            [
+              2.4984729131624206e-08
+            ]
+          ]
+        }
+      ],
+      "after": [
+        {
+          "phase": "coarse",
+          "directory": "runs/graded-v2/single/native-0-fasthenry",
+          "request_sha256": "21dd368ca9f459c442d6b348c9a404259865812c934746b494361eb06bd4f2aa",
+          "plane_edges": 1138,
+          "deck_filaments": 8928,
+          "internal_filaments": 12256,
+          "archive_wall_seconds": 85.986,
+          "native_cpu_seconds": 61.991,
+          "Zc_sha256": "cd98f212bd87303670f81502df6768d8b713161064f13ac995f179cc2b45052b",
+          "R_ohm": [
+            [
+              0.9460213
+            ]
+          ],
+          "L_h": [
+            [
+              2.501290586339071e-08
+            ]
+          ],
+          "dc_frequency_hz": 0.858,
+          "dc_signal_residuals": [
+            2.5291440965968803e-06
+          ]
+        },
+        {
+          "phase": "refined",
+          "directory": "runs/graded-v2/single/native-1-fasthenry",
+          "request_sha256": "8285e23d103e084e9c461d463cef0aab258db0715b5ec70852c9d9096aa06793",
+          "plane_edges": 2381,
+          "deck_filaments": 23367,
+          "internal_filaments": 28972,
+          "archive_wall_seconds": 93.638,
+          "native_cpu_seconds": 93.0431,
+          "Zc_sha256": "dad0daa05becae23ccb086cc1f14998e8a50f251ac6c90964c51b2d8a5a5eccb",
+          "R_ohm": [
+            [
+              0.9584266
+            ]
+          ],
+          "L_h": [
+            [
+              2.501299861102654e-08
+            ]
+          ]
+        }
+      ],
+      "mesh_residuals": {
+        "R": 0.0129434011952507,
+        "L": 3.707977490945717e-06
+      },
+      "change_from_previous_refined": {
+        "R": 0.0005335828533973699,
+        "L": 0.001130191539285124
+      },
+      "L_h_per_m": [
+        8.895565569044966e-07
+      ],
+      "pipeline_status": "failed_native",
+      "pipeline_rejection": "reciprocity: C primitive: residual 0.1070386498482376 > 0.025",
+      "total_wall_seconds": 189.353,
+      "native_calls": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "21dd368ca9f459c442d6b348c9a404259865812c934746b494361eb06bd4f2aa",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "8285e23d103e084e9c461d463cef0aab258db0715b5ec70852c9d9096aa06793",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "4fefd3c34b72f84a704304a1cdc59b1bfd52cf6a2b1d8ccbc45f78f27e30f919",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-ap",
+            "-e"
+          ],
+          "exact_native_extraction_replay_from": "runs/graded-v1/single/native-2-fastercap"
+        }
+      ],
+      "R_L_checks_passed": true,
+      "capacitance_auto_residual": 0.0172399,
+      "capacitance_primitive_reciprocity_residual": 0.1070386498482376
+    },
+    {
+      "name": "differential",
+      "frequency_hz": 844000,
+      "input_sha256": "1f7630b325da2c742bb64c1c73ddc2568f950d1548705b3355e5d0126b685898",
+      "conductors": [
+        {
+          "name": "sig0",
+          "length_m": 0.05741215228546241
+        },
+        {
+          "name": "sig1",
+          "length_m": 0.05741215228546241
+        },
+        {
+          "name": "return",
+          "length_m": 0.045
+        }
+      ],
+      "before": [
+        {
+          "phase": "coarse",
+          "directory": "../pipeline-si/runs/layered-rfc-v3/differential/native-0-fasthenry",
+          "request_sha256": "9afba4f51f2e6deae438c2cfdf4610d67a532c868d40c505ba85e88e5253c9ad",
+          "plane_edges": 2429,
+          "deck_filaments": 7479,
+          "internal_filaments": 8037,
+          "archive_wall_seconds": 8.158,
+          "native_cpu_seconds": 7.66262,
+          "Zc_sha256": "6605d039437dc52054c5508cda63268310e708378a179333d7e38b86a8054d78",
+          "R_ohm": [
+            [
+              0.24062967,
+              0.019365769999999997
+            ],
+            [
+              0.019365809999999997,
+              0.2406216
+            ]
+          ],
+          "L_h": [
+            [
+              4.809549236912603e-08,
+              2.2304282983318437e-08
+            ],
+            [
+              2.230164297241407e-08,
+              4.8210898560088414e-08
+            ]
+          ],
+          "dc_frequency_hz": 0.844,
+          "dc_signal_residuals": [
+            3.085503144095725e-07,
+            3.085503146316171e-07
+          ]
+        },
+        {
+          "phase": "refined",
+          "directory": "../pipeline-si/runs/layered-rfc-v3/differential/native-1-fasthenry",
+          "request_sha256": "36df4d3aeafa1c657ab8adb58474fca677330a2d14a4519692747f61d1238bb4",
+          "plane_edges": 8810,
+          "deck_filaments": 62678,
+          "internal_filaments": 69664,
+          "archive_wall_seconds": 159.826,
+          "native_cpu_seconds": 152.832,
+          "Zc_sha256": "892a41590ea428f494610fc2e3115e93e40e832e8b238d4f1812121bcd4dacef",
+          "R_ohm": [
+            [
+              0.24076513,
+              0.01930515
+            ],
+            [
+              0.01931474,
+              0.24075400000000002
+            ]
+          ],
+          "L_h": [
+            [
+              4.8015669753710406e-08,
+              2.224575017012445e-08
+            ],
+            [
+              2.224412844914034e-08,
+              4.813035937028445e-08
+            ]
+          ]
+        }
+      ],
+      "after": [
+        {
+          "phase": "coarse",
+          "directory": "runs/graded-v2/differential/native-0-fasthenry",
+          "request_sha256": "e6d6638cdc596fe73ca2c36335a603ec73c214469fc0784253790155a2f23311",
+          "plane_edges": 1557,
+          "deck_filaments": 1749,
+          "internal_filaments": 2421,
+          "archive_wall_seconds": 6.258,
+          "native_cpu_seconds": 2.50875,
+          "Zc_sha256": "6294bba15b279e45b8c1c1e11b2d75be26137b34ba14d102b9ed33525a9d1a02",
+          "R_ohm": [
+            [
+              0.24061883,
+              0.01935518
+            ],
+            [
+              0.01935466,
+              0.24060845
+            ]
+          ],
+          "L_h": [
+            [
+              4.8098792382756506e-08,
+              2.2306790993677586e-08
+            ],
+            [
+              2.2304150982773214e-08,
+              4.821261456717625e-08
+            ]
+          ],
+          "dc_frequency_hz": 0.844,
+          "dc_signal_residuals": [
+            3.085503144095725e-07,
+            3.085503146316171e-07
+          ]
+        },
+        {
+          "phase": "refined",
+          "directory": "runs/graded-v2/differential/native-1-fasthenry",
+          "request_sha256": "81411f6118c020060b1c19cb494cde0d51fa0852f1a430d25a4ecf8bc111d0a5",
+          "plane_edges": 4126,
+          "deck_filaments": 5134,
+          "internal_filaments": 6408,
+          "archive_wall_seconds": 17.863,
+          "native_cpu_seconds": 14.2499,
+          "Zc_sha256": "96a99ffc16d26960287836ff635b08b3589d198294cd2e8b3e61dcb2da4cf273",
+          "R_ohm": [
+            [
+              0.24073018999999998,
+              0.01930836
+            ],
+            [
+              0.01930826,
+              0.24072978
+            ]
+          ],
+          "L_h": [
+            [
+              4.809760437784953e-08,
+              2.2318350469994572e-08
+            ],
+            [
+              2.2316238461271074e-08,
+              4.82197237393973e-08
+            ]
+          ]
+        }
+      ],
+      "mesh_residuals": {
+        "R": 0.000504008242588945,
+        "L": 0.000250674984435558
+      },
+      "change_from_previous_refined": {
+        "R": 0.00014514174561990365,
+        "L": 0.0018532741829011276
+      },
+      "L_h_per_m": [
+        8.377599944119938e-07,
+        8.398870590958011e-07
+      ],
+      "pipeline_status": "failed_native",
+      "pipeline_rejection": "reciprocity: C primitive: residual 0.0949961368297065 > 0.025",
+      "total_wall_seconds": 37.008,
+      "native_calls": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "e6d6638cdc596fe73ca2c36335a603ec73c214469fc0784253790155a2f23311",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "81411f6118c020060b1c19cb494cde0d51fa0852f1a430d25a4ecf8bc111d0a5",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "06c685e0a3d098b9d8bf4a5f21c9515d75d627a5db98e068ef34ab96d2038ad3",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-ap",
+            "-e"
+          ],
+          "exact_native_extraction_replay_from": "runs/graded-v1/differential/native-2-fastercap"
+        }
+      ],
+      "R_L_checks_passed": true,
+      "capacitance_auto_residual": 0.0179571,
+      "capacitance_primitive_reciprocity_residual": 0.0949961368297065
+    },
+    {
+      "name": "two",
+      "frequency_hz": 858000000,
+      "input_sha256": "28c0a21eedc2058b3c391cd8b564bb10b30b6a54d56a6c0e5bfd5fb7936a3ddb",
+      "conductors": [
+        {
+          "name": "sig0",
+          "length_m": 0.028118502884254444
+        },
+        {
+          "name": "sig1",
+          "length_m": 0.028118502884254444
+        },
+        {
+          "name": "return",
+          "length_m": 0.03
+        }
+      ],
+      "before": [
+        {
+          "phase": "coarse",
+          "directory": "../pipeline-si/runs/layered-rfc-v3/two/native-0-fasthenry",
+          "request_sha256": "dde23efc3d9e433081abe548523bafe5ecbb6548c3758f282fd7b2514f68f13a",
+          "plane_edges": 1501,
+          "deck_filaments": 11469,
+          "internal_filaments": 16071,
+          "archive_wall_seconds": 52.627,
+          "native_cpu_seconds": 51.4495,
+          "Zc_sha256": "4cedabbb70e7dad8323c3a71ea109e9daa3cd2a0e9acd1c0b8cd1ecfecda355d",
+          "R_ohm": [
+            [
+              0.9634865000000001,
+              0.1175903
+            ],
+            [
+              0.1176826,
+              0.9641841
+            ]
+          ],
+          "L_h": [
+            [
+              2.5236798656295042e-08,
+              4.077649809461061e-09
+            ],
+            [
+              4.086368087229497e-09,
+              2.5953812079403914e-08
+            ]
+          ],
+          "dc_frequency_hz": 0.858,
+          "dc_signal_residuals": [
+            2.5291440965968803e-06,
+            2.5291440965968803e-06
+          ]
+        },
+        {
+          "phase": "refined",
+          "directory": "../pipeline-si/runs/layered-rfc-v3/two/native-1-fasthenry",
+          "request_sha256": "db873f83c869d289ff5d67f1ec0c64ddc6ad0b73ec4c926e60469c235dd9cabb",
+          "plane_edges": 4607,
+          "deck_filaments": 52615,
+          "internal_filaments": 73015,
+          "archive_wall_seconds": 423.112,
+          "native_cpu_seconds": 409.883,
+          "Zc_sha256": "d83078848cb2fb12c57c087c0a35c595eca4b7a02903e67c4e3ec6ce273debe1",
+          "R_ohm": [
+            [
+              0.9769872,
+              0.1195669
+            ],
+            [
+              0.1196132,
+              0.9777970999999999
+            ]
+          ],
+          "L_h": [
+            [
+              2.5200645627846772e-08,
+              4.081916200709444e-09
+            ],
+            [
+              4.0851067193821495e-09,
+              2.5913244263489927e-08
+            ]
+          ]
+        }
+      ],
+      "after": [
+        {
+          "phase": "coarse",
+          "directory": "runs/graded-v2/two/native-0-fasthenry",
+          "request_sha256": "57eadee540e72a3774e739b5737fc8b3186225d98ba76a84dbfefb679ad9d903",
+          "plane_edges": 1269,
+          "deck_filaments": 9845,
+          "internal_filaments": 11847,
+          "archive_wall_seconds": 121.889,
+          "native_cpu_seconds": 98.4311,
+          "Zc_sha256": "69e4de5b727d19e7540a3b4f6a1a4176029c780086f6653e15ac35eec2dde5f9",
+          "R_ohm": [
+            [
+              0.9633588,
+              0.1175111
+            ],
+            [
+              0.11753129999999999,
+              0.964118
+            ]
+          ],
+          "L_h": [
+            [
+              2.5262767994328682e-08,
+              4.079245068797411e-09
+            ],
+            [
+              4.08097017482393e-09,
+              2.5982823539892923e-08
+            ]
+          ],
+          "dc_frequency_hz": 0.858,
+          "dc_signal_residuals": [
+            2.5291440965968803e-06,
+            2.5291440965968803e-06
+          ]
+        },
+        {
+          "phase": "refined",
+          "directory": "runs/graded-v2/two/native-1-fasthenry",
+          "request_sha256": "daa0399cec81d6c309e741ef4cd97e19904c408675ded67623fe4a2eb5199ffb",
+          "plane_edges": 2792,
+          "deck_filaments": 27066,
+          "internal_filaments": 37042,
+          "archive_wall_seconds": 109.184,
+          "native_cpu_seconds": 108.695,
+          "Zc_sha256": "821f0c3955cb27be1e9cc37aeefe20be2fdfb8122b80b393e340af94dcadb5bd",
+          "R_ohm": [
+            [
+              0.9764137,
+              0.11928079999999999
+            ],
+            [
+              0.1192982,
+              0.9771969999999999
+            ]
+          ],
+          "L_h": [
+            [
+              2.5234313019654668e-08,
+              4.091024018548385e-09
+            ],
+            [
+              4.09558720223144e-09,
+              2.5941625040055266e-08
+            ]
+          ]
+        }
+      ],
+      "mesh_residuals": {
+        "R": 0.01338419991056035,
+        "L": 0.001588123325892027
+      },
+      "change_from_previous_refined": {
+        "R": 0.0006141033998262299,
+        "L": 0.0012978135238602875
+      },
+      "L_h_per_m": [
+        8.974273318721091e-07,
+        9.225820146556178e-07
+      ],
+      "pipeline_status": "failed_native",
+      "pipeline_rejection": "reciprocity: C primitive: residual 0.09675331594056424 > 0.025",
+      "total_wall_seconds": 242.519,
+      "native_calls": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "57eadee540e72a3774e739b5737fc8b3186225d98ba76a84dbfefb679ad9d903",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "daa0399cec81d6c309e741ef4cd97e19904c408675ded67623fe4a2eb5199ffb",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "972c838a0bd28247ae11ebe06e69f5da4b21078d19fbb678d047bec608fe870a",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-ap",
+            "-e"
+          ],
+          "exact_native_extraction_replay_from": "runs/graded-v1/two/native-2-fastercap"
+        }
+      ],
+      "R_L_checks_passed": true,
+      "capacitance_auto_residual": 0.0137133,
+      "capacitance_primitive_reciprocity_residual": 0.09675331594056424
+    },
+    {
+      "name": "three",
+      "frequency_hz": 858000000,
+      "input_sha256": "bad956cf18f858fd22a2e6f4f9e322b5f58330337136e2612410a29033f25d58",
+      "conductors": [
+        {
+          "name": "sig0",
+          "length_m": 0.028118502884254444
+        },
+        {
+          "name": "sig1",
+          "length_m": 0.028118502884254444
+        },
+        {
+          "name": "sig2",
+          "length_m": 0.028118502884254444
+        },
+        {
+          "name": "return",
+          "length_m": 0.031048349392520047
+        }
+      ],
+      "before": [
+        {
+          "phase": "coarse",
+          "directory": "../pipeline-si/runs/layered-rfc-v2-traffic/three/native-0-fasthenry",
+          "request_sha256": "c6c2558e9e9597e976ab7b3e3ef6ac18c9c410af2b2d42c71ed4ac200f4f2af6",
+          "plane_edges": 2507,
+          "deck_filaments": 18784,
+          "internal_filaments": 25570,
+          "archive_wall_seconds": 129.688,
+          "native_cpu_seconds": 129.05,
+          "Zc_sha256": "2904073ebc7f9a9a2aa89cdceedef20e40709ca6ad719f3a025ebbf5f4cb616e",
+          "R_ohm": [
+            [
+              0.9566158,
+              0.10536178,
+              0.1107938
+            ],
+            [
+              0.10538691,
+              0.9559717,
+              0.1103022
+            ],
+            [
+              0.1108127,
+              0.1102642,
+              0.9565647
+            ]
+          ],
+          "L_h": [
+            [
+              2.6253498240312144e-08,
+              3.4826922751103066e-09,
+              4.598186640818257e-09
+            ],
+            [
+              3.4818018978062962e-09,
+              2.620847853787811e-08,
+              4.584144648752923e-09
+            ],
+            [
+              4.59518161741722e-09,
+              4.583180073340245e-09,
+              2.5964478057524873e-08
+            ]
+          ],
+          "dc_frequency_hz": 0.858,
+          "dc_signal_residuals": [
+            2.5291440965968803e-06,
+            2.5291440965968803e-06,
+            2.5291440965968803e-06
+          ]
+        },
+        {
+          "phase": "refined",
+          "directory": "../pipeline-si/runs/layered-rfc-v3-traffic/three/native-1-fasthenry",
+          "request_sha256": "03d3b7b7ed4b597251ed532390e7b68f7280bab666547180013461086e3a32d3",
+          "plane_edges": 8689,
+          "deck_filaments": 98078,
+          "status": "native_timeout",
+          "process_timeout_seconds": 600,
+          "internal_filaments": 127641
+        }
+      ],
+      "after": [
+        {
+          "phase": "coarse",
+          "directory": "runs/graded-v2/three/native-0-fasthenry",
+          "request_sha256": "ce0b39ec6bee3669c5b4756813afaa672473f703ed5fe8b9356801593bfd460a",
+          "plane_edges": 1761,
+          "deck_filaments": 13562,
+          "internal_filaments": 16607,
+          "archive_wall_seconds": 234.437,
+          "native_cpu_seconds": 202.826,
+          "Zc_sha256": "bae87f2f9b3373efef5e5770d7aac131575012b08ad9ec6a042d595f76d4ecbd",
+          "R_ohm": [
+            [
+              0.9562016999999999,
+              0.10527314,
+              0.1106027
+            ],
+            [
+              0.10528098999999999,
+              0.9555332,
+              0.1100105
+            ],
+            [
+              0.11060500000000001,
+              0.11001920000000001,
+              0.9564102000000001
+            ]
+          ],
+          "L_h": [
+            [
+              2.6275442330950573e-08,
+              3.4896854468522245e-09,
+              4.5901546955549975e-09
+            ],
+            [
+              3.4894814020533876e-09,
+              2.622873462154435e-08,
+              4.5720132579857816e-09
+            ],
+            [
+              4.59162010820118e-09,
+              4.573701264957967e-09,
+              2.5984530096392276e-08
+            ]
+          ],
+          "dc_frequency_hz": 0.858,
+          "dc_signal_residuals": [
+            2.5291440965968803e-06,
+            2.5291440965968803e-06,
+            2.5291440965968803e-06
+          ]
+        },
+        {
+          "phase": "refined",
+          "directory": "runs/graded-v2/three/native-1-fasthenry",
+          "request_sha256": "11fe0fed83cabab914953d781d811648533ee8d8cc6f6c0ed47a7e6eb3a8c7d3",
+          "plane_edges": 4819,
+          "deck_filaments": 45870,
+          "internal_filaments": 61792,
+          "archive_wall_seconds": 580.437,
+          "native_cpu_seconds": 564.26,
+          "Zc_sha256": "5775172681cb6a67af3bfdae697900599b38044aaa4724411b7bc5b69173578e",
+          "R_ohm": [
+            [
+              0.9690797,
+              0.10652106,
+              0.11208620000000001
+            ],
+            [
+              0.1065247,
+              0.9683487,
+              0.1114724
+            ],
+            [
+              0.112092,
+              0.1114662,
+              0.9691164999999999
+            ]
+          ],
+          "L_h": [
+            [
+              2.6249677037715763e-08,
+              3.489184609618716e-09,
+              4.603324859843484e-09
+            ],
+            [
+              3.487737746499701e-09,
+              2.620436054284706e-08,
+              4.585461665181772e-09
+            ],
+            [
+              4.6013957090181296e-09,
+              4.5861665472141134e-09,
+              2.5958208317342455e-08
+            ]
+          ]
+        }
+      ],
+      "mesh_residuals": {
+        "R": 0.013288392056063494,
+        "L": 0.0010027467771127857
+      },
+      "L_h_per_m": [
+        9.335375053845712e-07,
+        9.319258799344098e-07,
+        9.231717785329996e-07
+      ],
+      "pipeline_status": "failed_native",
+      "pipeline_rejection": "reciprocity: C primitive: residual 0.0700803619177013 > 0.025",
+      "total_wall_seconds": 838.353,
+      "native_calls": [
+        {
+          "solver": "fasthenry",
+          "request_sha256": "ce0b39ec6bee3669c5b4756813afaa672473f703ed5fe8b9356801593bfd460a",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        {
+          "solver": "fasthenry",
+          "request_sha256": "11fe0fed83cabab914953d781d811648533ee8d8cc6f6c0ed47a7e6eb3a8c7d3",
+          "args": [
+            "-p",
+            "seg",
+            "channel.inp"
+          ]
+        },
+        {
+          "solver": "fastercap",
+          "request_sha256": "31c58fbc585910e59cbcd85483a00e98e2f0fc91b38dee2acbaa127e46e07186",
+          "args": [
+            "channel.lst",
+            "-b",
+            "-a0.02",
+            "-ap",
+            "-e"
+          ]
+        }
+      ],
+      "R_L_checks_passed": true,
+      "capacitance_auto_residual": 0.00549289,
+      "capacitance_primitive_reciprocity_residual": 0.0700803619177013
+    }
+  ]
+}

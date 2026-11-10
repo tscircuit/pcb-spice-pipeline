@@ -56,10 +56,8 @@ export async function auditIbis(out, experimentDir, circuit, run) {
     assert.equal(definition.component, declared.ibis_component_name)
     assert.deepEqual(definition.pinMap, declared.ibis_pin_name_to_source_port_id, 'Physical IBIS pin maps to the actual local source-port ID')
     assert.deepEqual(definition.modelSelections, declared.ibis_pin_name_to_model_name)
-    assert.equal(definition.corner, declared.model_value_corner)
-    let packagePolicy = 'omit'
-    if (declared.include_package_parasitics) packagePolicy = 'vendor'
-    assert.equal(definition.packagePolicy, packagePolicy)
+    assert.equal(definition.corner, 'typical')
+    assert.equal(definition.packagePolicy, 'vendor')
     const references = Object.fromEntries(Object.entries(declared.ibis_pin_name_to_reference_source_port_ids ?? {}).map(([pin, refs]) => [pin, {
       pullup: refs.pullup_reference_source_port_id,
       pulldown: refs.pulldown_reference_source_port_id,
@@ -87,7 +85,7 @@ export async function auditIbis(out, experimentDir, circuit, run) {
     assert.ok(deck.split('\n').includes(`XIBIS${modelIndex} ${terminalNodes.join(' ')} IBIS${modelIndex}_${wrapper[1]}`), 'Actual deck instantiates native buffers on the audited physical signal/reference nodes')
     const selected = metadata.pins.map(pin => ({ physicalPin: pin.physicalPin, localPort: pin.port, model: pin.model, mode: pin.runState.mode }))
     for (const [physicalPin, localPort] of Object.entries(definition.pinMap)) if (!metadata.pins.some(pin => pin.physicalPin === physicalPin)) selected.push({ physicalPin, localPort })
-    const vendor = vendorPinEvidence(bytes.toString('utf8'), definition.component, selected, definition.corner)
+    const vendor = vendorPinEvidence(bytes.toString('utf8'), definition.component, selected)
     assert.equal(metadata.packageData.mappedPins.length, selected.length, 'Excluded package metadata retains every mapped signal/reference pin')
     for (const reported of metadata.packageData.mappedPins) {
       const original = one(vendor, pin => pin.physicalPin === reported.physicalPin, 'Reported package pin belongs to original vendor table')

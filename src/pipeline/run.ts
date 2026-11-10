@@ -1,34 +1,64 @@
-import { ArtifactLedger, type FileMap } from '../kernel'
-import type { SolverContext } from '../solver'
-import type { PipelineOptions, PipelineResult } from './result'
-import { PRE_VALIDATION, type AnyStage, type Phase, type PipelineState, type PureContext, type StateAt } from './state'
-import { STAGES } from './stages'
+import { validateCircuitRecords } from '../board'
+import { jsonBody, sha256 } from '../kernel'
+import type { SolverResult } from '../solver'
+import type { PipelineOptions, PipelineResult, BlockResult, PreparedResult } from './result'
+import { prepareBlocks } from './signals'
+import { runPrepared } from './prepared'
+import { signalResults } from './results'
+import { signalResultFiles } from './result-files'
+import { fail } from './diagnostics'
 
-/** Adds the sealed ledger to the sealed state's result. A plain function, not a stage. */
-function sealResult(state: StateAt<'sealed'>, files: FileMap): PipelineResult {
-  return { ...state.result, files }
-}
-
-/**
- * Public. Deterministic fold over STAGES. This is the only place in the pipeline that holds
- * runSolver: pre-validation stages get a PureContext, later ones a SolverContext.
- * On any Diagnostic the run rethrows (no partial result; a rerun recomputes everything).
- * No retries, no caching, no concurrency between experiments.
- */
+/** Run every Circuit JSON signal-integrity block independently with native solver IO. */
 export async function runPipeline(options: PipelineOptions): Promise<PipelineResult> {
-  const { runSolver, ...pure } = options
-  const progress = pure.onProgress ?? (() => {})
-  const pureContext: PureContext = { progress }
-  const solverContext: SolverContext = { runSolver, progress }
-  let state: PipelineState = { phase: 'input', options: pure }
-  let ledger = ArtifactLedger.empty()
-  for (const stage of STAGES as readonly AnyStage[]) {
-    if (state.phase !== stage.from) throw new Error(`pipeline: stage ${stage.name} expects phase ${stage.from}, got ${state.phase}`)
-    const preValidation = (PRE_VALIDATION as readonly Phase[]).includes(stage.from)
-    const next: { state: PipelineState; artifacts: Parameters<ArtifactLedger['add']>[0] } = await stage.run(state, preValidation ? pureContext : solverContext)
-    ledger = ledger.add(next.artifacts)
-    state = next.state
+  if ('modeling' in options) fail('signal_integrity_input', 'modeling has been removed; describe the test with <simulation.pcbtransientchannelsimulation> and <simulation.pcbchannel>')
+  validateCircuitRecords(options.circuitJson)
+  const prepared = prepareBlocks(options.circuitJson, options.ibisSources)
+  const blocks: BlockResult[] = []
+  const files: Record<string, string> = {}
+  const extractionRuns = new Map<string, { block: string; result: SolverResult }>()
+  const executions: unknown[] = []
+  for (const current of prepared) {
+    let result: PreparedResult | undefined
+    let results: BlockResult['results'] | undefined
+    const refinements: unknown[] = []
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        result = await runPrepared({ ...options, circuitJson: current.circuit, modeling: current.settings, runSolver: async request => {
+          const key = sha256(JSON.stringify(request))
+          const previous = request.solver === 'ngspice' ? undefined : extractionRuns.get(key)
+          executions.push({ block: current.block.simulation_signal_integrity_id, solver: request.solver, request_sha256: key, reused_from_block: previous?.block })
+          if (previous) return structuredClone(previous.result)
+          const result = await options.runSolver(request)
+          if (request.solver !== 'ngspice') extractionRuns.set(key, { block: current.block.simulation_signal_integrity_id, result: structuredClone(result) })
+          return result
+        } })
+        results = signalResults(current, result)
+        break
+      } catch (error) {
+        const code = (error as { code?: string }).code
+        if (!['mesh_convergence', 'ground_mesh', 'cap_convergence'].includes(code ?? '') || attempt >= 4) throw error
+        refinements.push({ attempt, code, message: (error as Error).message, settings: structuredClone(current.settings.extraction) })
+        options.onProgress?.(`Refining ${current.block.name ?? current.block.simulation_signal_integrity_id}: ${code}`)
+        const settings = current.settings.extraction
+        settings.filaments = settings.refinementFilaments
+        settings.refinementFilaments += 4
+        settings.groundMeshMm! /= 2
+        settings.maxPanelLengthMm /= 2
+      }
+    }
+    if (!result || !results) throw new Error('Automatic native refinement failed to converge')
+    const id = current.block.simulation_signal_integrity_id
+    const prefix = `blocks/${id}`
+    for (const [path, body] of Object.entries(result.files)) files[`${prefix}/${path}`] = body
+    const experiments = result.experiments.map(run => ({ ...run, directory: `${prefix}/${run.directory}`, assemblyFile: `${prefix}/${run.assemblyFile}` }))
+    files[`${prefix}/automatic-refinements.json`] = jsonBody(refinements)
+    blocks.push({ simulation_signal_integrity_id: id, name: current.block.name ?? id, duration_s: current.duration, geometry: result.geometry, matrices: result.matrices, experiments,
+      numericalSettings: current.settings, results, limitations: result.limitations })
   }
-  if (state.phase !== 'sealed') throw new Error(`pipeline: ended in phase ${state.phase}`)
-  return sealResult(state, ledger.seal())
+  const resultTypes = new Set(['simulation_signal_waveform', 'simulation_signal_integrity_rlgc'])
+  const results = [...options.circuitJson.filter(record => !resultTypes.has(record.type)), ...blocks.flatMap(block => block.results)]
+  Object.assign(files, signalResultFiles(results))
+  files['native-execution.json'] = jsonBody(executions)
+  return { circuitJson: options.circuitJson, simulationResultCircuitJson: results, blocks, geometry: blocks[0]?.geometry, matrices: blocks[0]?.matrices ?? [],
+    experiments: blocks.flatMap(block => block.experiments), limitations: [...new Set(blocks.flatMap(block => block.limitations))], files }
 }

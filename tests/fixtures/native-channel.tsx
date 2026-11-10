@@ -1,7 +1,7 @@
 import { Circuit } from '@tscircuit/core'
 import React from 'react'
 import type { AnyCircuitElement } from 'circuit-json'
-import type { Modeling } from '../../src/pipeline'
+import type { NumericalSettings as Modeling } from '../../src/pipeline'
 
 export const modeling: Modeling = {
   reduction: 'routed-copper', sections: 4, relativePermittivity: 4.1,

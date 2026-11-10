@@ -6,8 +6,9 @@ import { fail } from '../diagnostics'
 import { stackupFromCircuitJson, defaultCopperConductivitySm } from '../stackup'
 import { selectPort, resolveRouteVias } from './ports'
 import { routedCopperGeometry } from './routed'
-import { groundPourLayers, measuredLaneSpacingMm, stackupStageReturn } from './returns'
-import type { BoardModeling as Modeling, Geometry, GeometryCell, LaneMapping, ResolvedModeling, RouteStage, RoutedPoint } from './types'
+import { parallelCopperGeometry } from './parallel'
+import { joinSeriesMappings } from './series'
+import type { BoardModeling as Modeling, Geometry, LaneMapping, ResolvedModeling, RouteStage, RoutedPoint } from './types'
 
 /** Returns `v` when it is a positive finite number; otherwise fails 'modeling_input' naming `label`. */
 const positive=(v: unknown,label: string): number=>{
@@ -21,21 +22,13 @@ const finite=(v: unknown,label: string): number=>{
 }
 /** Checks every modeling field the reductions rely on before any geometry is built, failing with the matching board code. */
 export function validateModeling(m: Modeling): void {
-  if(!['straightened-stages','routed-copper'].includes(m.reduction)) fail('reduction','Select straightened-stages or routed-copper')
-  if(!Array.isArray(m.lanes)||![1,2,3].includes(m.lanes.length)) fail('lanes','One to three explicit source/receiver lanes are supported')
+  if(m.reduction!=='routed-copper') fail('reduction','Only routed copper is supported')
+  if(!Array.isArray(m.lanes)||(m.lanes.length < 1 && !m.allowIdeal)) fail('lanes','At least one routed conductor is required')
   for(const [i,l] of m.lanes.entries()) if(!l.port||!l.from||!l.to) fail('pin_mapping',`Lane ${i}: port/from/to mappings required`)
   if(new Set(m.lanes.map(l=>l.port)).size!==m.lanes.length) fail('pin_mapping','Lane port labels must be distinct')
   if(m.reduction==='routed-copper') {
     positive(m.relativePermittivity,'relativePermittivity (homogeneous dielectric approximation)')
     positive(m.extraction?.groundMeshMm,'extraction.groundMeshMm')
-  }
-  for(const [name,p] of Object.entries(m.reduction==='routed-copper'?{}:m.profiles??{})) {
-    positive(p.spacingMm,`${name} spacingMm`)
-    positive(p.relativePermittivity,`${name} relativePermittivity`)
-    if(!p.return) fail('return_geometry',`${name}: explicit finite return required`)
-    for(const key of ['widthMm','thicknessMm','lengthFactor'] as const) positive(p.return[key],`${name}.return.${key}`)
-    finite(p.return.centerYMm,`${name}.return.centerYMm`)
-    finite(p.return.centerZMm,`${name}.return.centerZMm`)
   }
   if(!m.extraction) fail('extraction','Explicit mesh/frequency/model settings required')
   for(const key of ['minimumHz','maximumHz','modelHz','filaments','refinementFilaments','convergenceTolerance','capTolerance','maxPanelLengthMm','reciprocityTolerance','dcResistanceTolerance'] as const) positive(m.extraction[key],`extraction.${key}`)
@@ -43,7 +36,7 @@ export function validateModeling(m: Modeling): void {
   if(!Number.isInteger(m.extraction.refinementFilaments)||m.extraction.refinementFilaments<=m.extraction.filaments) fail('extraction','Integer refinementFilaments must exceed filaments')
   if(!Number.isInteger(m.sections)||m.sections<1||m.sections>128) fail('sections','sections must be an integer 1..128')
 }
-/** Resolves each lane to its routed PCB trace and reduces the routes to geometry cells (straightened stages) or routed copper. */
+/** Resolves each lane to its routed PCB trace and constructs 3D routed copper, with a guarded parallel-bar reduction. */
 export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geometry {
   if(!Array.isArray(cj)) fail('circuit_json','Expected a Circuit JSON element array, not a mesh-preparation object')
   const stackup = stackupFromCircuitJson(cj)
@@ -52,16 +45,14 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
   const m: ResolvedModeling = {...modeling, stackup: stackup.copperLayers, conductivitySm: defaultCopperConductivitySm,
     relativePermittivity: modeling.relativePermittivity ?? stackup.relativePermittivity, viaPlatingMm: modeling.viaPlatingMm ?? stackup.viaPlatingMm}
   validateModeling(m)
+  if (!m.lanes.length && m.allowIdeal) return { stackup, cells: [], mappings: [], units: { circuitJson: 'mm', geometry: 'm', conductivity: 'S/m' }, approximations: ['Unrouted signal copper is ideal by explicit allow_unrouted_traces=true'] }
   const routes: RouteStage[][]=[]
   const mappings: LaneMapping[]=[]
   const selectedTraces=new Set<string>()
-  const selectedPorts=new Set<string>()
   for(const lane of m.lanes) {
     const from=selectPort(cj,lane.from)
     const to=selectPort(cj,lane.to)
-    if(from.source_port_id===to.source_port_id||[from.source_port_id,to.source_port_id].some(id=>selectedPorts.has(id))) fail('pin_mapping',`${lane.port}: selected lanes require distinct physical source and receiver ports`)
-    selectedPorts.add(from.source_port_id)
-    selectedPorts.add(to.source_port_id)
+    if(from.source_port_id===to.source_port_id) fail('pin_mapping',`${lane.port}: selected lane requires distinct physical source and receiver ports`)
     const sources=cj.filter(e=>e.type==='source_trace').filter(e=>(lane.sourceTraceId?e.source_trace_id===lane.sourceTraceId:e.connected_source_port_ids?.includes(from.source_port_id)&&e.connected_source_port_ids?.includes(to.source_port_id)))
     if(sources.length!==1) fail('route_selection',`${lane.port}: expected one source trace; specify sourceTraceId`)
     const src=sources[0]
@@ -79,7 +70,7 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
       finite(p.y,`${lane.port} route[${i}].y`)
       if(p.route_type==='wire') {
         positive(p.width,`${lane.port} route[${i}].width`)
-        if(p.start_width!==undefined||p.end_width!==undefined||p.width_interpolation_mode!==undefined) fail('varying_width','Tapered routes are not supported by the straightened-stage reduction')
+        if(p.start_width!==undefined||p.end_width!==undefined||p.width_interpolation_mode!==undefined) fail('varying_width','Tapered routes are not implemented')
       }
       return p
     })
@@ -143,30 +134,16 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
     routes.push(stages)
     mappings.push({port:lane.port,sourceTraceId:src.source_trace_id,pcbTraceId:traces[0].pcb_trace_id,from:from.source_port_id,to:to.source_port_id,pcbPorts:ports.map(p=>p.pcb_port_id),stages,originalRoute:route})
   }
-  if(m.reduction==='routed-copper') return {...routedCopperGeometry(cj,m,mappings),stackup}
-  if(routes.some(route=>route.length!==routes[0].length||route.some((s,i)=>s.profile!==routes[0][i].profile))) fail('route_topology','Selected routes must have identical ordered layer/via stage topology')
-  let grounds: Set<string>|undefined
-  /** Ground-pour layers for derived returns, computed once on first use. */
-  const groundLayers=(): Set<string>=>grounds??=groundPourLayers(cj,m.channelReference?selectPort(cj,m.channelReference).source_port_id:undefined)
-  const cells: GeometryCell[]=routes[0].map((_,i)=>{
-    const signals=routes.map(r=>r[i])
-    const name=signals[0].profile
-    const profile=m.profiles?.[name]
-    // Without a declared profile, a wire stage returns in the adjacent ground
-    // planes from pcb_stackup; via stages still need an explicit `via` profile.
-    if(!profile&&signals[0].kind!=='wire') fail('return_geometry',`Missing ${name} return/material profile; via stages need an explicit straightened-stage profile`)
-    const derived=profile?undefined:stackupStageReturn(stackup,groundLayers(),name)
-    const spacingMm=profile?profile.spacingMm:signals.length>1?measuredLaneSpacingMm(mappings.map(l=>l.originalRoute),name):0
-    const length=Math.max(...signals.map(s=>s.lengthMm))/1000
-    const conductors: GeometryCell['conductors']=signals.map((s,j)=>({name:`sig${j}`,lengthM:s.lengthMm/1000,widthM:s.widthMm/1000,thicknessM:s.thicknessMm/1000,conductivitySm:s.conductivitySm??defaultCopperConductivitySm,yM:(j-(signals.length-1)/2)*spacingMm/1000,zM:0}))
-    const parts=profile?[{widthM:profile.return.widthMm/1000,thicknessM:profile.return.thicknessMm/1000,yM:profile.return.centerYMm/1000,zM:profile.return.centerZMm/1000}]
-      :derived!.parts.map(p=>({widthM:p.widthMm/1000,thicknessM:p.thicknessMm/1000,yM:0,zM:p.centerZMm/1000}))
-    conductors.push({name:'return',lengthM:length*(profile?.return.lengthFactor??1),...parts[0],conductivitySm:defaultCopperConductivitySm,...(parts.length>1?{parts}:{})})
-    const boxes=conductors.flatMap(c=>(c.parts??[c]).map(p=>({name:c.name,...p})))
-    for(let a=0;a<boxes.length;a++) for(let b=a+1;b<boxes.length;b++) if(Math.abs(boxes[a].yM-boxes[b].yM)<(boxes[a].widthM+boxes[b].widthM)/2 && Math.abs(boxes[a].zM-boxes[b].zM)<(boxes[a].thicknessM+boxes[b].thicknessM)/2) fail('conductor_overlap',`Stage ${i}: ${boxes[a].name}/${boxes[b].name} overlap`)
-    return {stage:i,profile:name,conductors,relativePermittivity:profile?profile.relativePermittivity:derived!.relativePermittivity,conductivitySm:m.conductivitySm}
-  })
-  return {stackup,cells,mappings,units:{circuitJson:'mm',geometry:'m',conductivity:'S/m'},approximations:['Actual stage lengths, widths and ordered layer transitions from routed Circuit JSON; routes straightened within each stage','Uniform signal center spacing per stage (declared, or the median routed spacing between lanes); actual varying route spacing is not extracted','Finite parallel return bar per stage (declared profile, or one 2 mm bar in each adjacent ground-pour layer from pcb_stackup); isolated neutral conductor group, with ideal reference joins between stages','Homogeneous explicit effective permittivity per stage; no dielectric loss, roughness, plane cutouts, unselected neighboring nets or bend coupling','Via rectangle preserves assumed plated barrel metal area; pads and unconnected through-via stubs omitted','Whole-stage matrices divided into uniform pi sections; constant R/L at modelHz; frequency dispersion not fitted']}
+  const geometry = {...routedCopperGeometry(cj,m,joinSeriesMappings(mappings)),stackup}
+  const board = cj.find(record => record.type === 'pcb_board')!
+  const x = board.center.x
+  const y = board.center.y
+  const polygon: [number, number][][] = [board.outline?.map(p => [p.x, p.y] as [number, number]) ?? [
+    [x - board.width! / 2, y - board.height! / 2], [x + board.width! / 2, y - board.height! / 2],
+    [x + board.width! / 2, y + board.height! / 2], [x - board.width! / 2, y + board.height! / 2],
+  ]]
+  for (const cell of geometry.cells) cell.dielectric = { polygon, layers: stackup.dielectrics }
+  return m.simplifyParallel ? parallelCopperGeometry(geometry) : geometry
 }
 
 /** Board + board modeling -> today's Geometry, plus `geometry.json` under `scope` (byte-identical to jsonFile). */

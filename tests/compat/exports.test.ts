@@ -5,7 +5,7 @@ import * as node from '../../src/adapters'
 
 // Pinned against the flat src/ of 2026-11-07. The switch-over must keep these runtime names exactly.
 // (Type-only exports are pinned by `pnpm typecheck` of the consumer tests, not here.)
-const ROOT = ['assessDdr', 'generateReport', 'modelingFromCircuitJson', 'resolveDdrAssessments', 'runPipeline', 'stackupFromCircuitJson', 'transmittedBits']
+const ROOT = ['generateReport', 'runPipeline', 'stackupFromCircuitJson', 'transmittedBits']
 const NODE = ['createNativeSolver', 'loadIbisSources', 'writePipelineOutput']
 
 test('root entry exports exactly today\'s runtime names, all functions', () => {

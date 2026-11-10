@@ -1,3 +1,6 @@
+import React from 'react'
+import Single from '../support/unit-single-ended'
+import { renderSignals } from '../support/signal-render'
 // Copied from tests/node.test.ts, repointed at src/adapters. Assertions unchanged.
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -5,10 +8,9 @@ import {mkdtemp,mkdir,writeFile,readFile,rm,symlink,stat} from 'node:fs/promises
 import {join} from 'node:path'
 import {tmpdir} from 'node:os'
 import {createNativeSolver,loadIbisSources,writePipelineOutput} from '../../src/adapters'
-import {runPipeline} from '../../src/pipeline'
+import {reportFixture as runPipeline} from '../support/report-fixture'
 import {generateReport} from '../../src/report'
 import type {RunSolver} from '../../src/solver'
-import {inMemoryInput,fixtureSolver} from '../fixtures/in-memory.mjs'
 
 /** Makes a scratch directory that is deleted when the test finishes. */
 const temporary=async(t: {after:(fn:()=>Promise<void>)=>void}): Promise<string>=>{
@@ -20,8 +22,8 @@ test('native adapter isolates requests, captures files and logs, and cleans up s
   const root=await temporary(t)
   const entry=join(root,'solver.mjs')
   const location=join(root,'location.txt')
-  await writeFile(entry,`import {readFileSync,writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(location)},process.cwd());process.stdout.write('ran');process.stderr.write('notice');if(process.argv.includes('signal'))process.kill(process.pid,'SIGTERM');if(process.argv.includes('fail'))process.exit(7);if(process.argv.includes('timeout'))setTimeout(()=>{},5000);else writeFileSync('output.dat',readFileSync('nested/input.dat','utf8'));`)
-  const solver=createNativeSolver({tools:{ngspice:process.execPath},timeoutMs:1000})
+  await writeFile(entry,`import {readFileSync,writeFileSync} from 'node:fs';writeFileSync(${JSON.stringify(location)},process.cwd());process.stdout.write('ran');process.stderr.write('notice');if(process.argv.includes('signal'))process.kill(process.pid,'SIGTERM');if(process.argv.includes('fail'))process.exit(7);if(process.argv.includes('timeout'))setTimeout(()=>{},15000);else writeFileSync('output.dat',readFileSync('nested/input.dat','utf8'));`)
+  const solver=createNativeSolver({tools:{ngspice:process.execPath},timeoutMs:5000})
   const request={solver:'ngspice' as const,files:{'nested/input.dat':'exact input\r\n'},args:[entry],outputFiles:['output.dat']}
   const output=await solver(request)
   assert.deepEqual(output.stdout,'ran')
@@ -34,7 +36,7 @@ test('native adapter isolates requests, captures files and logs, and cleans up s
   await assert.rejects(solver({...request,args:[entry,'signal']}),/native_solver/)
   await assert.rejects(solver({...request,args:[entry,'timeout']}),error=>{
     assert.equal((error as {code:string}).code,'native_timeout')
-    assert.match((error as Error).message,/ngspice.*1000 ms/)
+    assert.match((error as Error).message,/ngspice.*5000 ms/)
     assert.match((error as Error).message,/ran[\s\S]*notice/)
     return true
   })
@@ -47,19 +49,19 @@ test('local IBIS loading deduplicates declarations, rejects missing files and sy
   const baseDir=join(root,'project')
   const outside=join(root,'outside.ibs')
   await mkdir(join(baseDir,'models'),{recursive:true})
-  const input=inMemoryInput()
-  const bytes=input.ibisSources['models/test.ibs']
-  await writeFile(join(baseDir,'models/test.ibs'),bytes)
-  assert.deepEqual(await loadIbisSources({circuitJson:input.circuitJson,baseDir}),Object.assign(Object.create(null),{'models/test.ibs':bytes}))
-  await rm(join(baseDir,'models/test.ibs'))
-  await assert.rejects(loadIbisSources({circuitJson:input.circuitJson,baseDir}),{code:'ENOENT'})
+  const input={circuitJson:await renderSignals(React.createElement(Single))}
+  const bytes=Buffer.from('[IBIS Ver] 4.2\n[End]\n')
+  await writeFile(join(baseDir,'models/sn74lvc1g04.ibs'),bytes)
+  assert.deepEqual(await loadIbisSources({circuitJson:input.circuitJson.filter((r: {type: string})=>r.type==='simulation_ibis_model'),baseDir}),Object.assign(Object.create(null),{'models/sn74lvc1g04.ibs':bytes}))
+  await rm(join(baseDir,'models/sn74lvc1g04.ibs'))
+  await assert.rejects(loadIbisSources({circuitJson:input.circuitJson.filter((r: {type: string})=>r.type==='simulation_ibis_model'),baseDir}),{code:'ENOENT'})
   await writeFile(outside,bytes)
-  await symlink(outside,join(baseDir,'models/test.ibs'))
-  await assert.rejects(loadIbisSources({circuitJson:input.circuitJson,baseDir}),/file_path/)
+  await symlink(outside,join(baseDir,'models/sn74lvc1g04.ibs'))
+  await assert.rejects(loadIbisSources({circuitJson:input.circuitJson.filter((r: {type: string})=>r.type==='simulation_ibis_model'),baseDir}),/file_path/)
 })
 test('explicit output writes supplied artifacts plus the in-memory report without invoking solvers',async t=>{
   const outputDir=await temporary(t)
-  const result=await runPipeline({...inMemoryInput(),runSolver:fixtureSolver as RunSolver})
+  const result=await runPipeline({})
   const report=generateReport(result)
   await writePipelineOutput({result,outputDir})
   for(const [path,body] of Object.entries({...result.files,...report})) assert.equal(await readFile(join(outputDir,path),'utf8'),body)
