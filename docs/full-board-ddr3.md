@@ -233,3 +233,12 @@ unconfigured command passes **204 / skips 27**; the configured command with
 `pnpm check:modules` and `pnpm check:vocabulary` pass. Lint retains the existing
 535-line `src/extraction/mesh.ts` warning. Vendor bytes and the complete board
 remain untracked; core has no implementation changes from this task.
+
+## Step-1 2D slice demo
+
+A standalone, local cross-section solver and reproducible DQ0 demo now exist;
+[the report](2d-cross-section.md#ddr3-preset-geometry-and-dq0-demo) records their
+geometry, accuracy and timing. This does not change the admission outcome above.
+The demo reads the original board and route bytes and **assumes** core's selected
+JLC preset and solid reference planes; it neither supplies a fabrication record
+nor performs a board extraction or native transient run.

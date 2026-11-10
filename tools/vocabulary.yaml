@@ -18,6 +18,18 @@
 threshold: 85
 
 domain:
+  charge: electric charge on a conductor or dielectric interface in the cross-section solve
+  contrast: relative permittivity difference across a dielectric interface
+  derivative: sensitivity of an extracted matrix to material or boundary displacement
+  extent: horizontal reach of the discretised dielectric interfaces
+  interface: boundary between two dielectric materials
+  kernel: Green function relating boundary charge to potential or field
+  loss: energy dissipated in conductors or dielectrics
+  recession: displacement of conducting walls away from the field for Wheeler loss
+  recede: move a conducting wall away from the field region
+  skin: concentration of alternating conductor current near its surface
+  tangent: dielectric dissipation factor or direction along a boundary panel
+  vacuum: reference material with relative permittivity one
   admit: the first stage, which reads the board's Circuit JSON and checks it before anything else uses it
   artifact: a file the pipeline produces (solver deck, log, waveform, report data), recorded in the ledger
   assembly: the bundle of converted IBIS chip models used by one experiment

@@ -3,7 +3,7 @@
  * Owns: meshing (ground mesh, copper surface triangulation, panel sizing), FastHenry/FasterCap
  * decks from board's Geometry, native-output parsing and log scans, coarse/refined convergence,
  * reciprocity/passivity/DC-R/capacitance-sign/energy checks, the linear algebra those need, and the
- * RLGC subcircuit text (channel.cir).
+ * RLGC subcircuit text (channel.cir), and standalone quasi-TEM cross-section extraction.
  * Artifacts: today's stage-N/** (decks, solver logs/requests/outputs, extraction.json) and channel.cir.
  * Imports: kernel, solver, board. (Was: extraction.ts, matrices.mjs, deck halves of
  * geometry.ts/copper.ts, spice.ts channelSpice.)
@@ -16,3 +16,4 @@ export { groundMesh, meshPolygon, copperPanelSizing, panelAspectLimit, panelGrad
 export { validateMatrix, loopImpedance, referenceCapacitance, referenceConductance } from './checks'
 export { parseFastHenry, parseFasterCap, type CapacitanceOutput } from './parse'
 export { sum, scale, transpose, multiply, symmetrize } from './linalg'
+export { solveCrossSection, type CrossSection, type CrossSectionOptions, type CrossSectionResult, type SectionConductor, type SectionPlane, type SectionDielectric } from './cross-section'
