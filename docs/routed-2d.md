@@ -1,5 +1,9 @@
 # Routed 2D channel experiment (step 2 candidate)
 
+Step-2 acquisition below is retained as historical evidence. The subsequent
+[step-3 comparison and transient benchmarks](routed-2d-validation.md) record RFC
+model discrepancies and the current runner's electrical-cell/checkpoint changes.
+
 This is an **experimental, incomplete implementation**, not an accepted DDR3
 simulation. `pipeline/routed.ts` compiles physical routed copper and the existing
 IBIS package/switching models into a candidate ngspice deck. The public RFC entry
