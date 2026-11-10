@@ -18,17 +18,34 @@ retains this rule. These are Maxwell coefficients, not positive mutual capacitor
 magnitudes. [IBIS 6.1 section 7, pages 147–148](https://ibis.org/ver6.1/ver6_1.pdf#page=147)
 also specifies nonnegative diagonal coefficients and diagonal dominance for C.
 The SPICE pair capacitor is therefore `-C_ij`, and its capacitance to the reference
-is `C_ii + sum(C_ij, j != i)`. Passivity is checked on the supplied Maxwell matrix;
-positive off-diagonal values are rejected, never guessed or automatically flipped.
+is `C_ii + sum(C_ij, j != i)`.
 
-The local AM335x `am335x_zcz` definition has 175 rows, all diagonally dominant,
-and 15,225 positive off-diagonal pairs, with no negative pairs. Its first row H4
-has diagonal 1.19047 pF and an off-diagonal magnitude sum of 0.61153091044 pF;
-the smallest diagonal margin across all rows is 0.05923748524 pF (P1).
-These magnitudes are consistent with a *possible* missing-sign error, but also
-with other positive-capacitor representations. They do not authorize inferring
-vendor intent. A vendor-confirmed corrected source is still needed for raw-source
-acceptance; changing the parser to interpret positive couplings would violate IBIS.
+The user-approved vendor correction accepts exactly one non-Maxwell convention:
+every nonzero off-diagonal entry is positive **and** each diagonal is at least
+the sum of absolute off-diagonal entries in its row. The pipeline negates those
+off-diagonal entries in a copy, then runs the existing full-matrix Maxwell sign
+and passivity checks before reduction. Mixed signs, non-dominant rows, nonfinite
+values and nonpassive matrices still fail explicitly. An all-zero off-diagonal
+matrix needs no correction. Vendor bytes and their source SHA-256 stay unchanged.
+
+The warning is logged and retained in compiled buffer warnings, assembly JSON
+and result limitations. It names the declared IBIS file, original SHA-256,
+package model and number of symmetric matrix entries negated. The local TI
+`am335x_zcz` has 175 diagonally dominant rows and 15,225 positive pairs:
+**30,450 entries** are corrected. H4 has diagonal 1.19047 pF and off-diagonal
+magnitude sum 0.61153091044 pF; the smallest row margin is 0.05923748524 pF (P1).
+This is an explicit interpretation of vendor magnitudes, not a modification to
+the IBIS standard or a claim of vendor confirmation.
+
+```mermaid
+flowchart TD
+  A[Parse original vendor package matrices] --> B{All nonzero C couplings positive and rows dominant?}
+  B -->|Yes| C[Negate couplings in copy and record warning with source hash]
+  B -->|No| D[Keep supplied C]
+  C --> E[Validate complete Maxwell signs and passivity]
+  D --> E
+  E --> F[Reduce unused pins and realize package]
+```
 
 ### Pins absent from the matrix definition
 
@@ -147,37 +164,14 @@ SI_CORE_MODULE="$(cd ../core && pwd)/dist/index.js" \
 node --import tsx scripts/check-ddr3.tsx
 ```
 
-The unchanged, fully routed DDR3 TSX now renders through real core: nine signals,
-14 traces, 16 vias and two pours. Raw-source derivation rejects:
-
-```text
-am335x_zcz: Maxwell capacitance has positive off-diagonal entries; vendor sign conversion is forbidden
-```
-
-E5/A1 absence no longer rejects. The raw channel **has not passed all package
-admission**, because the sign violation is real. No native board solver was run.
-
-An explicit counterfactual diagnostic negates only off-diagonal C entries in
-memory. It neither edits vendor files nor enables a production sign heuristic:
-
-```sh
-IBIS_MODEL_DIR=models TSX_TSCONFIG_PATH=examples/tsconfig.json \
-SI_CORE_MODULE="$(cd ../core && pwd)/dist/index.js" \
-SI_DIAGNOSTIC_MAXWELL_SIGNS=1 node --import tsx scripts/check-ddr3.tsx
-```
-
-For that candidate, derivation and the pure admit/declare/bind stages pass. Static
-package-only conversion verifies both real chip packages, including the AM335x
-scalar reference pins and ideal die rails. The former bind error,
-`Actual adjacent transitions overlap the IBIS switching waveform`, is resolved by
-[checked inactive-tail scheduling](ibis-switching.md), including specification
-sources, actual waveform measurements and explicit truncation diagnostics.
-The next stage is extraction; it was deliberately not invoked, so there is no
-verified downstream error. Raw-source sign correction remains a user/vendor
-decision. The JSON
-summary in ignored `runs/ddr3-boundary.json` distinguishes raw rejection from the
-candidate, records both source hashes and waveform inspection, and reports zero native solver calls.
-No extraction or native board transient was started.
+The unchanged, fully routed DDR3 TSX renders through real core: nine signals,
+14 traces, 16 vias and two pours. Original vendor bytes now pass derivation and
+pure admit/declare/bind, including the production capacitance warning and checked
+[inactive-tail scheduling](ibis-switching.md). `scripts/check-ddr3.tsx` records
+source hashes, waveform inspection, correction warnings and switching-tail
+metadata in ignored `runs/ddr3-boundary.json`. The old in-memory source rewrite
+and `SI_DIAGNOSTIC_MAXWELL_SIGNS` option have been deleted. No native board solver
+is invoked; extraction remains outside this diagnostic's scope.
 
 Inline TSX tests use original small fixtures. The opt-in package-only ngspice
 AC oracles check full R, signed mutual L and Maxwell C against their equations,

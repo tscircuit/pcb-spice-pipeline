@@ -74,8 +74,6 @@ A1
   assert.equal(new Set(identifiers).size, identifiers.length, 'scalar and matrix element names cannot collide')
   assert.equal(unlisted.metadata.packageData.mappedPins.find(pin => pin.physicalPin === 'V1')?.resistanceOhms, 7)
   assert.equal(unlisted.metadata.packageData.mappedPins.find(pin => pin.physicalPin === 'G1')?.resistanceOhms, 99)
-  const positiveC = partial.replace('3p -.5p', '3p .5p')
-  assert.throws(() => convertPackaged(new TextEncoder().encode(positiveC), variantInput), /Maxwell.*positive off-diagonal/, 'positive mutual magnitudes are not IBIS Maxwell entries')
   const busSource = source.replace('[Model] input', `[Pin Mapping] pulldown_ref pullup_ref gnd_clamp_ref power_clamp_ref
 A1 GND VDD GND VDD
 B1 GND VDD GND VDD

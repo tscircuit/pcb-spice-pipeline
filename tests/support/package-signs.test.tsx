@@ -15,7 +15,7 @@ test('TSX positive vendor capacitance magnitudes require a visible, hashed Maxwe
   const pinMap = model.ibis_pin_name_to_source_port_id
   const input = { definition: { source: { file: 'fixture.ibs' }, component: 'fixture', pinMap, corner: 'typical' as const, packagePolicy: 'vendor' as const },
     run: { duration: '1ns', pinStates: { [pinMap.A1]: { mode: 'input' as const }, [pinMap.B1]: { mode: 'input' as const } }, stimuli: {} } }
-  const log = test.mock.method(console, 'warn', () => {})
+  const log = test.mock.method(console, 'warn', (..._args: unknown[]): void => {})
   const converted = convertPackaged(bytes, input)
   const warning = converted.warnings.find(message => message.includes('negated 6 off-diagonal capacitance entries'))
   assert.ok(warning, 'both symmetric entries of each nonzero pair are counted')

@@ -3,9 +3,10 @@ import type { ModelRunDefinition, PackagedComponent } from './types'
 import { referenceVoltages } from './inspect'
 import { coupledPackage, coupledPackageElements, packageComparisons } from './coupled-package'
 import { convertSwitching } from './switching'
+import { sha256 } from '../kernel'
 
 /** Convert die buffers, retaining every vendor pin package with ideal die rails. */
-export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): PackagedComponent {
+export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition, sourceFile: string = input.definition.source.file ?? '(inline IBIS)'): PackagedComponent {
   const text = new TextDecoder().decode(bytes)
   const document = parseIbis(text)
   const component = document.components[input.definition.component]
@@ -102,5 +103,11 @@ export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): P
   converted.metadata.omissions = []
   converted.warnings.push('Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages')
   if (selected) converted.warnings.push('Coupled package: open unused series leads; floating-charge capacitance reduction; unused pin loads, switching and circulating currents neglected; one lumped pi section; unlisted pins follow the IBIS [Pin]/[Package] hierarchy or merged rail bus rules', ...packageComparisons(component, selected))
+  if (selected?.capacitanceSignCorrection) {
+    const correction = selected.capacitanceSignCorrection
+    const warning = `${sourceFile} SHA-256 ${sha256(bytes)}: package model ${correction.packageModel}: negated ${correction.negatedEntries} off-diagonal capacitance entries (uniform positive magnitudes, diagonally dominant rows) before Maxwell sign/passivity validation`
+    converted.warnings.push(warning)
+    console.warn(warning)
+  }
   return converted
 }

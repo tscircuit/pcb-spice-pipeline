@@ -22,7 +22,7 @@ test('open unused leads retain principal R/L and floating-charge capacitance, wi
     assert.throws(() => selectPackageModel({ ...model, [field]: [[1, -1, 0], [-1, 1, 0], [0, 0, 1]] }, model.pins), /positive definite/)
     assert.throws(() => selectPackageModel({ ...model, [field]: [[1, 0, 0], [0, 1, 2], [0, 2, 1]] }, ['B']), /positive definite|Maxwell/, 'invalid unused blocks cannot disappear during reduction')
   }
-  assert.throws(() => selectPackageModel({ ...model, C: [[1, .1, 0], [.1, 1, 0], [0, 0, 1]] }, model.pins), /Maxwell.*positive off-diagonal/)
+  assert.throws(() => selectPackageModel({ ...model, C: [[1, .1, -.1], [.1, 1, 0], [-.1, 0, 1]] }, model.pins), /Maxwell.*positive off-diagonal/)
   assert.throws(() => selectPackageModel({ ...model, C: [[1, -2, 0], [-2, 5, 0], [0, 0, 1]] }, model.pins), /reference capacitance/)
   assert.throws(() => selectPackageModel({ ...model, R: [[1, 2, 0], [2, 1, 0], [0, 0, 1]] }, model.pins), /resistance.*positive semidefinite/)
   assert.doesNotThrow(() => selectPackageModel({ ...model, R: [[0, 0, 0], [0, 0, 0], [0, 0, 0]] }, model.pins))

@@ -3,6 +3,7 @@ import type { PackageModel } from './package-model'
 export interface SelectedPackageModel {
   pins: string[]; unusedPins: string[]; R: number[][]; L: number[][]; C: number[][]
   selfTerms: { R: number[]; L: number[]; C: number[] }
+  capacitanceSignCorrection?: { packageModel: string; negatedEntries: number }
 }
 
 /** Scale-normalized LDL factorization: L/C must be definite, R may be semidefinite. */
@@ -28,7 +29,7 @@ function checkPositive(matrix: number[][], label: string, strict: boolean): void
 /** Reject sign conventions that cannot be realized with passive pair/reference capacitors. */
 function checkCapacitance(matrix: number[][], label: string): void {
   for (let i = 0; i < matrix.length; i++) {
-    if (matrix[i].some((value, j) => i !== j && value > 0)) throw new Error(`${label}: Maxwell capacitance has positive off-diagonal entries; vendor sign conversion is forbidden`)
+    if (matrix[i].some((value, j) => i !== j && value > 0)) throw new Error(`${label}: Maxwell capacitance has positive off-diagonal entries; correction requires uniformly positive couplings and diagonally dominant rows`)
     if (matrix[i].reduce((sum, value) => sum + value, 0) < 0) throw new Error(`${label}: negative reference capacitance (Maxwell row sum)`)
   }
 }
@@ -47,10 +48,13 @@ export function selectPackageModel(model: PackageModel, pins: string[]): Selecte
   })
   checkPositive(model.R, `${model.name} resistance`, false)
   checkPositive(model.L, `${model.name} inductance`, true)
-  checkPositive(model.C, `${model.name} capacitance`, true)
-  checkCapacitance(model.C, model.name)
+  const offDiagonal = model.C.flatMap((row, i) => row.filter((value, j) => i !== j && value !== 0))
+  const correct = offDiagonal.length > 0 && offDiagonal.every(value => value > 0) && model.C.every((row, i) => row[i] >= row.reduce((sum, value, j) => sum + (i === j ? 0 : Math.abs(value)), 0))
+  const C = model.C.map((row, i) => row.map((value, j) => correct && i !== j && value !== 0 ? -value : value))
+  checkPositive(C, `${model.name} capacitance`, true)
+  checkCapacitance(C, model.name)
   const unused = model.pins.map((_, i) => i).filter(i => !indices.includes(i))
-  const work = model.C.map(row => [...row])
+  const work = C.map(row => [...row])
   let active = model.pins.map((_, i) => i)
   for (const k of unused) {
     active = active.filter(i => i !== k)
@@ -61,5 +65,5 @@ export function selectPackageModel(model: PackageModel, pins: string[]): Selecte
   checkPositive(selected.L, `${model.name} extracted inductance`, true)
   checkPositive(selected.C, `${model.name} extracted capacitance`, true)
   checkCapacitance(selected.C, `${model.name} extracted`)
-  return selected
+  return { ...selected, ...(correct ? { capacitanceSignCorrection: { packageModel: model.name, negatedEntries: offDiagonal.length } } : {}) }
 }
