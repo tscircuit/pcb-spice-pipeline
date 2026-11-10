@@ -1,5 +1,11 @@
 # Routed 2D validation and transient cost (step 3)
 
+The subsequent [step-4 mechanism investigation](routed-2d-step4.md) fixes the
+geometric coupling cutoff and records controlled tests, finite-return and full
+magnetic hybrid ablations, and updated full-duration verdicts. Both quiet-victim
+cases still fail; the path remains unqualified. The measurements below are the
+unchanged step-3 baseline.
+
 The owning repository is `tscircuit/signal-integrity-pipeline`, branch
 `feat/si-2d-extraction`, starting at `f7c0b68`. These are local experiments;
 no push, PR or merge is authorized. Vendor IBIS, original board bytes, generated

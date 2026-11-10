@@ -83,13 +83,24 @@ for ax, name in zip(
         ],
         key=lambda record: record["name"],
     )
-    if e["signals"] != reference_signals:
+    def signal_identity(signal):
+        """Core can reorder block allocation; preserve every electrical declaration."""
+        return {key: value for key, value in signal.items() if key not in ("simulation_signal_id", "simulation_signal_integrity_id")}
+
+    if [signal_identity(s) for s in e["signals"]] != [signal_identity(s) for s in reference_signals]:
         raise ValueError(
             f"{name}: signal declarations differ from accepted 3D acquisition"
         )
     b = np.loadtxt(dest / "receiver.csv", delimiter=",", skiprows=1, ndmin=2)
+    signal_ids = {current["simulation_signal_id"]: original["simulation_signal_id"] for current, original in zip(e["signals"], reference_signals)}
+
+    def reference_probe_id(probe):
+        """Match native reference vectors by validated signal identity and receiver ordinal."""
+        signal, ordinal = probe["simulationVoltageProbeId"].rsplit("_", 1)
+        return signal_ids[signal] + "_" + ordinal
+
     probe_ids = [
-        probe["simulationVoltageProbeId"] + "_v"
+        reference_probe_id(probe) + "_v"
         for probe in e["probes"]
         if not probe["name"].endswith(("_P", "_N"))
     ]
@@ -101,6 +112,9 @@ for ax, name in zip(
         name=name,
         native=json.loads((dest / "result.json").read_text()),
         probe_names=e["probe_names"],
+        candidate_model=e.get("return_path", {}).get("model", "2d"),
+        material_assumptions=e["materials"],
+        geometry_admission_mm=e["scope"]["lateralDistanceMm"],
         ibis_sha256=e["ibis_sha256"],
         signals=e["signals"],
         reference=str(path),
@@ -110,6 +124,7 @@ for ax, name in zip(
         ).hexdigest(),
         physical_input_matches_accepted=True,
         signal_declarations_match_accepted=True,
+        opaque_signal_ids_normalized=e["signals"] != reference_signals,
         physical_input_records=len(physical),
         physical_input_sha256=hashlib.sha256(
             json.dumps(physical, sort_keys=True, separators=(",", ":")).encode()
@@ -123,7 +138,7 @@ for ax, name in zip(
                 for x in summary["blocks"][0]["results"]
                 if x["type"] == "simulation_signal_waveform"
                 and x["simulation_signal_waveform_id"]
-                == e["probes"][i]["simulationVoltageProbeId"]
+                == reference_probe_id(e["probes"][i])
             )
             bi = float(np.interp(10e-9, b[:, 0], b[:, i + 1]))
             p["reference_idle_voltage_v"] = idle
@@ -161,7 +176,7 @@ for ax, name in zip(
     ax.plot(
         shown_b[:, 0] * 1e9,
         shown_b[:, column],
-        label="routed 2D, 1 mm horizon",
+        label=os.environ.get("SI_ROUTE_LABEL", "routed 2D, solver coupling screen"),
         lw=0.9,
         alpha=0.8,
     )
@@ -177,6 +192,6 @@ fig.suptitle(
 )
 fig.savefig(root / "comparison.png", dpi=160)
 (root / "comparison.json").write_text(json.dumps(summaries, indent=2) + "\n")
-Path("tests/evidence/signal-levels/routed-2d-comparison.json").write_text(
+Path(os.environ.get("SI_ROUTE_EVIDENCE", "tests/evidence/signal-levels/routed-2d-comparison.json")).write_text(
     json.dumps(summaries, indent=2) + "\n"
 )

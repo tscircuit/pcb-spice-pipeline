@@ -7,6 +7,7 @@ import { prepareBlocks, endpointPorts } from '../src/pipeline/signals'
 import { routedSimulation } from '../src/pipeline'
 import { edgeSeconds } from '../src/buffers'
 import { routedNative } from './routed-native'
+import { routedReturn } from './routed-return'
 import Single from '../examples/level1-single-ended/level1-single-ended'
 import Differential from '../examples/level1-differential/level1-differential'
 import Two from '../examples/level2-two-channels/level2-two-channels'
@@ -18,8 +19,7 @@ for (const [name, Board] of Object.entries({ single: Single, differential: Diffe
   const circuit = await renderCoreSignals(<Board />)
   for (const block of prepareBlocks(circuit, sources, '2d')) {
     if (process.env.SI_BLOCK && process.env.SI_BLOCK !== block.block.name) continue
-    if (process.env.SI_ROUTE_COUPLING_MM) block.settings.copperScope!.lateralDistanceMm = Number(process.env.SI_ROUTE_COUPLING_MM)
-    const root = process.env.SI_ROUTE_RUN_ROOT ?? `runs/routed-2d/step3/part-a${process.env.SI_ROUTE_COUPLING_MM ? '-horizon' : '-full'}`
+    const root = process.env.SI_ROUTE_RUN_ROOT ?? 'runs/routed-2d/step4/part-a-full'
     const directory = resolve(`${root}/${name}/${block.block.name ?? 'default'}`)
     await mkdir(directory, { recursive: true })
     await Promise.all(['waveform.dat', 'receiver.csv', 'result.json', 'failure.json', 'native.json', 'ngspice-native.log', 'ngspice.log'].map(file => rm(`${directory}/${file}`, { force: true })))
@@ -29,7 +29,10 @@ for (const [name, Board] of Object.entries({ single: Single, differential: Diffe
     const refinement = Number(process.env.SI_ROUTE_REFINEMENT ?? 1)
     const timeRefinement = Number(process.env.SI_ROUTE_TIME_REFINEMENT ?? 1)
     if (![1, 2, 4].includes(timeRefinement)) throw new Error('Time refinement must be 1, 2 or 4')
-    const result = routedSimulation(block, sources, { riseSeconds: rise, refinement, durationSeconds: duration, stepSeconds: rise / (20 * timeRefinement) })
+    const returnPath = ['1', 'series'].includes(process.env.SI_ROUTE_RETURN ?? '') && name !== 'differential'
+      ? await routedReturn(prepareBlocks(circuit, sources).find(candidate => candidate.block.name === block.block.name)!, directory) : undefined
+    const materials = process.env.SI_ROUTE_MATERIALS === 'declared' ? { maskMm: 0, maskEr: 1, maskLoss: 0, substrateLoss: 0 } : undefined
+    const result = routedSimulation(block, sources, { riseSeconds: rise, refinement, durationSeconds: duration, stepSeconds: rise / (20 * timeRefinement), returnPath, materials })
     const hash = createHash('sha256').update(JSON.stringify(circuit)).digest('hex')
     await writeFile(`${directory}/simulation.cir`, result.deck)
     await writeFile(`${directory}/input.json`, JSON.stringify(circuit))

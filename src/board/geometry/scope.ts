@@ -32,10 +32,11 @@ interface Box { x0: number; x1: number; y0: number; y1: number; lo: number; hi: 
 /**
  * Board-world XY in mm (+X right, +Y top); layers ordered top to bottom.
  * Conservative segment bounding boxes retain copper on the same/adjacent layers
- * within 1 mm edge-to-edge in XY. Entire electrically connected nets are retained.
- * This is a finite coupling horizon, not an electromagnetic error bound.
+ * within the caller's admission cap in XY. Entire electrically connected nets are retained.
+ * The 3D default is 1 mm; routed 2D uses 32 mm before its solved pair screen.
+ * The cap is not an electromagnetic error bound.
  */
-export function channelCopperScope(circuit: CircuitJson, selected: Set<string>, reference: Set<string>, rails: Set<string> = new Set()): CopperScope {
+export function channelCopperScope(circuit: CircuitJson, selected: Set<string>, reference: Set<string>, rails: Set<string> = new Set(), distanceMm: number = 1): CopperScope {
   const count = circuit.find(record => record.type === 'pcb_board')?.num_layers ?? 2
   const layers = ['top', ...Array.from({ length: count - 2 }, (_, i) => `inner${i + 1}`), 'bottom']
   const traces = circuit.filter(record => record.type === 'pcb_trace')
@@ -81,7 +82,7 @@ export function channelCopperScope(circuit: CircuitJson, selected: Set<string>, 
   /** Euclidean distance between bounding boxes is a lower bound on copper distance. */
   const nearby = (candidate: Box): boolean => seeds.some(seed =>
     candidate.lo <= seed.hi + 1 && seed.lo <= candidate.hi + 1 &&
-    Math.hypot(Math.max(0, seed.x0 - candidate.x1, candidate.x0 - seed.x1), Math.max(0, seed.y0 - candidate.y1, candidate.y0 - seed.y1)) <= 1)
+    Math.hypot(Math.max(0, seed.x0 - candidate.x1, candidate.x0 - seed.x1), Math.max(0, seed.y0 - candidate.y1, candidate.y0 - seed.y1)) <= distanceMm)
   const retained = new Set(selected)
   const unassociatedCopper: string[] = []
   /** Retain the entire electrical net, with all branches and endpoint terminations. */
@@ -126,12 +127,12 @@ export function channelCopperScope(circuit: CircuitJson, selected: Set<string>, 
     if (net.size > 1) padOnlySourcePortIds.add(port)
     else openPadIds.push(pad.type === 'pcb_smtpad' ? pad.pcb_smtpad_id : pad.pcb_plated_hole_id)
   }
-  return { lateralDistanceMm: 1, selectedPcbTraceIds: selectedTraces.map(trace => trace.pcb_trace_id),
+  return { lateralDistanceMm: distanceMm, selectedPcbTraceIds: selectedTraces.map(trace => trace.pcb_trace_id),
     pcbTraceIds: keptTraces.map(trace => trace.pcb_trace_id), pcbViaIds: keptVias.map(via => via.pcb_via_id), pcbCopperPourIds: keptPours.map(pour => pour.pcb_copper_pour_id),
     nearbyPadIds: nearbyPads.map(pad => pad.type === 'pcb_smtpad' ? pad.pcb_smtpad_id : pad.pcb_plated_hole_id),
     padOnlySourcePortIds: [...padOnlySourcePortIds], openPadIds,
     nonReferenceRailTraceIds: keptTraces.filter(trace => members(trace.source_trace_id).some(id => rails.has(id)) && !members(trace.source_trace_id).some(id => reference.has(id))).map(trace => trace.pcb_trace_id),
     nearbyNonReferencePourIds: keptPours.filter(pour => !pour.source_net_id || !reference.has(pour.source_net_id)).map(pour => pour.pcb_copper_pour_id), unassociatedCopper,
     omitted: { traces: traces.length - keptTraces.length, vias: vias.length - keptVias.length, pours: pours.length - keptPours.length },
-    approximation: `Coupling scope: whole nets with copper within 1 mm XY bounding-box distance on the same/adjacent copper layers of selected routes, pads or physical barrels; all connected reference pours retained. More distant nets and nonadjacent-layer coupling omitted; no field-error bound. Non-selected modelled pins use existing quiet/terminated states; unsupported neighbours fail explicitly. Pads select nets but their arbitrary shape is omitted by the routed-wire approximation, except return contacts; connected pad-only neighbours fail explicitly. ${openPadIds.length} unmapped or electrically unconnected pad bodies omitted with the existing open unused-lead approximation (no die loads or switching).` }
+    approximation: `Coupling scope: whole nets with copper within ${distanceMm} mm XY bounding-box distance on the same/adjacent copper layers of selected routes, pads or physical barrels; all connected reference pours retained. More distant nets and nonadjacent-layer coupling omitted; no field-error bound. Non-selected modelled pins use existing quiet/terminated states; unsupported neighbours fail explicitly. Pads select nets but their arbitrary shape is omitted by the routed-wire approximation, except return contacts; connected pad-only neighbours fail explicitly. ${openPadIds.length} unmapped or electrically unconnected pad bodies omitted with the existing open unused-lead approximation (no die loads or switching).` }
 }

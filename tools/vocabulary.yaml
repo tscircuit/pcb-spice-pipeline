@@ -23,9 +23,11 @@ domain:
   bias: very weak DC anchor used to fix an otherwise floating common-mode voltage
   branch: a SPICE element current or a connection in a circuit graph
   causal: a response that depends only on present and earlier input
+  capacitive: coupling between conductors through their electric field
   chord: straight approximation to a densely tessellated curve
   delay: time needed for a signal edge to propagate through a line
   inductance: magnetic flux linkage per unit current, measured in henries
+  inductive: coupling between conductors through their magnetic field
   ladder: distributed line approximated by connected lumped electrical cells
   lateral: distance transverse to a routed line in the board plane
   mask: insulating soldermask on the outer copper layers

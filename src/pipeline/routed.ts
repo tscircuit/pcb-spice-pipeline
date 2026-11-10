@@ -1,5 +1,5 @@
 import { connectedSourceIds, segmentRoutes, routePosition, routeContactFrame, type LaneMapping, type RouteWire, type RouteXY } from '../board'
-import { extractRoutes, type RouteMaterials } from '../extraction'
+import { extractRoutes, type RouteMaterials, type RouteReturn } from '../extraction'
 import { admitBuffers, compileBuffers, type IbisSources } from '../buffers'
 import { rootScope } from '../kernel'
 import { generalDeclarations, electricalSources, modelRunDefinition, namespaceSpice, routeLadder, routeTransitions, routeOblique, branchSaves, routedControl } from '../simulation'
@@ -9,7 +9,7 @@ import { endpointPorts, type PreparedBlock } from './signals'
 export const assumedRouteMaterials: RouteMaterials = { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }
 
 /** Compile physical route sections and original IBIS buffers into a bounded local transient deck. */
-export function routedSimulation(block: PreparedBlock, sources: IbisSources, options: { riseSeconds: number; refinement: number; stepSeconds: number; durationSeconds: number; panels?: number; currentToleranceA?: number; cellsPerRise?: number }): {
+export function routedSimulation(block: PreparedBlock, sources: IbisSources, options: { riseSeconds: number; refinement: number; stepSeconds: number; durationSeconds: number; panels?: number; currentToleranceA?: number; cellsPerRise?: number; materials?: RouteMaterials; returnPath?: RouteReturn }): {
   deck: string; evidence: Record<string, unknown>; geometry: ReturnType<typeof segmentRoutes>; extracted: ReturnType<typeof extractRoutes>
   probes: string[]; timings: Record<string, number>
 } {
@@ -19,7 +19,7 @@ export function routedSimulation(block: PreparedBlock, sources: IbisSources, opt
   const scope = { ...originalScope, nonReferenceRailTraceIds: [...originalScope.nonReferenceRailTraceIds, ...block.circuit.filter(record => record.type === 'pcb_trace').filter(trace => groundTraces.includes(trace.source_trace_id!)).map(trace => trace.pcb_trace_id)] }
   const maskLayers = block.circuit.filter(record => record.type === 'pcb_stackup')[0].layers.filter(layer => layer.layer_type === 'soldermask')
   if (new Set(maskLayers.map(layer => layer.thickness)).size > 1) throw new Error('Asymmetric soldermask thickness requires separate outer-layer material profiles')
-  const materials = { ...assumedRouteMaterials, maskMm: maskLayers[0]?.thickness ?? assumedRouteMaterials.maskMm }
+  const materials = options.materials ?? { ...assumedRouteMaterials, maskMm: maskLayers[0]?.thickness ?? assumedRouteMaterials.maskMm }
   const start = performance.now()
   const geometry = segmentRoutes(block.circuit, scope)
   const segmentation = performance.now() - start
@@ -80,10 +80,11 @@ export function routedSimulation(block: PreparedBlock, sources: IbisSources, opt
     const to = endpoint(wire, join.to)
     if (from !== to) aliases.push(`RJOIN${aliases.length} ${from} ${to} 1e-6`)
   }
-  const ladder = routeLadder(extracted, endpoint, options.riseSeconds, options.refinement, options.cellsPerRise)
+  const ladder = routeLadder(extracted, endpoint, options.riseSeconds, options.refinement, options.cellsPerRise, options.returnPath)
   const oblique = routeOblique(geometry, extracted, ladder, scope, materials, options.panels)
   const transitions = routeTransitions(block.circuit, scope, geometry, endpoint, declarations.nodes.groundSourcePortId)
-  const lines = ['Routed quasi-TEM coupled 2D extraction; JLC standard stackup (assumed)', `.options klu reltol=1e-4 abstol=${options.currentToleranceA ?? 1e-9} vntol=1e-6 method=gear maxord=2`, ...electrical.lines]
+  const title = options.returnPath?.model === 'series' ? 'Hybrid 3D R/L and routed 2D C' : options.returnPath ? 'Routed 2D with hybrid finite-return closure' : 'Routed quasi-TEM coupled 2D extraction'
+  const lines = [`${title}; JLC standard stackup (assumed)`, `.options klu reltol=1e-4 abstol=${options.currentToleranceA ?? 1e-9} vntol=1e-6 method=gear maxord=2`, ...electrical.lines]
   const saved: string[] = []
   for (const [i, model] of models.entries()) {
     const namespaced = namespaceSpice(model.source, `I${i}`)
@@ -107,7 +108,8 @@ export function routedSimulation(block: PreparedBlock, sources: IbisSources, opt
   const mapped = new Set(models.flatMap(model => Object.values(model.spicePinMapping)))
   const external = block.circuit.filter(record => record.type === 'pcb_port').filter(port => !mapped.has(port.source_port_id) && port.layers.some(layer => routeContactFrame(geometry, scope, layer, [port.x, port.y])))
   const warnings = [...extracted.warnings, ...transitions.warnings, ...models.flatMap(model => model.warnings),
-    `JLC standard stackup (assumed): JLC08121H-3313; mask thickness ${materials.maskMm} mm (${maskLayers.length ? 'preset' : 'assumed; absent from preset'}). Mask er=3.3, tan(delta)=0.025 and laminate tan(delta)=0.02 assumed.`,
+    ...(options.returnPath ? [options.returnPath.definition, 'Hybrid cell layout uses the ideal 2D delay bound; the additional/replaced magnetic network requires independent numerical refinement and remains unqualified.'] : []),
+    `JLC standard stackup (assumed): JLC08121H-3313; mask thickness ${materials.maskMm} mm (${options.materials ? 'explicit material option' : maskLayers.length ? 'preset' : 'assumed; absent from preset'}). Mask er=${materials.maskEr}, tan(delta)=${materials.maskLoss} and laminate tan(delta)=${materials.substrateLoss}; explicit assumptions, not measured material data.`,
     'Numerical DC anchors: 1 Gohm per coarse route node; removes open-neighbour common-mode singularities without substituting a vendor load.',
     'Coplanar pours are not discretized into finite strip conductors; actual pours supply vertical references only. Their lateral shielding/coupling remains unqualified.',
     'Absent copper-layer volume is filled with nearest laminate; copper roughness, etch trapezoids and bend excess capacitance omitted.',
@@ -117,8 +119,8 @@ export function routedSimulation(block: PreparedBlock, sources: IbisSources, opt
     `${external.length} external neighbour port bodies have open/ideal-logical terminations without additional vendor die models; actual endpoint IDs are recorded. This is a candidate channel experiment, not a complete board/PDN simulation.`]
   return { deck: lines.join('\n') + '\n', geometry, extracted, probes,
     timings: { segmentation_ms: segmentation, section_geometry_ms: extracted.geometryMilliseconds, solves_ms: extracted.solveMilliseconds + oblique.solveMilliseconds, oblique_solves_ms: oblique.solveMilliseconds, buffers_ms: bufferMilliseconds, netlist_ms: performance.now() - netlistAt - oblique.solveMilliseconds },
-    evidence: { endpoint_nodes: Object.fromEntries(mappings.flatMap(mapping => [[mapping.from, declarations.nodes.node(mapping.from)], [mapping.to, declarations.nodes.node(mapping.to)]])), probes: plan.probes, label: 'JLC standard stackup (assumed)', materials, mask_thickness_source: maskLayers.length ? 'preset' : 'assumed', options, scope, warnings, cells: ladder.cells, maximum_cell_delay_s: ladder.maximumDelaySeconds,
-      unique_cross_sections: extracted.cache.size + oblique.solves, oblique_cross_sections: oblique.solves, oblique_encounters: oblique.records, sections: extracted.slices.length, geometry_wires: geometry.wires.length, wires: geometry.wires, via_contacts: geometry.viaContacts,
+    evidence: { endpoint_nodes: Object.fromEntries(mappings.flatMap(mapping => [[mapping.from, declarations.nodes.node(mapping.from)], [mapping.to, declarations.nodes.node(mapping.to)]])), probes: plan.probes, label: 'JLC standard stackup (assumed)', materials, mask_thickness_source: options.materials ? 'explicit' : maskLayers.length ? 'preset' : 'assumed', options, scope, warnings, cells: ladder.cells, maximum_cell_delay_s: ladder.maximumDelaySeconds,
+      return_path: options.returnPath, coupling: extracted.coupling, unique_cross_sections: extracted.cache.size + oblique.solves, oblique_cross_sections: oblique.solves, oblique_encounters: oblique.records, sections: extracted.slices.length, geometry_wires: geometry.wires.length, wires: geometry.wires, via_contacts: geometry.viaContacts,
       power_references: powerReferences, copper_overlap_patches: geometry.wires.filter(wire => wire.joins?.length), transitions: transitions.records, external_open_ports: external.map(port => port.source_port_id),
       assembly: models.map(model => ({ name: model.name, metadata: model.metadata, warnings: model.warnings, sourceEvidence: model.sourceEvidence })),
       routes: mappings.map(mapping => ({ ...mapping, length_mm: geometry.wires.filter(wire => wire.source === mapping.sourceTraceId).reduce((sum, wire) => sum + wire.end - wire.start, 0) })),

@@ -3,11 +3,13 @@ import { solveCrossSection } from './cross-section'
 import { sectionInverse } from './cross-section-matrix'
 import { multiply, transpose } from './linalg'
 import type { CrossSection, CrossSectionResult } from './cross-section-types'
+import { routeCoupling, type RouteCoupling } from './route-coupling'
 
 export interface ExtractedRouteSlice extends RouteSlice { key: string; line: CrossSectionResult }
 export interface ExtractedRoutes {
   slices: ExtractedRouteSlice[]; cache: Map<string, CrossSectionResult>
   solveMilliseconds: number; geometryMilliseconds: number; warnings: string[]
+  coupling: RouteCoupling[]
 }
 export interface RouteMaterials { maskMm: number; maskEr: number; maskLoss: number; substrateLoss: number }
 
@@ -52,7 +54,8 @@ export function extractRoutes(geometry: SectionGeometry, materials: RouteMateria
   const start = performance.now()
   const cache = new Map<string, CrossSectionResult>()
   let solveMilliseconds = 0
-  const slices = geometry.slices.map(slice => {
+  /** Share exact relative geometry between pair screens and retained multiconductor solves. */
+  const solve = (slice: RouteSlice): CrossSectionResult => {
     const section = routeCrossSection(geometry, slice, materials)
     const key = JSON.stringify(section)
     let line = cache.get(key)
@@ -67,9 +70,15 @@ export function extractRoutes(geometry: SectionGeometry, materials: RouteMateria
       solveMilliseconds += performance.now() - time
       cache.set(key, line)
     }
-    return { ...slice, key, line }
-  })
-  return { slices, cache, solveMilliseconds, geometryMilliseconds: performance.now() - start - solveMilliseconds, warnings: [...geometry.warnings] }
+    return line
+  }
+  const coupling: RouteCoupling[] = []
+  const slices = geometry.slices.flatMap(slice => {
+    if (slice.wires.length > 40) throw new Error(`Coupling screen has ${slice.wires.length} conductors; exceeds modest-memory limit of 40`)
+    return routeCoupling(slice, solve, coupling)
+  }).map(slice => ({ ...slice, key: JSON.stringify(routeCrossSection(geometry, slice, materials)), line: solve(slice) }))
+  return { slices, cache, coupling, solveMilliseconds, geometryMilliseconds: performance.now() - start - solveMilliseconds, warnings: [...geometry.warnings,
+    'Parallel coupling retains connected pairs until both abs(Cij)/sqrt(Cii*Cjj) and abs(Lij)/sqrt(Lii*Ljj) are below 0.005 (0.5%). Pair screening is not an aggregate waveform error bound. Geometry admission is capped at 32 mm; fields beyond the cap and nonadjacent layers are unbounded omissions. Local solves are capped at 40 conductors and fail explicitly.'] }
 }
 
 /** Closest points on two finite centre-lines, used only for the explicit oblique correction. */

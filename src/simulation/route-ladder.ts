@@ -1,4 +1,4 @@
-import { causalLossPoles, causalLossResponse, referenceSeries, type Matrix, type ExtractedRoutes, type ExtractedRouteSlice } from '../extraction'
+import { causalLossPoles, causalLossResponse, referenceSeries, type Matrix, type ExtractedRoutes, type ExtractedRouteSlice, type RouteReturn } from '../extraction'
 import { type RouteWire, type RouteXY } from '../board'
 
 export interface RouteLadder {
@@ -89,7 +89,7 @@ interface ArcCell { wire: RouteWire; start: number; end: number; before: string;
 interface ArcWire { offset: number; length: number; cells: number[]; sign: number }
 
 /** Integrate every local matrix energy onto delay-bounded route-arc cells, independent of curve tessellation. */
-export function routeLadder(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10): RouteLadder {
+export function routeLadder(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn): RouteLadder {
   if (!(riseSeconds > 0) || !Number.isInteger(refinement) || refinement < 1 || refinement > 4) throw new Error('Positive rise time and bounded integer spatial refinement (1..4) required')
   if (!(cellsPerRise >= .5 && cellsPerRise <= 40)) throw new Error('Cells per rise time must be in [0.5,40]')
   const lines: string[] = []
@@ -205,11 +205,39 @@ export function routeLadder(extracted: ExtractedRoutes, endpoint: (wire: RouteWi
       }
     }
   }
+  if (returnPath) {
+    const weights = cells.map(cell => {
+      const index = returnPath.traces.findIndex(trace => trace.source === cell.wire.source)
+      if (index < 0) throw new Error('Hybrid return does not cover every active routed trace')
+      const route = returnPath.traces[index]
+      const path = wires.filter(wire => wire.source === route.source)
+      const first = path[0].a
+      const last = path.at(-1)!.b
+      const forward = Math.hypot(first[0] - route.start[0], first[1] - route.start[1]) < 1e-5
+      if (!forward && Math.hypot(last[0] - route.start[0], last[1] - route.start[1]) >= 1e-5) throw new Error('Hybrid return endpoint orientation disagrees with routed geometry')
+      const total = path.reduce((sum, wire) => sum + wire.end - wire.start, 0)
+      const offset = path.slice(0, path.indexOf(cell.wire)).reduce((sum, wire) => sum + wire.end - wire.start, 0)
+      const start = (offset + cell.start) / total
+      const end = (offset + cell.end) / total
+      return { index, weight: (forward ? 1 : -1) * (end - start), sign: forward ? 1 : -1, start: forward ? start : 1 - end, end: forward ? end : 1 - start }
+    })
+    // Congruence of averaged longitudinal currents preserves the positive return energy.
+    for (let i = 0; i < cells.length; i++) for (let j = 0; j < cells.length; j++) {
+      const a = weights[i]
+      const b = weights[j]
+      const overlap = Math.max(0, Math.min(a.end, b.end) - Math.max(a.start, b.start)) * a.sign * b.sign
+      const weight = returnPath.model === 'series' ? overlap : a.weight * b.weight
+      R[i][j] = (returnPath.model === 'series' ? 0 : R[i][j]) + weight * returnPath.R[a.index][b.index]
+      L[i][j] = (returnPath.model === 'series' ? 0 : L[i][j]) + weight * returnPath.L[a.index][b.index]
+      if (returnPath.model === 'series') skin[i][j] = 0
+    }
+  }
   const before = cells.map(cell => cell.before)
   const after = cells.map(cell => cell.after)
   let current = cells.map((_, i) => `ARCd${i}`)
   seriesMatrix(lines, 'ARCD', before, current, R, 'R')
   for (const [p, pole] of causalLossPoles().entries()) {
+    if (returnPath?.model === 'series') break
     const next = cells.map((_, i) => `ARCp${p}n${i}`)
     const resistance = matrixScale(skin, pole.skin)
     seriesMatrix(lines, `ARCS${p}`, current, next, resistance, 'R')

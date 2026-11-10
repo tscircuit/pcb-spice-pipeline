@@ -151,7 +151,7 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
   const step = Math.min(1 / rate / 100, edge / 20)
   const reference = pins.get([...driven.keys()].sort()[0])!.ground
   const lanes: NumericalSettings['lanes'] = []
-  const copperScope = channelCopperScope(circuit, new Set(topology.keys()), connectedSourceIds(circuit, reference), rails)
+  const copperScope = channelCopperScope(circuit, new Set(topology.keys()), connectedSourceIds(circuit, reference), rails, extraction === '2d' ? 32 : 1)
   for (const port of circuit.filter(r => r.type === 'source_port').filter(port => topology.has(port.source_port_id) && !pins.has(port.source_port_id))) {
     const component = circuit.filter(r => r.type === 'source_component').find(component => component.source_component_id === port.source_component_id)
     if (!component || (!['simple_resistor', 'simple_capacitor', 'simple_inductor'].includes(component.ftype) && !circuit.some(r => r.type === 'simulation_spice_subcircuit' && r.source_component_id === component.source_component_id))) throw new Error(`${component?.name ?? port.source_port_id} is on the signal and has no supported SPICE or IBIS model.`)

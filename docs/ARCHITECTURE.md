@@ -102,3 +102,29 @@ flowchart LR
   result --> routed[Opt-in routed candidate: arc-cell energies and causal ladders]
   routed --> pilot[Bounded native pilot and failure evidence]
 ```
+
+## Routed coupling and optional finite-return experiments
+
+`board` admits candidate nets within 32 mm for routed 2D. `extraction/route-coupling.ts`
+solves parallel pairs before assembling final cross-sections; either normalized
+mutual C or L at least 0.5% retains the pair. The cap, 40-conductor guard and
+omissions are recorded. This does not alter the public 3D scope.
+`extraction/route-return.ts` optionally extracts two serial FastHenry R/L meshes
+from the existing two-contact 3D geometry, without native C. `simulation/route-ladder.ts`
+adds its passive shared-return closure or replaces series magnetics with full
+3D loop R/L. Both modes are explicit unqualified hybrids; they are not automatic
+fallbacks or substitutes for a multi-contact return. See the
+[measurements and remaining failures](routed-2d-step4.md).
+
+```mermaid
+flowchart LR
+  board[Physical routed copper] --> cap[Board candidate-net admission and reference slicing]
+  cap --> pair[Extraction solved parallel pair screen]
+  pair --> field[Extraction retained 2D cross-sections]
+  field --> ladder[Simulation route-arc energy assembly]
+  board -->|optional| magnetic[Extraction serial 3D R/L meshes and checks]
+  magnetic --> hybrid[Explicit closure or full magnetic hybrid]
+  hybrid --> ladder
+  ladder --> native[Guarded serial native transient]
+  native --> compare[Full native-union comparisons and unqualified verdict]
+```

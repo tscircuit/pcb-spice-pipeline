@@ -3,6 +3,9 @@
 Step-2 acquisition below is retained as historical evidence. The subsequent
 [step-3 comparison and transient benchmarks](routed-2d-validation.md) record RFC
 model discrepancies and the current runner's electrical-cell/checkpoint changes.
+The [step-4 investigation](routed-2d-step4.md) replaces the fixed coupling cutoff
+and adds explicit experimental finite-return hybrids. Both quiet-victim cases
+still fail even with full 3D R/L and routed 2D C; the path remains unqualified.
 
 This is an **experimental, incomplete implementation**, not an accepted DDR3
 simulation. `pipeline/routed.ts` compiles physical routed copper and the existing
@@ -12,8 +15,8 @@ netlists or plots are committed. Run artifacts remain in ignored `runs/routed-2d
 
 ## Geometry and scope
 
-`prepareBlocks(..., '2d')` retains the full-board copper scope (whole nets within
-1 mm XY bounding-box distance on the same/adjacent layers), including branched
+`prepareBlocks(..., '2d')` admits whole candidate nets within a 32 mm geometry cap
+on the same/adjacent layers, including branched
 and unmodelled neighbours. Only the selected channel graph must have supported
 endpoint declarations. Quiet mapped IBIS pins retain their existing run states.
 Unknown external loads are explicitly recorded as open/ideal-logical terminations;
@@ -30,7 +33,10 @@ and patch-edge fringing remain omitted and recorded.
 
 Parallel directions have local longitudinal/transverse frames. Sweeps split at
 all longitudinal endpoints and intersections with actual pour outer/inner rings.
-Groups use the coupling horizon and actual reference identity. Cache keys contain
+Groups use actual reference identity and solved pair coupling: retain a pair
+when either normalized mutual C or L is at least 0.5%, then solve its connected
+component. The 32 mm cap and 40-conductor admission limit are explicit; omitted
+fields beyond the cap and aggregate waveform error are not bounded. Cache keys contain
 only relative slice geometry and material profiles, not net names or position.
 Actual PCB ports and branch junctions protect electrical cell boundaries.
 Coplanar pours are not discretized into finite strip conductors in this revision;
