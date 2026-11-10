@@ -29,6 +29,7 @@ domain:
   brand: a TypeScript type tag that proves a value passed a check (for example an admitted id)
   buffer: an IBIS model of a chip's input or output circuit
   capacitance: how much charge copper stores per volt (the C in RLGC)
+  coupled: electrical behavior in one pin or conductor that depends on another
   capture: a finite recording of voltages over time
   channel: everything electrical between driver and receiver: lanes, their return paths and nearby copper
   circuit: an electrical network; also the Circuit JSON document that describes the board

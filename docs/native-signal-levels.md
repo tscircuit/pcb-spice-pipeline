@@ -20,7 +20,7 @@ creation, before final evidence archiving, and include extraction-cache replay.
 | three/XTALK_HIGH | 7.2 | 3,143,310 | 2177.713 | 1.47553 | 2.60305 |
 | DDR3 write | — | 0 | 1.698 | — | — |
 
-The exact DDR3 stop is `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.`
+At that acquisition, the exact DDR3 stop was `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.`
 The physical layout uses the user's preplaced byte-lane routes, rather than an
 unfinished BGA autoroute. Its intended waveforms remain unavailable.
 
@@ -39,7 +39,15 @@ adaptive times, at the unchanged 1% + 1 mV limits. Quiet waveforms carry the
 separately solved undisturbed idle voltage. Ideal die rails are always used; the pipeline
 retains scalar package R/L/C on signal, power and ground pins. Each selected
 model’s explicit pullup, pulldown and clamp reference voltages override its
-typical values; conflicting shared references fail. Coupled packages and branched routed graphs retain explicit errors.
+typical values; conflicting shared references fail. Branched routed graphs retain
+explicit errors. Coupled packages now have
+[parser, passivity and circuit support](coupled-package-model.md), independently
+verified without rerunning these native board cases. The current core build
+still rejects the DDR3 TSX before emitting its signal records. Direct pipeline
+package admission on the real physical TSX advances to missing reference balls
+`E5` and `A1` in the AM335x matrix; its positive off-diagonal capacitances are an
+additional vendor-data blocker. No new DDR3 waveforms or board-native evidence
+are claimed.
 
 ## Reproduction
 

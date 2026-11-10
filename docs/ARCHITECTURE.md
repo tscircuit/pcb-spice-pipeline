@@ -8,13 +8,13 @@ appear in the new result Circuit JSON.
 
 ```mermaid
 flowchart LR
-  source["Circuit JSON SI records"] --> derive["pipeline: independent block derivation"]
+  source["Circuit JSON SI records"] --> derive["pipeline: independent block derivation<br/>buffers: coupled package admission and passivity"]
   derive --> board3d["board: 3D copper, layered dielectric and series receiver taps"]
   board3d --> check{"straight parallel traces,<br/>one rectangular return<br/>with contacts at opposite ends?"}
   check -->|"yes"| bars["board: extra 2D bar reduction for R/L<br/>C retains physical copper and dielectric"]
   check -->|"no"| extract
   bars --> extract["extraction: native R/L and layered C<br/>R/L convergence; signal-block C reciprocity before symmetrization"]
-  derive --> buffers["buffers: vendor models, pin packages and ideal die rails"]
+  derive --> buffers["buffers: vendor models, scalar/coupled pin packages and ideal die rails"]
   buffers --> simulate["simulation: undisturbed idle, then native transient<br/>independent section and timestep refinement"]
   extract --> simulate
   simulate --> observe["observation: adaptive waveform convergence"]
@@ -25,7 +25,7 @@ flowchart LR
 ```mermaid
 stateDiagram-v2
   [*] --> input
-  input --> admitted: schema and derived settings
+  input --> admitted: schema, derived settings and valid package matrices
   input --> sealed: no SI blocks
   admitted --> declared: 3D copper model (2D bars if straight parallel) and declarations
   declared --> bound: buffers and local probes
@@ -55,6 +55,14 @@ pin/model selection and package assembly; `extraction` owns meshes, solver decks
 parsing, passivity and convergence checks; `simulation` owns electrical sources,
 node identity and ngspice; `observation` owns interpolation and convergence.
 `report` reads sealed artifacts. `adapters` supplies explicit filesystem/process IO.
+
+`buffers/package-model.ts` parses local IBIS package definitions;
+`package-matrix.ts` validates the complete matrices and reduces unused floating
+pins; `coupled-package.ts` emits the coupled lumped pi circuit. Admission runs
+during signal derivation, before extraction. Assembly records selected matrices,
+original self terms, unused pins and the termination policy. The converter still
+supplies die buffers with its package omitted; the pipeline must then realize
+the selected vendor package. See [the electrical contract](coupled-package-model.md).
 
 Tests use TSX for board reproductions. Numerical convergence oracles use analytic
 waveforms; those synthetic waveforms are never claimed as native solver evidence.

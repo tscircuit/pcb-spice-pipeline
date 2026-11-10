@@ -1,5 +1,5 @@
 import { isQuiet, connectedSourceIds, stackupFromCircuitJson, type CircuitJson, type SignalEndpoint, type SimulationSignal, type SimulationSignalIntegrity } from '../board'
-import { inspectPins, edgeSeconds, referenceVoltages, type InspectedPin, type IbisSources } from '../buffers'
+import { inspectPins, edgeSeconds, referenceVoltages, coupledPackage, type InspectedPin, type IbisSources } from '../buffers'
 import { safeId } from '../kernel'
 import type { NumericalSettings } from './modeling'
 import { signalTopology, validateSignalGraph } from './topology'
@@ -67,9 +67,11 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
   }
   const pins = inspectPins(circuit, sources)
   for (const model of circuit.filter(r => r.type === 'simulation_ibis_model')) {
-    const component = [...pins.values()].find(pin => pin.model === model)?.component
-    const chip = circuit.filter(r => r.type === 'source_component').find(r => r.source_component_id === model.source_component_id)
-    if (component?.coupledPackage) throw new Error(`.${chip?.name ?? model.ibis_component_name}: coupled [Package Model] not implemented yet; scalar fallback is forbidden.`)
+    const inspected = [...pins.values()].filter(pin => pin.model === model)
+    if (!inspected.length || inspected[0].component.coupledPackage === undefined) continue
+    const references = new Set(inspected.flatMap(pin => [pin.power, pin.ground, ...Object.values(model.ibis_pin_name_to_reference_source_port_ids?.[pin.pin] ?? {})]))
+    const selected = Object.entries(model.ibis_pin_name_to_source_port_id).filter(([pin, port]) => inspected.some(signal => signal.pin === pin) || references.has(port)).map(([pin]) => pin)
+    coupledPackage(inspected[0].text, inspected[0].component, selected)
   }
   const rails = new Set([...pins.values()].flatMap(pin => [pin.ground, pin.power]).flatMap(port => [...connectedSourceIds(circuit, port)]))
   for (const pin of pins.values()) {
