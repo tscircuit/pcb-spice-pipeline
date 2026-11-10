@@ -106,6 +106,7 @@ export function routedSimulation(block: PreparedBlock, sources: IbisSources, opt
   const warnings = [...extracted.warnings, ...transitions.warnings, ...models.flatMap(model => model.warnings),
     `JLC standard stackup (assumed): JLC08121H-3313; mask thickness ${materials.maskMm} mm (${maskLayers.length ? 'preset' : 'assumed; absent from preset'}). Mask er=3.3, tan(delta)=0.025 and laminate tan(delta)=0.02 assumed.`,
     'Numerical DC anchors: 1 Gohm per coarse route node; removes open-neighbour common-mode singularities without substituting a vendor load.',
+    'Coplanar pours are not discretized into finite strip conductors; actual pours supply vertical references only. Their lateral shielding/coupling remains unqualified.',
     'Absent copper-layer volume is filled with nearest laminate; copper roughness, etch trapezoids and bend excess capacitance omitted.',
     'Oblique corrections apply selected-net to scoped-neighbour encounters within the same/adjacent layers; neighbour-to-neighbour oblique coupling is omitted. Added pair C uses existing isolated self C, a weak-coupling approximation. Placement is at the nearest ladder node; spacing is rounded outward to 1 um.',
     'Oblique surrogate blocked by an intervening local infinite reference plane is recorded as shielded, with plane-edge/aperture fringing omitted.',

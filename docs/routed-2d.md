@@ -29,6 +29,9 @@ all longitudinal endpoints and intersections with actual pour outer/inner rings.
 Groups use the coupling horizon and actual reference identity. Cache keys contain
 only relative slice geometry and material profiles, not net names or position.
 Actual PCB ports and branch junctions protect electrical cell boundaries.
+Coplanar pours are not discretized into finite strip conductors in this revision;
+pours supply vertical references only. Lateral coplanar shielding/coupling is
+therefore an explicit remaining model gap, not a qualified full-copper solution.
 
 The nearest *actual pour copper surface* on each side supplies the references.
 Inner4 therefore sees intervening inner5 copper before inner6 when a power pour
@@ -124,7 +127,8 @@ extend the compiled switching history or change its field mesh.
 ## Transitions and materials
 
 `simulation/route-transitions.ts` adds actual physical via barrels, drilled-span
-stubs, pads, and a signal-referred return-loop estimate. It uses:
+stubs, pads, and a signal-referred return-loop estimate. Via-to-via and
+via-to-trace mutual coupling are omitted; the barrels use self L/C. It uses:
 
 - Regularized short-barrel L: `0.2*h*(log(1+4h/d)+1)` nH, h/d in mm, based on the
   familiar [TI via formula](https://e2e.ti.com/cfs-file/__key/CommunityServer-Discussions-Components-Files/130/0830.Texas_5F00_Instruments_5F00_DisplayPort_5F00_Design_5F00_Guide_5F00_Rev1.1.pdf).
@@ -192,15 +196,42 @@ an actual TSX reproduction. The earlier completed 2 ns / 569.9 s pilot has six
 floating receiver contacts and is **rejected**, retained only in
 `runs/routed-2d/lane-via-contact-invalid-diagnostic/`. It is not a lane result.
 
-After fixing the contacts, a 2 ns run still had not reached its first 0.5 ns
-checkpoint after 468 s. Separating startup using the initial-solution log gave a
-rough 1,443.5 s / 24.1 minute projection, so it was stopped under the requested
-budget. Evidence is in `runs/routed-2d/lane-s1-t5-n2/budget-stop.json` and
-`failure.json`. That pre-linear-shunt run produced no usable lane waveform.
-The final rail-Schur and linear-VCVS revision compiles in
-`runs/routed-2d/lane-s1-t10-n4/`; its bounded native evaluation is in progress.
-Final timings and capture status will be recorded alongside the convergence
-report. The previous budget result does not establish this revision's runtime.
+The first contact-corrected run was stopped at a 24.1 minute projection; its
+ledger remains in `runs/routed-2d/lane-s1-t5-n2/`. Replacing behavioural linear
+shunt expressions with ordinary VCVS elements then allowed the final network to
+advance through **2 ns**. It stopped after **765.179 s**, when its 4 ns projection
+reached **1,206 s**. This is an incomplete baseline, with no lane convergence or
+full write-burst result. The 1,534 retained native samples contain real physical
+receiver voltages for all 11 nets, including DQS differential and both P/N pins.
+The CSV/PNG are explicitly marked incomplete, with the uncomputed 2–4 ns region
+shaded. Full spatial refinement needs 1,906 cells, exceeding the configured
+1,024-cell guard; the admission-only check started no native process.
+
+Observed wall times for the final model cases (some preparation/field work ran
+concurrently; these are not controlled throughput benchmarks):
+
+| Stage | DQ0, 218 cells / 10 ps | DQ0, 427 cells / 5 ps | Lane, 977 cells / 10 ps |
+|---|---:|---:|---:|
+| Preparation | 4.906 s | 2.890 s | 6.272 s |
+| Segmentation | 1.490 s | 0.958 s | 2.221 s |
+| Unique 2D solves, including oblique | 514 / 33.269 s | 514 / 26.340 s | 1,981 / 125.852 s |
+| Section-geometry overhead | 0.015 s | 0.012 s | 0.051 s |
+| IBIS compilation | 1.535 s | 1.355 s | 2.448 s |
+| Netlist construction | 1.719 s | 1.276 s | 3.975 s |
+| ngspice | 117.860 s | 385.024 s | 765.179 s, budget stopped |
+| Peak native RSS, sampled | 136.3 MiB | 311.0 MiB | 528.8 MiB |
+
+The independent DQ0 time-only check reused the coarse extraction and took
+96.257 s in ngspice. The coarse cases use the algebraically equivalent earlier
+shunt implementation. DQ0's final receiver range is 0.001103–1.499998 V.
+
+Artifacts (ignored, not committed):
+
+- `runs/routed-2d/dq0-s2-t5-n4/receiver.csv` and `receiver.png`.
+- `runs/routed-2d/dq0-convergence.json` and `dq0-convergence.png`.
+- `runs/routed-2d/lane-s1-t10-n4/receiver-incomplete.csv`,
+  `receiver-incomplete.png`, `failure.json` and `extraction.json`.
+- `runs/routed-2d/lane-space-refinement-limit.json`.
 
 The cheap independently refined **local-slice** check uses actual DQ0 width,
 thickness and JLC reference gap: bare 65.276 ohm / 5.529 ps/mm, assumed planar mask
@@ -209,8 +240,8 @@ thickness and JLC reference gap: bare 65.276 ohm / 5.529 ps/mm, assumed planar m
 provided trace map selected DDR_D0 / pcb_trace_387. No expensive 3D run was used.
 
 Before a before/after route-edit loop: reduce full-lane native cost (loss-pole
-compression and a faster coupled-line realization are candidates), complete a
-physically connected lane capture and independent refinement, qualify return,
+compression and a faster coupled-line realization are candidates), complete the
+lane capture and independent refinement, add finite coplanar pour electrodes, qualify return,
 aperture/oblique and external-load approximations against a stronger oracle,
 then integrate the opt-in path and its acceptance evidence into the RFC workflow.
 Persistence of cross-section caches between route edits also remains to be added.

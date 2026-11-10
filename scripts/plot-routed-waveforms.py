@@ -37,7 +37,7 @@ for axis, group in zip(axes[:, 0], groups):
     axis.grid(alpha=.25)
     if args.duration_ns:
         axis.set_xlim(0, args.duration_ns)
-    axis.legend(loc="best", fontsize=8, ncol=4)
+    axis.legend(loc="upper left", fontsize=8, ncol=2 if any(labels[i].startswith("DQS") for i in group) else 4)
 axes[-1, 0].set_xlabel("Time (ns)")
 args.output.parent.mkdir(parents=True, exist_ok=True)
 fig.savefig(args.output, dpi=180)

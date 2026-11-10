@@ -112,7 +112,8 @@ export function routeTransitions(circuit: CircuitJson, scope: CopperScope, geome
     output.lines.push(`CPAD${output.records.length} ${endpoint(wire, [port.x, port.y])} 0 ${capacitanceF}`)
     output.records.push({ kind: 'pad', id: pad.pcb_smtpad_id, capacitanceF, areaMm2: area, gapMm: gap })
   }
-  output.warnings.push('Via pads use connected-end annular parallel-plate capacitance; nonfunctional internal pads are unspecified and omitted. Antipad edge fringing is not resolved.',
+  output.warnings.push('Via-to-via and via-to-trace mutual coupling is omitted; barrel models contain self L/C and a signal-referred return estimate.',
+    'Via pads use connected-end annular parallel-plate capacitance; nonfunctional internal pads are unspecified and omitted. Antipad edge fringing is not resolved.',
     'Via antipads: outer pad diameter + 0.20 mm assumed; barrel coaxial C and short-open-stub LC are estimates, not 3D discontinuity extraction.',
     'Return-loop L is signal-referred at the via; ideal equipotential planes omit shared plane spreading resonances and PDN impedance.',
     'BGA/SMD pads use parallel-plate area capacitance; routed breakout wire R/L remains distributed. Pad fringing and current crowding are omitted.')
