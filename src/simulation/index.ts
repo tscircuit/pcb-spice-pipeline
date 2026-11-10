@@ -20,3 +20,9 @@ export { circuitNodes, generalDeclarations, modelRunDefinition } from './declara
 export { namespaceSpice, electricalSources, simulationSpiceOptions, generalSimulationSpice, validateProbeScope } from './netlist'
 export { safeSimulationPlans, electricalNodeMap, bindExperiments, runIdle, runExperiment, experimentResult } from './run'
 export { transmittedBits } from './stimulus'
+export { routeLadder, type RouteLadder } from './route-ladder'
+export { routeTransitions, barrelInductance, barrelCapacitance, type RouteTransitions } from './route-transitions'
+export { routeOblique } from './route-oblique'
+export { branchSaves } from './branch-saves'
+
+export { routedControl } from './routed-control'

@@ -18,6 +18,64 @@
 threshold: 85
 
 domain:
+  arc: distance measured along a routed polyline including its bends
+  antipad: clearance opening in a plane around a signal via
+  bias: very weak DC anchor used to fix an otherwise floating common-mode voltage
+  branch: a SPICE element current or a connection in a circuit graph
+  causal: a response that depends only on present and earlier input
+  chord: straight approximation to a densely tessellated curve
+  delay: time needed for a signal edge to propagate through a line
+  inductance: magnetic flux linkage per unit current, measured in henries
+  ladder: distributed line approximated by connected lumped electrical cells
+  lateral: distance transverse to a routed line in the board plane
+  mask: insulating soldermask on the outer copper layers
+  metre: SI unit of length used for per-unit-length electrical matrices
+  oblique: a neighbour whose direction differs from the local trace direction
+  parallel: conductors sharing a common longitudinal direction
+  pole: a stable relaxation rate in a causal rational loss model
+  rail: a power or ground supply connection
+  shunt: an electrical branch across two conductor or reference nodes
+  simplify: reduce curve tessellation while bounding geometric displacement
+  slice: one local cross-section of routed conductors and reference surfaces
+  sparse: a matrix or realization with mostly zero couplings
+  transition: a change of layer, reference or conductor geometry
+  prepare: derive private experiment settings from the declared channel intent
+  block: an independently declared group of signals in a channel experiment
+  idle: an experiment with no transitions used to determine settled voltages
+  initial: the state or value at the beginning of a simulation
+  power: an electrical supply net or reference plane
+  nearby: inside the explicitly defined spatial coupling horizon
+  unused: a vendor package lead excluded from the selected physical pin mapping
+  remainder: the part of a matrix diagonal left after its mutual energy terms
+  cursor: the current position while traversing an ordered route
+  above: toward increasing solver z in a physical stackup
+  below: toward decreasing solver z in a physical stackup
+  digital: a stimulus described by timed binary logic states
+  normal: perpendicular to a surface or conductor direction
+  correction: an explicit recorded change required by a documented numerical convention
+  deviation: the measured difference between an approximation and its reference
+  conductance: electrical admittance that dissipates power, measured in siemens
+  coupling: mutual electrical or magnetic interaction between conductors
+  cache: reused solution keyed only by identical physical cross-section geometry
+  diameter: the full width of a circular barrel, pad or aperture
+  diagonal: matrix entries relating each conductor to itself
+  actual: read directly from the physical source-board records
+  cut: a partition point at a physical geometry or reference change
+  die: the semiconductor side of a vendor package model
+  er: relative dielectric permittivity
+  h: inductance measured in henries
+  l: inductance matrix or its entries
+  c: capacitance matrix or its entries
+  non: prefix identifying an explicitly excluded property
+  pre: prefix identifying a check before a stage
+  general: shared across supported channel experiment shapes
+  allow: an explicit caller-selected modelling permission
+  alternate: an additional candidate file or implementation
+  join: connect physically continuous copper pieces into one path
+  self: a matrix term belonging to one conductor rather than a mutual pair
+  top: the outer copper layer on the upper face of the board
+  bottom: the outer copper layer on the lower face of the board
+  second: the SI time unit or the second member of an ordered pair
   charge: electric charge on a conductor or dielectric interface in the cross-section solve
   contrast: relative permittivity difference across a dielectric interface
   derivative: sensitivity of an extracted matrix to material or boundary displacement

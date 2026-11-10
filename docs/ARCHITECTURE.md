@@ -76,12 +76,14 @@ The runtime imports the shared circuit-json schemas. Local validation must build
 
 Core#5286 emits JLC preset plating (0.018 mm), preserving explicit imported stackup plating. The native runner uses real core. RFC pours now request ground escape routing with `unbroken`; the differential example uses manual paths and retains its original autorouter reproduction. Degree-two copper paths are joined for native extraction, with intermediate receiver pins exposed at their physical arc-length fractions in the uniform pi model. Branches and cycles remain unsupported. The native capacitance deck models each declared dielectric slab and air outside; conductor/dielectric contacts are emitted once. Numerical acceptance, including reciprocity, remains mandatory. See `native-signal-levels.md` for accepted and rejected evidence.
 
-## Standalone 2D extraction (step 1)
+## 2D extraction and routed candidate
 
 `extraction/cross-section.ts`, exported by `extraction/index.ts`, owns a separate
 quasi-TEM numerical interface. It consumes rectangles, infinite solid references,
 and dielectric/mask slabs and returns per-unit-length C/C0/L and frequency-dependent
-R/G. It is **not wired into** the stage chain above. The root API, 3D extraction,
+R/G. The opt-in `pipeline/routed.ts` experiment now consumes it; see
+[routed 2D candidate and execution blockers](routed-2d.md). It is not wired into
+the public stage chain above. The root API, 3D extraction,
 artifact ledger and simulation behaviour remain unchanged. See
 [method, validation and the DDR3 slice demo](2d-cross-section.md).
 
@@ -97,4 +99,6 @@ flowchart LR
   dielectric --> result[Per-unit-length matrices and frequency sampler]
   skin --> result
   inductance --> result
+  result --> routed[Opt-in routed candidate: arc-cell energies and causal ladders]
+  routed --> pilot[Bounded native pilot and failure evidence]
 ```

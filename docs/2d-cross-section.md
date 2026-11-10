@@ -1,8 +1,10 @@
 # Standalone 2D cross-section extraction
 
-Step 1 only. `src/extraction/cross-section.ts` exports `solveCrossSection` through
-`src/extraction/index.ts`. It is not called by the pipeline, does not change the
-root package exports, and does not run FastHenry, FasterCap or ngspice.
+`src/extraction/cross-section.ts` exports `solveCrossSection` through
+`src/extraction/index.ts`. The standalone interface does not change root package
+exports or invoke native solvers. The opt-in [routed step-2 candidate](routed-2d.md)
+now consumes it; that experiment remains incomplete and is separate from the public
+3D pipeline stage chain. Numerical validation below concerns this standalone solver.
 
 ## Contract
 

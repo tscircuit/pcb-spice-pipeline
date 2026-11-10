@@ -26,3 +26,4 @@ export { validateModeling, geometryFromCircuitJson, channelGeometry } from './ge
 
 export type { SimulationSignalIntegrity, SimulationSignal, SignalEndpoint, SignalResult } from './signals'
 export { isQuiet } from './signals'
+export { segmentRoutes, routePosition, routeContactFrame, routeReferences, type SectionGeometry, type RouteWire, type RouteSlice, type RouteReference, type RouteXY } from './route-sections'
