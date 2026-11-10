@@ -108,7 +108,7 @@ export function boardGeometry(before, after) {
 }
 
 // Only inspect the selected component and model blocks in original vendor bytes.
-export function vendorPinEvidence(text, componentName, selected, corner = 'typical') {
+export function vendorPinEvidence(text, componentName, selected) {
   const headers = [...text.matchAll(/^\[([^\]]+)\][ \t]*(.*)$/gm)].map(match => ({ key: match[1].toLowerCase(), value: match[2].trim(), start: match.index, body: match.index + match[0].length }))
   const block = header => text.slice(header.body, headers.find(next => next.start > header.start)?.start ?? text.length)
   const component = headers.find(header => header.key === 'component' && header.value === componentName)
@@ -126,9 +126,7 @@ export function vendorPinEvidence(text, componentName, selected, corner = 'typic
   }
   const packageHeader = headers.find(header => header.key === 'package' && header.start > component.start && header.start < componentEnd)
   const packageRows = packageHeader ? block(packageHeader).split(/\r?\n/).map(line => line.split('|')[0].trim().split(/\s+/)) : []
-  const cornerColumn = { typical: 1, minimum: 2, maximum: 3 }[corner]
-  assert.ok(cornerColumn)
-  const defaultPackage = ['R_pkg', 'L_pkg', 'C_pkg'].map(key => scalar(packageRows.find(row => row[0]?.toLowerCase() === key.toLowerCase())?.[cornerColumn]))
+  const defaultPackage = ['R_pkg', 'L_pkg', 'C_pkg'].map(key => scalar(packageRows.find(row => row[0]?.toLowerCase() === key.toLowerCase())?.[1]))
   const packageValues = row => ({ resistanceOhms: scalar(row[3]) ?? defaultPackage[0], inductanceHenries: scalar(row[4]) ?? defaultPackage[1], capacitanceFarads: scalar(row[5]) ?? defaultPackage[2] })
   const evidence = []
   for (const { physicalPin, model, localPort, mode } of selected) {

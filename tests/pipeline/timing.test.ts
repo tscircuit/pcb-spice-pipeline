@@ -5,13 +5,14 @@ import type { SimulationSignal } from '../../src/board'
 
 /** Minimal resolved intent for pure timing arithmetic; no hand-authored electrical circuit. */
 const signal = (pattern: string, rate: number, offset: number = 0): SimulationSignal => ({ type: 'simulation_signal', simulation_signal_id: 's', simulation_signal_integrity_id: 'b', name: 'DATA',
-  driver: { kind: 'single', source_port_id: 'tx' }, receivers: [{ kind: 'single', source_port_id: 'rx' }], pattern, seed: 127, bit_rate_bps: rate, offset_s: offset, probe: 'local' })
+  driver: { source_port_id: 'tx' }, receivers: [{ source_port_id: 'rx' }], pattern, seed: 127, bit_rate_bps: rate, offset_s: offset })
 
 test('automatic capture is startup plus 128 slowest UI, independent of pattern period', () => {
   assert.deepEqual(recordingTime([signal('clock', 1)]), { duration: 144, gate: 16 })
   assert.deepEqual(recordingTime([signal('prbs31', 2, 3), signal('00110', 1)]), { duration: 144, gate: 16 })
   assert.equal(recordingTime([signal('clock', 2, 3)]).duration, 75)
-  assert.equal(recordingTime([{ ...signal('prbs7', 2), quiet: 'low' }]).duration, 16)
+  for (const pattern of ['0', '1', '000', '111']) assert.equal(recordingTime([signal(pattern, 2, 100)]).duration, 16)
+  assert.equal(recordingTime([{ ...signal('prbs31', 2, 100), driver_disabled: true }]).duration, 16)
 })
 
 test('source signal names use Unicode code point order', () => {

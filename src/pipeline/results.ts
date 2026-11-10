@@ -1,4 +1,4 @@
-import { validateCircuitRecords, type SignalResult } from '../board'
+import { isQuiet, validateCircuitRecords, type SignalResult } from '../board'
 import type { PreparedBlock } from './signals'
 import { endpointPorts } from './signals'
 import type { PreparedResult } from './result'
@@ -11,13 +11,13 @@ export function signalResults(prepared: PreparedBlock, result: PreparedResult): 
   const records: SignalResult[] = []
   for (const signal of signals) {
     const id = signal.simulation_signal_id
-    for (const [index, endpoint] of [...signal.receivers, ...(signal.quiet ? [signal.driver] : [])].entries()) {
+    for (const [index, endpoint] of [...signal.receivers, ...(isQuiet(signal) ? [signal.driver] : [])].entries()) {
       const probe = run.probes.find(probe => probe.simulationVoltageProbeId === `${id}_${index}`)
       if (!probe) throw new Error(`${signal.name}: missing native probe`)
-      const idle = signal.quiet ? result.idleVoltages?.[probe.column - 1] : undefined
-      if (signal.quiet && idle === undefined) throw new Error(`Signal "${signal.name}": floating quiet victim has no undisturbed idle operating point.`)
+      const idle = isQuiet(signal) ? result.idleVoltages?.[probe.column - 1] : undefined
+      if (isQuiet(signal) && idle === undefined) throw new Error(`Signal "${signal.name}": floating quiet victim has no undisturbed idle operating point.`)
       records.push({ type: 'simulation_signal_waveform', simulation_signal_waveform_id: `${id}_${index}`, simulation_signal_id: id,
-        end: index === signal.receivers.length ? 'near' : 'far', source_port_id: endpointPorts(endpoint)[0],
+        source_port_id: endpointPorts(endpoint)[0],
         timestamps_s: rows.map(row => row[0]), voltage_levels: rows.map(row => row[probe.column]),
         ...(idle !== undefined ? { idle_voltage_v: idle } : {}) })
     }
@@ -26,11 +26,11 @@ export function signalResults(prepared: PreparedBlock, result: PreparedResult): 
   const order = result.geometry.mappings.map(mapping => {
     const signal = signals.find(signal => endpointPorts(signal.driver).some(port => prepared.topology.get(port)?.has(mapping.from)))
     if (!signal) return -1
-    const leg = signal.driver.kind === 'differential' ? (prepared.topology.get(signal.driver.p_source_port_id)?.has(mapping.from) ? 'p' : 'n') : 'single'
-    let index = conductors.findIndex(conductor => conductor.simulation_signal_id === signal.simulation_signal_id && conductor.leg === leg)
+    const port = endpointPorts(signal.driver).find(port => prepared.topology.get(port)?.has(mapping.from))!
+    let index = conductors.findIndex(conductor => conductor.simulation_signal_id === signal.simulation_signal_id && conductor.source_port_id === port)
     if (index < 0) {
       index = conductors.length
-      conductors.push({ simulation_signal_id: signal.simulation_signal_id, leg })
+      conductors.push({ simulation_signal_id: signal.simulation_signal_id, source_port_id: port })
     }
     return index
   })
@@ -50,6 +50,6 @@ export function signalResults(prepared: PreparedBlock, result: PreparedResult): 
       simulation_signal_integrity_id: block.simulation_signal_integrity_id, conductors,
       matrices: frequencies.map(frequency => ({ frequency_hz: frequency, r_ohm: total(frequency, 'R'), l_h: total(frequency, 'L'), c_f: total(frequency, 'C'), g_s: total(frequency, 'G') })) })
   }
-  validateCircuitRecords(records)
+  validateCircuitRecords([...signals, ...records])
   return records
 }

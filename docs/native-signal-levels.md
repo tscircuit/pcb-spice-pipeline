@@ -1,11 +1,11 @@
 # Native PCB transient channel evidence
 
-This draft follows RFC #28 at `89a2635`. The examples now use the actual
+This draft follows RFC #29 at `9adc0fe`. The examples now use the actual
 `simulation.pcbtransientchannelsimulation`, `simulation.pcbchannel` and
 `simulation.ibismodel` elements rendered by the sibling core build. Public results
 contain only receiver/quiet-driver waveforms and listed-leg total RLGC matrices.
 
-The six supported cases passed native timestep and section convergence. All
+The six supported cases passed native timestep and section convergence. At acquisition, all
 transient solves were fresh; completed extraction requests were reused only when
 their bytes matched exactly. Wall times below measure the runner through result
 creation, before final evidence archiving, and include extraction-cache replay.
@@ -36,15 +36,14 @@ are superseded.
 Transient acceptance independently refines timestep and section count. Every probe
 must satisfy time-weighted RMS and both signed-extrema comparisons on all native
 adaptive times, at the unchanged 1% + 1 mV limits. Quiet waveforms carry the
-separately solved undisturbed idle voltage. `pdn="ideal"` constrains die rails and
+separately solved undisturbed idle voltage. Ideal die rails are always used; the pipeline
 retains scalar package R/L/C on signal, power and ground pins. Each selected
 model’s explicit pullup, pulldown and clamp reference voltages override its
-corner defaults; conflicting shared references fail. Extracted PDN,
-coupled packages and branched routed graphs retain explicit errors.
+typical values; conflicting shared references fail. Coupled packages and branched routed graphs retain explicit errors.
 
 ## Reproduction
 
-Build circuit-json `bac86bb`, props `ec2b735` and core `35cb9b6` and use their local,
+Build circuit-json `fc6d402`, props `045186a` and core `8ec1af1` and use their local,
 ignored dependency overlays. Vendor IBIS bytes stay under ignored `models/`.
 
 ```sh
@@ -52,6 +51,8 @@ export OMP_NUM_THREADS=1 IBIS_MODEL_DIR=models
 export SI_CORE_MODULE="$(cd ../core && pwd)/dist/index.js"
 export TSX_TSCONFIG_PATH=examples/tsconfig.json
 export NGSPICE_BIN=/opt/homebrew/bin/ngspice
+export SI_EXTRACTION_CACHE=/path/to/accepted-native-backup
+export SI_REPLAY_COMPLETE_NATIVE=1 SI_REQUIRE_COMPLETE_CACHE=1
 node --max-old-space-size=6000 --import tsx scripts/run-signal-levels.tsx
 node --max-old-space-size=6000 --import tsx scripts/render-example-images.tsx
 ```
@@ -60,7 +61,7 @@ The runner checks memory before each uncached native process and refuses overlap
 Cases and blocks run sequentially. The per-process timeout is 1200000 ms; it is a
 runner setting, not an acceptance limit. `SI_EXTRACTION_CACHE` accepts colon-separated
 local evidence directories; `SI_REPLAY_COMPLETE_NATIVE=1` permits reuse only of
-byte-identical completed native requests. Reuse is recorded per request.
+byte-identical completed native requests. With `SI_REQUIRE_COMPLETE_CACHE=1`, a cache miss stops the run before any native process starts. Replay notes record exact request matches while retaining acquisition timings.
 
 Full accepted waveforms and exact native requests/logs are losslessly archived in
 ignored `runs/final-rfc/`. Committed evidence contains hashes, convergence history
@@ -71,7 +72,7 @@ The image generator checks each accepted physical board against the freshly
 rendered TSX and records output hashes in
 `tests/evidence/signal-levels/rfc-boards.json`. The final source is also replayed
 against every exact native request using the original core-assigned record IDs;
-unchanged waveform and RLGC bytes are recorded
+unchanged voltage/time arrays and RLGC matrices (with updated record fields) are recorded
 in `tests/evidence/signal-levels/request-identity.json`, with zero new native calls.
 Acquisition checkout heads record Git HEAD while working edits were present;
 request hashes and final-source replay establish the exact simulation identity.
@@ -82,7 +83,4 @@ lacks the shared RFC schemas; local checks use the listed sibling builds. The CL
 call boundary is unchanged, but its extra aggregate JSON write must use the
 pipeline’s indexed result parts when the full result exceeds V8’s string limit.
 
-Local validation with the listed sibling overlays passed lint (one existing mesh
-file-length warning), module checks, vocabulary (88.2%), source/test/example
-typechecks, script typechecks, and `npm test`: 219 passed, three optional tests
-skipped, zero failed. All five PNGs were visually inspected.
+The no-enums refactor is verified by sequential cache-only example replay. Local validation passed typecheck, lint (one existing mesh file-length warning), module checks, vocabulary (88.4%), and `npm test`: 218 passed, three optional skips, zero failures. The final test invocation used `NODE_OPTIONS='--test-skip-pattern=^native.(single-ended|lossless-limit)'` to exclude the two solver tests. An initial invocation placed that option after the test paths, where Node ignored it; the small native buffer test ran before the invocation was corrected. Example replays launched no native processes.

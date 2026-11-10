@@ -21,7 +21,7 @@ export function signalTopology(circuit: CircuitJson, seed: string, rails: Set<st
 }
 
 /** Verify physical connectivity through passives and reject branched routed graphs independently of source grouping. */
-export function validateSignalGraph(circuit: CircuitJson, signals: import('../board').SimulationSignal[], rails: Set<string>, unrouted: 'error' | 'ideal'): void {
+export function validateSignalGraph(circuit: CircuitJson, signals: import('../board').SimulationSignal[], rails: Set<string>, allowUnroutedTraces: boolean): void {
   const routes = circuit.filter(r => r.type === 'pcb_trace')
   const ports = circuit.filter(r => r.type === 'pcb_port')
   const edges: { a: string; b: string; layer: string; ax: number; ay: number; bx: number; by: number }[] = []
@@ -80,10 +80,10 @@ export function validateSignalGraph(circuit: CircuitJson, signals: import('../bo
     return found
   }
   for (const signal of signals) {
-    const driver = signal.driver.kind === 'single' ? [signal.driver.source_port_id] : [signal.driver.p_source_port_id, signal.driver.n_source_port_id]
+    const driver = 'source_port_id' in signal.driver ? [signal.driver.source_port_id] : [signal.driver.p_source_port_id, signal.driver.n_source_port_id]
     for (const [leg, port] of driver.entries()) {
       const topology = signalTopology(circuit, port, rails)
-      if (unrouted === 'error') {
+      if (!allowUnroutedTraces) {
         const traces = new Set(circuit.filter(record => record.type === 'source_trace').filter(trace => trace.connected_source_port_ids.some(id => topology.has(id)) && !trace.connected_source_port_ids.some(id => rails.has(id))).map(trace => trace.source_trace_id))
         const selected = new Set(ports.filter(pin => topology.has(pin.source_port_id) && !rails.has(pin.source_port_id)).map(pin => pin.pcb_port_id))
         const error = circuit.find(record => (record.type === 'pcb_trace_missing_error' && traces.has(record.source_trace_id)) || (record.type === 'pcb_port_not_connected_error' && record.pcb_port_ids.some(id => selected.has(id))))
@@ -94,8 +94,8 @@ export function validateSignalGraph(circuit: CircuitJson, signals: import('../bo
       const copper = reachable(starts, copperGraph)
       const routed = [...copper].some(key => copperGraph.has(key))
       if (routed && (signal.receivers.length > 1 || starts.some(key => (copperGraph.get(key)?.size ?? 0) > 1) || [...connected].some(key => (copperGraph.get(key)?.size ?? 0) > 2))) throw new Error(`Signal "${signal.name}": branched routed graphs are not implemented yet.`)
-      if (unrouted === 'ideal') continue
-      const receivers = signal.receivers.map(receiver => receiver.kind === 'single' ? receiver.source_port_id : leg === 0 ? receiver.p_source_port_id : receiver.n_source_port_id)
+      if (allowUnroutedTraces) continue
+      const receivers = signal.receivers.map(receiver => 'source_port_id' in receiver ? receiver.source_port_id : leg === 0 ? receiver.p_source_port_id : receiver.n_source_port_id)
       const required = circuit.filter(r => r.type === 'source_trace').filter(r => r.connected_source_port_ids.some(id => topology.has(id)) && !r.connected_source_port_ids.some(id => rails.has(id))).flatMap(r => r.connected_source_port_ids)
       for (const target of new Set([...receivers, ...required])) if (!(terminals.get(target) ?? []).some(key => connected.has(key))) throw new Error(`Signal "${signal.name}" is not routed between ${port} and ${target}.`)
     }

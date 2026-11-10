@@ -125,7 +125,7 @@ for (const { name, Board, runs } of levels) {
   const directory = `examples/${name}`
   await mkdir(directory, { recursive: true })
   const summaries: any[] = []
-  const traces: { directory: string; block: string; channel: string; record: SimulationSignalWaveform }[] = []
+  const traces: { directory: string; block: string; channel: string; record: SimulationSignalWaveform; end: string }[] = []
   let totalBytes = 0
   let expectedBoard: string | undefined
   for (const run of runs) {
@@ -159,10 +159,12 @@ for (const { name, Board, runs } of levels) {
       result.full_resolution_evidence = await access(`${fullPath}.gz`).then(() => `${fullPath}.gz`, () => fullPath)
       const source = input.find(source => source.type === 'simulation_signal' && source.simulation_signal_id === record.simulation_signal_id)
       const channel = source?.type === 'simulation_signal' ? source.name : record.simulation_signal_id
+      if (source?.type !== 'simulation_signal') throw new Error('Missing waveform signal')
+      const end = record.source_port_id === ('source_port_id' in source.driver ? source.driver.source_port_id : source.driver.p_source_port_id) ? 'near' : 'far'
       let fullBytes = 0
-      for (let i = 0; i < record.timestamps_s.length; i++) fullBytes += `${block.name},${channel},${record.end},${record.source_port_id},${record.timestamps_s[i]},${record.voltage_levels[i]}${record.idle_voltage_v === undefined ? '' : `,${record.idle_voltage_v}`}\n`.length
+      for (let i = 0; i < record.timestamps_s.length; i++) fullBytes += `${block.name},${channel},${end},${record.source_port_id},${record.timestamps_s[i]},${record.voltage_levels[i]}${record.idle_voltage_v === undefined ? '' : `,${record.idle_voltage_v}`}\n`.length
       totalBytes += fullBytes
-      traces.push({ directory: path, block: block.name, channel, record })
+      traces.push({ directory: path, block: block.name, channel, record, end })
     }
   }
   const hasQuiet = traces.some(trace => trace.record.idle_voltage_v !== undefined)
@@ -173,12 +175,12 @@ for (const { name, Board, runs } of levels) {
   await exportFile.write(csvHeader)
   let exported = 0
   for (const trace of traces) {
-    const { record } = trace
+    const { record, end } = trace
     const stride = decimated ? Math.max(2, Math.ceil(totalBytes / 8_500_000) * 2) : 1
     const indices = selectedIndices(record.voltage_levels, stride)
     let buffer = ''
     for (const i of indices) {
-      buffer += `${trace.block},${trace.channel},${record.end},${record.source_port_id},${record.timestamps_s[i]},${record.voltage_levels[i]}${hasQuiet ? `,${record.idle_voltage_v ?? ''}` : ''}\n`
+      buffer += `${trace.block},${trace.channel},${end},${record.source_port_id},${record.timestamps_s[i]},${record.voltage_levels[i]}${hasQuiet ? `,${record.idle_voltage_v ?? ''}` : ''}\n`
       if (buffer.length > 100000) {
         await exportFile.write(buffer)
         buffer = ''
@@ -258,5 +260,5 @@ for (const { name, Board, runs } of levels) {
   paragraphs.push(`**${name}.** ${outcome} ${extraction} ${detail}\n\n![${name}](${name}/${name}.png)`)
   console.log(`${name}: ${exported} CSV rows, ${1600} × ${y + 50}`)
 }
-await writeFile('tests/evidence/signal-levels/rfc-boards.json', JSON.stringify({ source_identity_note: 'Acquisition checkout heads record Git HEAD while working-tree edits were present; exact native requests and result bytes are validated against final source in request-identity.json', rfc_head: '89a263537ebc143315849f005024f84c1efa5635', native_timeout_ms: 1200000, OMP_NUM_THREADS: 1, maximum_native_processes: 1, acceptance: { R_L_mesh: .05, C_auto: .02, signal_C_reciprocity: .025, transient: 'Independent timestep and section checks; per-probe time-weighted RMS and signed extrema, 1% + 1 mV' }, outputs, cases: evidence }, null, 2) + '\n')
-await writeFile('examples/README.md', `# Native transient channel examples\n\nWith the built sibling overlays and local vendor files, run \`OMP_NUM_THREADS=1 IBIS_MODEL_DIR=models SI_CORE_MODULE="$(cd ../core && pwd)/dist/index.js" TSX_TSCONFIG_PATH=examples/tsconfig.json NGSPICE_BIN=/opt/homebrew/bin/ngspice node --max-old-space-size=6000 --import tsx scripts/render-example-images.tsx\` to regenerate every PNG and CSV from the full accepted evidence in \`${root}\`. To recreate that evidence first, use the same environment with \`scripts/run-signal-levels.tsx\`; every case/block runs sequentially, each process has a 1200000 ms bound, and DDR3 must stop before native execution. Exact completed native requests can be reused with \`SI_EXTRACTION_CACHE=<directories separated by colons> SI_REPLAY_COMPLETE_NATIVE=1\`. PNG lower panels plot the exported CSV in actual time and volts.\n\n${paragraphs.join('\n\n')}\n`)
+await writeFile('tests/evidence/signal-levels/rfc-boards.json', JSON.stringify({ source_identity_note: 'Acquisition checkout heads record Git HEAD while working-tree edits were present; exact native requests and result bytes are validated against final source in request-identity.json', rfc_head: '9adc0fe61105554abce7ff80056786d6d287818e', native_timeout_ms: 1200000, OMP_NUM_THREADS: 1, maximum_native_processes: 1, acceptance: { R_L_mesh: .05, C_auto: .02, signal_C_reciprocity: .025, transient: 'Independent timestep and section checks; per-probe time-weighted RMS and signed extrema, 1% + 1 mV' }, outputs, cases: evidence }, null, 2) + '\n')
+await writeFile('examples/README.md', `# Native transient channel examples\n\nWith the built sibling overlays and local vendor files, run \`OMP_NUM_THREADS=1 IBIS_MODEL_DIR=models SI_CORE_MODULE="$(cd ../core && pwd)/dist/index.js" TSX_TSCONFIG_PATH=examples/tsconfig.json NGSPICE_BIN=/opt/homebrew/bin/ngspice node --max-old-space-size=6000 --import tsx scripts/render-example-images.tsx\` to regenerate every PNG and CSV from the full accepted evidence in \`${root}\`. To recreate that evidence first, use the same environment with \`scripts/run-signal-levels.tsx\`; every case/block runs sequentially, each process has a 1200000 ms bound, and DDR3 must stop before native execution. Exact completed native requests can be reused with \`SI_EXTRACTION_CACHE=<directories separated by colons> SI_REPLAY_COMPLETE_NATIVE=1 SI_REQUIRE_COMPLETE_CACHE=1\`. PNG lower panels plot the exported CSV in actual time and volts.\n\n${paragraphs.join('\n\n')}\n`)

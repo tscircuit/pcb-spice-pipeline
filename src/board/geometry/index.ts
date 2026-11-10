@@ -45,7 +45,7 @@ export function geometryFromCircuitJson(cj: CircuitJson,modeling: Modeling): Geo
   const m: ResolvedModeling = {...modeling, stackup: stackup.copperLayers, conductivitySm: defaultCopperConductivitySm,
     relativePermittivity: modeling.relativePermittivity ?? stackup.relativePermittivity, viaPlatingMm: modeling.viaPlatingMm ?? stackup.viaPlatingMm}
   validateModeling(m)
-  if (!m.lanes.length && m.allowIdeal) return { stackup, cells: [], mappings: [], units: { circuitJson: 'mm', geometry: 'm', conductivity: 'S/m' }, approximations: ['Unrouted signal copper is ideal by explicit block.unrouted=ideal'] }
+  if (!m.lanes.length && m.allowIdeal) return { stackup, cells: [], mappings: [], units: { circuitJson: 'mm', geometry: 'm', conductivity: 'S/m' }, approximations: ['Unrouted signal copper is ideal by explicit allow_unrouted_traces=true'] }
   const routes: RouteStage[][]=[]
   const mappings: LaneMapping[]=[]
   const selectedTraces=new Set<string>()

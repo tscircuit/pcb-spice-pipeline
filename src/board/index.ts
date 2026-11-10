@@ -24,3 +24,4 @@ export { polygonContains, ringArea, closeRing } from './geometry/polygon'
 export { validateModeling, geometryFromCircuitJson, channelGeometry } from './geometry'
 
 export type { SimulationSignalIntegrity, SimulationSignal, SignalEndpoint, SignalResult } from './signals'
+export { isQuiet } from './signals'

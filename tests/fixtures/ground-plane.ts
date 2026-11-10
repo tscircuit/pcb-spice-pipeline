@@ -29,7 +29,7 @@ export function groundPlaneFixture(): { circuit: CircuitJson; modeling: Modeling
     ibis_pin_name_to_reference_source_port_ids: {
       '3': { pulldown_reference_source_port_id: 'ground1', ground_clamp_reference_source_port_id: 'ground1' },
       '4': { ground_clamp_reference_source_port_id: 'ground1' },
-    }, model_value_corner: 'typical', include_package_parasitics: false })
+    } })
   return { circuit, modeling }
 }
 

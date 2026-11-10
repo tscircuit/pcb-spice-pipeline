@@ -1,6 +1,6 @@
 {
   "source_identity_note": "Acquisition checkout heads record Git HEAD while working-tree edits were present; exact native requests and result bytes are validated against final source in request-identity.json",
-  "rfc_head": "89a263537ebc143315849f005024f84c1efa5635",
+  "rfc_head": "9adc0fe61105554abce7ff80056786d6d287818e",
   "native_timeout_ms": 1200000,
   "OMP_NUM_THREADS": 1,
   "maximum_native_processes": 1,
@@ -37,8 +37,8 @@
       "level": "level1-differential",
       "files": {
         "level1-differential.tsx": {
-          "bytes": 2224,
-          "sha256": "bf8fe8d6e14319d2d0cfe245045a219b9ae7d58aa40eb60e6211c04d8280ce63"
+          "bytes": 2226,
+          "sha256": "0aa1cbc1a7a6dc5fbc30997c01e7d54c84f8f4ce543f1ff35ac19368854b5daa"
         },
         "level1-differential.png": {
           "bytes": 119793,
@@ -81,8 +81,8 @@
       "level": "level3-three-channels",
       "files": {
         "level3-three-channels.tsx": {
-          "bytes": 1996,
-          "sha256": "9380b2fd8a78c6d5f1dca24e18e0ec92961a39e32fdb8e44b5b99b286528344d"
+          "bytes": 1995,
+          "sha256": "1bf7656d4f6346e836e17637d8e0766a0177d5c33d8abed415b06aa382e8914e"
         },
         "level3-three-channels.png": {
           "bytes": 590014,
@@ -103,8 +103,8 @@
       "level": "level4-ddr3-write",
       "files": {
         "level4-ddr3-write.tsx": {
-          "bytes": 5608,
-          "sha256": "7971bd7e7e24b4f361d603a35ce54d692158d02678d22145470926c38b3e13bb"
+          "bytes": 5591,
+          "sha256": "1eb190a6ee6953ab24b4d2c72e4a1bc88956fc52fcae2440e9e0d6d423c7102b"
         },
         "level4-ddr3-write.png": {
           "bytes": 82987,
@@ -127,6 +127,8 @@
       "core_module": "../core/dist/index.js",
       "example_sha256": "8b4824a11ecb77e195f56856da4d3e352ff7338ee038bc828bb878e51ab1e0d1",
       "native_timeout_ms": 1200000,
+      "acquisition_checkout_head": "67b8438acb29d49a7f0cfad786eb489a5939434c",
+      "working_tree_dirty": true,
       "ibis_sha256": {
         "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
         "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
@@ -232,10 +234,9 @@
               "type": "simulation_signal_waveform",
               "simulation_signal_waveform_id": "simulation_signal_0_0",
               "simulation_signal_id": "simulation_signal_0",
-              "end": "far",
               "source_port_id": "source_port_6",
               "samples": 1580521,
-              "full_resolution_sha256": "ecf5a4223f7e4edd32c5764d03c0fc3559e10a06599194989904175d219654a1",
+              "full_resolution_sha256": "ee2d6b7a5feeff6ab5a98117425605f9bedcef2809c4b4c2714b43916debdbf8",
               "full_resolution_evidence": "runs/final-rfc/single/waveforms/simulation_signal_0_0.json.gz"
             },
             {
@@ -245,7 +246,7 @@
               "conductors": [
                 {
                   "simulation_signal_id": "simulation_signal_0",
-                  "leg": "single"
+                  "source_port_id": "source_port_3"
                 }
               ],
               "matrices": [
@@ -279,19 +280,24 @@
             "Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup",
             "FastHenry full ground polygons use fine rectangular return-current corridors within one trace height, graded spacing farther away and locally resolved finite contacts; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; ground mesh and skin-depth edge filaments refined together; electrically thin planes use one thickness filament",
             "FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential",
-            "Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted",
+            "Only endpoint reference leads/vias are geometrically extracted; die rails remain ideal and vendor scalar packages are added separately",
             "Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded",
-            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted",
+            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, dielectric loss and copper roughness omitted",
             "Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
             "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
             "Finite transient capture; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
             "Maximum solver integration step and display resolution are separate settings"
           ]
         }
       ],
-      "acquisition_checkout_head": "67b8438acb29d49a7f0cfad786eb489a5939434c",
+      "refactor_replay": {
+        "note": "No-enums TSX replay: every native request matched the accepted cache byte-for-byte; original acquisition seconds and native timings retained.",
+        "seconds": 14.91,
+        "matched_requests": 7,
+        "native_processes": 0
+      },
       "extraction": [
         {
           "stage": 0,
@@ -307,14 +313,10 @@
     {
       "level": "level1-differential",
       "core_module": "../core/dist/index.js",
-      "example_sha256": "bf8fe8d6e14319d2d0cfe245045a219b9ae7d58aa40eb60e6211c04d8280ce63",
-      "example_refactor": {
-        "previous_example_sha256": "9a0d1746400ad500089aa526ea8aa472a35590e0dcae5903a2e585eb18a12e7e",
-        "change": "pcbPath arrays moved to routes.ts",
-        "rendered_input_identical": true,
-        "cache_only_replay": "9 of 9 native requests matched the accepted cache"
-      },
+      "example_sha256": "0aa1cbc1a7a6dc5fbc30997c01e7d54c84f8f4ce543f1ff35ac19368854b5daa",
       "native_timeout_ms": 1200000,
+      "acquisition_checkout_head": "67b8438acb29d49a7f0cfad786eb489a5939434c",
+      "working_tree_dirty": true,
       "ibis_sha256": {
         "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
         "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
@@ -430,10 +432,9 @@
               "type": "simulation_signal_waveform",
               "simulation_signal_waveform_id": "simulation_signal_0_0",
               "simulation_signal_id": "simulation_signal_0",
-              "end": "far",
               "source_port_id": "source_port_13",
               "samples": 2196064,
-              "full_resolution_sha256": "5f1814d570380beb4af9a2564c014e43bc03aba174dbfe0ad4216f54240b4b48",
+              "full_resolution_sha256": "7695f2a5d30456a588179d486899bdfb9ad72b86c2a600f041f354428c6c6cdc",
               "full_resolution_evidence": "runs/final-rfc/differential/waveforms/simulation_signal_0_0.json.gz"
             },
             {
@@ -443,11 +444,11 @@
               "conductors": [
                 {
                   "simulation_signal_id": "simulation_signal_0",
-                  "leg": "p"
+                  "source_port_id": "source_port_5"
                 },
                 {
                   "simulation_signal_id": "simulation_signal_0",
-                  "leg": "n"
+                  "source_port_id": "source_port_6"
                 }
               ],
               "matrices": [
@@ -501,19 +502,30 @@
             "Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup",
             "FastHenry full ground polygons use fine rectangular return-current corridors within one trace height, graded spacing farther away and locally resolved finite contacts; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; ground mesh and skin-depth edge filaments refined together; electrically thin planes use one thickness filament",
             "FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential",
-            "Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted",
+            "Only endpoint reference leads/vias are geometrically extracted; die rails remain ideal and vendor scalar packages are added separately",
             "Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded",
-            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted",
+            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, dielectric loss and copper roughness omitted",
             "Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
             "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
             "Finite transient capture; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
             "Maximum solver integration step and display resolution are separate settings"
           ]
         }
       ],
-      "acquisition_checkout_head": "67b8438acb29d49a7f0cfad786eb489a5939434c",
+      "refactor_replay": {
+        "note": "No-enums TSX replay: every native request matched the accepted cache byte-for-byte; original acquisition seconds and native timings retained.",
+        "seconds": 32.488,
+        "matched_requests": 9,
+        "native_processes": 0
+      },
+      "example_refactor": {
+        "previous_example_sha256": "9a0d1746400ad500089aa526ea8aa472a35590e0dcae5903a2e585eb18a12e7e",
+        "change": "pcbPath arrays moved to routes.ts",
+        "rendered_input_identical": true,
+        "cache_only_replay": "9 of 9 native requests matched the accepted cache"
+      },
       "extraction": [
         {
           "stage": 0,
@@ -531,6 +543,8 @@
       "core_module": "../core/dist/index.js",
       "example_sha256": "3741e3a7ddaf1b7e2870bfba0624a8be3e7278e15a0fb97f99f99c7f6ce60c20",
       "native_timeout_ms": 1200000,
+      "acquisition_checkout_head": "a7acc156ecba3b0e3fac37c86bd5f119a6613d7c",
+      "working_tree_dirty": true,
       "ibis_sha256": {
         "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
         "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
@@ -656,20 +670,18 @@
               "type": "simulation_signal_waveform",
               "simulation_signal_waveform_id": "simulation_signal_0_0",
               "simulation_signal_id": "simulation_signal_0",
-              "end": "far",
               "source_port_id": "source_port_11",
               "samples": 2649092,
-              "full_resolution_sha256": "72a5b5076bb675fa7eca7732f2f97557fc431ffe41eddd6539c318ba079e043c",
+              "full_resolution_sha256": "87fe82bf5ae37b981eace64c1c8fb0b211bb443661240fc2417429f7290954a2",
               "full_resolution_evidence": "runs/final-rfc/two/waveforms/simulation_signal_0_0.json.gz"
             },
             {
               "type": "simulation_signal_waveform",
               "simulation_signal_waveform_id": "simulation_signal_1_0",
               "simulation_signal_id": "simulation_signal_1",
-              "end": "far",
               "source_port_id": "source_port_16",
               "samples": 2649092,
-              "full_resolution_sha256": "527c06205404f615420f5f161e02765f93b3e7b76c870d362b37d69aaf10ea1b",
+              "full_resolution_sha256": "eb351b7a96f6b61239c9aca8bc720ade28939c39398b52a98ea17dedad9c591b",
               "full_resolution_evidence": "runs/final-rfc/two/waveforms/simulation_signal_1_0.json.gz"
             },
             {
@@ -679,11 +691,11 @@
               "conductors": [
                 {
                   "simulation_signal_id": "simulation_signal_0",
-                  "leg": "single"
+                  "source_port_id": "source_port_3"
                 },
                 {
                   "simulation_signal_id": "simulation_signal_1",
-                  "leg": "single"
+                  "source_port_id": "source_port_8"
                 }
               ],
               "matrices": [
@@ -737,21 +749,26 @@
             "Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup",
             "FastHenry full ground polygons use fine rectangular return-current corridors within one trace height, graded spacing farther away and locally resolved finite contacts; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; ground mesh and skin-depth edge filaments refined together; electrically thin planes use one thickness filament",
             "FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential",
-            "Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted",
+            "Only endpoint reference leads/vias are geometrically extracted; die rails remain ideal and vendor scalar packages are added separately",
             "Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded",
-            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted",
+            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, dielectric loss and copper roughness omitted",
             "Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
             "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
             "Finite transient capture; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
             "Maximum solver integration step and display resolution are separate settings"
           ]
         }
       ],
-      "acquisition_checkout_head": "a7acc156ecba3b0e3fac37c86bd5f119a6613d7c",
+      "refactor_replay": {
+        "note": "No-enums TSX replay: every native request matched the accepted cache byte-for-byte; original acquisition seconds and native timings retained.",
+        "seconds": 80.944,
+        "matched_requests": 7,
+        "native_processes": 0
+      },
       "extraction": [
         {
           "stage": 0,
@@ -767,8 +784,10 @@
     {
       "level": "level3-three-channels",
       "core_module": "../core/dist/index.js",
-      "example_sha256": "9380b2fd8a78c6d5f1dca24e18e0ec92961a39e32fdb8e44b5b99b286528344d",
+      "example_sha256": "1bf7656d4f6346e836e17637d8e0766a0177d5c33d8abed415b06aa382e8914e",
       "native_timeout_ms": 1200000,
+      "acquisition_checkout_head": "a7acc156ecba3b0e3fac37c86bd5f119a6613d7c",
+      "working_tree_dirty": true,
       "ibis_sha256": {
         "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
         "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
@@ -914,30 +933,27 @@
               "type": "simulation_signal_waveform",
               "simulation_signal_waveform_id": "simulation_signal_0_0",
               "simulation_signal_id": "simulation_signal_0",
-              "end": "far",
               "source_port_id": "source_port_16",
               "samples": 3894336,
-              "full_resolution_sha256": "938e78ff45a49e4baaedaf4707302d10d0ce48eeb964744d9bffaf97096cebde",
+              "full_resolution_sha256": "77f60b25f1c160631a8bdf72bb14eb276b64c0caf5be7cd741ce7b7b8aea7806",
               "full_resolution_evidence": "runs/final-rfc/three/TRAFFIC/waveforms/simulation_signal_0_0.json.gz"
             },
             {
               "type": "simulation_signal_waveform",
               "simulation_signal_waveform_id": "simulation_signal_1_0",
               "simulation_signal_id": "simulation_signal_1",
-              "end": "far",
               "source_port_id": "source_port_21",
               "samples": 3894336,
-              "full_resolution_sha256": "48383d148a156d1db523663c1763ccd5a40035e73c14bc44817be4f38ad08db2",
+              "full_resolution_sha256": "57a6af4e9e4f7165c16c7093e187e1139500cd76ee7c7c354647d55e8060145a",
               "full_resolution_evidence": "runs/final-rfc/three/TRAFFIC/waveforms/simulation_signal_1_0.json.gz"
             },
             {
               "type": "simulation_signal_waveform",
               "simulation_signal_waveform_id": "simulation_signal_2_0",
               "simulation_signal_id": "simulation_signal_2",
-              "end": "far",
               "source_port_id": "source_port_26",
               "samples": 3894336,
-              "full_resolution_sha256": "c7d8deebcefe89ba0f9c40240b2f1b5c8f1c6258fac8df4d4cc7971b94dc74e2",
+              "full_resolution_sha256": "deb842f79533e2c0d6fa22b75ee582e93f44285a14b27c13cbddd5a3cdce4ae2",
               "full_resolution_evidence": "runs/final-rfc/three/TRAFFIC/waveforms/simulation_signal_2_0.json.gz"
             },
             {
@@ -947,15 +963,15 @@
               "conductors": [
                 {
                   "simulation_signal_id": "simulation_signal_2",
-                  "leg": "single"
+                  "source_port_id": "source_port_13"
                 },
                 {
                   "simulation_signal_id": "simulation_signal_0",
-                  "leg": "single"
+                  "source_port_id": "source_port_3"
                 },
                 {
                   "simulation_signal_id": "simulation_signal_1",
-                  "leg": "single"
+                  "source_port_id": "source_port_8"
                 }
               ],
               "matrices": [
@@ -1037,23 +1053,28 @@
             "Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup",
             "FastHenry full ground polygons use fine rectangular return-current corridors within one trace height, graded spacing farther away and locally resolved finite contacts; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; ground mesh and skin-depth edge filaments refined together; electrically thin planes use one thickness filament",
             "FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential",
-            "Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted",
+            "Only endpoint reference leads/vias are geometrically extracted; die rails remain ideal and vendor scalar packages are added separately",
             "Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded",
-            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted",
+            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, dielectric loss and copper roughness omitted",
             "Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
             "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
             "Finite transient capture; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
             "Maximum solver integration step and display resolution are separate settings"
           ]
         }
       ],
-      "acquisition_checkout_head": "a7acc156ecba3b0e3fac37c86bd5f119a6613d7c",
+      "refactor_replay": {
+        "note": "No-enums TSX replay: every native request matched the accepted cache byte-for-byte; original acquisition seconds and native timings retained.",
+        "seconds": 110.167,
+        "matched_requests": 7,
+        "native_processes": 0
+      },
       "extraction": [
         {
           "stage": 0,
@@ -1069,8 +1090,10 @@
     {
       "level": "level3-three-channels",
       "core_module": "../core/dist/index.js",
-      "example_sha256": "9380b2fd8a78c6d5f1dca24e18e0ec92961a39e32fdb8e44b5b99b286528344d",
+      "example_sha256": "1bf7656d4f6346e836e17637d8e0766a0177d5c33d8abed415b06aa382e8914e",
       "native_timeout_ms": 1200000,
+      "acquisition_checkout_head": "a7acc156ecba3b0e3fac37c86bd5f119a6613d7c",
+      "working_tree_dirty": true,
       "ibis_sha256": {
         "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
         "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
@@ -1118,14 +1141,14 @@
         }
       ],
       "convergence": {
-        "blocks/simulation_signal_integrity_0/experiments/simulation_signal_integrity_0/numerical-convergence.json": {
+        "blocks/simulation_signal_integrity_1/experiments/simulation_signal_integrity_1/numerical-convergence.json": {
           "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
           "relative_tolerance": 0.01,
           "absolute_tolerance_v": 0.001,
           "checks": [
             {
-              "previous_waveform_csv_sha256": "915e07b39a8a607aca48df7fd1f1f0064dadb52d35ca07e49f41ba9f7c23d2a9",
-              "waveform_csv_sha256": "6a336cefa25380c0ec0ec076bb81712c00ac9cb150b5137a4d3af723e4289654",
+              "previous_waveform_csv_sha256": "225fc0ad991ecea7cc11d5394aa57808383990df119ce5e4b294757163ef2338",
+              "waveform_csv_sha256": "ca8098a3197e3d40c079678bca1fdc9213e67b58db1efcf75906600e63ea8b23",
               "dimension": "time",
               "sections": 4,
               "step_s": 1.457612935665808e-11,
@@ -1174,8 +1197,8 @@
               ]
             },
             {
-              "previous_waveform_csv_sha256": "6a336cefa25380c0ec0ec076bb81712c00ac9cb150b5137a4d3af723e4289654",
-              "waveform_csv_sha256": "6b9abb121a5bf463e6d3271356c8525f2beda22621cf061b6a00c8e7d0a47fd4",
+              "previous_waveform_csv_sha256": "ca8098a3197e3d40c079678bca1fdc9213e67b58db1efcf75906600e63ea8b23",
+              "waveform_csv_sha256": "83ad59f1479dd58070d40ad1919a213661baf973c7af412f5e8e7def81f3986f",
               "dimension": "space",
               "sections": 8,
               "step_s": 1.457612935665808e-11,
@@ -1229,67 +1252,63 @@
       "blocks": [
         {
           "name": "XTALK_LOW",
-          "simulation_signal_integrity_id": "simulation_signal_integrity_0",
+          "simulation_signal_integrity_id": "simulation_signal_integrity_1",
           "duration_s": 0.0000072,
           "results": [
             {
               "type": "simulation_signal_waveform",
-              "simulation_signal_waveform_id": "simulation_signal_0_0",
-              "simulation_signal_id": "simulation_signal_0",
-              "end": "far",
+              "simulation_signal_waveform_id": "simulation_signal_3_0",
+              "simulation_signal_id": "simulation_signal_3",
               "source_port_id": "source_port_16",
               "samples": 3345110,
-              "full_resolution_sha256": "3f80601c10629badcc7184285a4286087e5529f7381b03c0bec585f905f38c4e",
-              "full_resolution_evidence": "runs/final-rfc/three/XTALK_LOW/waveforms/simulation_signal_0_0.json.gz"
+              "full_resolution_sha256": "1640949ce02a8e2e27d81a490433f7d0ae1c03a125f0155d9c0e28350c5d805f",
+              "full_resolution_evidence": "runs/final-rfc/three/XTALK_LOW/waveforms/simulation_signal_3_0.json.gz"
             },
             {
               "type": "simulation_signal_waveform",
-              "simulation_signal_waveform_id": "simulation_signal_1_0",
-              "simulation_signal_id": "simulation_signal_1",
-              "end": "far",
+              "simulation_signal_waveform_id": "simulation_signal_4_0",
+              "simulation_signal_id": "simulation_signal_4",
               "source_port_id": "source_port_21",
               "idle_voltage_v": 0.0016569513889300113,
               "samples": 3345110,
-              "full_resolution_sha256": "cb30691fceff9451659788dc14551441e7a1d6f6ecc70f6c2f6089f1fee14e78",
-              "full_resolution_evidence": "runs/final-rfc/three/XTALK_LOW/waveforms/simulation_signal_1_0.json.gz"
+              "full_resolution_sha256": "f25937878cc92adf8802281956ad5a6a4415e84f0004928e194810ad0c8a4457",
+              "full_resolution_evidence": "runs/final-rfc/three/XTALK_LOW/waveforms/simulation_signal_4_0.json.gz"
             },
             {
               "type": "simulation_signal_waveform",
-              "simulation_signal_waveform_id": "simulation_signal_1_1",
-              "simulation_signal_id": "simulation_signal_1",
-              "end": "near",
+              "simulation_signal_waveform_id": "simulation_signal_4_1",
+              "simulation_signal_id": "simulation_signal_4",
               "source_port_id": "source_port_8",
               "idle_voltage_v": 0.0016569323802849382,
               "samples": 3345110,
-              "full_resolution_sha256": "beafd7989826ee5217ac426d24e5ef2bf47ad35192a88e7e9fa05f7a4cb7d543",
-              "full_resolution_evidence": "runs/final-rfc/three/XTALK_LOW/waveforms/simulation_signal_1_1.json.gz"
+              "full_resolution_sha256": "5ffb744a987c5195d8af23794d2c694c71c5500df2b6837fd1e47784382ed111",
+              "full_resolution_evidence": "runs/final-rfc/three/XTALK_LOW/waveforms/simulation_signal_4_1.json.gz"
             },
             {
               "type": "simulation_signal_waveform",
-              "simulation_signal_waveform_id": "simulation_signal_2_0",
-              "simulation_signal_id": "simulation_signal_2",
-              "end": "far",
+              "simulation_signal_waveform_id": "simulation_signal_5_0",
+              "simulation_signal_id": "simulation_signal_5",
               "source_port_id": "source_port_26",
               "samples": 3345110,
-              "full_resolution_sha256": "8b28f2555efbcb31d96f8209fe2bc72623bb7595c7b284677aa2efbf70f4a982",
-              "full_resolution_evidence": "runs/final-rfc/three/XTALK_LOW/waveforms/simulation_signal_2_0.json.gz"
+              "full_resolution_sha256": "a0d93a7fdf8682d976962f2de418cc48aa9bb6538dd5eea40b00ed5a5d2a0453",
+              "full_resolution_evidence": "runs/final-rfc/three/XTALK_LOW/waveforms/simulation_signal_5_0.json.gz"
             },
             {
               "type": "simulation_signal_integrity_rlgc",
-              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_0",
-              "simulation_signal_integrity_id": "simulation_signal_integrity_0",
+              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_1",
+              "simulation_signal_integrity_id": "simulation_signal_integrity_1",
               "conductors": [
                 {
-                  "simulation_signal_id": "simulation_signal_2",
-                  "leg": "single"
+                  "simulation_signal_id": "simulation_signal_5",
+                  "source_port_id": "source_port_13"
                 },
                 {
-                  "simulation_signal_id": "simulation_signal_0",
-                  "leg": "single"
+                  "simulation_signal_id": "simulation_signal_3",
+                  "source_port_id": "source_port_3"
                 },
                 {
-                  "simulation_signal_id": "simulation_signal_1",
-                  "leg": "single"
+                  "simulation_signal_id": "simulation_signal_4",
+                  "source_port_id": "source_port_8"
                 }
               ],
               "matrices": [
@@ -1371,23 +1390,28 @@
             "Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup",
             "FastHenry full ground polygons use fine rectangular return-current corridors within one trace height, graded spacing farther away and locally resolved finite contacts; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; ground mesh and skin-depth edge filaments refined together; electrically thin planes use one thickness filament",
             "FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential",
-            "Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted",
+            "Only endpoint reference leads/vias are geometrically extracted; die rails remain ideal and vendor scalar packages are added separately",
             "Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded",
-            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted",
+            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, dielectric loss and copper roughness omitted",
             "Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
             "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
             "Finite transient capture; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
             "Maximum solver integration step and display resolution are separate settings"
           ]
         }
       ],
-      "acquisition_checkout_head": "a7acc156ecba3b0e3fac37c86bd5f119a6613d7c",
+      "refactor_replay": {
+        "note": "No-enums TSX replay: every native request matched the accepted cache byte-for-byte; original acquisition seconds and native timings retained.",
+        "seconds": 107.896,
+        "matched_requests": 7,
+        "native_processes": 0
+      },
       "extraction": [
         {
           "stage": 0,
@@ -1403,8 +1427,10 @@
     {
       "level": "level3-three-channels",
       "core_module": "../core/dist/index.js",
-      "example_sha256": "9380b2fd8a78c6d5f1dca24e18e0ec92961a39e32fdb8e44b5b99b286528344d",
+      "example_sha256": "1bf7656d4f6346e836e17637d8e0766a0177d5c33d8abed415b06aa382e8914e",
       "native_timeout_ms": 1200000,
+      "acquisition_checkout_head": "a7acc156ecba3b0e3fac37c86bd5f119a6613d7c",
+      "working_tree_dirty": true,
       "ibis_sha256": {
         "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
         "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
@@ -1452,14 +1478,14 @@
         }
       ],
       "convergence": {
-        "blocks/simulation_signal_integrity_1/experiments/simulation_signal_integrity_1/numerical-convergence.json": {
+        "blocks/simulation_signal_integrity_2/experiments/simulation_signal_integrity_2/numerical-convergence.json": {
           "definition": "Independent section and timestep refinements; per-probe time-weighted RMS over all native timestamps and both signed idle-relative extrema must converge",
           "relative_tolerance": 0.01,
           "absolute_tolerance_v": 0.001,
           "checks": [
             {
-              "previous_waveform_csv_sha256": "35420955e91d67f01ee15b28a3052eddad0c055f4ab72411db0b2ebcdec057d3",
-              "waveform_csv_sha256": "db140ae2372823793c500accf6060f3e3b010ebe475df9f66b10a601e0871996",
+              "previous_waveform_csv_sha256": "b021a8548f35ab0b0a853fd3b0ca721049a1126028437d7794cbf145d0022d64",
+              "waveform_csv_sha256": "bd7515bf5ad392ec2d2c86b8419f3aa748be9dd8a422b4d7d41d79aecccdd69a",
               "dimension": "time",
               "sections": 4,
               "step_s": 1.457612935665808e-11,
@@ -1508,8 +1534,8 @@
               ]
             },
             {
-              "previous_waveform_csv_sha256": "db140ae2372823793c500accf6060f3e3b010ebe475df9f66b10a601e0871996",
-              "waveform_csv_sha256": "091483a12d6ad4a6504c8d36a58d049a631a219cf6be37e7be8bd79f9e5a84b3",
+              "previous_waveform_csv_sha256": "bd7515bf5ad392ec2d2c86b8419f3aa748be9dd8a422b4d7d41d79aecccdd69a",
+              "waveform_csv_sha256": "e9ffac4701c5afb4a44babb878a3161b1b0a350a94a8a5edee2c2384bd1bd79e",
               "dimension": "space",
               "sections": 8,
               "step_s": 1.457612935665808e-11,
@@ -1563,67 +1589,63 @@
       "blocks": [
         {
           "name": "XTALK_HIGH",
-          "simulation_signal_integrity_id": "simulation_signal_integrity_1",
+          "simulation_signal_integrity_id": "simulation_signal_integrity_2",
           "duration_s": 0.0000072,
           "results": [
             {
               "type": "simulation_signal_waveform",
-              "simulation_signal_waveform_id": "simulation_signal_3_0",
-              "simulation_signal_id": "simulation_signal_3",
-              "end": "far",
+              "simulation_signal_waveform_id": "simulation_signal_6_0",
+              "simulation_signal_id": "simulation_signal_6",
               "source_port_id": "source_port_16",
               "samples": 3143310,
-              "full_resolution_sha256": "1e25b1a5488c9415a59f5b44cf2654175094c19721276cfef3758c3614ae255e",
-              "full_resolution_evidence": "runs/final-rfc/three/XTALK_HIGH/waveforms/simulation_signal_3_0.json.gz"
+              "full_resolution_sha256": "ba3684c278b949650dea2b94c32236cf77dd4e802705df6c6a7bd145d241eda1",
+              "full_resolution_evidence": "runs/final-rfc/three/XTALK_HIGH/waveforms/simulation_signal_6_0.json.gz"
             },
             {
               "type": "simulation_signal_waveform",
-              "simulation_signal_waveform_id": "simulation_signal_4_0",
-              "simulation_signal_id": "simulation_signal_4",
-              "end": "far",
+              "simulation_signal_waveform_id": "simulation_signal_7_0",
+              "simulation_signal_id": "simulation_signal_7",
               "source_port_id": "source_port_21",
               "idle_voltage_v": 3.299741655168751,
               "samples": 3143310,
-              "full_resolution_sha256": "c2acfdf8fe6b7622b98e584996c3ac0d98ede5b59be94446b9df53d4da3469a1",
-              "full_resolution_evidence": "runs/final-rfc/three/XTALK_HIGH/waveforms/simulation_signal_4_0.json.gz"
+              "full_resolution_sha256": "d2e593a11ab9652f293635c00c317f89d2db465b75eaf2c002781a7e90be08d0",
+              "full_resolution_evidence": "runs/final-rfc/three/XTALK_HIGH/waveforms/simulation_signal_7_0.json.gz"
             },
             {
               "type": "simulation_signal_waveform",
-              "simulation_signal_waveform_id": "simulation_signal_4_1",
-              "simulation_signal_id": "simulation_signal_4",
-              "end": "near",
+              "simulation_signal_waveform_id": "simulation_signal_7_1",
+              "simulation_signal_id": "simulation_signal_7",
               "source_port_id": "source_port_8",
               "idle_voltage_v": 3.299741653203045,
               "samples": 3143310,
-              "full_resolution_sha256": "3f89767db98fd10b7aa4fa69f6872168b164a900757fb328de2240d6e2c141a4",
-              "full_resolution_evidence": "runs/final-rfc/three/XTALK_HIGH/waveforms/simulation_signal_4_1.json.gz"
+              "full_resolution_sha256": "37c57f0e88f8ac8cab99095156fa9814612c26a19c139491e964c88a2927dc60",
+              "full_resolution_evidence": "runs/final-rfc/three/XTALK_HIGH/waveforms/simulation_signal_7_1.json.gz"
             },
             {
               "type": "simulation_signal_waveform",
-              "simulation_signal_waveform_id": "simulation_signal_5_0",
-              "simulation_signal_id": "simulation_signal_5",
-              "end": "far",
+              "simulation_signal_waveform_id": "simulation_signal_8_0",
+              "simulation_signal_id": "simulation_signal_8",
               "source_port_id": "source_port_26",
               "samples": 3143310,
-              "full_resolution_sha256": "c78a9c2b4b518595679da4fe0d45336e44be77b555d07f0c10294291b4156019",
-              "full_resolution_evidence": "runs/final-rfc/three/XTALK_HIGH/waveforms/simulation_signal_5_0.json.gz"
+              "full_resolution_sha256": "2fc208c57147889a284611ac199377e93b285671e1180d8c44284f87db940d0a",
+              "full_resolution_evidence": "runs/final-rfc/three/XTALK_HIGH/waveforms/simulation_signal_8_0.json.gz"
             },
             {
               "type": "simulation_signal_integrity_rlgc",
-              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_1",
-              "simulation_signal_integrity_id": "simulation_signal_integrity_1",
+              "simulation_signal_integrity_rlgc_id": "simulation_signal_integrity_2",
+              "simulation_signal_integrity_id": "simulation_signal_integrity_2",
               "conductors": [
                 {
-                  "simulation_signal_id": "simulation_signal_5",
-                  "leg": "single"
+                  "simulation_signal_id": "simulation_signal_8",
+                  "source_port_id": "source_port_13"
                 },
                 {
-                  "simulation_signal_id": "simulation_signal_3",
-                  "leg": "single"
+                  "simulation_signal_id": "simulation_signal_6",
+                  "source_port_id": "source_port_3"
                 },
                 {
-                  "simulation_signal_id": "simulation_signal_4",
-                  "leg": "single"
+                  "simulation_signal_id": "simulation_signal_7",
+                  "source_port_id": "source_port_8"
                 }
               ],
               "matrices": [
@@ -1705,23 +1727,28 @@
             "Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup",
             "FastHenry full ground polygons use fine rectangular return-current corridors within one trace height, graded spacing farther away and locally resolved finite contacts; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; ground mesh and skin-depth edge filaments refined together; electrically thin planes use one thickness filament",
             "FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential",
-            "Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted",
+            "Only endpoint reference leads/vias are geometrically extracted; die rails remain ideal and vendor scalar packages are added separately",
             "Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded",
-            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted",
+            "Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, dielectric loss and copper roughness omitted",
             "Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
-            "Vendor pin package RLC retained; pdn=\"ideal\" constrains die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
+            "Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages",
             "Only selected channel components/passives and explicit ideal source rails are simulated; unrelated board electronics excluded",
             "Finite transient capture; no implicit traffic, random jitter, BER extrapolation, protocol compliance or hardware accuracy claim",
             "Maximum solver integration step and display resolution are separate settings"
           ]
         }
       ],
-      "acquisition_checkout_head": "a7acc156ecba3b0e3fac37c86bd5f119a6613d7c",
+      "refactor_replay": {
+        "note": "No-enums TSX replay: every native request matched the accepted cache byte-for-byte; original acquisition seconds and native timings retained.",
+        "seconds": 73.349,
+        "matched_requests": 7,
+        "native_processes": 0
+      },
       "extraction": [
         {
           "stage": 0,
@@ -1737,7 +1764,7 @@
     {
       "level": "level4-ddr3-write",
       "core_module": "../core/dist/index.js",
-      "example_sha256": "7971bd7e7e24b4f361d603a35ce54d692158d02678d22145470926c38b3e13bb",
+      "example_sha256": "1eb190a6ee6953ab24b4d2c72e4a1bc88956fc52fcae2440e9e0d6d423c7102b",
       "native_timeout_ms": 1200000,
       "acquisition_checkout_head": "ae59365de5c16da8cd6df628f7c83b1ed16083c4",
       "working_tree_dirty": true,
@@ -1749,6 +1776,12 @@
       "seconds": 1.701,
       "error": ".CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.",
       "native_requests": [],
+      "refactor_replay": {
+        "note": "No-enums TSX replay: every native request matched the accepted cache byte-for-byte; original acquisition seconds and native timings retained.",
+        "seconds": 0.748,
+        "matched_requests": 0,
+        "native_processes": 0
+      },
       "extraction": [],
       "run_directory": "runs/final-rfc/ddr3"
     }

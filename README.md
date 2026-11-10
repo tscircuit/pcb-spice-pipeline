@@ -33,8 +33,8 @@ Each `result.blocks` entry owns its matrices, results, numerical settings eviden
 and limitations. `simulationResultCircuitJson` retains the input and appends only
 the RFC's waveform and RLGC result record kinds. Re-running replaces prior SI results. A board with no SI blocks returns an empty block/result collection without invoking a solver. Automatic duration stays absent in source records and is reported on each result block.
 
-The draft explicitly rejects extracted PDN, branched routes and coupled package matrices; the RFC lists these as not implemented yet.
-Under `pdn="ideal"`, die POWER/GND references connect directly to perfect rails;
+The draft explicitly rejects branched routes and coupled package matrices; the RFC lists these as not implemented yet.
+Die POWER/GND references always connect directly to perfect rails;
 vendor package R/L/C remains between every mapped pin and its die node. See the [model rationale](docs/native-signal-levels.md).
 
 See [the TSX levels](examples) and [native evidence](docs/native-signal-levels.md).
@@ -113,8 +113,7 @@ holds the bars, not the 3D copper.
 Every block produces an independent run. A differential endpoint drives opposite
 physical levels and measures P minus N. Quiet channels remain connected and return
 near/far waveforms with separately solved undisturbed idle levels. Single-ended
-probes use their chip's ground unless `probe="global"` is requested. Numeric offsets
+probes always use their chip's local ground. Numeric offsets
 are seconds; automatic duration is startup plus 128 of the slowest UI (32 UI for
-quiet-only blocks). Explicit durations are never extended. The corner is `typical`,
-`minimum` or `maximum`. Public RLGC matrices select only listed legs; all coupled
+quiet-only blocks). Explicit durations are never extended. IBIS values always use the typical corner. Public RLGC matrices select only listed legs; all coupled
 copper remains in the private model.

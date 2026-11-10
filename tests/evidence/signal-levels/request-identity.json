@@ -1,14 +1,17 @@
 {
-  "method": "Sequential exact-byte replay using original real-core TSX input records and their assigned IDs; every completed native request and waveform/RLGC result verified unchanged; fresh physical identity is checked by the image generator; no native processes launched",
+  "method": "Sequential real-core TSX re-render and exact-byte replay of all completed native requests; waveforms matched by channel name and endpoint, then compared byte-for-byte after removing end and updating generated signal/block IDs; RLGC compared after replacing leg with its driver source_port_id and updating generated IDs. Acquisition wall/native timings retained. No example native processes launched.",
   "source_files": {
-    "src/buffers/inspect.ts": "6fafd37821249aed926aa41e8c59902f8e1332b46f49f6fcf81b6560be5266af",
-    "src/buffers/package.ts": "ffcdcc17bf09674c9c33c55505edad7824f7604589426e17abc3307d143d02a5",
-    "src/pipeline/signals.ts": "c17250cc146961ed5773002e254d62fb3ce4287f1e3ddb85c58a539bf8d08de2"
+    "src/board/signals.ts": "73761d8064315b00ff882f3ef3c74c3629491bac125b77b0fa5eae6345d15973",
+    "src/board/schema.ts": "63148a618ec60f85fa49c06ef9d961164cfd70246152ff9a7f814a197225ee2c",
+    "src/buffers/inspect.ts": "51ee4258543743d277215d7239dd20ad8d763ef08a9a4e8705f51e2a39b52bc7",
+    "src/buffers/package.ts": "b04b1d071257bac02c2035a7eab220c8802af988884b02c7e64fa4b791eea067",
+    "src/pipeline/signals.ts": "c0a52c51ddeec3280d210b8704756b174384f710df14fb7bc9f06012610bb354",
+    "src/pipeline/results.ts": "9b4b0b430ef6e41c95d09de3e61c28fc657fc67f5e56ea3d34c426bebb211b1f"
   },
   "cases": [
     {
       "case": "single",
-      "input_sha256": "4b645737fa75d464ee60bf8c805a469afaa39bcec59b1b1bf41fe544555f6cdc",
+      "input_sha256": "c3771945cd8563c227aec9fd01f962e6d04553b1c53559b29cd6efba3bc286c4",
       "matched_requests": [
         "21dd368ca9f459c442d6b348c9a404259865812c934746b494361eb06bd4f2aa",
         "8285e23d103e084e9c461d463cef0aab258db0715b5ec70852c9d9096aa06793",
@@ -21,14 +24,15 @@
       "waveform_records": [
         {
           "id": "simulation_signal_0_0",
-          "sha256": "ecf5a4223f7e4edd32c5764d03c0fc3559e10a06599194989904175d219654a1"
+          "sha256": "ee2d6b7a5feeff6ab5a98117425605f9bedcef2809c4b4c2714b43916debdbf8",
+          "numeric_data_unchanged": true
         }
       ],
       "native_processes": 0
     },
     {
       "case": "differential",
-      "input_sha256": "593ff19d9513ff50ca82a7ab9df931e163e1b7ed4374d1a1986dd602da846d45",
+      "input_sha256": "6adc3780f9752bad82ee57746487a7f1e4a62c4d86c70771b2ea41645df1b620",
       "matched_requests": [
         "e6d6638cdc596fe73ca2c36335a603ec73c214469fc0784253790155a2f23311",
         "81411f6118c020060b1c19cb494cde0d51fa0852f1a430d25a4ecf8bc111d0a5",
@@ -43,14 +47,15 @@
       "waveform_records": [
         {
           "id": "simulation_signal_0_0",
-          "sha256": "5f1814d570380beb4af9a2564c014e43bc03aba174dbfe0ad4216f54240b4b48"
+          "sha256": "7695f2a5d30456a588179d486899bdfb9ad72b86c2a600f041f354428c6c6cdc",
+          "numeric_data_unchanged": true
         }
       ],
       "native_processes": 0
     },
     {
       "case": "two",
-      "input_sha256": "9c464e3706d149f0c864a593422a12da9419c645a26807f5caf93cdd54015d3b",
+      "input_sha256": "152b167eb161ebc8ba55907fb02ec08d75fadb5b1e66abc14d14025b730d3c26",
       "matched_requests": [
         "57eadee540e72a3774e739b5737fc8b3186225d98ba76a84dbfefb679ad9d903",
         "daa0399cec81d6c309e741ef4cd97e19904c408675ded67623fe4a2eb5199ffb",
@@ -63,18 +68,20 @@
       "waveform_records": [
         {
           "id": "simulation_signal_0_0",
-          "sha256": "72a5b5076bb675fa7eca7732f2f97557fc431ffe41eddd6539c318ba079e043c"
+          "sha256": "87fe82bf5ae37b981eace64c1c8fb0b211bb443661240fc2417429f7290954a2",
+          "numeric_data_unchanged": true
         },
         {
           "id": "simulation_signal_1_0",
-          "sha256": "527c06205404f615420f5f161e02765f93b3e7b76c870d362b37d69aaf10ea1b"
+          "sha256": "eb351b7a96f6b61239c9aca8bc720ade28939c39398b52a98ea17dedad9c591b",
+          "numeric_data_unchanged": true
         }
       ],
       "native_processes": 0
     },
     {
       "case": "three/TRAFFIC",
-      "input_sha256": "f4f0546ce2463918ef8dfb02fd4328230d174a59c877bb69de6731341906799e",
+      "input_sha256": "913420e5ebbe2642e99c2f7e8c2f1d56d976552c8f471fa47ee6da46a9961fb3",
       "matched_requests": [
         "ce0b39ec6bee3669c5b4756813afaa672473f703ed5fe8b9356801593bfd460a",
         "11fe0fed83cabab914953d781d811648533ee8d8cc6f6c0ed47a7e6eb3a8c7d3",
@@ -87,22 +94,25 @@
       "waveform_records": [
         {
           "id": "simulation_signal_0_0",
-          "sha256": "938e78ff45a49e4baaedaf4707302d10d0ce48eeb964744d9bffaf97096cebde"
+          "sha256": "77f60b25f1c160631a8bdf72bb14eb276b64c0caf5be7cd741ce7b7b8aea7806",
+          "numeric_data_unchanged": true
         },
         {
           "id": "simulation_signal_1_0",
-          "sha256": "48383d148a156d1db523663c1763ccd5a40035e73c14bc44817be4f38ad08db2"
+          "sha256": "57a6af4e9e4f7165c16c7093e187e1139500cd76ee7c7c354647d55e8060145a",
+          "numeric_data_unchanged": true
         },
         {
           "id": "simulation_signal_2_0",
-          "sha256": "c7d8deebcefe89ba0f9c40240b2f1b5c8f1c6258fac8df4d4cc7971b94dc74e2"
+          "sha256": "deb842f79533e2c0d6fa22b75ee582e93f44285a14b27c13cbddd5a3cdce4ae2",
+          "numeric_data_unchanged": true
         }
       ],
       "native_processes": 0
     },
     {
       "case": "three/XTALK_LOW",
-      "input_sha256": "32ae39e3c611d24e6e0fad77a2ad5f128e20d604a9662ac5f1831d934b81fb34",
+      "input_sha256": "834727c3e173f001304d1e3e5d637d682ea943294e2b2f8a413797e1e5496a45",
       "matched_requests": [
         "ce0b39ec6bee3669c5b4756813afaa672473f703ed5fe8b9356801593bfd460a",
         "11fe0fed83cabab914953d781d811648533ee8d8cc6f6c0ed47a7e6eb3a8c7d3",
@@ -114,27 +124,31 @@
       ],
       "waveform_records": [
         {
-          "id": "simulation_signal_0_0",
-          "sha256": "3f80601c10629badcc7184285a4286087e5529f7381b03c0bec585f905f38c4e"
+          "id": "simulation_signal_3_0",
+          "sha256": "1640949ce02a8e2e27d81a490433f7d0ae1c03a125f0155d9c0e28350c5d805f",
+          "numeric_data_unchanged": true
         },
         {
-          "id": "simulation_signal_1_0",
-          "sha256": "cb30691fceff9451659788dc14551441e7a1d6f6ecc70f6c2f6089f1fee14e78"
+          "id": "simulation_signal_4_0",
+          "sha256": "f25937878cc92adf8802281956ad5a6a4415e84f0004928e194810ad0c8a4457",
+          "numeric_data_unchanged": true
         },
         {
-          "id": "simulation_signal_1_1",
-          "sha256": "beafd7989826ee5217ac426d24e5ef2bf47ad35192a88e7e9fa05f7a4cb7d543"
+          "id": "simulation_signal_4_1",
+          "sha256": "5ffb744a987c5195d8af23794d2c694c71c5500df2b6837fd1e47784382ed111",
+          "numeric_data_unchanged": true
         },
         {
-          "id": "simulation_signal_2_0",
-          "sha256": "8b28f2555efbcb31d96f8209fe2bc72623bb7595c7b284677aa2efbf70f4a982"
+          "id": "simulation_signal_5_0",
+          "sha256": "a0d93a7fdf8682d976962f2de418cc48aa9bb6538dd5eea40b00ed5a5d2a0453",
+          "numeric_data_unchanged": true
         }
       ],
       "native_processes": 0
     },
     {
       "case": "three/XTALK_HIGH",
-      "input_sha256": "08755968d2727c75bdbd099017925a0bb0c6366f922e53e6263ac0ebd3852c0c",
+      "input_sha256": "33ac09d9d40ffd8cc83038297d26e21b62eb993f96bc236ee19d6c220f08212d",
       "matched_requests": [
         "ce0b39ec6bee3669c5b4756813afaa672473f703ed5fe8b9356801593bfd460a",
         "11fe0fed83cabab914953d781d811648533ee8d8cc6f6c0ed47a7e6eb3a8c7d3",
@@ -146,22 +160,33 @@
       ],
       "waveform_records": [
         {
-          "id": "simulation_signal_3_0",
-          "sha256": "1e25b1a5488c9415a59f5b44cf2654175094c19721276cfef3758c3614ae255e"
+          "id": "simulation_signal_6_0",
+          "sha256": "ba3684c278b949650dea2b94c32236cf77dd4e802705df6c6a7bd145d241eda1",
+          "numeric_data_unchanged": true
         },
         {
-          "id": "simulation_signal_4_0",
-          "sha256": "c2acfdf8fe6b7622b98e584996c3ac0d98ede5b59be94446b9df53d4da3469a1"
+          "id": "simulation_signal_7_0",
+          "sha256": "d2e593a11ab9652f293635c00c317f89d2db465b75eaf2c002781a7e90be08d0",
+          "numeric_data_unchanged": true
         },
         {
-          "id": "simulation_signal_4_1",
-          "sha256": "3f89767db98fd10b7aa4fa69f6872168b164a900757fb328de2240d6e2c141a4"
+          "id": "simulation_signal_7_1",
+          "sha256": "37c57f0e88f8ac8cab99095156fa9814612c26a19c139491e964c88a2927dc60",
+          "numeric_data_unchanged": true
         },
         {
-          "id": "simulation_signal_5_0",
-          "sha256": "c78a9c2b4b518595679da4fe0d45336e44be77b555d07f0c10294291b4156019"
+          "id": "simulation_signal_8_0",
+          "sha256": "2fc208c57147889a284611ac199377e93b285671e1180d8c44284f87db940d0a",
+          "numeric_data_unchanged": true
         }
       ],
+      "native_processes": 0
+    },
+    {
+      "case": "ddr3",
+      "input_sha256": "3e3e107f16b7de311557a0892ab0abb86c049a20ac2b419d6b86d0077709aff0",
+      "matched_requests": [],
+      "waveform_records": [],
       "native_processes": 0
     }
   ]

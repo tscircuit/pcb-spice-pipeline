@@ -8,11 +8,11 @@ export interface InspectedPin {
   buffer: IbisBuffer; text: string; ground: string; power: string
 }
 /** Selected ideal reference voltages, including the vendor's explicit overrides. */
-export function referenceVoltages(buffer: IbisBuffer, corner: number): Record<'pullup' | 'pulldown' | 'powerClamp' | 'groundClamp', number> {
+export function referenceVoltages(buffer: IbisBuffer): Record<'pullup' | 'pulldown' | 'powerClamp' | 'groundClamp', number> {
   const ranges = { pullup: buffer.pullupReference ?? buffer.voltage, pulldown: buffer.pulldownReference ?? [0, 0, 0], powerClamp: buffer.powerClampReference ?? buffer.voltage, groundClamp: buffer.groundClampReference ?? [0, 0, 0] }
   return Object.fromEntries(Object.entries(ranges).map(([role, range]) => {
-    const voltage = range[corner]
-    if (voltage === null || voltage === undefined) throw new Error(`${buffer.name}: missing selected-corner ${role} voltage`)
+    const voltage = range[0]
+    if (voltage === null || voltage === undefined) throw new Error(`${buffer.name}: missing typical ${role} voltage`)
     return [role, voltage]
   })) as ReturnType<typeof referenceVoltages>
 }
@@ -62,11 +62,11 @@ export function modelText(pin: InspectedPin): string {
   if (!section) throw new Error(`IBIS model body ${pin.buffer.name} missing`)
   return section
 }
-/** Fastest measured 10–90% output edge at the chosen corner, or the [Ramp] dV/dt. */
-export function edgeSeconds(pin: InspectedPin, corner: number): number {
+/** Fastest measured 10–90% output edge at the typical corner, or the [Ramp] dV/dt. */
+export function edgeSeconds(pin: InspectedPin): number {
   const edges: number[] = []
   for (const waveform of pin.buffer.waveforms) {
-    const data = waveform.data.filter(row => row[corner + 1] !== null).map(row => [row[0], row[corner + 1]!] as const)
+    const data = waveform.data.filter(row => row[1] !== null).map(row => [row[0], row[1]!] as const)
     if (data.length < 2) continue
     const first = data[0][1]
     const last = data.at(-1)![1]
@@ -87,14 +87,14 @@ export function edgeSeconds(pin: InspectedPin, corner: number): number {
   }
   if (!edges.length) {
     for (const line of modelText(pin).split(/\r?\n/).filter(line => /^\s*dV\/dt_[rf]/i.test(line))) {
-      const token = line.trim().split(/\s+/)[corner + 1]
+      const token = line.trim().split(/\s+/)[1]
       if (!token || token === 'NA') continue
       const [dv, dt] = token.split('/')
-      const edge = ibisNumber(dt) * .8 * pin.buffer.voltage[corner]! / ibisNumber(dv)
+      const edge = ibisNumber(dt) * .8 * pin.buffer.voltage[0]! / ibisNumber(dv)
       if (edge > 0 && Number.isFinite(edge)) edges.push(edge)
     }
   }
-  if (!edges.length) throw new Error(`${pin.port}: IBIS edge rate missing at selected corner`)
+  if (!edges.length) throw new Error(`${pin.port}: IBIS edge rate missing at the typical corner`)
   return Math.min(...edges)
 }
 /** Selected model capabilities; unsupported types cannot acquire invented receive/disable modes. */

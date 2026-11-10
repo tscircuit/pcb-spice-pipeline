@@ -1,14 +1,10 @@
 // Circuit JSON record admission (was schema.ts + circuit-schema.mjs). Validation never edits input.
 import { z } from 'zod'
 import * as base from 'circuit-json'
-import type { CircuitJson as BaseCircuitJson, SimulationIbisModel as BaseIbisModel } from 'circuit-json'
-import { simulation_signal, simulation_signal_integrity, type SimulationSignal, type SimulationSignalIntegrity, type SignalResult } from './signals'
-export type SimulationIbisModel = Omit<BaseIbisModel, 'include_package_parasitics' | 'model_value_corner'> & {
-  /** Private lowered fields while the installed converter schema predates RFC #28. */
-  model_value_corner?: 'typical' | 'minimum' | 'maximum'
-  include_package_parasitics?: boolean
-}
-export type CircuitJson = (Exclude<BaseCircuitJson[number], BaseIbisModel> | SimulationIbisModel | SimulationSignal | SimulationSignalIntegrity | SignalResult | SimulationIbisPinState | SimulationDigitalStimulus)[]
+import type { CircuitJson as BaseCircuitJson } from 'circuit-json'
+import { isQuiet, simulation_signal, simulation_signal_integrity } from './signals'
+export type { SimulationIbisModel } from 'circuit-json'
+export type CircuitJson = (BaseCircuitJson[number] | SimulationIbisPinState | SimulationDigitalStimulus)[]
 import { fail } from './diagnostics'
 
 export type { SimulationExperiment } from 'circuit-json'
@@ -42,7 +38,6 @@ const numericDisplayOffsets = (record: Record<string, unknown>): Record<string, 
 }
 
 const physicalCompatibility: Record<string, z.ZodTypeAny> = {
-  simulation_ibis_model: compatible(base.simulation_ibis_model, record => ({ ...record, model_value_corner: record.model_value_corner ?? 'typical', include_package_parasitics: true })),
   source_port: compatible(base.source_port, record => {
     if (record.source_component_id === null) delete record.source_component_id
     return record
@@ -97,5 +92,19 @@ export function validateCircuitRecords(records: unknown): void {
       const path=issue.path?.join('.')
       fail('circuit_schema',`${type} ${id}: ${path?path+': ':''}${issue.message}`)
     }
+  }
+  const circuit = records as CircuitJson
+  const signals = new Map(circuit.filter(record => record.type === 'simulation_signal').map(signal => [signal.simulation_signal_id, signal]))
+  for (const waveform of circuit.filter(record => record.type === 'simulation_signal_waveform')) {
+    const signal = signals.get(waveform.simulation_signal_id)
+    if (signal && isQuiet(signal) !== (waveform.idle_voltage_v !== undefined)) fail('circuit_schema', `${signal.name}: idle_voltage_v is required on quiet waveforms and absent on switching waveforms`)
+  }
+  for (const rlgc of circuit.filter(record => record.type === 'simulation_signal_integrity_rlgc')) for (const signalId of new Set(rlgc.conductors.map(conductor => conductor.simulation_signal_id))) {
+    const signal = signals.get(signalId)
+    if (!signal) continue
+    const ports = rlgc.conductors.filter(conductor => conductor.simulation_signal_id === signalId).map(conductor => conductor.source_port_id)
+    const driver = signal.driver
+    const expected = 'source_port_id' in driver ? [driver.source_port_id] : [driver.p_source_port_id, driver.n_source_port_id]
+    if (ports.length !== expected.length || expected.some(port => !ports.includes(port))) fail('circuit_schema', `${signal.name}: RLGC conductors must identify every driver port exactly once`)
   }
 }

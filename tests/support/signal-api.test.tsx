@@ -58,20 +58,21 @@ test('RS485 differential identity and the placed termination are derived from re
   const ibis = await sources()
   const prepared = prepareBlocks(circuit, ibis)[0]
   const receiver = prepared.signals[0].receivers[0]
-  assert.equal(receiver.kind, 'differential')
-  if (receiver.kind !== 'differential') return
+  assert.ok('p_source_port_id' in receiver)
+  if (!('p_source_port_id' in receiver)) return
   const resistor = circuit.filter(r => r.type === 'source_component').find(r => r.name === 'RTERM')!
   assert.ok(prepared.settings.passiveComponents?.some(p => p.sourceComponentId === resistor.source_component_id))
 })
 
-test('signal packages and vendor reference evidence remain present; quiet-off rejects output-only buffers', { skip: !modelDir }, async () => {
+test('signal packages and vendor reference evidence remain present; disabled drivers reject output-only buffers', { skip: !modelDir }, async () => {
   const circuit = await renderSignals(<Single />)
   const signal = circuit.find(r => r.type === 'simulation_signal')!
   if (signal.type !== 'simulation_signal') throw new Error('missing signal')
-  signal.quiet = 'off'
+  signal.driver_disabled = true
   const ibis = await sources()
   assert.throws(() => prepareBlocks(circuit, ibis), /has no disabled state/)
-  signal.quiet = 'low'
+  signal.driver_disabled = false
+  signal.pattern = '0'
   const prepared = prepareBlocks(circuit, ibis)[0]
   const geometry = geometryFromCircuitJson(prepared.circuit, prepared.settings)
   const declarations = generalDeclarations(prepared.circuit, geometry, prepared.settings)

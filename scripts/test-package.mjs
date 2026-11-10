@@ -48,7 +48,7 @@ try {
     const {renderSignals}=await import('../tests/support/signal-render.tsx')
     const {default:Single}=await import('../examples/level1-single-ended/level1-single-ended.tsx')
     input.circuitJson=(await renderSignals(React.createElement(Single))).filter(record=>record.type!=='pcb_trace')
-    for(const record of input.circuitJson)if(record.type==='simulation_signal_integrity')record.unrouted='ideal'
+    for(const record of input.circuitJson)if(record.type==='simulation_signal_integrity')record.allow_unrouted_traces=true
     input.ibisSources['models/sn74lvc1g04.ibs']=await readFile(join(process.env.IBIS_MODEL_DIR,'sn74lvc1g04.ibs'),'utf8')
   }
   await writeFile(join(consumer,'input.json'),JSON.stringify(input))

@@ -132,7 +132,7 @@ export default () => (
     {/* Ideal shared rail for the two representative VDDQ balls; source power network omitted. */}
     <copperpour connectsTo="net.VDDQ" layer="inner5" unbroken />
 
-    <simulation.pcbtransientchannelsimulation name="WRITE" bitRate="800Mbps" corner="typical">
+    <simulation.pcbtransientchannelsimulation name="WRITE" bitRate="800Mbps">
       <simulation.pcbchannel
         name="DQS"
         driverRef={{

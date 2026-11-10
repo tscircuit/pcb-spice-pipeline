@@ -18,7 +18,7 @@ test('a board without SI blocks returns an empty result without solver calls', a
 })
 
 test('official exported result schemas reject incompatible names and incomplete arrays', () => {
-  const waveform = { type: 'simulation_signal_waveform', simulation_signal_waveform_id: 'wave', simulation_signal_id: 'signal', end: 'far', source_port_id: 'port', timestamps_s: [0, 1], voltage_levels: [0, 1] }
+  const waveform = { type: 'simulation_signal_waveform', simulation_signal_waveform_id: 'wave', simulation_signal_id: 'signal', source_port_id: 'port', timestamps_s: [0, 1], voltage_levels: [0, 1] }
   validateCircuitRecords([waveform])
   assert.throws(() => validateCircuitRecords([{ ...waveform, timestamps_s: [0, 0] }]), /circuit_schema/)
   assert.throws(() => validateCircuitRecords([{ ...waveform, voltage_levels: [1] }]), /circuit_schema/)
@@ -27,7 +27,7 @@ test('official exported result schemas reject incompatible names and incomplete 
 
 test('synthetic transient IO covers public result schemas and retains only accepted refinement waveforms', { skip: !process.env.IBIS_MODEL_DIR }, async () => {
   const circuitJson = (await renderSignals(<Single />)).filter(record => record.type !== 'pcb_trace')
-  for (const record of circuitJson) if (record.type === 'simulation_signal_integrity') record.unrouted = 'ideal'
+  for (const record of circuitJson) if (record.type === 'simulation_signal_integrity') record.allow_unrouted_traces = true
   const result = await runPipeline({ circuitJson, ibisSources: { 'models/sn74lvc1g04.ibs': await readFile(`${process.env.IBIS_MODEL_DIR}/sn74lvc1g04.ibs`) }, runSolver: async request => {
     assert.equal(request.solver, 'ngspice')
     const end = Number(/^tran \S+ (\S+)/m.exec(request.files['simulation.cir'])![1])
@@ -44,11 +44,11 @@ test('synthetic transient IO covers public result schemas and retains only accep
   assert.ok(convergence.checks.every((check: { previous_waveform_csv_sha256: string; waveform_csv_sha256: string }) => /^[a-f0-9]{64}$/.test(check.previous_waveform_csv_sha256) && /^[a-f0-9]{64}$/.test(check.waveform_csv_sha256)))
 })
 
-test('real I/O capability permits quiet-off and counts the alternate-charge idle solve', { skip: !process.env.IBIS_MODEL_DIR }, async () => {
+test('real I/O capability permits disabled drivers and counts the alternate-charge idle solve', { skip: !process.env.IBIS_MODEL_DIR }, async () => {
   const circuitJson = (await renderSignals(<Differential />)).filter(record => record.type !== 'pcb_trace')
   for (const record of circuitJson) {
-    if (record.type === 'simulation_signal_integrity') record.unrouted = 'ideal'
-    if (record.type === 'simulation_signal') record.quiet = 'off'
+    if (record.type === 'simulation_signal_integrity') record.allow_unrouted_traces = true
+    if (record.type === 'simulation_signal') record.driver_disabled = true
   }
   let calls = 0
   const result = await runPipeline({ circuitJson, ibisSources: { 'models/sn65hvd72.ibs': await readFile(`${process.env.IBIS_MODEL_DIR}/sn65hvd72.ibs`) }, runSolver: async request => {
@@ -60,13 +60,13 @@ test('real I/O capability permits quiet-off and counts the alternate-charge idle
   assert.equal(calls, 6, 'idle, two charge-basis trials, switching and two independent refinements')
   assert.equal(result.experiments[0].solverInvocations, calls)
   const noise = result.blocks[0].results.filter(record => record.type === 'simulation_signal_waveform')
-  assert.deepEqual(noise.map(record => [record.end, record.idle_voltage_v]), [['far', 0], ['near', 0]])
+  assert.deepEqual(noise.map(record => record.idle_voltage_v), [0, 0])
   validateCircuitRecords(result.blocks[0].results)
 })
 
 test('an incomplete constant idle waveform cannot become a crosstalk reference', { skip: !process.env.IBIS_MODEL_DIR }, async () => {
   const circuitJson = (await renderSignals(<Single />)).filter(record => record.type !== 'pcb_trace')
-  for (const record of circuitJson) if (record.type === 'simulation_signal_integrity') record.unrouted = 'ideal'
+  for (const record of circuitJson) if (record.type === 'simulation_signal_integrity') record.allow_unrouted_traces = true
   await assert.rejects(runPipeline({ circuitJson, ibisSources: { 'models/sn74lvc1g04.ibs': await readFile(`${process.env.IBIS_MODEL_DIR}/sn74lvc1g04.ibs`) }, runSolver: async request => {
     const end = Number(/^tran \S+ (\S+)/m.exec(request.files['simulation.cir'])![1])
     return { stdout: '', stderr: '', files: { 'waveform.dat': `time voltage\n0 3.3\n${end / 2} 3.3\n` } }
@@ -76,8 +76,8 @@ test('an incomplete constant idle waveform cannot become a crosstalk reference',
 test('a common-mode-only idle trial cannot hide a floating differential mode (synthetic charge oracle)', { skip: !process.env.IBIS_MODEL_DIR }, async () => {
   const circuitJson = (await renderSignals(<Differential />)).filter(record => record.type !== 'pcb_trace')
   for (const record of circuitJson) {
-    if (record.type === 'simulation_signal_integrity') record.unrouted = 'ideal'
-    if (record.type === 'simulation_signal') record.quiet = 'off'
+    if (record.type === 'simulation_signal_integrity') record.allow_unrouted_traces = true
+    if (record.type === 'simulation_signal') record.driver_disabled = true
   }
   await assert.rejects(runPipeline({ circuitJson, ibisSources: { 'models/sn65hvd72.ibs': await readFile(`${process.env.IBIS_MODEL_DIR}/sn65hvd72.ibs`) }, runSolver: async request => {
     const deck = request.files['simulation.cir']

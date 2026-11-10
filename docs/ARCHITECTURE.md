@@ -28,7 +28,7 @@ stateDiagram-v2
   input --> admitted: schema and derived settings
   input --> sealed: no SI blocks
   admitted --> declared: 3D copper model (2D bars if straight parallel) and declarations
-  declared --> bound: buffers and probe scope
+  declared --> bound: buffers and local probes
   bound --> extracted: mesh copper, native R/L/C
   extracted --> simulated: undisturbed idle, then converged transient
   simulated --> observed: accepted waveforms

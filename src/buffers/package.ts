@@ -2,14 +2,13 @@ import { convertIbisModelToSpice, parseIbis, type ConvertedGeneralIbisComponent 
 import type { ModelRunDefinition } from './types'
 import { referenceVoltages } from './inspect'
 
-/** Convert die buffers, retaining every vendor pin package under the supported ideal PDN. */
+/** Convert die buffers, retaining every vendor pin package with ideal die rails. */
 export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): ConvertedGeneralIbisComponent {
   const document = parseIbis(new TextDecoder().decode(bytes))
   const component = document.components[input.definition.component]
   if (!component) throw new Error(`Missing IBIS component ${input.definition.component}`)
   if (component.coupledPackage) throw new Error(`${component.name}: coupled [Package Model] not implemented yet; scalar fallback is forbidden`)
   const converted = convertIbisModelToSpice(bytes, { ...input.definition, packagePolicy: 'omit' }, input.run)
-  const corner = { typical: 0, minimum: 1, maximum: 2 }[input.definition.corner]
   const top = converted.source.indexOf('\n.ends ')
   const wrapper = converted.source.slice(0, top).split('\n')
   const header = wrapper.findIndex(line => /^\.subckt /i.test(line))
@@ -22,7 +21,7 @@ export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): C
   if (!groundTerminal) throw new Error(`${component.name}: package ground is not mapped`)
   const voltages = new Map<string, number>()
   for (const pin of converted.metadata.pins) {
-    for (const [role, voltage] of Object.entries(referenceVoltages(document.getBuffer(pin.model), corner))) {
+    for (const [role, voltage] of Object.entries(referenceVoltages(document.getBuffer(pin.model)))) {
       const port = pin.references[role as keyof ReturnType<typeof referenceVoltages>]
       if (voltages.has(port) && Math.abs(voltages.get(port)! - voltage) > 1e-8) throw new Error(`${port}: incompatible IBIS die voltages`)
       voltages.set(port, voltage)
@@ -40,7 +39,7 @@ export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): C
     const pin = component.pins[physical[0][0]]
     let node = terminal
     for (const [field, kind] of [['resistance', 'R'], ['inductance', 'L']] as const) {
-      const value = pin[field] ?? component.package[field]?.[corner]
+      const value = pin[field] ?? component.package[field]?.[0]
       if (value === undefined || value === null || value < 0) throw new Error(`${physical[0][0]}: vendor package ${field} missing`)
       if (value > 0) {
         const next = `PKG${kind}${i}`
@@ -55,7 +54,7 @@ export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): C
       elements.push(`VPDN${i} ${reference} 0 ${voltage}`, `VPKG${i} ${node} ${reference} 0`)
       nodes.set(terminal, reference)
     } else nodes.set(terminal, node)
-    const value = pin.capacitance ?? component.package.capacitance?.[corner]
+    const value = pin.capacitance ?? component.package.capacitance?.[0]
     if (value === undefined || value === null || value < 0) throw new Error(`${physical[0][0]}: vendor package capacitance missing`)
     if (value > 0) {
       elements.push(`CPKG${i}a ${terminal} ${dieGround} ${value / 2}`, `CPKG${i}b ${node} ${dieGround} ${value / 2}`)
@@ -65,6 +64,6 @@ export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): C
   converted.source = [...body, ...elements].join('\n') + converted.source.slice(top)
   converted.metadata.packagePolicy = 'vendor'
   converted.metadata.omissions = []
-  converted.warnings = ['Vendor pin package RLC retained; pdn="ideal" constrains die POWER/GND nodes, including behind the reference-pin packages']
+  converted.warnings = ['Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages']
   return converted
 }

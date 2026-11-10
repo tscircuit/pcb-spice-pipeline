@@ -14,7 +14,7 @@ const modelDir = process.env.IBIS_MODEL_DIR
 /** Real vendor bytes, never an invented model. */
 const sources = async (): Promise<Record<string, Uint8Array>> => ({ 'models/sn74lvc1g04.ibs': await readFile(`${modelDir}/sn74lvc1g04.ibs`) })
 /** Regression boards stay ordinary TSX, including the deliberately incomplete route after RS. */
-function Board({ missing = false, via = false, branch = false, sameEnd = false, unlisted = false, offset = 0, unrouted = 'error' }: { missing?: boolean; via?: boolean; branch?: boolean; sameEnd?: boolean; unlisted?: boolean; offset?: number; unrouted?: 'error' | 'ideal' }): React.JSX.Element {
+function Board({ missing = false, via = false, branch = false, sameEnd = false, unlisted = false, offset = 0, allowUnroutedTraces = false }: { missing?: boolean; via?: boolean; branch?: boolean; sameEnd?: boolean; unlisted?: boolean; offset?: number; allowUnroutedTraces?: boolean }): React.JSX.Element {
   return <board width={18} height={12} layers={4} thickness={1.6} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled isViaInPadAllowed allowBlindAndBuriedVias>
     <Inverter name="TX" x={-5} y={0} driver /><Inverter name="RX" x={5} y={0} driver={false} groundX={sameEnd ? -8 : 0} />
     <Reference />
@@ -35,7 +35,7 @@ function Board({ missing = false, via = false, branch = false, sameEnd = false, 
       <Inverter name="TX1" x={-5} y={1} driver /><Inverter name="RX1" x={5} y={1} driver={false} />
       <trace from={branch ? '.TX > .Y' : '.TX1 > .Y'} to=".RX1 > .A" width={.2} pcbPath={branch ? ['.TX > .Y', { x: 5, y: 1 }, '.RX1 > .A'] : ['.TX1 > .Y', '.RX1 > .A']} />
     </>}
-    <simulation.pcbtransientchannelsimulation bitRate="20Mbps" unrouted={unrouted}>
+    <simulation.pcbtransientchannelsimulation bitRate="20Mbps" allowUnroutedTraces={allowUnroutedTraces}>
       <simulation.pcbchannel offset={offset} name="D81" driverRef=".TX > .Y" receiverRef={branch ? ['.RX > .A', '.RX1 > .A'] : '.RX > .A'} />
     </simulation.pcbtransientchannelsimulation>
   </board>
@@ -44,15 +44,15 @@ function Board({ missing = false, via = false, branch = false, sameEnd = false, 
 test('full unrouted check reaches the segment after a series passive', { skip: !modelDir }, async () => {
   await assert.rejects(renderSignals(<Board missing />), /is not routed between/)
   // Render the same physical gap under the explicit ideal policy, then test admission of saved Circuit JSON under error.
-  const circuit = await renderSignals(<Board missing unrouted="ideal" />, ['pcb_trace_missing_error', 'pcb_port_not_connected_error'])
+  const circuit = await renderSignals(<Board missing allowUnroutedTraces />, ['pcb_trace_missing_error', 'pcb_port_not_connected_error'])
   const block = circuit.find(record => record.type === 'simulation_signal_integrity')!
   if (block.type !== 'simulation_signal_integrity') throw new Error('Missing block')
-  block.unrouted = 'error'
+  block.allow_unrouted_traces = false
   const ibis = await sources()
   assert.throws(() => prepareBlocks(circuit, ibis), /is not routed between/)
   const geometryOnly = circuit.filter(record => !record.type.endsWith('_error'))
   assert.throws(() => prepareBlocks(geometryOnly, ibis), /is not routed between/)
-  block.unrouted = 'ideal'
+  block.allow_unrouted_traces = true
   const [prepared] = prepareBlocks(circuit, ibis)
   assert.ok(geometryFromCircuitJson(prepared.circuit, prepared.settings).cells[0].routedCopper)
 })
@@ -96,8 +96,8 @@ test('TSX vias use core preset plating and respect an explicit stackup thickness
 })
 
 const signal: SimulationSignal = { type: 'simulation_signal', simulation_signal_id: 's', simulation_signal_integrity_id: 'b', name: 'D',
-  driver: { kind: 'single', source_port_id: 'a' }, receivers: [{ kind: 'single', source_port_id: 'b' }],
-  bit_rate_bps: 1, pattern: 'prbs7', seed: 42, offset_s: 0, probe: 'local' }
+  driver: { source_port_id: 'a' }, receivers: [{ source_port_id: 'b' }],
+  bit_rate_bps: 1, pattern: 'prbs7', seed: 42, offset_s: 0 }
 
 test('PRBS7 has a complete stable 127-bit period with decorrelated seeds', () => {
   const a = signalBits(signal, 127)
@@ -108,16 +108,17 @@ test('PRBS7 has a complete stable 127-bit period with decorrelated seeds', () =>
   for (const pattern of ['prbs15', 'prbs31']) assert.equal(signalBits({ ...signal, pattern }, 20).length, 21)
   assert.equal(signalBits({ ...signal, pattern: 'prbs31', offset_s: 1000 }, 1002).length, 3)
   assert.throws(() => signalBits({ ...signal, seed: 0 }, 20), /integer in 1..127/)
-  assert.throws(() => signalBits({ ...signal, seed: 0, quiet: 'high' }, 20), /integer in 1..127/)
+  assert.throws(() => signalBits({ ...signal, seed: 0, driver_disabled: true }, 20), /integer in 1..127/)
+  assert.equal(signalBits({ ...signal, driver_disabled: true }, 20), '0')
 })
 
-test('literal, clock and each explicit quiet state', () => {
+test('literal, clock and constant patterns and disabled drivers', () => {
   assert.equal(signalBits({ ...signal, pattern: '0011' }, 2), '0011')
   assert.equal(signalBits({ ...signal, pattern: 'clock' }, 10), '01')
-  assert.equal(signalBits({ ...signal, quiet: 'high' }, 10), '1')
-  assert.equal(signalBits({ ...signal, quiet: 'low' }, 10), '0')
+  assert.equal(signalBits({ ...signal, pattern: '1' }, 10), '1')
+  assert.equal(signalBits({ ...signal, pattern: '0' }, 10), '0')
   assert.throws(() => signalBits({ ...signal, pattern: '10x' }, 10), /pattern/)
-  assert.deepEqual(endpointPorts({ kind: 'differential', p_source_port_id: 'p', n_source_port_id: 'n' }), ['p', 'n'])
+  assert.deepEqual(endpointPorts({ p_source_port_id: 'p', n_source_port_id: 'n' }), ['p', 'n'])
 })
 
 test('the removed modeling API cannot supply a test or synthesize a block', () => {

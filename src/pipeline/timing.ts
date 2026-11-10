@@ -1,8 +1,8 @@
-import type { SimulationSignal } from '../board'
+import { isQuiet, type SimulationSignal } from '../board'
 
 /** Finite capture after startup; quiet-only captures use 32 of the slowest UI. */
 export function recordingTime(signals: SimulationSignal[]): { duration: number; gate: number } {
-  const switching = signals.filter(signal => !signal.quiet)
+  const switching = signals.filter(signal => !isQuiet(signal))
   const ui = Math.max(...(switching.length ? switching : signals).map(signal => 1 / signal.bit_rate_bps))
   const gate = switching.length ? Math.max(...switching.map(signal => signal.offset_s + 16 / signal.bit_rate_bps)) : 16 * ui
   return { duration: switching.length ? gate + 128 * ui : 32 * ui, gate }

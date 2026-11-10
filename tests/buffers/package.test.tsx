@@ -24,26 +24,25 @@ async function fixture(differential: boolean = false): Promise<{ bytes: Uint8Arr
   return { bytes, prepared, geometry, declarations: generalDeclarations(prepared.circuit, geometry, prepared.settings) }
 }
 
-test('ideal PDN keeps die references on perfect rails and preserves every pin package at each corner', { skip: !modelDir }, async () => {
+test('ideal die rails preserve every pin package at the typical corner', { skip: !modelDir }, async () => {
   for (const differential of [false, true]) {
     const { bytes, declarations } = await fixture(differential)
     const document = parseIbis(new TextDecoder().decode(bytes))
-    for (const [corner, selection] of ['typical', 'minimum', 'maximum'].entries()) for (const model of declarations.models) {
+    for (const model of declarations.models) {
       const input = modelRunDefinition(model, declarations.plans[0])
-      input.definition.corner = selection as typeof input.definition.corner
       const converted = convertPackaged(bytes, input)
       const die = convertIbisModelToSpice(bytes, { ...input.definition, packagePolicy: 'omit' }, input.run)
       const component = document.components[input.definition.component]
       for (const [i, [terminal, port]] of Object.entries(converted.spicePinMapping).entries()) {
         const physical = Object.keys(input.definition.pinMap).find(pin => input.definition.pinMap[pin] === port)!
         const pin = component.pins[physical]
-        assert.ok(converted.source.includes(`RPKG${i} ${terminal} PKGR${i} ${pin.resistance ?? component.package.resistance![corner]}`))
-        assert.ok(converted.source.includes(`LPKG${i} PKGR${i} PKGL${i} ${pin.inductance ?? component.package.inductance![corner]}`))
+        assert.ok(converted.source.includes(`RPKG${i} ${terminal} PKGR${i} ${pin.resistance ?? component.package.resistance![0]}`))
+        assert.ok(converted.source.includes(`LPKG${i} PKGR${i} PKGL${i} ${pin.inductance ?? component.package.inductance![0]}`))
         assert.ok(converted.source.includes(`CPKG${i}a ${terminal} `))
         assert.ok(converted.source.includes(`CPKG${i}b PKGL${i} `))
         if (/^(power|gnd)$/i.test(pin.model)) {
           const buffer = document.getBuffer(converted.metadata.pins[0].model)
-          const voltage = /^power$/i.test(pin.model) ? (buffer.pullupReference ?? buffer.voltage)[corner] : (buffer.pulldownReference ?? [0, 0, 0])[corner]
+          const voltage = /^power$/i.test(pin.model) ? (buffer.pullupReference ?? buffer.voltage)[0] : (buffer.pulldownReference ?? [0, 0, 0])[0]
           assert.ok(converted.source.includes(`VPDN${i} DIE${i} 0 ${voltage}`))
         }
       }
