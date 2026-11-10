@@ -37,8 +37,8 @@
       "level": "level1-differential",
       "files": {
         "level1-differential.tsx": {
-          "bytes": 2713,
-          "sha256": "9a0d1746400ad500089aa526ea8aa472a35590e0dcae5903a2e585eb18a12e7e"
+          "bytes": 2224,
+          "sha256": "bf8fe8d6e14319d2d0cfe245045a219b9ae7d58aa40eb60e6211c04d8280ce63"
         },
         "level1-differential.png": {
           "bytes": 119793,
@@ -307,7 +307,13 @@
     {
       "level": "level1-differential",
       "core_module": "../core/dist/index.js",
-      "example_sha256": "9a0d1746400ad500089aa526ea8aa472a35590e0dcae5903a2e585eb18a12e7e",
+      "example_sha256": "bf8fe8d6e14319d2d0cfe245045a219b9ae7d58aa40eb60e6211c04d8280ce63",
+      "example_refactor": {
+        "previous_example_sha256": "9a0d1746400ad500089aa526ea8aa472a35590e0dcae5903a2e585eb18a12e7e",
+        "change": "pcbPath arrays moved to routes.ts",
+        "rendered_input_identical": true,
+        "cache_only_replay": "9 of 9 native requests matched the accepted cache"
+      },
       "native_timeout_ms": 1200000,
       "ibis_sha256": {
         "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
