@@ -98,6 +98,69 @@ test('TSX coupled package replaces scalar values, preserves ideal die rails and 
   assert.equal(converted.metadata.packageData.mappedPins.find(pin => pin.physicalPin === 'A1')?.resistanceOhms, 1)
   assert.ok(converted.warnings.some(warning => /A1.*resistance.*9.*1/.test(warning)))
   assert.throws(() => convertPackaged(new TextEncoder().encode(source.replace('[Define Package Model] coupled', '[Define Package Model] absent')), { ...input, definition: { ...input.definition, source: { file: 'fixture.ibs' } } }), /missing.*scalar fallback is forbidden/i)
+  // IBIS 6.1 section 7: unlisted pins use [Pin] then [Package], while
+  // an unlisted member of a modeled [Pin Mapping] rail bus is merged.
+  const partial = source.slice(0, source.indexOf('[Define Package Model]')) + `[Define Package Model] coupled
+[Manufacturer] Test
+[OEM] Test
+[Description] Only the signal pins have matrix data
+[Number Of Pins] 2
+[Pin Numbers]
+B1
+A1
+[Model Data]
+[Resistance Matrix] Full_matrix
+[Row] B1
+2 .2
+[Row] A1
+1
+[Inductance Matrix] Full_matrix
+[Row] B1
+4n -1n
+[Row] A1
+2n
+[Capacitance Matrix] Full_matrix
+[Row] B1
+3p -.5p
+[Row] A1
+2p
+[End Model Data]
+[End Package Model]
+[End]`
+  const partialSource = partial.replace('G1 VSS GND 6 6n 6p', 'G1 VSS GND NA NA NA')
+  const variantInput = { ...input, definition: { ...input.definition, source: { file: 'fixture.ibs' } } }
+  const unlisted = convertPackaged(new TextEncoder().encode(partialSource), variantInput)
+  assert.deepEqual(unlisted.metadata.packageData.matrices?.pins, ['A1', 'B1'])
+  assert.match(unlisted.source, /RPKGU2 PAD2 \S+ 7\n/)
+  assert.match(unlisted.source, /LPKGU2 \S+ \S+ 7e-9\n/)
+  assert.match(unlisted.source, /RPKGU3 PAD3 \S+ 99\n/)
+  assert.match(unlisted.source, /LPKGU3 \S+ \S+ 9\.9e-8\n/)
+  assert.match(unlisted.source, /CPKGU2a PAD2 DIE3 3\.5e-12/)
+  assert.match(unlisted.source, /CPKGU3a PAD3 DIE3 4\.95e-11/)
+  assert.match(unlisted.source, /VPDN2 DIE2 0 1\.5/)
+  assert.match(unlisted.source, /VPDN3 DIE3 0 0/)
+  const identifiers = unlisted.source.split('\n').filter(line => /^[RVLCHK]PKG/.test(line)).map(line => line.split(' ')[0])
+  assert.equal(new Set(identifiers).size, identifiers.length, 'scalar and matrix element names cannot collide')
+  assert.equal(unlisted.metadata.packageData.mappedPins.find(pin => pin.physicalPin === 'V1')?.resistanceOhms, 7)
+  assert.equal(unlisted.metadata.packageData.mappedPins.find(pin => pin.physicalPin === 'G1')?.resistanceOhms, 99)
+  const positiveC = partial.replace('3p -.5p', '3p .5p')
+  assert.throws(() => convertPackaged(new TextEncoder().encode(positiveC), variantInput), /Maxwell.*positive off-diagonal/, 'positive mutual magnitudes are not IBIS Maxwell entries')
+  const busSource = source.replace('[Model] input', `[Pin Mapping] pulldown_ref pullup_ref gnd_clamp_ref power_clamp_ref
+A1 GND VDD GND VDD
+B1 GND VDD GND VDD
+G1 GND NC NC NC
+G2 GND NC NC NC
+V1 NC VDD NC NC
+V2 NC VDD NC NC
+[Model] input`).replace('[Pin] signal_name model_name R_pin L_pin C_pin', '[Pin] signal_name model_name R_pin L_pin C_pin\nG2 VSS GND\nV2 VDD POWER')
+  const busStart = busSource.indexOf('[Define Package Model]')
+  const mergedSource = busSource.slice(0, busStart) + busSource.slice(busStart).replaceAll('G1', 'G2').replaceAll('V1', 'V2')
+  const merged = convertPackaged(new TextEncoder().encode(mergedSource), variantInput)
+  assert.deepEqual(merged.metadata.packageData.matrices?.pins, ['A1', 'B1', 'V2', 'G2'])
+  assert.deepEqual(merged.metadata.packageData.matrices?.mergedPins, { V1: 'V2', G1: 'G2' })
+  assert.match(merged.source, /VPKGM2 PAD2 PKGM2 0/)
+  assert.match(merged.source, /VPKGM3 PAD3 PKGM3 0/)
+  assert.doesNotMatch(merged.source, /RPKGU|LPKGU|CPKGU/)
   if (process.env.SI_TEST_PACKAGE_NGSPICE !== '1') return
   const data = { pins: ['A', 'B'], R: [[1, -.2], [-.2, 2]], L: [[2e-9, 1e-9], [1e-9, 4e-9]], C: [[2e-12, -.5e-12], [-.5e-12, 3e-12]] }
   const elements = coupledPackageElements(data, ['a', 'b'], ['0', '0'], '0')
