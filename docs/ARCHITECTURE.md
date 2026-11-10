@@ -8,7 +8,7 @@ appear in the new result Circuit JSON.
 
 ```mermaid
 flowchart LR
-  source["Circuit JSON SI records"] --> derive["pipeline: independent block derivation<br/>buffers: coupled package admission and passivity"]
+  source["Circuit JSON SI records"] --> derive["pipeline: independent block derivation<br/>buffers: package admission, unlisted-pin hierarchy and passivity"]
   derive --> board3d["board: 3D copper, layered dielectric and series receiver taps"]
   board3d --> check{"straight parallel traces,<br/>one rectangular return<br/>with contacts at opposite ends?"}
   check -->|"yes"| bars["board: extra 2D bar reduction for R/L<br/>C retains physical copper and dielectric"]
@@ -60,7 +60,9 @@ node identity and ngspice; `observation` owns interpolation and convergence.
 `package-matrix.ts` validates the complete matrices and reduces unused floating
 pins; `coupled-package.ts` emits the coupled lumped pi circuit. Admission runs
 during signal derivation, before extraction. Assembly records selected matrices,
-original self terms, unused pins and the termination policy. The converter still
+original self terms, unused pins, merged rail associations and the termination policy.
+Unlisted pins follow the IBIS scalar hierarchy or implicit merged rail bus rules.
+Core only checks declaration/model bindings, capabilities and routing. The converter still
 supplies die buffers with its package omitted; the pipeline must then realize
 the selected vendor package. See [the electrical contract](coupled-package-model.md).
 

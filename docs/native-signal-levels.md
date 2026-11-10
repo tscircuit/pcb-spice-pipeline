@@ -42,12 +42,12 @@ model’s explicit pullup, pulldown and clamp reference voltages override its
 typical values; conflicting shared references fail. Branched routed graphs retain
 explicit errors. Coupled packages now have
 [parser, passivity and circuit support](coupled-package-model.md), independently
-verified without rerunning these native board cases. The current core build
-still rejects the DDR3 TSX before emitting its signal records. Direct pipeline
-package admission on the real physical TSX advances to missing reference balls
-`E5` and `A1` in the AM335x matrix; its positive off-diagonal capacitances are an
-additional vendor-data blocker. No new DDR3 waveforms or board-native evidence
-are claimed.
+verified without rerunning these native board cases. The updated core renders
+all nine DDR3 channels. Unlisted E5/A1 reference pins now follow the IBIS scalar
+hierarchy, while raw AM335x capacitance still violates the required Maxwell signs.
+An opt-in in-memory sign diagnostic passes package admission and static assembly,
+then reaches the switching-waveform overlap error. This is conditional evidence,
+not raw-source acceptance. No new DDR3 waveforms or board-native evidence are claimed.
 
 ## Reproduction
 

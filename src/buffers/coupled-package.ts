@@ -2,9 +2,26 @@ import type { IbisComponent } from '@tscircuit/ibis-to-spice'
 import { parsePackageModel } from './package-model'
 import { selectPackageModel, type SelectedPackageModel } from './package-matrix'
 
-/** Resolve and validate every mapped physical pin, including its explicit reference balls. */
-export function coupledPackage(text: string, component: IbisComponent, pins: string[]): SelectedPackageModel | undefined {
-  return component.coupledPackage === undefined ? undefined : selectPackageModel(parsePackageModel(text, component.coupledPackage), pins)
+export interface CoupledPackageModel extends SelectedPackageModel {
+  mergedPins: Record<string, string>
+}
+
+/** IBIS [Pin Numbers]: unlisted pins use scalar data unless their rail bus is merged. */
+export function coupledPackage(text: string, component: IbisComponent, pins: string[]): CoupledPackageModel | undefined {
+  if (component.coupledPackage === undefined) return undefined
+  const model = parsePackageModel(text, component.coupledPackage)
+  const mergedPins: Record<string, string> = {}
+  for (const pin of pins) {
+    const physical = component.pins[pin]
+    if (!physical) throw new Error(`${model.name}: selected physical pin ${pin} missing from [Pin]`)
+    if (model.pins.includes(pin)) continue
+    const role = /^power$/i.test(physical.model) ? 'pullup' : /^gnd$/i.test(physical.model) ? 'pulldown' : undefined
+    const bus = role && component.pinMapping[pin]?.[role]
+    const first = role && bus ? model.pins.find(other => component.pins[other]?.model.toLowerCase() === physical.model.toLowerCase() && component.pinMapping[other]?.[role] === bus) : undefined
+    if (first) mergedPins[pin] = first
+  }
+  const selected = [...new Set(pins.map(pin => mergedPins[pin] ?? pin).filter(pin => model.pins.includes(pin)))]
+  return { ...selectPackageModel(model, selected), mergedPins }
 }
 
 /** Report exact [Pin] self-term differences without substituting scalar package values. */

@@ -18,6 +18,6 @@ With the built sibling overlays and local vendor files, run `OMP_NUM_THREADS=1 I
 
 ![level3-three-channels](level3-three-channels/level3-three-channels.png)
 
-**level4-ddr3-write.** ddr3: stopped after 1.701 s, 0 solver calls: `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.`.  CSV retains all 0 native sample rows. Full data: `runs/final-rfc` (local, ignored); hashes and convergence: `tests/evidence/signal-levels/`.
+**level4-ddr3-write.** Historical captured run: ddr3 stopped after 1.701 s, 0 solver calls: `.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.`. The current core passes this boundary; [current admission evidence](../docs/coupled-package-model.md#ddr3-admission-evidence-and-remaining-blockers) records the vendor C-sign rejection and a conditional waveform blocker. The PNG/CSV retain the original capture. Full data: `runs/final-rfc` (local, ignored); hashes and convergence: `tests/evidence/signal-levels/`.
 
 ![level4-ddr3-write](level4-ddr3-write/level4-ddr3-write.png)

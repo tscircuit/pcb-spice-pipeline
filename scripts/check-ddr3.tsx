@@ -1,37 +1,72 @@
 import React from 'react'
 import assert from 'node:assert/strict'
 import { readFile, mkdir, writeFile } from 'node:fs/promises'
-import { simulation } from '@tscircuit/core'
+import { createHash } from 'node:crypto'
 import DDR3 from '../examples/level4-ddr3-write/level4-ddr3-write'
 import { renderCoreSignals } from '../tests/support/core-render'
-import { parseIbis } from '@tscircuit/ibis-to-spice'
-import { coupledPackage } from '../src/buffers'
 import { parsePackageModel } from '../src/buffers/package-model'
-import { selectPackageModel } from '../src/buffers/package-matrix'
+import { prepareBlocks } from '../src/pipeline/signals'
+import { admit, declare, bind } from '../src/pipeline/stages'
+import { compileBuffers } from '../src/buffers'
+import { modelRunDefinition, type PipelineIbisModel } from '../src/simulation'
 
-const message = '.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.'
-await assert.rejects(renderCoreSignals(<DDR3 />), { message })
-const tree = DDR3()
-const physical = React.cloneElement(tree, {}, React.Children.toArray(tree.props.children).filter(child => !React.isValidElement(child) || child.type !== simulation.pcbtransientchannelsimulation))
-const circuit = await renderCoreSignals(physical)
-const cpu = circuit.find(record => record.type === 'source_component' && record.name === 'CPU')
-if (cpu?.type !== 'source_component') throw new Error('Missing CPU')
-const model = circuit.find(record => record.type === 'simulation_ibis_model' && record.source_component_id === cpu.source_component_id)!
-if (model.type !== 'simulation_ibis_model') throw new Error('Missing CPU model')
-const bytes = await readFile(`${process.env.IBIS_MODEL_DIR ?? 'models'}/sprm552c.ibs`)
-// Core still has its own independent rejection. Render the unchanged physical TSX
-// above and exercise the pipeline's package admission directly with its real map.
-const next = 'am335x_zcz: selected package pin E5 missing from [Pin Numbers]; scalar fallback is forbidden'
-const component = parseIbis(bytes.toString()).components[model.ibis_component_name]
-assert.throws(() => coupledPackage(bytes.toString(), component, Object.keys(model.ibis_pin_name_to_source_port_id)), { message: next })
-const packageModel = parsePackageModel(bytes.toString(), 'am335x_zcz')
-const selected = Object.keys(model.ibis_pin_name_to_source_port_id)
-const missing = selected.filter(pin => !packageModel.pins.includes(pin))
-assert.deepEqual(missing.sort(), ['A1', 'E5'])
+// Real core, unchanged DDR3 TSX, and no RunSolver capability anywhere in this check.
+const circuit = await renderCoreSignals(<DDR3 />)
+assert.equal(circuit.filter(record => record.type === 'simulation_signal').length, 9)
+const directory = process.env.IBIS_MODEL_DIR ?? 'models'
+const bytes = await readFile(`${directory}/sprm552c.ibs`)
+const dram = await readFile(`${directory}/W631GG6MB-12.ibs`)
+const sources = { 'models/sprm552c.ibs': bytes, 'models/W631GG6MB-12.ibs': dram }
+const raw = bytes.toString()
+const model = parsePackageModel(raw, 'am335x_zcz')
 const signError = 'am335x_zcz: Maxwell capacitance has positive off-diagonal entries; vendor sign conversion is forbidden'
-assert.throws(() => selectPackageModel(packageModel, selected.filter(pin => !missing.includes(pin))), { message: signError })
+assert.throws(() => prepareBlocks(circuit, sources), { message: signError })
+const margins = model.C.map((row, i) => row[i] - row.reduce((sum, value, j) => sum + (i === j ? 0 : Math.abs(value)), 0))
+const summary = {
+  status: 'raw_vendor_rejected', raw_admission_error: signError, native_solver_calls: 0,
+  source_sha256: createHash('sha256').update(bytes).digest('hex'),
+  package_pin_count: model.pins.length,
+  positive_coupling_pairs: model.C.reduce((sum, row, i) => sum + row.filter((value, j) => j > i && value > 0).length, 0),
+  diagonally_dominant_rows: margins.filter(value => value >= 0).length,
+  minimum_diagonal_margin_f: Math.min(...margins),
+  core_signals: circuit.filter(record => record.type === 'simulation_signal').length,
+  physical_records: Object.fromEntries(['pcb_trace', 'pcb_via', 'pcb_copper_pour'].map(type => [type, circuit.filter(record => record.type === type).length])),
+  diagnostic: undefined as object | undefined,
+}
+
+// Opt-in counterfactual only: do not edit vendor bytes or add a production sign heuristic.
+// This tests what follows a vendor-confirmed sign correction, not raw-source acceptance.
+if (process.env.SI_DIAGNOSTIC_MAXWELL_SIGNS === '1') {
+  const capacitance = '[Capacitance Matrix] Sparse_matrix\n' + model.pins.map((pin, i) =>
+    `[Row] ${pin}\n` + model.C[i].slice(i).map((value, j) => `${model.pins[i + j]} ${j === 0 ? value : -value}`).join('\n')).join('\n') + '\n'
+  const start = raw.indexOf('[Capacitance Matrix]', raw.indexOf('[Define Package Model]'))
+  const end = raw.indexOf('[End Model Data]', start)
+  assert.ok(start >= 0 && end > start)
+  const candidate = raw.slice(0, start) + capacitance + raw.slice(end)
+  const candidateSources = { ...sources, 'models/sprm552c.ibs': candidate }
+  const [block] = prepareBlocks(circuit, candidateSources)
+  const context = { progress: (): void => {} }
+  const admitted = (await admit.run({ phase: 'input', options: { circuitJson: block.circuit, modeling: block.settings, ibisSources: candidateSources } }, context)).state
+  const declared = (await declare.run(admitted, context)).state
+  // Static pin states exercise both real chip package assemblies without the
+  // switching-waveform rejection or any transient/extraction solver.
+  const [packages] = compileBuffers(declared.buffers, declared.experiments.plans.slice(0, 1), (model: PipelineIbisModel, plan) => {
+    const input = modelRunDefinition(model, plan)
+    input.run.stimuli = Object.fromEntries(Object.entries(input.run.stimuli).map(([port, stimulus]) => [port,
+      { ...stimulus, initialState: 0 as const, pattern: { ...stimulus.pattern, bits: '0' } }]))
+    return input
+  })
+  assert.equal(packages.length, 2)
+  const next = 'Actual adjacent transitions overlap the IBIS switching waveform'
+  await assert.rejects(async () => bind.run(declared, context), { message: next })
+  summary.diagnostic = {
+    status: 'counterfactual_sign_correction_only',
+    source_sha256: createHash('sha256').update(candidate).digest('hex'),
+    derived_blocks: 1, passed_stages: ['admit', 'declare'], next_stage: 'bind', next_error: next,
+    static_packages: packages.map(converted => ({ component: converted.name, matrix_pins: converted.metadata.packageData.matrices?.pins,
+      reference_pins: converted.metadata.packageData.mappedPins.filter(pin => pin.role === 'reference') })),
+  }
+}
 await mkdir('runs', { recursive: true })
-const summary = { status: 'package_admission_advanced', pipeline_package_error: next, missing_reference_pins: missing, additional_vendor_error: signError, real_core_error: message, native_solver_calls: 0,
-  package_pin_count: packageModel.pins.length, physical_records: Object.fromEntries(['pcb_trace', 'pcb_via', 'pcb_copper_pour'].map(type => [type, circuit.filter(record => record.type === type).length])) }
 await writeFile('runs/ddr3-boundary.json', JSON.stringify(summary, null, 2) + '\n')
-console.log(summary)
+console.log(JSON.stringify(summary, null, 2))

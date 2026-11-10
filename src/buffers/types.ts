@@ -1,10 +1,10 @@
 import type { ConvertedGeneralIbisComponent, IbisConversionMetadata, IbisModelDefinition, IbisRunConfig } from '@tscircuit/ibis-to-spice'
 import type { SimulationIbisModel } from '../board'
-import type { SelectedPackageModel } from './package-matrix'
+import type { CoupledPackageModel } from './coupled-package'
 
 /** Coupled package evidence augments the converter's scalar self-term metadata. */
 export type PackageConversionMetadata = IbisConversionMetadata & {
-  packageData: IbisConversionMetadata['packageData'] & { matrices?: SelectedPackageModel; unusedPinPolicy?: string }
+  packageData: IbisConversionMetadata['packageData'] & { matrices?: CoupledPackageModel; unusedPinPolicy?: string }
 }
 export type PackagedComponent = ConvertedGeneralIbisComponent & { metadata: PackageConversionMetadata }
 

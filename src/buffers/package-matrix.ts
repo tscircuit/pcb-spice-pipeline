@@ -39,7 +39,7 @@ function checkCapacitance(matrix: number[][], label: string): void {
  * External loads, switching and resonant circulating currents on unused pins are neglected.
  */
 export function selectPackageModel(model: PackageModel, pins: string[]): SelectedPackageModel {
-  if (!pins.length || new Set(pins).size !== pins.length) throw new Error(`${model.name}: distinct selected package pins required`)
+  if (new Set(pins).size !== pins.length) throw new Error(`${model.name}: distinct selected package pins required`)
   const indices = pins.map(pin => {
     const index = model.pins.indexOf(pin)
     if (index < 0) throw new Error(`${model.name}: selected package pin ${pin} missing from [Pin Numbers]; scalar fallback is forbidden`)

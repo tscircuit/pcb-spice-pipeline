@@ -34,8 +34,9 @@ and limitations. `simulationResultCircuitJson` retains the input and appends onl
 the RFC's waveform and RLGC result record kinds. Re-running replaces prior SI results. A board with no SI blocks returns an empty block/result collection without invoking a solver. Automatic duration stays absent in source records and is reported on each result block.
 
 Branched routes remain unsupported. Inline IBIS coupled package matrices are
-validated before extraction and lowered to a passive lumped package; missing or
-invalid package data never falls back to scalar values. See the
+validated before extraction and lowered to a passive lumped package. Unlisted
+pins follow the IBIS [Pin]/[Package] hierarchy and merged rail bus rules;
+missing or invalid matrix definitions still fail. See the
 [package model contract and DDR3 blockers](docs/coupled-package-model.md).
 Die POWER/GND references always connect directly to perfect rails;
 vendor package R/L/C remains between every mapped pin and its die node. See the [model rationale](docs/native-signal-levels.md).
