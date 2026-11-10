@@ -15,4 +15,7 @@ test('TSX differential receiver can share its physical pin with a routed termina
   const result = routedSimulation(block, sources, { riseSeconds: 1e-9, refinement: 1, durationSeconds: 1e-6, stepSeconds: 1e-10 })
   assert.equal(result.probes.length, 3, 'differential receiver and both physical legs')
   assert.match(result.deck, /R.*120/m, 'physical termination remains in the circuit')
+  const routes = result.evidence.routes as { sourceTraceId: string; length_mm: number }[]
+  assert.equal(new Set(routes.map(route => route.sourceTraceId)).size, 2)
+  assert.ok(routes.every(route => route.length_mm > 50), 'route evidence describes both long bus legs, rather than the termination stubs')
 })

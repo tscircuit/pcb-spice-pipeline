@@ -89,13 +89,14 @@ interface ArcCell { wire: RouteWire; start: number; end: number; before: string;
 interface ArcWire { offset: number; length: number; cells: number[]; sign: number }
 
 /** Integrate every local matrix energy onto delay-bounded route-arc cells, independent of curve tessellation. */
-export function routeLadder(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1): RouteLadder {
+export function routeLadder(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10): RouteLadder {
   if (!(riseSeconds > 0) || !Number.isInteger(refinement) || refinement < 1 || refinement > 4) throw new Error('Positive rise time and bounded integer spatial refinement (1..4) required')
+  if (!(cellsPerRise >= .5 && cellsPerRise <= 40)) throw new Error('Cells per rise time must be in [0.5,40]')
   const lines: string[] = []
   const wireNodes: RouteLadder['wireNodes'] = new Map()
   const wires = [...new Map(extracted.slices.flatMap(slice => slice.wires.map(wire => [wire.id, wire] as const))).values()].sort((a, b) => a.id - b.id)
   const maximumDelayPerMetre = Math.max(...extracted.slices.map(delayPerMetre))
-  const targetMm = riseSeconds / 10 / refinement / maximumDelayPerMetre * 1000
+  const targetMm = riseSeconds / cellsPerRise / refinement / maximumDelayPerMetre * 1000
   const cells: ArcCell[] = []
   const arc = new Map<number, ArcWire>()
   const contacts = new Map<string, number>()

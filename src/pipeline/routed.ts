@@ -3,13 +3,13 @@ import { extractRoutes, type RouteMaterials } from '../extraction'
 import { admitBuffers, compileBuffers, type IbisSources } from '../buffers'
 import { rootScope } from '../kernel'
 import { generalDeclarations, electricalSources, modelRunDefinition, namespaceSpice, routeLadder, routeTransitions, routeOblique, branchSaves, routedControl } from '../simulation'
-import type { PreparedBlock } from './signals'
+import { endpointPorts, type PreparedBlock } from './signals'
 
 /** Explicit material assumptions accompany every opt-in 2D run. */
 export const assumedRouteMaterials: RouteMaterials = { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }
 
 /** Compile physical route sections and original IBIS buffers into a bounded local transient deck. */
-export function routedSimulation(block: PreparedBlock, sources: IbisSources, options: { riseSeconds: number; refinement: number; stepSeconds: number; durationSeconds: number; panels?: number; currentToleranceA?: number }): {
+export function routedSimulation(block: PreparedBlock, sources: IbisSources, options: { riseSeconds: number; refinement: number; stepSeconds: number; durationSeconds: number; panels?: number; currentToleranceA?: number; cellsPerRise?: number }): {
   deck: string; evidence: Record<string, unknown>; geometry: ReturnType<typeof segmentRoutes>; extracted: ReturnType<typeof extractRoutes>
   probes: string[]; timings: Record<string, number>
 } {
@@ -37,8 +37,11 @@ export function routedSimulation(block: PreparedBlock, sources: IbisSources, opt
   const compiledAt = performance.now()
   // Cut every physical non-rail route out of the logical ideal netlist, including branched neighbours.
   const physical = block.circuit.filter(record => record.type === 'pcb_trace').filter(trace => scope.pcbTraceIds.includes(trace.pcb_trace_id) && !scope.nonReferenceRailTraceIds.includes(trace.pcb_trace_id)).map(trace => trace.source_trace_id!)
-  const mappings: LaneMapping[] = block.settings.lanes.map(lane => ({ port: lane.port, from: lane.from.sourcePortId!, to: lane.to.sourcePortId!,
-    sourceTraceId: lane.sourceTraceId!, pcbTraceId: '', pcbPorts: [], stages: [], originalRoute: [] }))
+  const mappings: LaneMapping[] = block.signals.flatMap(signal => signal.receivers.flatMap(receiver => endpointPorts(receiver).map((to, i) => {
+    const from = endpointPorts(signal.driver)[i]
+    const lane = block.settings.lanes.find(lane => lane.from.sourcePortId === from || lane.to.sourcePortId === from)!
+    return { port: signal.name, from, to, sourceTraceId: lane.sourceTraceId!, pcbTraceId: '', pcbPorts: [], stages: [], originalRoute: [] }
+  })))
   mappings[0].sourceTraceIds = physical
   const declarations = generalDeclarations(block.circuit, { mappings }, block.settings)
   const plan = declarations.plans[0]
@@ -77,7 +80,7 @@ export function routedSimulation(block: PreparedBlock, sources: IbisSources, opt
     const to = endpoint(wire, join.to)
     if (from !== to) aliases.push(`RJOIN${aliases.length} ${from} ${to} 1e-6`)
   }
-  const ladder = routeLadder(extracted, endpoint, options.riseSeconds, options.refinement)
+  const ladder = routeLadder(extracted, endpoint, options.riseSeconds, options.refinement, options.cellsPerRise)
   const oblique = routeOblique(geometry, extracted, ladder, scope, materials, options.panels)
   const transitions = routeTransitions(block.circuit, scope, geometry, endpoint, declarations.nodes.groundSourcePortId)
   const lines = ['Routed quasi-TEM coupled 2D extraction; JLC standard stackup (assumed)', `.options klu reltol=1e-4 abstol=${options.currentToleranceA ?? 1e-9} vntol=1e-6 method=gear maxord=2`, ...electrical.lines]
