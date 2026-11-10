@@ -13,7 +13,7 @@ export default () => (
 
     <resistor name="RTERM" resistance="120" footprint="0603" pcbX={23.8} pcbRotation={90} />
 
-    {/* Ideal die rails supply the chips; package parasitics remain. Power copper is omitted. */}
+    {/* Die rails are ideal; package parasitics remain. Power copper is omitted. */}
     <via name="GND_TX" pcbX={-21.7} pcbY={-1.905} holeDiameter="0.2mm" outerDiameter="0.4mm" layers={["top", "bottom"]} connectsTo="net.GND" />
     <via name="GND_RX" pcbX={23.1} pcbY={-1.905} holeDiameter="0.2mm" outerDiameter="0.4mm" layers={["top", "bottom"]} connectsTo="net.GND" />
     <trace from=".TX > .GND" to=".GND_TX > .top" connectsTo={[".TX > .GND", ".GND_TX > .top", "net.GND"]} pcbPath={routes.TX_GND} />

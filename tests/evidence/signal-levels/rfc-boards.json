@@ -37,8 +37,8 @@
       "level": "level1-differential",
       "files": {
         "level1-differential.tsx": {
-          "bytes": 2226,
-          "sha256": "0aa1cbc1a7a6dc5fbc30997c01e7d54c84f8f4ce543f1ff35ac19368854b5daa"
+          "bytes": 2213,
+          "sha256": "23878d0ecde650e77b16f7965d67e0e79d3b67ed3c2e31347f06c6ff16dfb87a"
         },
         "level1-differential.png": {
           "bytes": 119793,
@@ -313,7 +313,7 @@
     {
       "level": "level1-differential",
       "core_module": "../core/dist/index.js",
-      "example_sha256": "0aa1cbc1a7a6dc5fbc30997c01e7d54c84f8f4ce543f1ff35ac19368854b5daa",
+      "example_sha256": "23878d0ecde650e77b16f7965d67e0e79d3b67ed3c2e31347f06c6ff16dfb87a",
       "native_timeout_ms": 1200000,
       "acquisition_checkout_head": "67b8438acb29d49a7f0cfad786eb489a5939434c",
       "working_tree_dirty": true,
@@ -515,7 +515,7 @@
         }
       ],
       "refactor_replay": {
-        "note": "No-enums TSX replay: every native request matched the accepted cache byte-for-byte; original acquisition seconds and native timings retained.",
+        "note": "No-enums TSX replay: every native request matched the accepted cache byte-for-byte; original acquisition seconds and native timings retained. A later comment-only TSX wording change left the rendered input identical.",
         "seconds": 32.488,
         "matched_requests": 9,
         "native_processes": 0
