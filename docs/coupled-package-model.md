@@ -166,17 +166,17 @@ SI_CORE_MODULE="$(cd ../core && pwd)/dist/index.js" \
 SI_DIAGNOSTIC_MAXWELL_SIGNS=1 node --import tsx scripts/check-ddr3.tsx
 ```
 
-For that candidate, derivation and the pure admit/declare stages pass. Static
+For that candidate, derivation and the pure admit/declare/bind stages pass. Static
 package-only conversion verifies both real chip packages, including the AM335x
-scalar reference pins and ideal die rails. Normal bind then rejects:
-
-```text
-Actual adjacent transitions overlap the IBIS switching waveform
-```
-
-This next blocker is conditional on a confirmed C-sign correction. The JSON
+scalar reference pins and ideal die rails. The former bind error,
+`Actual adjacent transitions overlap the IBIS switching waveform`, is resolved by
+[checked inactive-tail scheduling](ibis-switching.md), including specification
+sources, actual waveform measurements and explicit truncation diagnostics.
+The next stage is extraction; it was deliberately not invoked, so there is no
+verified downstream error. Raw-source sign correction remains a user/vendor
+decision. The JSON
 summary in ignored `runs/ddr3-boundary.json` distinguishes raw rejection from the
-candidate, records both source hashes, and reports zero native solver calls.
+candidate, records both source hashes and waveform inspection, and reports zero native solver calls.
 No extraction or native board transient was started.
 
 Inline TSX tests use original small fixtures. The opt-in package-only ngspice

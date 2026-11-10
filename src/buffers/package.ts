@@ -1,7 +1,8 @@
-import { convertIbisModelToSpice, parseIbis } from '@tscircuit/ibis-to-spice'
+import { parseIbis } from '@tscircuit/ibis-to-spice'
 import type { ModelRunDefinition, PackagedComponent } from './types'
 import { referenceVoltages } from './inspect'
 import { coupledPackage, coupledPackageElements, packageComparisons } from './coupled-package'
+import { convertSwitching } from './switching'
 
 /** Convert die buffers, retaining every vendor pin package with ideal die rails. */
 export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): PackagedComponent {
@@ -9,7 +10,7 @@ export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): P
   const document = parseIbis(text)
   const component = document.components[input.definition.component]
   if (!component) throw new Error(`Missing IBIS component ${input.definition.component}`)
-  const converted: PackagedComponent = convertIbisModelToSpice(bytes, { ...input.definition, packagePolicy: 'omit' }, input.run)
+  const converted = convertSwitching(bytes, input, document)
   const physicalPins = Object.values(converted.spicePinMapping).map(port => {
     const physical = Object.keys(input.definition.pinMap).filter(pin => input.definition.pinMap[pin] === port)
     if (physical.length !== 1) throw new Error(`${port}: package pin mapping is ambiguous`)
@@ -97,8 +98,9 @@ export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition): P
   const body = wrapper.map((line, index) => index <= header ? line : line.replace(/\S+/g, token => nodes.get(token) ?? token))
   converted.source = [...body, ...elements].join('\n') + converted.source.slice(top)
   converted.metadata.packagePolicy = 'vendor'
+  converted.warnings = converted.warnings.filter(warning => !converted.metadata.omissions.includes(warning))
   converted.metadata.omissions = []
-  converted.warnings = ['Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages']
+  converted.warnings.push('Vendor pin package RLC retained; Ideal rails constrain die POWER/GND nodes, including behind the reference-pin packages')
   if (selected) converted.warnings.push('Coupled package: open unused series leads; floating-charge capacitance reduction; unused pin loads, switching and circulating currents neglected; one lumped pi section; unlisted pins follow the IBIS [Pin]/[Package] hierarchy or merged rail bus rules', ...packageComparisons(component, selected))
   return converted
 }

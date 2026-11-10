@@ -9,6 +9,7 @@ import { prepareBlocks } from '../src/pipeline/signals'
 import { admit, declare, bind } from '../src/pipeline/stages'
 import { compileBuffers } from '../src/buffers'
 import { modelRunDefinition, type PipelineIbisModel } from '../src/simulation'
+import { ddr3Waveforms } from './inspect-ddr3-waveforms'
 
 // Real core, unchanged DDR3 TSX, and no RunSolver capability anywhere in this check.
 const circuit = await renderCoreSignals(<DDR3 />)
@@ -25,6 +26,8 @@ const margins = model.C.map((row, i) => row[i] - row.reduce((sum, value, j) => s
 const summary = {
   status: 'raw_vendor_rejected', raw_admission_error: signError, native_solver_calls: 0,
   source_sha256: createHash('sha256').update(bytes).digest('hex'),
+  dram_source_sha256: createHash('sha256').update(dram).digest('hex'),
+  waveform_inspection: ddr3Waveforms(raw, dram.toString()),
   package_pin_count: model.pins.length,
   positive_coupling_pairs: model.C.reduce((sum, row, i) => sum + row.filter((value, j) => j > i && value > 0).length, 0),
   diagonally_dominant_rows: margins.filter(value => value >= 0).length,
@@ -57,12 +60,16 @@ if (process.env.SI_DIAGNOSTIC_MAXWELL_SIGNS === '1') {
     return input
   })
   assert.equal(packages.length, 2)
-  const next = 'Actual adjacent transitions overlap the IBIS switching waveform'
-  await assert.rejects(async () => bind.run(declared, context), { message: next })
+  const bound = (await bind.run(declared, context)).state
+  assert.equal(bound.phase, 'bound')
+  const switching = bound.compiled.flatMap((models, experiment) => models.flatMap(converted =>
+    (converted.metadata.switchingTails ?? []).map(tail => ({ experiment, component: converted.name, ...tail }))))
+  assert.ok(switching.length > 0)
   summary.diagnostic = {
     status: 'counterfactual_sign_correction_only',
     source_sha256: createHash('sha256').update(candidate).digest('hex'),
-    derived_blocks: 1, passed_stages: ['admit', 'declare'], next_stage: 'bind', next_error: next,
+    derived_blocks: 1, passed_stages: ['admit', 'declare', 'bind'], next_stage: 'extract', next_error: null,
+    stopped_before_native_extraction: true, switching_tails: switching,
     static_packages: packages.map(converted => ({ component: converted.name, matrix_pins: converted.metadata.packageData.matrices?.pins,
       reference_pins: converted.metadata.packageData.mappedPins.filter(pin => pin.role === 'reference') })),
   }

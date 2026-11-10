@@ -1,10 +1,12 @@
 import type { ConvertedGeneralIbisComponent, IbisConversionMetadata, IbisModelDefinition, IbisRunConfig } from '@tscircuit/ibis-to-spice'
 import type { SimulationIbisModel } from '../board'
 import type { CoupledPackageModel } from './coupled-package'
+import type { SwitchingTail } from './switching'
 
-/** Coupled package evidence augments the converter's scalar self-term metadata. */
+/** Package and switching-tail evidence augment the upstream die-buffer metadata. */
 export type PackageConversionMetadata = IbisConversionMetadata & {
   packageData: IbisConversionMetadata['packageData'] & { matrices?: CoupledPackageModel; unusedPinPolicy?: string }
+  switchingTails?: SwitchingTail[]
 }
 export type PackagedComponent = ConvertedGeneralIbisComponent & { metadata: PackageConversionMetadata }
 
