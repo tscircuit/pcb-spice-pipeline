@@ -103,8 +103,8 @@
       "level": "level4-ddr3-write",
       "files": {
         "level4-ddr3-write.tsx": {
-          "bytes": 94255,
-          "sha256": "43154db0a43d57ff31dc0607fee3255e08b6c22409833914d0c4ac3aac053314"
+          "bytes": 5608,
+          "sha256": "7971bd7e7e24b4f361d603a35ce54d692158d02678d22145470926c38b3e13bb"
         },
         "level4-ddr3-write.png": {
           "bytes": 82987,
@@ -1731,17 +1731,18 @@
     {
       "level": "level4-ddr3-write",
       "core_module": "../core/dist/index.js",
-      "example_sha256": "43154db0a43d57ff31dc0607fee3255e08b6c22409833914d0c4ac3aac053314",
+      "example_sha256": "7971bd7e7e24b4f361d603a35ce54d692158d02678d22145470926c38b3e13bb",
       "native_timeout_ms": 1200000,
+      "acquisition_checkout_head": "ae59365de5c16da8cd6df628f7c83b1ed16083c4",
+      "working_tree_dirty": true,
       "ibis_sha256": {
         "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
         "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
       },
       "status": "rejected_before_native",
-      "seconds": 1.698,
+      "seconds": 1.701,
       "error": ".CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.",
       "native_requests": [],
-      "acquisition_checkout_head": "a7acc156ecba3b0e3fac37c86bd5f119a6613d7c",
       "extraction": [],
       "run_directory": "runs/final-rfc/ddr3"
     }
