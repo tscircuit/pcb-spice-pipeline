@@ -57,7 +57,141 @@ function routePath(route: LaneMapping['originalRoute'], m: ResolvedModeling): Pa
   }
   if (!segments.length || segments.some(s => ![...s.a, ...s.b, s.widthMm, s.thicknessMm].every(finite))) fail('route_geometry', 'Nonempty finite copper path required')
   for (let i = 1; i < segments.length; i++) if (distance(segments[i - 1].b, segments[i].a) > 1e-5) fail('route_geometry', 'Disconnected copper route')
-  return { segments, terminals: [segments[0].a, segments.at(-1)!.b] }
+  const merged = mergeSegments(segments)
+  return { segments: merged, terminals: [merged[0].a, merged.at(-1)!.b] }
+}
+
+/** Merges finely sampled horizontal curve segments shorter than the trace width
+ * so outer FastHenry filaments do not overlap at shallow curve joints (#46). */
+function mergeHorizontalRun(run: Segment[]): Segment[] {
+  if (run.length <= 1) return run
+  const merged: Segment[] = [{ ...run[0] }]
+  for (const segment of run.slice(1)) {
+    const previous = merged.at(-1)!
+    const dx1 = previous.b[0] - previous.a[0]
+    const dy1 = previous.b[1] - previous.a[1]
+    const length1 = Math.hypot(dx1, dy1)
+    const dx2 = segment.b[0] - segment.a[0]
+    const dy2 = segment.b[1] - segment.a[1]
+    const length2 = Math.hypot(dx2, dy2)
+    if (length1 > 1e-9 && length2 > 1e-9) {
+      const cross = Math.abs(dx1 * dy2 - dy1 * dx2) / (length1 * length2)
+      const alignment = (dx1 * dx2 + dy1 * dy2) / (length1 * length2)
+      const sumDx = segment.b[0] - previous.a[0]
+      const sumDy = segment.b[1] - previous.a[1]
+      const sumLength = Math.hypot(sumDx, sumDy)
+      const offset = sumLength > 1e-9 ? Math.abs(dx1 * sumDy - dy1 * sumDx) / sumLength : 0
+      if (alignment > 0.999999 && cross < 1e-4 && offset < 1e-5) {
+        previous.b = segment.b
+        continue
+      }
+    }
+    merged.push({ ...segment })
+  }
+  if (merged.length <= 1) return merged
+  const minLength = merged[0].widthMm
+  const out: Segment[] = []
+  for (let i = 0; i < merged.length;) {
+    const segment = merged[i]
+    const length = Math.hypot(segment.b[0] - segment.a[0], segment.b[1] - segment.a[1])
+    if (length >= minLength) {
+      out.push({ ...segment })
+      i++
+      continue
+    }
+    let j = i + 1
+    while (j < merged.length && Math.hypot(merged[j].b[0] - merged[j].a[0], merged[j].b[1] - merged[j].a[1]) < minLength) j++
+    const part = merged.slice(i, j)
+    const curveOut: Segment[] = []
+    let anchor = part[0].a
+    for (const item of part) {
+      if (Math.hypot(item.b[0] - anchor[0], item.b[1] - anchor[1]) >= minLength) {
+        curveOut.push({ ...item, a: anchor, b: item.b })
+        anchor = item.b
+      }
+    }
+    const end = part.at(-1)!.b
+    if (anchor !== end) {
+      if (curveOut.length) curveOut.at(-1)!.b = end
+      else if (Math.hypot(end[0] - anchor[0], end[1] - anchor[1]) > 1e-10) curveOut.push({ ...part[0], a: anchor, b: end })
+    }
+    out.push(...curveOut)
+    i = j
+  }
+  let changed = true
+  while (changed && out.length > 1) {
+    changed = false
+    for (let k = 0; k < out.length; k++) {
+      const segment = out[k]
+      const length = Math.hypot(segment.b[0] - segment.a[0], segment.b[1] - segment.a[1])
+      if (length >= minLength - 1e-9) continue
+      const stepX = (segment.b[0] - segment.a[0]) / length
+      const stepY = (segment.b[1] - segment.a[1]) / length
+      let best = -1
+      let bestAlignment = -2
+      if (k > 0) {
+        const previous = out[k - 1]
+        const previousLength = Math.hypot(previous.b[0] - previous.a[0], previous.b[1] - previous.a[1])
+        const alignment = ((previous.b[0] - previous.a[0]) * stepX + (previous.b[1] - previous.a[1]) * stepY) / previousLength
+        if (alignment > bestAlignment) {
+          bestAlignment = alignment
+          best = k - 1
+        }
+      }
+      if (k + 1 < out.length) {
+        const next = out[k + 1]
+        const nextLength = Math.hypot(next.b[0] - next.a[0], next.b[1] - next.a[1])
+        const alignment = ((next.b[0] - next.a[0]) * stepX + (next.b[1] - next.a[1]) * stepY) / nextLength
+        if (alignment > bestAlignment) {
+          bestAlignment = alignment
+          best = k + 1
+        }
+      }
+      if (best === k - 1 && Math.hypot(segment.b[0] - out[k - 1].a[0], segment.b[1] - out[k - 1].a[1]) > 1e-10) {
+        out[k - 1].b = segment.b
+        out.splice(k, 1)
+        changed = true
+        break
+      }
+      if (best === k + 1 && Math.hypot(out[k + 1].b[0] - segment.a[0], out[k + 1].b[1] - segment.a[1]) > 1e-10) {
+        out[k + 1].a = segment.a
+        out.splice(k, 1)
+        changed = true
+        break
+      }
+    }
+  }
+  return out
+}
+
+/** Splits a route into contiguous same-layer horizontal runs and merges sub-width curve segments. */
+function mergeSegments(segments: Segment[]): Segment[] {
+  const out: Segment[] = []
+  for (let i = 0; i < segments.length;) {
+    const first = segments[i]
+    if (Math.abs(first.a[2] - first.b[2]) > 1e-10) {
+      out.push(first)
+      i++
+      continue
+    }
+    let j = i + 1
+    while (j < segments.length) {
+      const previous = segments[j - 1]
+      const current = segments[j]
+      if (
+        Math.abs(current.a[2] - current.b[2]) <= 1e-10 &&
+        Math.abs(current.a[2] - previous.b[2]) <= 1e-10 &&
+        Math.abs(current.widthMm - previous.widthMm) <= 1e-9 &&
+        Math.abs(current.thicknessMm - previous.thicknessMm) <= 1e-9 &&
+        current.conductivitySm === previous.conductivitySm &&
+        Math.hypot(current.a[0] - previous.b[0], current.a[1] - previous.b[1]) <= 1e-5
+      ) j++
+      else break
+    }
+    out.push(...mergeHorizontalRun(segments.slice(i, j)))
+    i = j
+  }
+  return out
 }
 
 type Via = Extract<CircuitJson[number], { type: 'pcb_via' }>
