@@ -21,8 +21,9 @@ const refinement = Number(process.env.SI_ROUTE_REFINEMENT ?? 1)
 const step = Number(process.env.SI_ROUTE_STEP_PS ?? 10) * 1e-12
 const duration = Number(process.env.SI_ROUTE_DURATION_NS ?? (mode === 'addr-cmd' ? 8 : 10)) * 1e-9
 const cellsPerRise = Number(process.env.SI_ROUTE_CELLS_PER_RISE ?? 2)
+const distance = Number(process.env.SI_ROUTE_DISTANCE_MM ?? (mode === 'addr-cmd' ? 1 : 32))
 if (step >= duration || ![step, duration, Number(process.env.SI_ROUTE_ABSTOL ?? 1e-9)].every(value => Number.isFinite(value) && value > 0)) throw new Error('Positive finite duration, timestep and current tolerance required')
-const directory = resolve(process.env.SI_ROUTE_RUN_DIR ?? `runs/routed-2d/step3/${mode}-c${cellsPerRise}-s${refinement}-t${Math.round(step * 1e12)}-n${Math.round(duration * 1e9)}`)
+const directory = resolve(process.env.SI_ROUTE_RUN_DIR ?? `runs/routed-2d/step3/${mode}-r${distance}-c${cellsPerRise}-s${refinement}-t${Math.round(step * 1e12)}-n${Math.round(duration * 1e9)}`)
 const fieldCache: RouteFieldCache = { panels: Number(process.env.SI_ROUTE_PANELS ?? 12), sections: new Map(), oblique: new Map() }
 
 /** Reuse physical fields across serial stimuli; native captures remain independently guarded. */
@@ -36,7 +37,7 @@ async function capture(pattern: NonNullable<Ddr3Options['pattern']>, directory: 
   }
   const sources = Object.fromEntries(await Promise.all(['sprm552c.ibs', 'W631GG6MB-12.ibs'].map(async file => [`models/${file}`, await readFile(`${process.env.IBIS_MODEL_DIR ?? 'models'}/${file}`)] as const)))
   const preparation = performance.now()
-  const block = prepareBlocks(circuit, sources, '2d').find(prepared => prepared.block.name === blockName)
+  const block = prepareBlocks(circuit, sources, '2d', distance).find(prepared => prepared.block.name === blockName)
   if (!block) throw new Error(`Missing requested simulation block ${blockName}`)
   const preparationMs = performance.now() - preparation
   console.log(`${mode}: declarations ready in ${preparationMs.toFixed(0)} ms`)
@@ -48,7 +49,7 @@ async function capture(pattern: NonNullable<Ddr3Options['pattern']>, directory: 
     if (reuse) {
       const ledger = JSON.parse(await readFile(`${reuse}/extraction.json`, 'utf8'))
       if (duration > ledger.options.durationSeconds * (1 + 1e-12) || process.env.SI_ROUTE_PANELS && Number(process.env.SI_ROUTE_PANELS) !== ledger.options.panels) throw new Error('Compiled deck cannot extend switching history or change its field mesh')
-      if (JSON.stringify(ledger.hashes) !== JSON.stringify(hashes) || ledger.options.refinement !== refinement || ledger.options.cellsPerRise !== cellsPerRise) throw new Error('Compiled deck does not match board, models, block, pattern or spatial refinement')
+      if (JSON.stringify(ledger.hashes) !== JSON.stringify(hashes) || ledger.scope.lateralDistanceMm !== distance || ledger.options.refinement !== refinement || ledger.options.cellsPerRise !== cellsPerRise) throw new Error('Compiled deck does not match board, models, block, pattern, copper scope or spatial refinement')
       const deck = await readFile(`${reuse}/simulation.cir`, 'utf8')
       result = { deck: deck.slice(0, deck.indexOf('.control\n')).replace(/abstol=[^\s]+/, `abstol=${Number(process.env.SI_ROUTE_ABSTOL ?? 1e-9)}`) + routedControl(ledger.probes, /^save (.+)$/m.exec(deck)![1], step, duration).join('\n') + '\n', probes: ledger.probe_names, timings: {},
         evidence: { ...ledger, options: { ...ledger.options, stepSeconds: step, durationSeconds: duration, currentToleranceA: Number(process.env.SI_ROUTE_ABSTOL ?? 1e-9) }, reused_extraction: { directory: resolve(reuse), deck_sha256: createHash('sha256').update(deck).digest('hex'), timings: ledger.timings } } }

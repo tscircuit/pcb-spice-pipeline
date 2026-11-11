@@ -80,7 +80,7 @@ export function extractRoutes(geometry: SectionGeometry, materials: RouteMateria
     return routeCoupling(slice, solve, coupling)
   }).map(slice => ({ ...slice, key: JSON.stringify(routeCrossSection(geometry, slice, materials)), line: solve(slice) }))
   return { slices, cache, coupling, solveMilliseconds, geometryMilliseconds: performance.now() - start - solveMilliseconds, warnings: [...geometry.warnings,
-    'Parallel coupling retains connected pairs until both abs(Cij)/sqrt(Cii*Cjj) and abs(Lij)/sqrt(Lii*Ljj) are below 0.005 (0.5%). Pair screening is not an aggregate waveform error bound. Geometry admission is capped at 32 mm; fields beyond the cap and nonadjacent layers are unbounded omissions. Local solves are capped at 40 conductors and fail explicitly.'] }
+    'Parallel coupling retains connected pairs until both abs(Cij)/sqrt(Cii*Cjj) and abs(Lij)/sqrt(Lii*Ljj) are below 0.005 (0.5%). Pair screening is not an aggregate waveform error bound. Geometry admission follows the recorded copper scope; fields beyond its cap and nonadjacent layers are unbounded omissions. Local solves are capped at 40 conductors and fail explicitly.'] }
 }
 
 /** Closest points on two finite centre-lines, used only for the explicit oblique correction. */

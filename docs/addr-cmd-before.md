@@ -4,8 +4,8 @@
 U1/U3 ball names onto the caller's unchanged board. The 22 command/address
 nets are A0–A12, BA0–BA2, CASn, RASn, CSn0, CKE, ODT and WEn. Both CK legs
 are retained as coupled copper too. RESETn is a separate slow control net,
-not one of these 22. Nearby physical copper is retained by the existing
-scope policy rather than cropped out of the source board.
+not one of these 22. The source board is unchanged; the capture's recorded
+scope determines which nearby copper is admitted to the solver.
 
 The fixture supplies the requested `jlcpcb_standard`, eight-layer, 1.2 mm
 stackup from a real TSX render: **JLC08121H-3313**, with dielectric thicknesses
@@ -25,6 +25,12 @@ boundaries, avoiding microscopic singular panels. Its separate TSX
 regression checks physical reflection symmetry of the resulting RLGC.
 
 ## IBIS selector evidence
+
+The recommendation itself was checked in SPRACK4's bundled
+`AM335x_EMIF_Configuration_Tool.xlsx`, sheet 2: G67–G69 specify slow slew,
+and G70–G73 specify 44/50/44/50 Ω for CK, addr/control, DQS and data.
+G47–G49 specify RZQ/4, RZQ/4 and RZQ/6 for DRAM RTT_NOM, RTT_WR and
+drive impedance. These are recommendations, not a board-register readback.
 
 The local TI `sprm552c.ibs` SHA-256 is
 `23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be`.
@@ -67,8 +73,8 @@ and local vendor files available:
 export OMP_NUM_THREADS=1 TSX_TSCONFIG_PATH=examples/tsconfig.json
 export IBIS_MODEL_DIR=models
 export SI_DDR3_BOARD=/absolute/path/to/am3352-ddr-track-a-local-dfm-wip-20261007/dist/index/circuit.json
-export SI_ROUTE_RUN_DIR=runs/addr-cmd/capture-c05 SI_ROUTE_BATCH=1
-export SI_ROUTE_CELLS_PER_RISE=0.5
+export SI_ROUTE_RUN_DIR=runs/addr-cmd/capture-c05-r1 SI_ROUTE_BATCH=1
+export SI_ROUTE_CELLS_PER_RISE=0.5 SI_ROUTE_DISTANCE_MM=1
 node --import tsx scripts/run-routed-ddr3.tsx addr-cmd
 python scripts/summarize-addr-cmd.py "$SI_ROUTE_RUN_DIR"
 ```
@@ -103,15 +109,43 @@ remaining full-wave crosstalk disagreement.
 The default two-cells-per-rise attempt completed field extraction but needed
 1,205 ladder cells, exceeding the unchanged 1,024-cell memory guard. The
 bounded capture command above uses 0.5 cells per rise, the existing permitted
-minimum. Its spatial convergence is **not established**. It retains all
-24 selected routes and the original nearby-copper scope. No neighbour is
-cropped out and no guard is lifted to admit it.
+minimum. Its spatial convergence is **not established**.
+
+The 32 mm scope retained 541 traces. After the ladder guard was satisfied,
+a geometry-only count found **218,036 distinct oblique field sections** and
+1,100,446 encounters. The first 12,609 field solves took 562 s, projecting
+roughly 2.7 hours for the oblique stage alone. That run was stopped before
+native simulation, with completed fields checkpointed outside git.
+The bounded capture instead uses a **1 mm lateral coupling radius**,
+configured by `SI_ROUTE_DISTANCE_MM` (addr/cmd runner default 1 mm;
+`prepareBlocks` itself retains its previous 32 mm 2D default). All 24
+selected routes remain, including their layer changes. The radius limits
+neighbour admission and oblique encounters; it is not an electromagnetic
+error bound. Distant coupling remains an unqualified omission. No native
+cell, memory or runtime guard is lifted. Reuse rejects a different scope.
 
 Batch mode runs the main and both quiet-victim experiments **serially** in
 one process. An explicit in-memory cache reuses only identical field
 geometry/material keys, with matching panel resolution, including oblique
 surrogates. Changing stimuli still recompiles the vendor buffers; native
 solves are separate. This avoids three repeated ten-minute field passes.
+
+## Validation
+
+The focused TSX fixture, route-contact union, dielectric mesh, terminal
+geometry and native control tests pass. The three terminal controls were
+also run serially with 16 and 32 sections; their remaining full-wave gate
+failures are recorded in `terminal-inductance.md`. The field-cache test
+checks exact matrix reuse and rejection at a different panel resolution.
+Type checking, lint, module boundaries and vocabulary checks pass (lint
+retains the existing cross-section mesh file-length warning).
+
+The full suite reports **217 passed, 29 skipped, one failed**. The failure
+is `tests/extraction/mesh.test.ts:20`, the pre-existing FastHenry plane
+deck-string assertion. Running that test in an `a732001` source snapshot
+with the same runtime reproduces it. Native/model/board tests require
+their explicit environment variables; the default suite skips those
+external dependencies rather than claiming native validation.
 
 ```mermaid
 flowchart LR

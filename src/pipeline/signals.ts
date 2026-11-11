@@ -57,7 +57,8 @@ export function routedLanes(circuit: CircuitJson, scope: import('../board').Copp
   return { lanes, rejections }
 }
 /** Validate blocks and lower test intent to the private native-solver declarations. */
-export function prepareBlocks(circuitJson: CircuitJson, sources: IbisSources, extraction: '3d' | '2d' = '3d'): PreparedBlock[] {
+export function prepareBlocks(circuitJson: CircuitJson, sources: IbisSources, extraction: '3d' | '2d' = '3d', distanceMm: number = extraction === '2d' ? 32 : 1): PreparedBlock[] {
+  if (!Number.isFinite(distanceMm) || distanceMm <= 0 || distanceMm > 32) throw new Error('Copper scope distance must be in (0,32] mm')
   const blocks = circuitJson.filter(r => r.type === 'simulation_signal_integrity')
   if (blocks.length > 1 && blocks.some(block => !block.name)) throw new Error(`This board has ${blocks.length} <simulation.pcbtransientchannelsimulation> blocks; give each a name.`)
   const ids = new Set(blocks.map(b => b.simulation_signal_integrity_id))
@@ -66,14 +67,14 @@ export function prepareBlocks(circuitJson: CircuitJson, sources: IbisSources, ex
   return blocks.map(block => {
     const warnings: string[] = []
     try {
-      return prepareBlock(circuitJson, block, sources, warnings, extraction)
+      return prepareBlock(circuitJson, block, sources, warnings, extraction, distanceMm)
     } catch (error) {
       throw Object.assign(error as Error, { warnings })
     }
   })
 }
 /** Independent block: model overrides, copper, pin states, references and stimuli. */
-function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sources: IbisSources, warnings: string[], extraction: '3d' | '2d'): PreparedBlock {
+function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sources: IbisSources, warnings: string[], extraction: '3d' | '2d', distanceMm: number): PreparedBlock {
   const id = safeId(block.simulation_signal_integrity_id, 'simulationSignalIntegrityId')
   const signals = input.filter(r => r.type === 'simulation_signal').filter(r => r.simulation_signal_integrity_id === id).sort((a, b) => compareNames(a.name, b.name))
   if (!signals.length || new Set(signals.map(s => s.name)).size !== signals.length || new Set(signals.map(s => s.simulation_signal_id)).size !== signals.length) throw new Error(`${block.name ?? id}: require distinct named signals`)
@@ -151,7 +152,7 @@ function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sour
   const step = Math.min(1 / rate / 100, edge / 20)
   const reference = pins.get([...driven.keys()].sort()[0])!.ground
   const lanes: NumericalSettings['lanes'] = []
-  const copperScope = channelCopperScope(circuit, new Set(topology.keys()), connectedSourceIds(circuit, reference), rails, extraction === '2d' ? 32 : 1)
+  const copperScope = channelCopperScope(circuit, new Set(topology.keys()), connectedSourceIds(circuit, reference), rails, distanceMm)
   for (const port of circuit.filter(r => r.type === 'source_port').filter(port => topology.has(port.source_port_id) && !pins.has(port.source_port_id))) {
     const component = circuit.filter(r => r.type === 'source_component').find(component => component.source_component_id === port.source_component_id)
     if (!component || (!['simple_resistor', 'simple_capacitor', 'simple_inductor'].includes(component.ftype) && !circuit.some(r => r.type === 'simulation_spice_subcircuit' && r.source_component_id === component.source_component_id))) throw new Error(`${component?.name ?? port.source_port_id} is on the signal and has no supported SPICE or IBIS model.`)

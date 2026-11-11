@@ -28,6 +28,12 @@ test('real DDR3 TSX declarations preserve copper and select the intended write a
   const [block] = prepareBlocks(addr, sources, '2d')
   assert.equal(block.block.name, 'DDR3_ADDR_CMD')
   assert.equal(block.duration, 8e-9)
+  const [local] = prepareBlocks(addr, sources, '2d', 1)
+  assert.equal(local.settings.copperScope!.lateralDistanceMm, 1)
+  assert.deepEqual(local.settings.copperScope!.selectedPcbTraceIds, block.settings.copperScope!.selectedPcbTraceIds)
+  assert.equal(local.settings.lanes.length, 24)
+  assert.ok(local.settings.copperScope!.pcbTraceIds.length < block.settings.copperScope!.pcbTraceIds.length)
+  for (const distance of [0, -1, NaN, Infinity, 33]) assert.throws(() => prepareBlocks(addr, sources, '2d', distance), /scope distance/)
   assert.deepEqual(new Set(block.signals.map(signal => signal.name)), new Set(addrCmdPins.map(([name]) => name)))
   for (const signal of block.signals) {
     assert.ok('source_port_id' in signal.driver)
