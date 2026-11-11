@@ -77,7 +77,7 @@ export function sectionPanels(region: SectionRegion, count: number, extent: numb
     }
   }
   const projections = region.conductors.flatMap(c => [c.xMm - c.widthMm / 2, c.xMm + c.widthMm / 2])
-  const xs = [...new Set([Math.min(...projections) - extent * scale, ...projections, Math.max(...projections) + extent * scale])].sort((a, b) => a - b)
+  const xs = coordinates([Math.min(...projections) - extent * scale, ...projections, Math.max(...projections) + extent * scale], probe / 100)
   const boundaries = coordinates(layers.flatMap(d => [d.zMm, d.zMm + d.thicknessMm]), probe / 100).filter(z => z > probe / 100 && (!region.height || z < region.height - probe / 100))
   for (const z of boundaries) {
     const below = material(layers, z - probe)

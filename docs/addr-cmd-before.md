@@ -18,6 +18,11 @@ The full group exposed touching same-net 0.3 mm DDR power strips that had
 been left as separate solver rectangles. `route-union` now includes edge
 contacts within its existing 0.0000001 mm geometry tolerance in the union.
 The TSX regression also verifies that touching **different** nets still fail.
+An aligned pair of edges on different layers then exposed floating-point
+copies of one dielectric-interface projection. The mesh now coalesces
+horizontal coordinates with the same existing tolerance as vertical
+boundaries, avoiding microscopic singular panels. Its separate TSX
+regression checks physical reflection symmetry of the resulting RLGC.
 
 ## IBIS selector evidence
 
