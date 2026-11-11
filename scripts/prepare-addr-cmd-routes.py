@@ -16,6 +16,7 @@ def main():
     parser.add_argument("output", type=Path)
     parser.add_argument("--width", type=float, default=None)
     parser.add_argument("--spacing", type=float, default=None)
+    parser.add_argument("--spacing-net", choices=["BA2", "A4"], default="BA2")
     parser.add_argument("--route-delta", type=Path, action="append", default=[])
     args = parser.parse_args()
     if args.width is not None and not .17 <= args.width <= .19:
@@ -42,7 +43,7 @@ def main():
     changed = copy.deepcopy(original)
     names = {"DDR_" + name for name in ["A0", "A1", "A2", "A3", "A5", "A9", "A10", "A12", "BA0", "CASn", "RASn", "CSn0", "ODT"]}
     if args.spacing is not None:
-        names = {"DDR_A4"}
+        names = {"DDR_" + args.spacing_net}
     routes = {route["name"]: route for route in original["routes"] if route["name"] in names}
     if routes.keys() != names:
         raise ValueError("Unexpected outer addr/cmd route set")
@@ -56,8 +57,9 @@ def main():
                 points = route["points"]
                 index = max(range(len(points) - 1), key=lambda i: math.dist(points[i], points[i + 1]))
                 a, b = points[index:index + 2]
-                if abs(a[0] - b[0]) > 1e-6 or abs(a[0] + 7.15) > 1e-6 or b[1] >= a[1]:
-                    raise ValueError("Expected A4 vertical coupled body")
+                expected_x = {"A4": -7.15, "BA2": -6.4}[args.spacing_net]
+                if abs(a[0] - b[0]) > 1e-6 or abs(a[0] - expected_x) > 1e-6 or b[1] >= a[1]:
+                    raise ValueError("Expected named vertical coupled body")
                 shift = args.spacing
                 points[index + 1:index + 1] = [[a[0] + shift, a[1] - shift], [b[0] + shift, b[1] + shift]]
     sources = {record["source_trace_id"]: record for record in board if record["type"] == "source_trace"}
@@ -102,7 +104,8 @@ def main():
     manifest = {"source_board_sha256": hashlib.sha256(board_bytes).hexdigest(),
                 "source_routes_sha256": hashlib.sha256(route_bytes).hexdigest(),
                 "source_route_deltas_sha256": deltas,
-                "patched": sorted(patched), "width_mm": args.width, "a4_shift_mm": args.spacing,
+                "patched": sorted(patched), "width_mm": args.width,
+                "spacing_net": args.spacing_net if args.spacing is not None else None, "shift_mm": args.spacing,
                 "copy_sha256": hashlib.sha256((args.output / "circuit.json").read_bytes()).hexdigest(),
                 "policy": "copied route-data candidate; original layer, endpoints and vias retained; DRC required"}
     (args.output / "patch.json").write_text(json.dumps(manifest, indent=2) + "\n")
