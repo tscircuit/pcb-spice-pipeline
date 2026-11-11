@@ -109,5 +109,14 @@ async function capture(pattern: NonNullable<Ddr3Options['pattern']>, directory: 
 }
 
 if (mode === 'addr-cmd' && process.env.SI_ROUTE_BATCH === '1') {
-  for (const pattern of ['prbs7', 'victim-even', 'victim-odd'] as const) await capture(pattern, `${directory}/${pattern === 'prbs7' ? 'before' : pattern}`)
+  const failures: unknown[] = []
+  for (const pattern of ['prbs7', 'victim-even', 'victim-odd'] as const) {
+    try {
+      await capture(pattern, `${directory}/${pattern === 'prbs7' ? 'before' : pattern}`)
+    } catch (error) {
+      failures.push(error)
+      console.error(error)
+    }
+  }
+  if (failures.length) throw new AggregateError(failures, 'Serial captures failed; inspect each case evidence')
 } else await capture(pattern, directory)
