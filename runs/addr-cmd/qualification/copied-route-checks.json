@@ -1,0 +1,74 @@
+{
+  "status": "actual copied-board routing checks; no native SI claim",
+  "checker": "@tscircuit/checks 0.0.268",
+  "baseline_findings": 118,
+  "baseline_types": {
+    "pcb_port_not_connected_error:pcb_port_not_connected_error": 95,
+    "pcb_via_clearance_error:pcb_via_clearance_error": 23
+  },
+  "baseline_report_sha256": "a6d14fd07b23c0e4f914faeafd8a7dad305cb691e8562e45a81f6dc2faf0a6a1",
+  "copies": {
+    "width-board": {
+      "patch": {
+        "source_board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "source_routes_sha256": "d75254db0ee0cce87d792eb245a085e53802c6b7a80f966a8ea01ada2c688592",
+        "source_route_deltas_sha256": {
+          "cloud-a10-trace-reference-delta.json": "95af205c5822f66896b02b414f47f8bcde9b725fef37eba7f391a1d27b9a95f7"
+        },
+        "patched": [
+          "DDR_A0",
+          "DDR_A1",
+          "DDR_A10",
+          "DDR_A12",
+          "DDR_A2",
+          "DDR_A3",
+          "DDR_A5",
+          "DDR_A9",
+          "DDR_BA0",
+          "DDR_CASn",
+          "DDR_CSn0",
+          "DDR_ODT",
+          "DDR_RASn"
+        ],
+        "width_mm": 0.18,
+        "spacing_net": null,
+        "shift_mm": null,
+        "neckdown_length_mm": {
+          "DDR_CSn0": 4.094647594438456,
+          "DDR_CASn": 3.6294361804685673,
+          "DDR_A10": 7.530909000188064,
+          "DDR_RASn": 10.941708184074205
+        },
+        "neckdown_report_sha256": "7d2a3172683909529c353475935cf769f0c334348d9648d0d9e523bb27fbd41b",
+        "copy_sha256": "a47befc73e97330db43da0415278042cd51692b0790fd119ac344673a1ba884f",
+        "policy": "copied route-data candidate; original layer, endpoints and vias retained; DRC required"
+      },
+      "routing_report_sha256": "ae967a79da4fb5f837280a253dbe6344a114344106e2f56e34d6b7241aa4607c",
+      "total": 118,
+      "added_findings_by_type_error_message": 0,
+      "removed_findings_by_type_error_message": 0
+    },
+    "spacing-board": {
+      "patch": {
+        "source_board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "source_routes_sha256": "d75254db0ee0cce87d792eb245a085e53802c6b7a80f966a8ea01ada2c688592",
+        "source_route_deltas_sha256": {
+          "cloud-a10-trace-reference-delta.json": "95af205c5822f66896b02b414f47f8bcde9b725fef37eba7f391a1d27b9a95f7",
+          "cloud-ba2-trace-reference-delta.json": "08ece5ff566330c809f6c10ec6f692973ee333f315887953238cb4353b41fec0"
+        },
+        "patched": [
+          "DDR_BA2"
+        ],
+        "width_mm": null,
+        "spacing_net": "BA2",
+        "shift_mm": 0.25,
+        "copy_sha256": "8010c9aabb291a4643de54c8bb37e2edadc8730d41dadde2f271161c4293ba25",
+        "policy": "copied route-data candidate; original layer, endpoints and vias retained; DRC required"
+      },
+      "routing_report_sha256": "7fd82eff2ecb65cf1166325d2248aef2fc8c87eb48301d2d8a9e1481934bc6e0",
+      "total": 118,
+      "added_findings_by_type_error_message": 0,
+      "removed_findings_by_type_error_message": 0
+    }
+  }
+}

@@ -52,7 +52,8 @@
     "overlay": "scope-overlay.png",
     "label": "Reduced surrounding copper, full-bus activity",
     "quiet_case": "scope-c2-even",
-    "quiet_baseline": "victim-even-prefix"
+    "quiet_baseline": "victim-even-prefix",
+    "baseline_label": "Original copper scope"
   },
   {
     "name": "scope-c2-even",
@@ -68,12 +69,48 @@
     "overlay": "spatial-overlay.png",
     "label": "Spatial refinement: 2 to 3 cells per rise",
     "quiet_case": "scope-c3-even",
-    "quiet_baseline": "scope-c2-even"
+    "quiet_baseline": "scope-c2-even",
+    "baseline_label": "2 cells per rise"
   },
   {
     "name": "scope-c3-even",
     "directory": "runs/addr-cmd/qualification/scope-bus-c3/victim-even",
     "stop_ns": 4.999,
     "baseline": "scope-c2-even"
+  },
+  {
+    "name": "scope-r2",
+    "directory": "runs/addr-cmd/qualification/scope-bus-r2/before",
+    "stop_ns": 4.999,
+    "baseline": "scope-c2",
+    "overlay": "radius-overlay.png",
+    "label": "Coupling radius: 1 mm to 2 mm",
+    "quiet_case": "scope-r2-even",
+    "quiet_baseline": "scope-c2-even",
+    "baseline_label": "1 mm radius"
+  },
+  {
+    "name": "scope-r2-even",
+    "directory": "runs/addr-cmd/qualification/scope-bus-r2/victim-even",
+    "stop_ns": 4.999,
+    "baseline": "scope-c2-even"
+  },
+  {
+    "name": "isolated-on",
+    "directory": "runs/addr-cmd/qualification/isolate-on",
+    "stop_ns": 8
+  },
+  {
+    "name": "isolated-off",
+    "directory": "runs/addr-cmd/qualification/isolate-off",
+    "stop_ns": 8,
+    "baseline": "isolated-on",
+    "overlay": "isolated-package-overlay.png",
+    "label": "Isolated A4: package removed (diagnostic)",
+    "nets": [
+      "A4",
+      "A9"
+    ],
+    "baseline_label": "Package on"
   }
 ]

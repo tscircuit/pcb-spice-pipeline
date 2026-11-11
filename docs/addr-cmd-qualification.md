@@ -97,6 +97,7 @@ and stimuli, without changing timestep, tolerance or native guards.
 |---|---:|---:|---:|---:|
 | 2 cells per rise, 1 mm | 218 | 112.640 ps | 404.625 / 432.440 s | 2.098165 V |
 | 3 cells per rise, 1 mm | 304 | 75.075 ps | 453.116 / 438.454 s | 2.096157 V |
+| 2 cells per rise, 2 mm | 250 | 112.640 ps | 748.863 / 761.627 s | 2.098000 V |
 
 | Net | Fine peak | Peak change, fine minus coarse | Overshoot change |
 |---|---:|---:|---:|
@@ -114,6 +115,15 @@ sensitivity results, not extrapolated zero-cell-size errors or hardware
 qualification. The large main overshoot and worst A4 crosstalk persist at
 the tested refinement. Odd-victim spatial convergence remains unverified.
 See the small [spatial receiver overlay](../runs/addr-cmd/qualification/summary/spatial-overlay.png).
+
+Changing the radius from 1 to 2 mm at two cells per rise changes the selected
+six main peaks by at most 0.522 mV and overshoot by at most 0.035 percentage
+points. Per-net peak changes for A4/A5/A7/A9/A11/CASn are
++0.175/+0.183/+0.142/-0.166/-0.522/+0.257 mV. A4 remains the worst quiet
+victim: 431.026 to 430.890 mV (-0.136 mV). The largest quiet-net disturbance
+change is +0.739 mV (A2). Both captures completed; this is a measured numerical
+sensitivity, not a bound on omitted physics. See the small
+[radius receiver overlay](../runs/addr-cmd/qualification/summary/radius-overlay.png).
 
 The intermediate full-bus three-cells-per-rise run used 633 cells and reached
 the 4 ns checkpoint, but hit the unchanged 1,200 s native limit before the
@@ -142,8 +152,8 @@ It and its timeout provenance are separate in `partial-spatial-prefix.json`.
 
 The full 517-cell, 2 mm radius case also reached only its 4 ns saved
 checkpoint: native time 1,200.067 s, sampled peak RSS 402.625 MiB. It provides
-no complete peak/crosstalk comparison. The reduced radius experiment uses
-the corrected quiet-driver control above.
+no complete peak/crosstalk comparison. The completed reduced radius experiment
+uses the geometry-only full-bus control above.
 
 ## Driver, package and switching sanity checks
 
@@ -177,6 +187,28 @@ A4 TSX control holds **all other 23 drivers low**, including both clock legs.
 Package-off replaces only package series R/L with micro-ohm links and removes
 package C/mutual terms, keeping vendor die I/V, C_comp, clamp and ideal die-rail
 models. Package-off is a diagnostic, not a possible board fix.
+
+| A4 control, full 1 mm copper scope | A4 peak | Overshoot | A4 confirmed settling | Largest other quiet disturbance |
+|---|---:|---:|---:|---:|
+| Original full-bus activity, package on | 2.024868 V | 34.991% | See per-net CSV | No quiet command nets in this main pattern |
+| A4 alone, package on | 1.538546 V | 2.570% | 1.054 ns | 111.096 mV, A9 |
+| A4 alone, package off | 1.540398 V | 2.693% | 0.976 ns | 27.528 mV, A8 |
+
+The isolated packaged result is close to the ideal 50-ohm hand estimate.
+Removing package self/coupling terms changes its own peak by only +1.852 mV,
+while reducing disturbance on other quiet nets. The large full-bus inner peak
+therefore depends on simultaneous interaction. These controls change the
+activity deliberately; they are not a proposed quiet-bus board fix. The
+[isolated package overlay](../runs/addr-cmd/qualification/summary/isolated-package-overlay.png)
+shows A4 driven and A9 held low.
+
+`package-control-check.json` verifies the actual transformed deck: 48 die
+capacitance blocks, four ideal die-rail sources and all switching controls
+remain identical; no nonideal package R/L/C/K/H elements remain, with 104
+micro-ohm series links. The package model itself uses open unused leads,
+floating-charge C reduction, neglected unused die loads/circulating currents,
+one lumped pi section and ideal die rails. Those [package approximations](coupled-package-model.md)
+have no physical board-level error bound here.
 
 An algebraic check of the emitted original and failed reduced odd-victim
 decks found no nonpositive self-inductors or duplicate mutual pairs. For
@@ -227,6 +259,14 @@ above 1.9 V and 117.877 mV above the absolute upper rating. A5's largest
 positive lobe is 0.495778 V ns; its largest negative lobe is 0.217829 V ns.
 A9's *sum* of positive lobes is 0.520941 V ns. A DDR3-800 area-compliance
 claim cannot be made from a missing W631GG6MB table column.
+
+In the two quiet-victim captures, the largest absolute range is A4:
+-0.397358 to +0.429419 V. Its largest below-ground lobe is 0.195778 V ns.
+The negative peak is only 2.642 mV inside the printed -0.4 V ceiling in this
+candidate; that small margin does not establish a hardware pass. Quiet
+disturbance is measured from its DC baseline, whereas the positive AC
+overshoot area is measured above VDD. Its +0.429419 V noise peak is therefore
+below the positive overvoltage threshold.
 
 ## Physical feasibility and fix classes
 

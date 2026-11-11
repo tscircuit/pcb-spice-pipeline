@@ -122,12 +122,14 @@ def main():
         quiet = case.get("quiet_case")
         fig, axes = pyplot.subplots(3 if quiet else 2, 1, figsize=(9, 8 if quiet else 6), layout="constrained")
         for ax, name in zip(axes[:2], case.get("nets", ["A5", "A4"])):
-            for key, style, label in [(case["baseline"], "--", "Before"), (case["name"], "-", case["label"])]:
+            held_low = before[name]["quiet_victim_mv"] is not None and next(row for row in after if row["net"] == name)["quiet_victim_mv"] is not None
+            for key, style, label in [(case["baseline"], "--", case.get("baseline_label", "Before")), (case["name"], "-", case["label"])]:
                 time, voltage = waves[key][name]
-                ax.plot(time * 1e9, voltage, style, linewidth=1.1, label=label)
-            ax.set(ylabel=f"{name} receiver (V)", xlim=(2.3, case.get("stop_ns", 8)))
-            ax.axhline(1.5, color="gray", linewidth=.6)
-            ax.axhline(1.975, color="red", linewidth=.6, linestyle=":", label="1.975 V absolute upper rating")
+                ax.plot(time * 1e9, voltage * (1000 if held_low else 1), style, linewidth=1.1, label=label)
+            ax.set(ylabel=f"{name} held low: change from DC (mV)" if held_low else f"{name} receiver (V)", xlim=(2.3, case.get("stop_ns", 8)))
+            if not held_low:
+                ax.axhline(1.5, color="gray", linewidth=.6)
+                ax.axhline(1.975, color="red", linewidth=.6, linestyle=":", label="1.975 V absolute upper rating")
             ax.grid(alpha=.2)
             ax.legend(fontsize=8)
         if quiet:
@@ -142,10 +144,13 @@ def main():
         fig.savefig(args.output / case["overlay"], dpi=120)
         pyplot.close(fig)
     with (args.output / "metrics.csv").open("w") as output:
-        writer = csv.DictWriter(output, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(output, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     (args.output / "measurements.json").write_text(json.dumps({"cases": cases, "comparisons": comparisons}, indent=2, allow_nan=False) + "\n")
+    (args.output / "provenance.json").write_text(json.dumps({"status": "native-candidate-unqualified",
+        "analysis_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "cases": {name: case["provenance"] for name, case in cases.items()}}, indent=2, allow_nan=False) + "\n")
     for name, case in cases.items():
         driven = [row for row in case["nets"] if row["quiet_victim_mv"] is None]
         quiet = [row["quiet_victim_mv"] for row in case["nets"] if row["quiet_victim_mv"] is not None]
