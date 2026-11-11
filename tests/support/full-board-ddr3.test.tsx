@@ -1,12 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { fullBoardDdr3 } from './full-board-ddr3'
+import { addrCmdPins, fullBoardDdr3 } from './full-board-ddr3'
 import { prepareBlocks } from '../../src/pipeline/signals'
 
 const path = process.env.SI_DDR3_BOARD
 
-test('real full-board DDR3 preserves nearby unsupported copper while excluding distant nets', { skip: !path || !process.env.IBIS_MODEL_DIR }, async () => {
+test('real DDR3 TSX declarations preserve copper and select the intended write and addr/cmd models', { skip: !path || !process.env.IBIS_MODEL_DIR }, async () => {
   const circuit = await fullBoardDdr3(path!)
   assert.equal(circuit.filter(record => record.type === 'simulation_signal').length, 10)
   assert.equal(circuit.filter(record => record.type === 'pcb_trace').length, 651)
@@ -21,4 +21,22 @@ test('real full-board DDR3 preserves nearby unsupported copper while excluding d
     assert.ok(rejected.copperScope.pcbTraceIds.length > 11, 'physically relevant neighbours must stay')
     return true
   })
+  const addr = await fullBoardDdr3(path!, { block: 'DDR3_ADDR_CMD' })
+  const original = JSON.parse(await readFile(path!, 'utf8')) as typeof addr
+  assert.deepEqual(addr.slice(0, original.length), original)
+  assert.equal(addr.filter(record => record.type === 'simulation_signal').length, 24)
+  const [block] = prepareBlocks(addr, sources, '2d')
+  assert.equal(block.block.name, 'DDR3_ADDR_CMD')
+  assert.equal(block.duration, 8e-9)
+  assert.deepEqual(new Set(block.signals.map(signal => signal.name)), new Set(addrCmdPins.map(([name]) => name)))
+  for (const signal of block.signals) {
+    assert.ok('source_port_id' in signal.driver)
+    assert.equal(block.pins.get(signal.driver.source_port_id)!.buffer.name, signal.name === 'CK' || signal.name === 'CKn' ? 'Model_343' : 'Model_352')
+    assert.ok('source_port_id' in signal.receivers[0])
+    assert.equal(block.pins.get(signal.receivers[0].source_port_id)!.buffer.name, 'CMD')
+  }
+  const stack = addr.find(record => record.type === 'pcb_stackup')!
+  assert.equal(stack.layers.filter(layer => layer.layer_type === 'copper').length, 8)
+  assert.deepEqual(stack.layers.filter(layer => layer.layer_type === 'dielectric').map(layer => layer.thickness), [.0994, .2, .1088, .2, .1088, .2, .0994])
+  assert.equal(stack.plated_hole_copper_thickness, .018)
 })
