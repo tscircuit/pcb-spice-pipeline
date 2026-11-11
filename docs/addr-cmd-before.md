@@ -55,6 +55,8 @@ not a readback of this board's firmware. `343/655/847` are thus suitable for
 The old Model_257 row says **slowest**, not slow. Both 336 and 352 occur in
 Selectors 4 and 11, so either investigation's distinction by selector alone
 was insufficient. The selected tolerance families are recorded explicitly.
+The workbook does not distinguish the 5% and 10% families; that choice is
+an explicit model assumption, not a uniquely established firmware setting.
 
 Winbond `W631GG6MB-12` maps every command and both clock pins to `CMD`, an
 input with 1.2 pF typical die capacitance, package parasitics and clamp I/V.
@@ -73,8 +75,8 @@ and local vendor files available:
 export OMP_NUM_THREADS=1 TSX_TSCONFIG_PATH=examples/tsconfig.json
 export IBIS_MODEL_DIR=models
 export SI_DDR3_BOARD=/absolute/path/to/am3352-ddr-track-a-local-dfm-wip-20261007/dist/index/circuit.json
-export SI_ROUTE_RUN_DIR=runs/addr-cmd/capture-c05-r1 SI_ROUTE_BATCH=1
-export SI_ROUTE_CELLS_PER_RISE=0.5 SI_ROUTE_DISTANCE_MM=1
+export SI_ROUTE_RUN_DIR=runs/addr-cmd/capture-c2-r1 SI_ROUTE_BATCH=1
+export SI_ROUTE_CELLS_PER_RISE=2 SI_ROUTE_DISTANCE_MM=1
 node --import tsx scripts/run-routed-ddr3.tsx addr-cmd
 python scripts/summarize-addr-cmd.py "$SI_ROUTE_RUN_DIR"
 ```
@@ -108,8 +110,9 @@ remaining full-wave crosstalk disagreement.
 
 The default two-cells-per-rise attempt completed field extraction but needed
 1,205 ladder cells, exceeding the unchanged 1,024-cell memory guard. The
-bounded capture command above uses 0.5 cells per rise, the existing permitted
-minimum. Its spatial convergence is **not established**.
+initial smaller-scope check used 0.5 cells per rise. The capture command
+above uses the usual two cells per rise after reducing the coupling radius.
+Its spatial convergence is **not established**.
 
 The 32 mm scope retained 541 traces. After the ladder guard was satisfied,
 a geometry-only count found **218,036 distinct oblique field sections** and
@@ -129,6 +132,84 @@ one process. An explicit in-memory cache reuses only identical field
 geometry/material keys, with matching panel resolution, including oblique
 surrogates. Changing stimuli still recompiles the vendor buffers; native
 solves are separate. This avoids three repeated ten-minute field passes.
+
+## Native before capture
+
+The completed 8 ns capture uses **444 ladder cells**, two cells per rise,
+a 113.779 ps maximum cell-delay bound and the recorded 1 mm coupling radius.
+All 24 selected routes, 256 traces and 901 vias are retained. The main and
+two quiet-victim native transients took **602.385 / 559.351 / 559.539 s**;
+their largest sampled native RSS was **239.453 MiB**. Each returned code 0
+with no resource failure. These remain **native candidates, unqualified**.
+
+The coupled vendor-buffer/package and routed-copper result does not reproduce
+the isolated lossless prediction of clean inner nets. The first PRBS prefix
+edge switches all 22 command nets from low at 2.5 ns; subsequent bits differ.
+
+| Group | Nets | Median overshoot | Overshoot range | Undershoot range | Median quiet-victim disturbance |
+|---|---:|---:|---:|---:|---:|
+| Top / bottom | 13 | 27.59% | 14.96–39.53% | 0.00–15.04% | 259.48 mV |
+| Inner | 9 | 30.92% | 18.75–34.99% | 0.00–18.08% | 267.08 mV |
+
+Overshoot is max(peak − 1.5 V, 0) / 1.5 V; undershoot is
+max(−minimum, 0) / 1.5 V. Values cover this deterministic 8 ns prefix.
+Quiet-victim disturbance includes the vendor package and routed copper,
+with the victim actively held low and the other parity half-bus plus CK
+switching; its pre-edge DC baseline is removed.
+
+Settling starts at the receiver 50% crossing and requires staying within
+5% of the rail until the next transmitted edge or capture end, with at
+least 0.5 ns confirmation. **—** means no completed interval met that
+criterion; **\*** means other edges were censored. Only four outer nets
+and one inner net had a completed interval; CSV edge counts retain every
+censored edge. Synthetic checks cover a late band entry, sufficient stable
+confirmation, and interruption by the next transmitted edge.
+
+| Net | Layer | Overshoot % | Undershoot % | Observed settling ns | Quiet-victim mV |
+|---|---|---:|---:|---:|---:|
+| A0 | bottom | 27.59 | 15.04 | 1.328\* | 260.06 |
+| A1 | bottom | 21.15 | 11.15 | 1.244\* | 276.92 |
+| A10 | top | 18.87 | 10.22 | 1.336\* | 181.88 |
+| A11 | inner4 | 32.19 | 18.08 | — | 390.18 |
+| A12 | bottom | 31.04 | 0.00 | — | 288.55 |
+| A2 | top | 20.63 | 9.18 | — | 211.86 |
+| A3 | bottom | 33.35 | 0.00 | — | 240.23 |
+| A4 | inner2 | 34.99 | 0.00 | — | 429.42 |
+| A5 | bottom | 39.22 | 14.56 | — | 278.63 |
+| A6 | inner4 | 18.75 | 6.87 | — | 234.38 |
+| A7 | inner4 | 32.51 | 0.00 | — | 399.58 |
+| A8 | inner2 | 24.59 | 0.00 | — | 267.08 |
+| A9 | top | 39.53 | 0.00 | — | 309.61 |
+| BA0 | bottom | 28.96 | 0.00 | — | 222.02 |
+| BA1 | inner2 | 32.24 | 15.03 | — | 311.59 |
+| BA2 | inner2 | 24.50 | 9.01 | — | 189.82 |
+| CASn | top | 35.01 | 0.00 | — | 331.97 |
+| CK | inner4 | 17.11 | 39.87 | — | — |
+| CKE | inner4 | 20.22 | 10.90 | 1.223\* | 250.55 |
+| CKn | inner4 | 44.26 | 22.24 | — | — |
+| CSn0 | top | 18.45 | 0.00 | 3.791 | 208.40 |
+| ODT | top | 26.39 | 14.83 | — | 259.48 |
+| RASn | top | 14.96 | 0.00 | — | 213.21 |
+| WEn | inner2 | 30.92 | 0.00 | — | 223.80 |
+
+CK/CKn were not held quiet in the two crosstalk experiments, so their
+quiet-victim column is unmeasured. The small deliverables are
+`runs/addr-cmd/capture-c2-r1/metrics.csv` (per-net metrics), `before.csv`
+(5 ps resampling), and `outer-inner-overlay.png` (A2 top versus A4 inner2,
+including ringing decay and the quiet-victim overlay). The compact
+committed record is `tests/evidence/signal-levels/addr-cmd-before.json`.
+
+Spatial convergence is **not established**. Compared with 164 cells,
+444 cells changed command-net peaks by up to **27.912 mV**, minima by
+**43.732 mV**, and CKn peak by **88.493 mV**. The largest pointwise
+change on a shared 5 ps grid was **244.567 mV** (CKn). The full-wave
+control failures, limited lateral radius, approximate oblique coupling,
+ideal supplies and unmodeled neighbour endpoints remain material limits.
+
+An 818-cell, 4.999 ns first-pulse check was prepared and started. After a
+turn interruption its process was absent, with no completion/exit record
+and a last saved checkpoint of 2 ns. No result from that incomplete check
+is claimed; the reported metrics use the completed 444-cell captures.
 
 ## Validation
 

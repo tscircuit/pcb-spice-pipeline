@@ -1,0 +1,668 @@
+{
+  "status": "native-candidate-unqualified",
+  "supply_v": 1.5,
+  "settling_definition": "after 50% receiver crossing, remain within 5% of rail until next transmitted edge; require >=0.5 ns confirmation, otherwise censor",
+  "crosstalk_definition": "quiet low victim, other parity half-bus PRBS7 aggressors plus CK; DC baseline removed, t >= 1 ns; not a worst-case bound",
+  "provenance": [
+    {
+      "directory": "runs/addr-cmd/capture-c2-r1/before",
+      "native": {
+        "seconds": 602.384651416,
+        "peakRssKiB": 245200,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.163606291000003,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 9.211534583,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 14.260795458000008,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 23.352106625000015,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 174.8285225,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "prbs7",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "cf1d0942e0abf7debf83a4752fdd55d7af42e4d53f410d4d6d18d687c881197f"
+    },
+    {
+      "directory": "runs/addr-cmd/capture-c2-r1/victim-even",
+      "native": {
+        "seconds": 559.351402083,
+        "peakRssKiB": 244736,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.163210333000054,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 10.221180292000064,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 15.272020541999956,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 24.361595208000043,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 170.80883854200005,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-even",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "48b7074463d588a924e525969ebf04ddf7e212dde0a991800ecb7cf41b62160a"
+    },
+    {
+      "directory": "runs/addr-cmd/capture-c2-r1/victim-odd",
+      "native": {
+        "seconds": 559.539404792,
+        "peakRssKiB": 243888,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.162866124999942,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 9.212656959000043,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 14.263331541999941,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 23.351112625000066,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 174.85989225000003,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-odd",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "ad0efc351d0933e19ad0ead6263c86df31463770e749bde76426642a0ea75817"
+    }
+  ],
+  "nets": [
+    {
+      "net": "A0",
+      "layer": "bottom",
+      "group": "outer",
+      "min_v": -0.22566000792116284,
+      "max_v": 1.9138765371064481,
+      "overshoot_pct": 27.59176914042987,
+      "undershoot_pct": 15.044000528077522,
+      "settle_ns": 1.328317201515632,
+      "completed_edges": 1,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 260.0574029221594
+    },
+    {
+      "net": "A1",
+      "layer": "bottom",
+      "group": "outer",
+      "min_v": -0.16720693796594455,
+      "max_v": 1.8171974181375405,
+      "overshoot_pct": 21.1464945425027,
+      "undershoot_pct": 11.147129197729637,
+      "settle_ns": 1.2438482007020395,
+      "completed_edges": 1,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 276.91785059791977
+    },
+    {
+      "net": "A10",
+      "layer": "top",
+      "group": "outer",
+      "min_v": -0.15333915362021883,
+      "max_v": 1.7830496763440837,
+      "overshoot_pct": 18.869978422938914,
+      "undershoot_pct": 10.222610241347923,
+      "settle_ns": 1.3359825595757975,
+      "completed_edges": 1,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 181.88027310922607
+    },
+    {
+      "net": "A11",
+      "layer": "inner4",
+      "group": "inner",
+      "min_v": -0.27117200648484624,
+      "max_v": 1.9828517572302522,
+      "overshoot_pct": 32.19011714868348,
+      "undershoot_pct": 18.078133765656414,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 2,
+      "quiet_victim_crosstalk_mv": 390.17583220737174
+    },
+    {
+      "net": "A12",
+      "layer": "bottom",
+      "group": "outer",
+      "min_v": 6.366248411574881e-08,
+      "max_v": 1.9655410915561593,
+      "overshoot_pct": 31.036072770410623,
+      "undershoot_pct": 0.0,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 288.54808982285516
+    },
+    {
+      "net": "A2",
+      "layer": "top",
+      "group": "outer",
+      "min_v": -0.13769065201271216,
+      "max_v": 1.8095092200552039,
+      "overshoot_pct": 20.63394800368026,
+      "undershoot_pct": 9.179376800847477,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 2,
+      "quiet_victim_crosstalk_mv": 211.85530349811796
+    },
+    {
+      "net": "A3",
+      "layer": "bottom",
+      "group": "outer",
+      "min_v": 6.400092458561925e-08,
+      "max_v": 2.0002952252298867,
+      "overshoot_pct": 33.353015015325774,
+      "undershoot_pct": 0.0,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 240.22775090503754
+    },
+    {
+      "net": "A4",
+      "layer": "inner2",
+      "group": "inner",
+      "min_v": 6.421140422441827e-08,
+      "max_v": 2.024868339316363,
+      "overshoot_pct": 34.99122262109087,
+      "undershoot_pct": 0.0,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 429.41846497859837
+    },
+    {
+      "net": "A5",
+      "layer": "bottom",
+      "group": "outer",
+      "min_v": -0.21840952625337853,
+      "max_v": 2.088331194376684,
+      "overshoot_pct": 39.22207962511226,
+      "undershoot_pct": 14.560635083558568,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 2,
+      "quiet_victim_crosstalk_mv": 278.63492281793356
+    },
+    {
+      "net": "A6",
+      "layer": "inner4",
+      "group": "inner",
+      "min_v": -0.10304596863796203,
+      "max_v": 1.7812188859627114,
+      "overshoot_pct": 18.747925730847427,
+      "undershoot_pct": 6.869731242530802,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 2,
+      "quiet_victim_crosstalk_mv": 234.37879521769102
+    },
+    {
+      "net": "A7",
+      "layer": "inner4",
+      "group": "inner",
+      "min_v": 6.403966084371154e-08,
+      "max_v": 1.9876046532202458,
+      "overshoot_pct": 32.50697688134972,
+      "undershoot_pct": 0.0,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 399.5757190821057
+    },
+    {
+      "net": "A8",
+      "layer": "inner2",
+      "group": "inner",
+      "min_v": 6.302065850915048e-08,
+      "max_v": 1.8688698913645487,
+      "overshoot_pct": 24.591326090969915,
+      "undershoot_pct": 0.0,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 267.0841474563775
+    },
+    {
+      "net": "A9",
+      "layer": "top",
+      "group": "outer",
+      "min_v": 6.420499235731772e-08,
+      "max_v": 2.0928769467841706,
+      "overshoot_pct": 39.52512978561138,
+      "undershoot_pct": 0.0,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 309.609105357908
+    },
+    {
+      "net": "BA0",
+      "layer": "bottom",
+      "group": "outer",
+      "min_v": 6.388857960631416e-08,
+      "max_v": 1.9344163043186324,
+      "overshoot_pct": 28.961086954575492,
+      "undershoot_pct": 0.0,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 222.02477629656627
+    },
+    {
+      "net": "BA1",
+      "layer": "inner2",
+      "group": "inner",
+      "min_v": -0.22546188960552163,
+      "max_v": 1.983557948609894,
+      "overshoot_pct": 32.23719657399293,
+      "undershoot_pct": 15.03079264036811,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 2,
+      "quiet_victim_crosstalk_mv": 311.59279865600666
+    },
+    {
+      "net": "BA2",
+      "layer": "inner2",
+      "group": "inner",
+      "min_v": -0.13521601461500737,
+      "max_v": 1.8674896365912854,
+      "overshoot_pct": 24.499309106085697,
+      "undershoot_pct": 9.014400974333824,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 2,
+      "quiet_victim_crosstalk_mv": 189.81642442882045
+    },
+    {
+      "net": "CASn",
+      "layer": "top",
+      "group": "outer",
+      "min_v": 6.4619947204283e-08,
+      "max_v": 2.025164037810682,
+      "overshoot_pct": 35.010935854045464,
+      "undershoot_pct": 0.0,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 331.97340337455404
+    },
+    {
+      "net": "CK",
+      "layer": "inner4",
+      "group": "inner",
+      "min_v": -0.5980941664987584,
+      "max_v": 1.7566296133767525,
+      "overshoot_pct": 17.1086408917835,
+      "undershoot_pct": 39.87294443325056,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": null
+    },
+    {
+      "net": "CKE",
+      "layer": "inner4",
+      "group": "inner",
+      "min_v": -0.16348169598482212,
+      "max_v": 1.8033355495153947,
+      "overshoot_pct": 20.222369967692977,
+      "undershoot_pct": 10.898779732321474,
+      "settle_ns": 1.2232301140635902,
+      "completed_edges": 1,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 250.54528637699224
+    },
+    {
+      "net": "CKn",
+      "layer": "inner4",
+      "group": "inner",
+      "min_v": -0.3335907247284982,
+      "max_v": 2.1639439902396274,
+      "overshoot_pct": 44.262932682641825,
+      "undershoot_pct": 22.239381648566546,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": null
+    },
+    {
+      "net": "CSn0",
+      "layer": "top",
+      "group": "outer",
+      "min_v": 6.434165066057459e-08,
+      "max_v": 1.7767051321570988,
+      "overshoot_pct": 18.447008810473253,
+      "undershoot_pct": 0.0,
+      "settle_ns": 3.79136415806212,
+      "completed_edges": 1,
+      "censored_edges": 0,
+      "quiet_victim_crosstalk_mv": 208.39729836395333
+    },
+    {
+      "net": "ODT",
+      "layer": "top",
+      "group": "outer",
+      "min_v": -0.22241938466391373,
+      "max_v": 1.895897029222051,
+      "overshoot_pct": 26.393135281470066,
+      "undershoot_pct": 14.82795897759425,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 2,
+      "quiet_victim_crosstalk_mv": 259.4795855070416
+    },
+    {
+      "net": "RASn",
+      "layer": "top",
+      "group": "outer",
+      "min_v": 6.466988308639323e-08,
+      "max_v": 1.7244207347327094,
+      "overshoot_pct": 14.96138231551396,
+      "undershoot_pct": 0.0,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 213.21416552151456
+    },
+    {
+      "net": "WEn",
+      "layer": "inner2",
+      "group": "inner",
+      "min_v": 6.428134610913592e-08,
+      "max_v": 1.9637423790762802,
+      "overshoot_pct": 30.916158605085347,
+      "undershoot_pct": 0.0,
+      "settle_ns": null,
+      "completed_edges": 0,
+      "censored_edges": 1,
+      "quiet_victim_crosstalk_mv": 223.7988305601512
+    }
+  ],
+  "groups": {
+    "outer": {
+      "overshoot_pct": 27.59176914042987,
+      "undershoot_pct": 0.0,
+      "quiet_victim_crosstalk_mv": 259.4795855070416
+    },
+    "inner": {
+      "overshoot_pct": 30.916158605085347,
+      "undershoot_pct": 6.869731242530802,
+      "quiet_victim_crosstalk_mv": 267.0841474563775
+    }
+  },
+  "converter_commit": "ad1ec9e640a92a4d370fc76acbbd8db245563317",
+  "capture": {
+    "duration_ns": 8,
+    "cells_per_rise": 2,
+    "cells": 444,
+    "maximum_cell_delay_bound_ps": 113.77856470666548,
+    "panels_per_edge": 12,
+    "maximum_step_ps": 10,
+    "lateral_coupling_radius_mm": 1,
+    "selected_routes": 24,
+    "retained_traces": 256,
+    "retained_vias": 901
+  },
+  "stimuli": [
+    {
+      "name": "A0",
+      "pattern": "prbs7",
+      "seed": 32,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A1",
+      "pattern": "prbs7",
+      "seed": 39,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A10",
+      "pattern": "prbs7",
+      "seed": 38,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A11",
+      "pattern": "prbs7",
+      "seed": 45,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A12",
+      "pattern": "prbs7",
+      "seed": 52,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A2",
+      "pattern": "prbs7",
+      "seed": 46,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A3",
+      "pattern": "prbs7",
+      "seed": 53,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A4",
+      "pattern": "prbs7",
+      "seed": 60,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A5",
+      "pattern": "prbs7",
+      "seed": 35,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A6",
+      "pattern": "prbs7",
+      "seed": 42,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A7",
+      "pattern": "prbs7",
+      "seed": 49,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A8",
+      "pattern": "prbs7",
+      "seed": 56,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "A9",
+      "pattern": "prbs7",
+      "seed": 63,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "BA0",
+      "pattern": "prbs7",
+      "seed": 59,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "BA1",
+      "pattern": "prbs7",
+      "seed": 34,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "BA2",
+      "pattern": "prbs7",
+      "seed": 41,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "CASn",
+      "pattern": "prbs7",
+      "seed": 48,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "CK",
+      "pattern": "0001111111111111",
+      "bit_rate_bps": 800000000,
+      "offset_s": 0
+    },
+    {
+      "name": "CKE",
+      "pattern": "prbs7",
+      "seed": 37,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "CKn",
+      "pattern": "1110000000000000",
+      "bit_rate_bps": 800000000,
+      "offset_s": 0
+    },
+    {
+      "name": "CSn0",
+      "pattern": "prbs7",
+      "seed": 62,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "ODT",
+      "pattern": "prbs7",
+      "seed": 44,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "RASn",
+      "pattern": "prbs7",
+      "seed": 55,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    },
+    {
+      "name": "WEn",
+      "pattern": "prbs7",
+      "seed": 51,
+      "bit_rate_bps": 400000000,
+      "offset_s": 0
+    }
+  ],
+  "qualification": {
+    "full_wave_controls": "Remaining tight far-victim and short-case extrema-band failures: docs/terminal-inductance.md",
+    "spatial": "Not established; 164 to 444 cells changed command peaks by up to 27.912 mV and CK peaks by up to 88.493 mV",
+    "scope": "1 mm admission/oblique radius; more distant coupling omitted without a waveform error bound",
+    "clock": "One complementary diagnostic edge at 3.75 ns; periodic Model_343 CK rejected by inactive-tail guard",
+    "system": "Ideal die supplies and AC rail electrodes; open unmodeled neighbour endpoints; no physical hardware verification"
+  },
+  "artifacts": {
+    "metrics.csv": {
+      "path": "runs/addr-cmd/capture-c2-r1/metrics.csv",
+      "sha256": "81a8888a71740dadee83557e7db6e667bbff6576d4ce13a3ff819be597bcd610"
+    },
+    "before.csv": {
+      "path": "runs/addr-cmd/capture-c2-r1/before.csv",
+      "sha256": "df4c359ea36be6e6c4ae37e7282f79536f18d43e919efc6e9c4d428365fa180e"
+    },
+    "outer-inner-overlay.png": {
+      "path": "runs/addr-cmd/capture-c2-r1/outer-inner-overlay.png",
+      "sha256": "06100e447a1ffeb63f926bd7d79fbd7de67c7bdc4b582a632c7dee9642d59faf"
+    }
+  },
+  "native_code_commit": "7a56b8f",
+  "metrics_script_sha256": "7b65a71355866f0d7ca5c71e8e5f99ca95ee8b822942fc5fd190359172df53f9",
+  "refinement_check": {
+    "cells": 818,
+    "requested_duration_ns": 4.999,
+    "status": "incomplete after turn interruption; no exit/completion record",
+    "last_saved_checkpoint_ns": 2,
+    "result_claimed": false
+  }
+}

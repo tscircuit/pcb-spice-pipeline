@@ -44,17 +44,17 @@ def changes(stimulus, duration):
 
 
 def settling(time, voltage, supply, transitions):
-    """Time after a 50% crossing to stay within 5% until the next transmitted edge."""
+    """Stay within 5% until the next transmitted edge, with 0.5 ns confirmation."""
     edges = np.flatnonzero((voltage[:-1] < supply / 2) != (voltage[1:] < supply / 2))
     completed = []
     censored = 0
-    for k, index in enumerate(edges):
+    for index in edges:
         following = transitions[transitions > time[index + 1]]
         end = int(np.searchsorted(time, following[0])) if len(following) else len(time)
         target = supply if voltage[index + 1] > voltage[index] else 0
         bad = np.flatnonzero(abs(voltage[index + 1:end] - target) > .05 * supply)
         last = index + 1 + bad[-1] if len(bad) else index
-        if last + 1 >= end:
+        if last + 1 >= end or time[end - 1] - time[last + 1] < .5e-9:
             censored += 1
         else:
             crossing = time[index] + (supply / 2 - voltage[index]) * (
@@ -99,7 +99,7 @@ def main():
                         "undershoot_pct": float(max(0, -voltage.min()) / supply * 100),
                         **settling(time, voltage, supply, changes(stimulus, time[-1])), "quiet_victim_crosstalk_mv": crosstalk})
     summary = {"status": "native-candidate-unqualified", "supply_v": supply,
-               "settling_definition": "after 50% receiver crossing, remain within 5% of rail until next transmitted edge; unfinished edges censored",
+               "settling_definition": "after 50% receiver crossing, remain within 5% of rail until next transmitted edge; require >=0.5 ns confirmation, otherwise censor",
                "crosstalk_definition": "quiet low victim, other parity half-bus PRBS7 aggressors plus CK; DC baseline removed, t >= 1 ns; not a worst-case bound",
                "provenance": [provenance] + [p for _, _, p in victims], "nets": records}
     summary["groups"] = {group: {metric: float(np.median([r[metric] for r in records if r["group"] == group and r["net"] not in ["CK", "CKn"]]))
@@ -121,7 +121,7 @@ def main():
         qt, qv = quiet_waves[name]
         axes[1].plot(qt * 1e9, qv * 1000, color=color, label=f"{name} held low; other parity half-bus + CK switches")
     axes[0].axhline(supply, color="gray", linestyle="--", linewidth=.8)
-    axes[0].set(xlim=(2.3, 4.6), ylabel="Receiver ball voltage (V)", title="Before: real routed board, first rising command edge (400 Mbps)")
+    axes[0].set(xlim=(2.3, time[-1] * 1e9), ylabel="Receiver ball voltage (V)", title=f"Before: real routed board, {time[-1] * 1e9:g} ns command capture (400 Mbps)")
     axes[1].set(xlim=(0, time[-1] * 1e9), xlabel="Time (ns)", ylabel="Quiet-victim disturbance (mV)")
     for ax in axes:
         ax.grid(alpha=.2)
