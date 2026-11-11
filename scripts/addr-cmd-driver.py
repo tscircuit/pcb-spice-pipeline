@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 
-import numpy as np
+import numpy
 
 
 def number(value):
@@ -30,15 +30,15 @@ def main():
             table = re.split(r"(?m)^\[", table)[0]
             rows = [[number(cell) for cell in line.split()[:2]] for line in table.splitlines()
                     if re.match(r"^[-+\d.]", line)]
-            voltage, current = np.array(rows).T
+            voltage, current = numpy.array(rows).T
             current = -current if tag == "Pullup" else current
-            midpoint = float(np.interp(.75, voltage, current))
+            midpoint = float(numpy.interp(.75, voltage, current))
             arrivals = []
             for impedance in [50, 65]:
                 lo, hi = 0.0, 1.5
                 for _ in range(60):
                     drop = (lo + hi) / 2
-                    if np.interp(drop, voltage, current) > (1.5 - drop) / impedance:
+                    if numpy.interp(drop, voltage, current) > (1.5 - drop) / impedance:
                         hi = drop
                     else:
                         lo = drop

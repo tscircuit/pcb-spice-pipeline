@@ -1,0 +1,744 @@
+{
+  "status": "native-candidate-with-partial-spatial-checks; hardware-unverified",
+  "analysis_script_sha256": "d8e9665e8e6a6a0e1695629c21c47b82051026d3175c7d15a18ae2cb44ab1d15",
+  "cases": {
+    "before": {
+      "directory": "runs/addr-cmd/capture-c2-r1/before",
+      "native": {
+        "seconds": 602.384651416,
+        "peakRssKiB": 245200,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.163606291000003,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 9.211534583,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 14.260795458000008,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 23.352106625000015,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 174.8285225,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "prbs7",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "cf1d0942e0abf7debf83a4752fdd55d7af42e4d53f410d4d6d18d687c881197f",
+      "window_ns": 8,
+      "cells": 444,
+      "native_deck_sha256": "57bf4da04732b1ca050d26d0607fe4d05059091743281d4f55e2d37d7291a1f3",
+      "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {}
+    },
+    "before-prefix": {
+      "directory": "runs/addr-cmd/capture-c2-r1/before",
+      "native": {
+        "seconds": 602.384651416,
+        "peakRssKiB": 245200,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.163606291000003,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 9.211534583,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 14.260795458000008,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 23.352106625000015,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 174.8285225,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "prbs7",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "cf1d0942e0abf7debf83a4752fdd55d7af42e4d53f410d4d6d18d687c881197f",
+      "window_ns": 4.999,
+      "cells": 444,
+      "native_deck_sha256": "57bf4da04732b1ca050d26d0607fe4d05059091743281d4f55e2d37d7291a1f3",
+      "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {}
+    },
+    "victim-even": {
+      "directory": "runs/addr-cmd/capture-c2-r1/victim-even",
+      "native": {
+        "seconds": 559.351402083,
+        "peakRssKiB": 244736,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.163210333000054,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 10.221180292000064,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 15.272020541999956,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 24.361595208000043,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 170.80883854200005,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-even",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "48b7074463d588a924e525969ebf04ddf7e212dde0a991800ecb7cf41b62160a",
+      "window_ns": 8,
+      "cells": 444,
+      "native_deck_sha256": "b6f197592a8504ae294a2f513c810f479f121073665a05abcdceaf340093c005",
+      "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {}
+    },
+    "victim-odd": {
+      "directory": "runs/addr-cmd/capture-c2-r1/victim-odd",
+      "native": {
+        "seconds": 559.539404792,
+        "peakRssKiB": 243888,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.162866124999942,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 9.212656959000043,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 14.263331541999941,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 23.351112625000066,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 174.85989225000003,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-odd",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "ad0efc351d0933e19ad0ead6263c86df31463770e749bde76426642a0ea75817",
+      "window_ns": 8,
+      "cells": 444,
+      "native_deck_sha256": "9599480d1c22068ea53dd288393d6d9c64e833fae47fefeb886ed0d11f9a7aed",
+      "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {}
+    },
+    "victim-even-prefix": {
+      "directory": "runs/addr-cmd/capture-c2-r1/victim-even",
+      "native": {
+        "seconds": 559.351402083,
+        "peakRssKiB": 244736,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.163210333000054,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 10.221180292000064,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 15.272020541999956,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 24.361595208000043,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 170.80883854200005,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-even",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "48b7074463d588a924e525969ebf04ddf7e212dde0a991800ecb7cf41b62160a",
+      "window_ns": 4.999,
+      "cells": 444,
+      "native_deck_sha256": "b6f197592a8504ae294a2f513c810f479f121073665a05abcdceaf340093c005",
+      "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {}
+    },
+    "victim-odd-prefix": {
+      "directory": "runs/addr-cmd/capture-c2-r1/victim-odd",
+      "native": {
+        "seconds": 559.539404792,
+        "peakRssKiB": 243888,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.162866124999942,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 9.212656959000043,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 14.263331541999941,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 23.351112625000066,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 174.85989225000003,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-odd",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "ad0efc351d0933e19ad0ead6263c86df31463770e749bde76426642a0ea75817",
+      "window_ns": 4.999,
+      "cells": 444,
+      "native_deck_sha256": "9599480d1c22068ea53dd288393d6d9c64e833fae47fefeb886ed0d11f9a7aed",
+      "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {}
+    },
+    "six-before": {
+      "directory": "runs/addr-cmd/qualification/scope-c2/before",
+      "native": {
+        "seconds": 202.142168458,
+        "peakRssKiB": 143216,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.208845791,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 10.332390499999994,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 17.468927333,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 29.709105375,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 175.517564833,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "prbs7",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "f42c0870c6de5ed7234323efcd83da5237348e4d67bc1f50a155d12edfa50a0e",
+      "window_ns": 4.999,
+      "cells": 218,
+      "native_deck_sha256": "44064850467f1561fb89a17c632f2534f49a053539297c8f8c3b1bc76cfb2bf1",
+      "stimuli_sha256": "ebb4b2ba840ae76e6d27bb3e6c3436045171bd1f2a92bccf1f79705fa2fdb59d",
+      "declared_duration_ns": 4.999,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 112.6398470201564,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_352",
+        "packageOff": false,
+        "termination": 0,
+        "scopeNets": [
+          "A4",
+          "A5",
+          "A7",
+          "A9",
+          "A11",
+          "CASn"
+        ]
+      }
+    },
+    "six-victim-even": {
+      "directory": "runs/addr-cmd/qualification/scope-c2/victim-even",
+      "native": {
+        "seconds": 204.94715958400002,
+        "peakRssKiB": 142704,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.206705583999981,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 10.327094584000006,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 17.465410417000008,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 29.705407708999992,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 177.59223708400003,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-even",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "6fa58dc1167ec17075b41723aa751df6ba54d01a68f05fe244738ce1d4510a54",
+      "window_ns": 4.999,
+      "cells": 218,
+      "native_deck_sha256": "44563d4cdbfbb972e435806d54697ad088076b07acea1405b68c7b2f62273041",
+      "stimuli_sha256": "ea01f133dba89f0b641e5f55998b76bec5a14c8b6acd6e61318ae8688a2b76b1",
+      "declared_duration_ns": 4.999,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 112.6398470201564,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_352",
+        "packageOff": false,
+        "termination": 0,
+        "scopeNets": [
+          "A4",
+          "A5",
+          "A7",
+          "A9",
+          "A11",
+          "CASn"
+        ]
+      }
+    },
+    "six-victim-odd": {
+      "directory": "runs/addr-cmd/qualification/scope-c2/victim-odd",
+      "native": {
+        "seconds": 193.26328645799995,
+        "peakRssKiB": 142480,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 3.1880279579999624,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 10.327359041000017,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 16.44928283299995,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 29.709898665999994,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 169.42912691600003,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-odd",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "8740d6b055146970a172b4d623fe9f7bb6d3475fdb3f825666aaa4349f3a90ba",
+      "window_ns": 4.999,
+      "cells": 218,
+      "native_deck_sha256": "c1095d65cbf495af0f7babbfb69c2d544be1965e65084195e5333538bfd1a16e",
+      "stimuli_sha256": "8d715e756d7ae635244b363797bd526dd84f91a730edec9b6b66f2f9b0905c17",
+      "declared_duration_ns": 4.999,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 112.6398470201564,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_352",
+        "packageOff": false,
+        "termination": 0,
+        "scopeNets": [
+          "A4",
+          "A5",
+          "A7",
+          "A9",
+          "A11",
+          "CASn"
+        ]
+      }
+    },
+    "scope-c2": {
+      "directory": "runs/addr-cmd/qualification/scope-bus-c2/before",
+      "native": {
+        "seconds": 404.624541792,
+        "peakRssKiB": 143968,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.213649583999999,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 11.356838041999989,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 17.478388749999997,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 29.72594341699999,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 215.37231624999998,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "prbs7",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "05b156f0dad79c1e9fbdaddba1ba1d79866b8983ca24bce25b455bd05b170459",
+      "window_ns": 4.999,
+      "cells": 218,
+      "native_deck_sha256": "67dc5032e65bf3cad03add77fdf02f1159cdcd4dc788fdd107a740e0bfb075d1",
+      "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
+      "declared_duration_ns": 4.999,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 112.6398470201564,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_352",
+        "packageOff": false,
+        "termination": 0,
+        "scopeNets": [
+          "A4",
+          "A5",
+          "A7",
+          "A9",
+          "A11",
+          "CASn"
+        ],
+        "scopeQuiet": false
+      }
+    },
+    "scope-c2-even": {
+      "directory": "runs/addr-cmd/qualification/scope-bus-c2/victim-even",
+      "native": {
+        "seconds": 432.43970125000004,
+        "peakRssKiB": 143216,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.20914287500002,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 10.324786291999976,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 17.467160042000003,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 29.707570124999968,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 231.63483670800005,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-even",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "b7471ecf535ba5dad1f91b0a281a5c003f86e33579a0a84cdef437d1be9cb492",
+      "window_ns": 4.999,
+      "cells": 218,
+      "native_deck_sha256": "0f9368380a0390ee7c33339ee6d8ef8201878a93f976a89de1bf36baa86fe664",
+      "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
+      "declared_duration_ns": 4.999,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 112.6398470201564,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_352",
+        "packageOff": false,
+        "termination": 0,
+        "scopeNets": [
+          "A4",
+          "A5",
+          "A7",
+          "A9",
+          "A11",
+          "CASn"
+        ],
+        "scopeQuiet": false
+      }
+    },
+    "scope-c3": {
+      "directory": "runs/addr-cmd/qualification/scope-bus-c3/before",
+      "native": {
+        "seconds": 453.11631150000005,
+        "peakRssKiB": 197184,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 6.254747125000009,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 14.414727542000008,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 20.532868499999996,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 33.793661208,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 235.77917158300002,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "prbs7",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "fb173a3a84728c7303ffd93a3d3cda1733f2e59141d5ec7ba44f1b3a2f05409f",
+      "window_ns": 4.999,
+      "cells": 304,
+      "native_deck_sha256": "f28bb5cbb74769ec0a60a9c525db8a187a914d1535f9d327c5dc972c83765f27",
+      "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
+      "declared_duration_ns": 4.999,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 75.07506066258728,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_352",
+        "packageOff": false,
+        "termination": 0,
+        "scopeNets": [
+          "A4",
+          "A5",
+          "A7",
+          "A9",
+          "A11",
+          "CASn"
+        ],
+        "scopeQuiet": false
+      }
+    },
+    "scope-c3-even": {
+      "directory": "runs/addr-cmd/qualification/scope-bus-c3/victim-even",
+      "native": {
+        "seconds": 438.454268875,
+        "peakRssKiB": 196800,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 6.249214915999997,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 14.411340249999993,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 20.530685583,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 33.795909625,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 234.73478575,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-even",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "420fd4aa97636402e404e848b57c085da68c7dbc0602bc8fdfae8f990bb84baa",
+      "window_ns": 4.999,
+      "cells": 304,
+      "native_deck_sha256": "6bff19d3982f43405c1e6cc8e0ea3b8200e168d313861ab2530e41438f54b057",
+      "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
+      "declared_duration_ns": 4.999,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 75.07506066258728,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_352",
+        "packageOff": false,
+        "termination": 0,
+        "scopeNets": [
+          "A4",
+          "A5",
+          "A7",
+          "A9",
+          "A11",
+          "CASn"
+        ],
+        "scopeQuiet": false
+      }
+    }
+  }
+}

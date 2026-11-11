@@ -1,0 +1,20 @@
+[
+  {
+    "pattern": "before",
+    "profiles_compared": 48,
+    "window_ns": 4.999,
+    "max_absolute_coefficient_change": 7.870371021567735e-13,
+    "before_deck_sha256": "57bf4da04732b1ca050d26d0607fe4d05059091743281d4f55e2d37d7291a1f3",
+    "reduced_deck_sha256": "67dc5032e65bf3cad03add77fdf02f1159cdcd4dc788fdd107a740e0bfb075d1",
+    "physical_pin_order_matches": true
+  },
+  {
+    "pattern": "victim-even",
+    "profiles_compared": 48,
+    "window_ns": 4.999,
+    "max_absolute_coefficient_change": 7.870371021567735e-13,
+    "before_deck_sha256": "b6f197592a8504ae294a2f513c810f479f121073665a05abcdceaf340093c005",
+    "reduced_deck_sha256": "0f9368380a0390ee7c33339ee6d8ef8201878a93f976a89de1bf36baa86fe664",
+    "physical_pin_order_matches": true
+  }
+]

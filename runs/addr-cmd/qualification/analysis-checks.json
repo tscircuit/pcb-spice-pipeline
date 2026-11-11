@@ -1,0 +1,38 @@
+[
+  {
+    "name": "triangle",
+    "expected": [
+      0.5,
+      0.5
+    ],
+    "actual": [
+      0.5,
+      0.5
+    ],
+    "status": "passed-synthetic-numerical-check"
+  },
+  {
+    "name": "split-lobes",
+    "expected": [
+      1,
+      2
+    ],
+    "actual": [
+      1.0,
+      2.0
+    ],
+    "status": "passed-synthetic-numerical-check"
+  },
+  {
+    "name": "rail-crossings",
+    "expected": [
+      0.25,
+      0.5
+    ],
+    "actual": [
+      0.25,
+      0.5
+    ],
+    "status": "passed-synthetic-numerical-check"
+  }
+]

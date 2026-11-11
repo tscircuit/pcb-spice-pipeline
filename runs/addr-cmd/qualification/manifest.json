@@ -1,0 +1,79 @@
+[
+  {
+    "name": "before",
+    "directory": "runs/addr-cmd/capture-c2-r1/before",
+    "stop_ns": 8
+  },
+  {
+    "name": "before-prefix",
+    "directory": "runs/addr-cmd/capture-c2-r1/before",
+    "stop_ns": 4.999
+  },
+  {
+    "name": "victim-even",
+    "directory": "runs/addr-cmd/capture-c2-r1/victim-even",
+    "stop_ns": 8
+  },
+  {
+    "name": "victim-odd",
+    "directory": "runs/addr-cmd/capture-c2-r1/victim-odd",
+    "stop_ns": 8
+  },
+  {
+    "name": "victim-even-prefix",
+    "directory": "runs/addr-cmd/capture-c2-r1/victim-even",
+    "stop_ns": 4.999
+  },
+  {
+    "name": "victim-odd-prefix",
+    "directory": "runs/addr-cmd/capture-c2-r1/victim-odd",
+    "stop_ns": 4.999
+  },
+  {
+    "name": "six-before",
+    "directory": "runs/addr-cmd/qualification/scope-c2/before",
+    "stop_ns": 4.999
+  },
+  {
+    "name": "six-victim-even",
+    "directory": "runs/addr-cmd/qualification/scope-c2/victim-even",
+    "stop_ns": 4.999
+  },
+  {
+    "name": "six-victim-odd",
+    "directory": "runs/addr-cmd/qualification/scope-c2/victim-odd",
+    "stop_ns": 4.999
+  },
+  {
+    "name": "scope-c2",
+    "directory": "runs/addr-cmd/qualification/scope-bus-c2/before",
+    "stop_ns": 4.999,
+    "baseline": "before-prefix",
+    "overlay": "scope-overlay.png",
+    "label": "Reduced surrounding copper, full-bus activity",
+    "quiet_case": "scope-c2-even",
+    "quiet_baseline": "victim-even-prefix"
+  },
+  {
+    "name": "scope-c2-even",
+    "directory": "runs/addr-cmd/qualification/scope-bus-c2/victim-even",
+    "stop_ns": 4.999,
+    "baseline": "victim-even-prefix"
+  },
+  {
+    "name": "scope-c3",
+    "directory": "runs/addr-cmd/qualification/scope-bus-c3/before",
+    "stop_ns": 4.999,
+    "baseline": "scope-c2",
+    "overlay": "spatial-overlay.png",
+    "label": "Spatial refinement: 2 to 3 cells per rise",
+    "quiet_case": "scope-c3-even",
+    "quiet_baseline": "scope-c2-even"
+  },
+  {
+    "name": "scope-c3-even",
+    "directory": "runs/addr-cmd/qualification/scope-bus-c3/victim-even",
+    "stop_ns": 4.999,
+    "baseline": "scope-c2-even"
+  }
+]

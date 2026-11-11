@@ -1,0 +1,91 @@
+{
+  "status": "partial-native-prefix-only-not-convergence",
+  "window_ns": [
+    0,
+    4
+  ],
+  "requested_fine_end_ns": 4.999,
+  "native": {
+    "seconds": 1200.069528834,
+    "peakRssKiB": 328528,
+    "code": null,
+    "budgetError": "Native runtime exceeded 1200 s budget",
+    "checkpoints": [
+      {
+        "wall_seconds": 20.37486387500001,
+        "simulation_seconds": 1e-12
+      },
+      {
+        "wall_seconds": 47.62725729200001,
+        "simulation_seconds": 5e-10
+      },
+      {
+        "wall_seconds": 65.89693725000001,
+        "simulation_seconds": 1e-09
+      },
+      {
+        "wall_seconds": 105.28821041700002,
+        "simulation_seconds": 2e-09
+      },
+      {
+        "wall_seconds": 713.4145701670001,
+        "simulation_seconds": 4e-09
+      }
+    ]
+  },
+  "warning": "Fine run timed out. Prefix ends before every listed original full crest. No full crest, settling or quiet-victim refinement qualification follows. Capture durations can change bounded inactive IBIS tails.",
+  "sha256": {
+    "runs/addr-cmd/capture-c2-r1/before/receiver.csv": "cf1d0942e0abf7debf83a4752fdd55d7af42e4d53f410d4d6d18d687c881197f",
+    "runs/addr-cmd/qualification/spatial-c3/receiver-incomplete.csv": "9310bc5dfac8d0c0be5e8aee31f90de318f1e698fa403d214e990340a2821e90"
+  },
+  "nets": [
+    {
+      "net": "A4",
+      "before_prefix_max_v": 1.5277648643554316,
+      "fine_partial_prefix_max_v": 1.526640627300787,
+      "prefix_peak_delta_mv": -1.1242370546444835,
+      "prefix_overshoot_delta_pp": -0.0749491369762989,
+      "before_full_peak_time_ns": 4.473789794052694
+    },
+    {
+      "net": "A5",
+      "before_prefix_max_v": 1.6215209226086698,
+      "fine_partial_prefix_max_v": 1.6205225677324753,
+      "prefix_peak_delta_mv": -0.9983548761944849,
+      "prefix_overshoot_delta_pp": -0.066556991746299,
+      "before_full_peak_time_ns": 4.4303
+    },
+    {
+      "net": "A7",
+      "before_prefix_max_v": 1.548694887292794,
+      "fine_partial_prefix_max_v": 1.5482970308860773,
+      "prefix_peak_delta_mv": -0.3978564067166346,
+      "prefix_overshoot_delta_pp": -0.02652376044777564,
+      "before_full_peak_time_ns": 4.433699364149925
+    },
+    {
+      "net": "A9",
+      "before_prefix_max_v": 1.5869489526120446,
+      "fine_partial_prefix_max_v": 1.5856037711698932,
+      "prefix_peak_delta_mv": -1.3451814421514552,
+      "prefix_overshoot_delta_pp": -0.08967876281009701,
+      "before_full_peak_time_ns": 4.4422000000000015
+    },
+    {
+      "net": "A11",
+      "before_prefix_max_v": 1.6131729750958135,
+      "fine_partial_prefix_max_v": 1.6137122103300097,
+      "prefix_peak_delta_mv": 0.5392352341961892,
+      "prefix_overshoot_delta_pp": 0.03594901561307928,
+      "before_full_peak_time_ns": 4.343433853614751
+    },
+    {
+      "net": "CASn",
+      "before_prefix_max_v": 1.7425237989105375,
+      "fine_partial_prefix_max_v": 1.7434555183923433,
+      "prefix_peak_delta_mv": 0.931719481805704,
+      "prefix_overshoot_delta_pp": 0.062114632120380264,
+      "before_full_peak_time_ns": 4.3117212743495985
+    }
+  ]
+}

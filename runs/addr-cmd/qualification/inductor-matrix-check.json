@@ -1,0 +1,28 @@
+[
+  {
+    "directory": "runs/addr-cmd/capture-c2-r1/before",
+    "deck_sha256": "57bf4da04732b1ca050d26d0607fe4d05059091743281d4f55e2d37d7291a1f3",
+    "inductors": 4593,
+    "couplings": 7224,
+    "components": 1900,
+    "largest_component": 116,
+    "minimum_normalized_inductance_eigenvalue": 0.33987986993849906,
+    "nonpositive_self_inductors": 0,
+    "duplicate_pairs": 0,
+    "skipped_components_over_512": [],
+    "qualification": "Algebraic inductor-matrix check only; not physical board validation"
+  },
+  {
+    "directory": "runs/addr-cmd/qualification/scope-bus-c2/victim-odd",
+    "deck_sha256": "595b495c915c14a71c8653683d464e2f38955d2cf703e1a1bbf14972b6d4a3ac",
+    "inductors": 2284,
+    "couplings": 4105,
+    "components": 951,
+    "largest_component": 53,
+    "minimum_normalized_inductance_eigenvalue": 0.33987986993849906,
+    "nonpositive_self_inductors": 0,
+    "duplicate_pairs": 0,
+    "skipped_components_over_512": [],
+    "qualification": "Algebraic inductor-matrix check only; not physical board validation"
+  }
+]
