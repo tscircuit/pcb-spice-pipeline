@@ -14,6 +14,11 @@ All existing trace, pad, via and pour records remain identical. The routed
 compiler retains the real layer changes, barrel/stub/pad models and local
 reference changes. No vendor files or board JSON are committed.
 
+The full group exposed touching same-net 0.3 mm DDR power strips that had
+been left as separate solver rectangles. `route-union` now includes edge
+contacts within its existing 0.0000001 mm geometry tolerance in the union.
+The TSX regression also verifies that touching **different** nets still fail.
+
 ## IBIS selector evidence
 
 The local TI `sprm552c.ibs` SHA-256 is

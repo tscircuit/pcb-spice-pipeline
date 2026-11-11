@@ -26,7 +26,7 @@ export function unionRouteWires(wires: RouteWire[], circuit: CircuitJson): Route
     for (let i = 0; i < group.length; i++) for (let j = i + 1; j < group.length; j++) {
       const a = group[i]
       const b = group[j]
-      if (Math.min(a.end, b.end) - Math.max(a.start, b.start) > 1e-6 && Math.abs(a.transverse - b.transverse) < (a.width + b.width) / 2 - 1e-7) parents[root(j)] = root(i)
+      if (Math.min(a.end, b.end) - Math.max(a.start, b.start) > 1e-6 && Math.abs(a.transverse - b.transverse) <= (a.width + b.width) / 2 + 1e-7) parents[root(j)] = root(i)
     }
     const components = new Map<number, RouteWire[]>()
     for (const [i, wire] of group.entries()) components.set(root(i), [...components.get(root(i)) ?? [], wire])
@@ -44,7 +44,7 @@ export function unionRouteWires(wires: RouteWire[], circuit: CircuitJson): Route
         const clusters: RouteWire[][] = []
         for (const wire of active) {
           const last = clusters.at(-1)
-          if (last && wire.transverse - wire.width / 2 < Math.max(...last.map(wire => wire.transverse + wire.width / 2)) - 1e-7) last.push(wire)
+          if (last && wire.transverse - wire.width / 2 <= Math.max(...last.map(wire => wire.transverse + wire.width / 2)) + 1e-7) last.push(wire)
           else clusters.push([wire])
         }
         for (const cluster of clusters) {
