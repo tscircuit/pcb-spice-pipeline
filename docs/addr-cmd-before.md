@@ -72,13 +72,24 @@ node --import tsx scripts/run-routed-ddr3.tsx addr-cmd
 ```
 
 The runner finds the requested block **by name** (`SI_ROUTE_BLOCK`), not
-array position. Addr/cmd defaults to 400 Mbps (one command per 400 MHz CK
-cycle), complementary clock legs to 800 Mbps, and an 8 ns recording.
+array position. Addr/cmd defaults to 400 Mbps (the DDR3-800 command cadence),
+clock legs use 1.25 ns bit slots with **one complementary diagnostic edge**
+at 3.75 ns, and the recording is 8 ns. This is not a periodic-clock capture.
+Continuous 400 MHz CK is rejected by the existing inactive-tail guard:
+Model_343's typical rising-table endpoint has KU=0.98705175, outside its
+1% steady-coefficient band. The measured fixture voltages themselves settle
+in about 0.695 ns. No tolerance is relaxed and no active edge is interrupted
+to get a demo. Buffer compilation now precedes expensive field extraction.
 The explicit duration bounds IBIS switching history too. Default PRBS7 seeds
 are deterministic and phase varied, beginning low with the first command
 edge at 2.5 ns. `SI_ROUTE_PATTERN=simultaneous` switches the 22 nets together;
 `quiet` holds them low while CK switches. These are electrical stress
 patterns, not JEDEC command protocol traffic or a DDR timing/eye test.
+`victim-even` and `victim-odd` alternately hold each parity half of the
+declaration order low while the other half runs the same seeded PRBS7.
+Those two captures measure quiet-victim crosstalk without conflating it
+with a victim's own switching/ringing. They are representative aggressor
+patterns, not a worst-case crosstalk bound.
 
 Each native solve has a single thread, an exclusive ngspice lock, admission
 checks for all four native solvers, and the existing 20 minute runtime /
@@ -92,7 +103,8 @@ flowchart LR
   tsx[Named TSX addr/cmd declarations] --> pins[Bind actual U1 and U3 balls and selector models]
   board[Unchanged local routed board] --> pins
   preset[JLC08121H-3313 TSX preset] --> routes[Physical coupled sections and via transitions]
-  pins --> routes
+  pins --> buffers[Validate and compile IBIS switching schedules]
+  buffers --> routes
   routes --> spice[Serial bounded native transient]
   spice --> capture[Small receiver CSV and waveform PNG]
 ```

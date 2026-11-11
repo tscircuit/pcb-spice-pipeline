@@ -14,7 +14,7 @@ if (!['dq0', 'lane', 'addr-cmd'].includes(mode)) throw new Error('Expected dq0, 
 const blockName = process.env.SI_ROUTE_BLOCK ?? (mode === 'addr-cmd' ? 'DDR3_ADDR_CMD' : 'DDR3_LOWER_WRITE')
 if (blockName !== 'DDR3_ADDR_CMD' && blockName !== 'DDR3_LOWER_WRITE') throw new Error(`Unknown DDR3 block ${blockName}`)
 const pattern = process.env.SI_ROUTE_PATTERN ?? 'prbs7'
-if (pattern !== 'prbs7' && pattern !== 'simultaneous' && pattern !== 'quiet') throw new Error('Expected prbs7, simultaneous or quiet pattern')
+if (pattern !== 'prbs7' && pattern !== 'simultaneous' && pattern !== 'quiet' && pattern !== 'victim-even' && pattern !== 'victim-odd') throw new Error('Expected prbs7, simultaneous, quiet, victim-even or victim-odd pattern')
 const refinement = Number(process.env.SI_ROUTE_REFINEMENT ?? 1)
 const step = Number(process.env.SI_ROUTE_STEP_PS ?? 10) * 1e-12
 const duration = Number(process.env.SI_ROUTE_DURATION_NS ?? (mode === 'addr-cmd' ? 8 : 10)) * 1e-9
@@ -52,7 +52,7 @@ try {
   throw error
 }
 await writeFile(`${directory}/simulation.cir`, result.deck)
-await writeFile(`${directory}/extraction.json`, JSON.stringify({ ...result.evidence, hashes, timings: { preparation_ms: preparationMs, ...result.timings }, probe_names: result.probes }, null, 2))
+await writeFile(`${directory}/extraction.json`, JSON.stringify({ ...result.evidence, hashes, stimuli: block.signals.map(signal => ({ name: signal.name, pattern: signal.pattern, seed: signal.seed, bit_rate_bps: signal.bit_rate_bps, offset_s: signal.offset_s })), timings: { preparation_ms: preparationMs, ...result.timings }, probe_names: result.probes }, null, 2))
 console.log(JSON.stringify({ directory, ...result.timings, sections: result.evidence.sections, solves: result.evidence.unique_cross_sections, cells: result.evidence.cells, netlist_bytes: result.deck.length }))
 if (process.env.SI_ROUTE_EXTRACT_ONLY === '1') process.exit(0)
 const start = performance.now()

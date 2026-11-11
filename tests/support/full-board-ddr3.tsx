@@ -14,7 +14,7 @@ export const addrCmdPins = [
   ['CASn', 'F1', 'K3'], ['RASn', 'G4', 'J3'], ['CSn0', 'H2', 'L2'], ['CKE', 'G3', 'K9'],
   ['ODT', 'G1', 'K1'], ['WEn', 'B2', 'L3'], ['CK', 'D2', 'J7'], ['CKn', 'D1', 'K7'],
 ] as const
-export interface Ddr3Options { block?: 'DDR3_LOWER_WRITE' | 'DDR3_ADDR_CMD'; pattern?: 'prbs7' | 'simultaneous' | 'quiet'; durationSeconds?: number }
+export interface Ddr3Options { block?: 'DDR3_LOWER_WRITE' | 'DDR3_ADDR_CMD'; pattern?: 'prbs7' | 'simultaneous' | 'quiet' | 'victim-even' | 'victim-odd'; durationSeconds?: number }
 
 /** Only declarations are retained from this TSX; every physical record comes from the full board. */
 function Signals({ 'addr-cmd': addrCmd, pattern = 'prbs7', 'duration-seconds': duration = 8e-9 }: { 'addr-cmd': boolean; pattern?: Ddr3Options['pattern']; 'duration-seconds'?: number }): React.JSX.Element {
@@ -37,7 +37,7 @@ function Signals({ 'addr-cmd': addrCmd, pattern = 'prbs7', 'duration-seconds': d
       {addrCmdPins.map(([name, from, to], i) => <simulation.pcbchannel key={name} name={name}
         driverRef={{ pin: `.U1 > .${from}`, model: i >= 22 ? 'Model_343' : 'Model_352' }} receiverRef={{ pin: `.U3 > .${to}`, model: 'CMD' }}
         bitRate={i >= 22 ? '800Mbps' : '400Mbps'}
-        pattern={i >= 22 ? i === 22 ? '01' : '10' : pattern === 'quiet' ? '0' : pattern === 'simultaneous' ? '01' : 'prbs7'}
+        pattern={i >= 22 ? i === 22 ? '0001111111111111' : '1110000000000000' : pattern === 'quiet' || pattern === 'victim-even' && i % 2 === 0 || pattern === 'victim-odd' && i % 2 === 1 ? '0' : pattern === 'simultaneous' ? '01' : 'prbs7'}
         seed={32 + i * 7 % 32} />)}
     </simulation.pcbtransientchannelsimulation> : <simulation.pcbtransientchannelsimulation name="DDR3_LOWER_WRITE" bitRate="800Mbps" allowUnroutedTraces>
       {cpu.slice(0, 9).map((pin, i) => <React.Fragment key={pin}><simulation.pcbchannel name={i === 8 ? 'DQM0' : `DQ${i}`}

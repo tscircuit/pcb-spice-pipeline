@@ -27,13 +27,6 @@ export function routedSimulation(block: PreparedBlock, sources: IbisSources, opt
     const port = block.circuit.find(record => record.type === 'pcb_port' && record.source_port_id === id)! as Extract<typeof block.circuit[number], { type: 'pcb_port' }>
     if (!port.layers.some(layer => routeContactFrame(geometry, scope, layer, [port.x, port.y]))) throw new Error(`${lane.port}: selected endpoint ${id} has no physical wire or via contact`)
   }
-  const extractionAt = performance.now()
-  let extracted: ReturnType<typeof extractRoutes>
-  try {
-    extracted = extractRoutes(geometry, materials, options.panels)
-  } catch (error) {
-    throw Object.assign(error as Error, { segmentationMilliseconds: segmentation, sectionGeometryMilliseconds: performance.now() - extractionAt - ((error as { solveMilliseconds?: number }).solveMilliseconds ?? 0) })
-  }
   const compiledAt = performance.now()
   // Cut every physical non-rail route out of the logical ideal netlist, including branched neighbours.
   const physical = block.circuit.filter(record => record.type === 'pcb_trace').filter(trace => scope.pcbTraceIds.includes(trace.pcb_trace_id) && !scope.nonReferenceRailTraceIds.includes(trace.pcb_trace_id)).map(trace => trace.source_trace_id!)
@@ -51,6 +44,13 @@ export function routedSimulation(block: PreparedBlock, sources: IbisSources, opt
   const admitted = admitBuffers(declarations.models, sources, {}, rootScope('buffers')).value
   const models = compileBuffers(admitted, [plan], modelRunDefinition)[0]
   const bufferMilliseconds = performance.now() - compiledAt
+  const extractionAt = performance.now()
+  let extracted: ReturnType<typeof extractRoutes>
+  try {
+    extracted = extractRoutes(geometry, materials, options.panels)
+  } catch (error) {
+    throw Object.assign(error as Error, { segmentationMilliseconds: segmentation, sectionGeometryMilliseconds: performance.now() - extractionAt - ((error as { solveMilliseconds?: number }).solveMilliseconds ?? 0) })
+  }
   const netlistAt = performance.now()
   const aliases: string[] = []
   const known = new Map<string, string>()
