@@ -9,11 +9,17 @@ export interface StageMatrices { R: Matrix; L: Matrix; C: Matrix }
 /** Formats a value with 12 significant digits so the netlist text is stable across runs. */
 const num = (value: number): string => Number(value.toPrecision(12)).toString()
 
-/** Writes the RLGC channel as a SPICE subcircuit: each stage is split into equal pi sections with coupled R, L and C between signals. */
-export function channelSpice(extracted: readonly StageMatrices[], sections: number, taps: { conductor: number; fraction: number; name: string }[] = []): string {
+/** Coupled pi sections; optional physical terminal corrections join the first/last series L.
+ * End shunt C stays at the electrical endpoint; refine sections to bound this lumping error.
+ */
+export function channelSpice(extracted: readonly StageMatrices[], sections: number, taps: { conductor: number; fraction: number; name: string }[] = [], terminals: { input?: Matrix; output?: Matrix } = {}): string {
   if (!Number.isInteger(sections) || sections < 1 || sections > 128) fail('sections', 'sections must be an integer 1..128')
   if (!extracted.length || !extracted[0].R.length) fail('matrix_dimension', 'At least one extracted channel stage is required')
   const n = extracted[0].R.length
+  for (const [end, matrix] of Object.entries(terminals)) {
+    if (matrix.length !== n) fail('matrix_dimension', `${end} terminal dimensions disagree`)
+    validateMatrix(matrix, `${end} terminal L`, 1e-10)
+  }
   if (taps.some(tap => !Number.isInteger(tap.conductor) || tap.conductor < 0 || tap.conductor >= n || !(tap.fraction > 0 && tap.fraction < 1) || !/^[A-Za-z][A-Za-z0-9_]*$/.test(tap.name)) || (taps.length && extracted.length !== 1)) fail('sections', 'Internal taps require one stage, a valid conductor, a fraction strictly between 0 and 1, and a safe node name')
   for (const [stage, matrices] of extracted.entries()) {
     for (const kind of ['R', 'L', 'C'] as const) {
@@ -36,6 +42,7 @@ export function channelSpice(extracted: readonly StageMatrices[], sections: numb
     const C: Matrix = scale(e.C, cuts[section + 1] - cuts[section])
     const first = g === 0
     const last = stage === extracted.length - 1 && section === cuts.length - 2
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) L[i][j] += (first ? terminals.input?.[i][j] ?? 0 : 0) + (last ? terminals.output?.[i][j] ?? 0 : 0)
     const before = inputs.map((input, i) => first ? input : taps.find(tap => tap.conductor === i && tap.fraction === cuts[section])?.name ?? `N${g}_${i}`)
     const after = outputs.map((output, i) => last ? output : taps.find(tap => tap.conductor === i && tap.fraction === cuts[section + 1])?.name ?? `N${g + 1}_${i}`)
     for (let i = 0; i < n; i++) {

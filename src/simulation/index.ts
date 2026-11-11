@@ -21,7 +21,7 @@ export { namespaceSpice, electricalSources, simulationSpiceOptions, generalSimul
 export { safeSimulationPlans, electricalNodeMap, bindExperiments, runIdle, runExperiment, experimentResult } from './run'
 export { transmittedBits } from './stimulus'
 export { routeLadder, type RouteLadder } from './route-ladder'
-export { routeTransitions, barrelInductance, barrelCapacitance, type RouteTransitions } from './route-transitions'
+export { routeTransitions, terminalInductance, barrelInductance, barrelCapacitance, type RouteTransitions } from './route-transitions'
 export { routeOblique } from './route-oblique'
 export { branchSaves } from './branch-saves'
 

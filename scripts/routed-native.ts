@@ -17,7 +17,7 @@ export async function routedNative(directory: string, duration: number): Promise
     const deck = await readFile(`${directory}/simulation.cir`, 'utf8')
     const checkpoints = [...deck.matchAll(/^echo SI_PROGRESS (.+)$/gm)].map(match => Number(match[1]))
     const processes = await promisify(execFile)('ps', ['-axo', 'comm='])
-    if (processes.stdout.split('\n').some(line => /(?:^|\/)(?:ngspice|fasthenry|fastercap)$/i.test(line.trim()))) throw new Error('Another native solver is running')
+    if (processes.stdout.split('\n').some(line => /(?:^|\/)(?:openEMS|ngspice|fasthenry|fastercap)$/i.test(line.trim()))) throw new Error('Another native solver is running')
     await new Promise<void>((accept, reject) => {
       const child = spawn(process.env.NGSPICE_BIN ?? '/opt/homebrew/bin/ngspice', ['-b', '-o', 'ngspice-native.log', 'simulation.cir'], { cwd: directory, env: { ...process.env, OMP_NUM_THREADS: '1' }, stdio: ['ignore', 'pipe', 'pipe'] })
       let log = ''

@@ -1,7 +1,30 @@
 import { connectedSourceIds, resolveRouteVias, routeReferences, routeContactFrame, type CircuitJson, type CopperScope, type SectionGeometry, type RouteWire, type RouteXY, type RouteReference } from '../board'
+import { validateMatrix, type Matrix } from '../extraction'
 
 export interface RouteTransition { kind: string; id: string; inductanceH?: number; capacitanceF?: number; [key: string]: unknown }
 export interface RouteTransitions { lines: string[]; records: RouteTransition[]; warnings: string[] }
+
+/** Per-end external L for explicit, equal-height vertical local-return posts (mm, H/m).
+ * The PEC image doubles post length. Subtract the finite horizontal-loop end deficit
+ * and the line length to the post centre. Grover's rectangular-bar self approximation
+ * and the exact parallel-filament mutual introduce no fitted waveform constants.
+ * This is not a BGA package model: ordinary pads and already modelled vias must not use it.
+ */
+export function terminalInductance(height: number, width: number, depth: number, positions: RouteXY[], perLength: Matrix): Matrix {
+  if (![height, width, depth].every(value => Number.isFinite(value) && value > 0) || !positions.length || positions.some(point => point.length !== 2 || point.some(value => !Number.isFinite(value)))) throw new Error('Vertical terminal dimensions and positions must be finite and positive')
+  if (perLength.length !== positions.length) throw new Error('Terminal and line matrix dimensions disagree')
+  validateMatrix(perLength, 'Terminal line L', 1e-10)
+  const matrix = positions.map((point, i) => positions.map((other, j) => {
+    const spacing = Math.hypot(point[0] - other[0], point[1] - other[1])
+    if (i !== j && spacing < width) throw new Error('Vertical terminal posts overlap')
+    const image = 2 * height
+    const post = i === j ? .2e-9 * height * (Math.log(2 * image / (width + depth)) + .5 + .2235 * (width + depth) / image)
+      : .1e-9 * (image * Math.asinh(image / spacing) - Math.hypot(image, spacing) + spacing)
+    const deficit = .1e-9 * (Math.hypot(spacing, image) - spacing)
+    return post - deficit - perLength[i][j] * depth / 2000
+  }))
+  return validateMatrix(matrix, 'Vertical terminal L', 1e-10).matrix
+}
 
 /** Regularized TI short via approximation, h/d in mm, result H; the original uses inches and 5.08 nH. */
 export function barrelInductance(height: number, diameter: number): number {
