@@ -44,6 +44,22 @@ Changing 16 to 32 sections (`SI_TERMINAL_SECTIONS=32`) changes any recorded
 extremum by at most 0.818 mV. Neither the residual coupling error nor the
 fine-mesh sensitivity in the referee study is hidden by that check.
 
+The saved corrected native traces were also compared point by point with
+the hash-verified fine probes over the first 3 ns after ramp onset, using
+only the prescribed 2 ns source delay and no fitted timing alignment.
+These are waveform errors, separate from the extrema bands above:
+
+| Case | Driven RMS / maximum error, mV | Quiet near RMS / maximum, mV | Quiet far RMS / maximum, mV |
+|---|---:|---:|---:|
+| 1-0.3 | 2.272 / 6.957 | — | — |
+| 3-0.3 | 4.496 / 11.249 | 4.735 / 15.380 | 5.397 / 13.518 |
+| 3-1-short | 2.536 / 8.067 | 1.062 / 4.699 | 1.107 / 3.644 |
+
+For example, the single-line driven RMS/maximum errors were
+15.045/37.812 mV in the committed uncorrected referee comparison.
+All probes and fine raw-file hashes are retained in
+`tests/evidence/signal-levels/terminal-inductance-waveform.json`.
+
 ```mermaid
 flowchart LR
   tsx[Render TSX control] --> field[Extract uncoated lossless dielectric 2D RLGC]
