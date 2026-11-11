@@ -5,7 +5,7 @@ set -euo pipefail
 export OMP_NUM_THREADS=1 TSX_TSCONFIG_PATH=examples/tsconfig.json
 export IBIS_MODEL_DIR="${IBIS_MODEL_DIR:-models}"
 export SI_ROUTE_CELLS_PER_RISE=2 SI_ROUTE_DISTANCE_MM=1 SI_ROUTE_DURATION_NS=8
-unset SI_ROUTE_BATCH SI_ROUTE_NETS SI_ROUTE_REUSE_DIR SI_ROUTE_PATTERN SI_ROUTE_DRIVER_MODEL SI_ROUTE_PACKAGE_OFF SI_ROUTE_VTT_OHMS SI_ROUTE_EXTRACT_ONLY
+unset SI_ROUTE_BATCH SI_ROUTE_NETS SI_ROUTE_SCOPE_NETS SI_ROUTE_REUSE_DIR SI_ROUTE_PATTERN SI_ROUTE_DRIVER_MODEL SI_ROUTE_PACKAGE_OFF SI_ROUTE_VTT_OHMS SI_ROUTE_EXTRACT_ONLY
 root="${SI_ADDR_CMD_RUN_DIR:-runs/addr-cmd/qualification}"
 before="${SI_ADDR_CMD_BEFORE:-runs/addr-cmd/capture-c2-r1}"
 mkdir -p "$root"
@@ -24,6 +24,15 @@ case "${1:?Choose refine, refine-reduced, radius, isolate, package-off, width, v
     export SI_ROUTE_NETS=A4,A5,A7,A9,A11,CASn SI_ROUTE_DURATION_NS=4.999 SI_ROUTE_BATCH=1
     capture reduced-c2
     capture reduced-c4 SI_ROUTE_CELLS_PER_RISE=4
+    ;;
+  scope-refine)
+    export SI_ROUTE_SCOPE_NETS=A4,A5,A7,A9,A11,CASn SI_ROUTE_DURATION_NS=4.999 SI_ROUTE_BATCH=1
+    capture scope-c2
+    capture scope-c4 SI_ROUTE_CELLS_PER_RISE=4
+    ;;
+  scope-radius)
+    export SI_ROUTE_SCOPE_NETS=A4,A5,A7,A9,A11,CASn SI_ROUTE_DURATION_NS=4.999 SI_ROUTE_BATCH=1
+    capture scope-r2 SI_ROUTE_DISTANCE_MM=2
     ;;
   radius)
     capture radius-r2 SI_ROUTE_DISTANCE_MM=2 SI_ROUTE_DURATION_NS=4.999 SI_ROUTE_BATCH=1

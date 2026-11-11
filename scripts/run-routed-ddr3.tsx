@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createHash } from 'node:crypto'
-import { withoutPackage, receiverTermination } from '../tests/support/addr-cmd-qualification'
+import { reducedCopperScope, withoutPackage, receiverTermination } from '../tests/support/addr-cmd-qualification'
 import { routedNative } from './routed-native'
 import { fullBoardDdr3, type Ddr3Options } from '../tests/support/full-board-ddr3'
 import type { RouteFieldCache } from '../src/extraction'
@@ -21,6 +21,8 @@ if (pattern !== 'prbs7' && pattern !== 'simultaneous' && pattern !== 'quiet' && 
 const driverModel = process.env.SI_ROUTE_DRIVER_MODEL ?? 'Model_352'
 if (driverModel !== 'Model_352' && driverModel !== 'Model_345' && driverModel !== 'Model_273') throw new Error('Unsupported addr/cmd selector row')
 const nets = process.env.SI_ROUTE_NETS?.split(',')
+const scopeNets = process.env.SI_ROUTE_SCOPE_NETS?.split(',')
+if (nets && scopeNets) throw new Error('Choose signal removal or geometry-only scope, not both')
 const packageOff = process.env.SI_ROUTE_PACKAGE_OFF === '1'
 const termination = Number(process.env.SI_ROUTE_VTT_OHMS ?? 0)
 if (!Number.isFinite(termination) || termination < 0) throw new Error('Invalid VTT resistance')
@@ -43,7 +45,7 @@ if (process.env.SI_ROUTE_FIELD_CACHE) {
 async function capture(pattern: NonNullable<Ddr3Options['pattern']>, directory: string): Promise<void> {
   await mkdir(directory, { recursive: true })
   await Promise.all(['waveform.dat', 'receiver.csv', 'receiver-incomplete.csv', 'result.json', 'failure.json', 'native.json', 'ngspice-native.log', 'ngspice.log'].map(file => rm(`${directory}/${file}`, { force: true })))
-  const circuit = await fullBoardDdr3(boardPath!, { block: blockName, pattern, durationSeconds: duration, driverModel, nets })
+  const circuit = await fullBoardDdr3(boardPath!, { block: blockName, pattern, durationSeconds: duration, driverModel, nets, activeNets: scopeNets })
   for (let i = circuit.length - 1; i >= 0; i--) {
     const record = circuit[i]
     if (mode === 'dq0' && record.type === 'simulation_signal' && record.name !== 'DQ0') circuit.splice(i, 1)
@@ -52,9 +54,10 @@ async function capture(pattern: NonNullable<Ddr3Options['pattern']>, directory: 
   const preparation = performance.now()
   const block = prepareBlocks(circuit, sources, '2d', distance).find(prepared => prepared.block.name === blockName)
   if (!block) throw new Error(`Missing requested simulation block ${blockName}`)
+  if (scopeNets) block.settings.copperScope = reducedCopperScope(block, scopeNets, distance)
   const preparationMs = performance.now() - preparation
   console.log(`${mode}: declarations ready in ${preparationMs.toFixed(0)} ms`)
-  const changes = { driverModel, packageOff, termination, ...(nets ? { nets } : {}) }
+  const changes = { driverModel, packageOff, termination, ...(nets ? { nets } : {}), ...(scopeNets ? { scopeNets } : {}) }
   const hashes = { board_sha256: createHash('sha256').update(await readFile(boardPath!)).digest('hex'), block: blockName, pattern, sources: Object.fromEntries(Object.entries(sources).map(([file, bytes]) => [file, createHash('sha256').update(bytes).digest('hex')])) }
   const extractionStart = performance.now()
   let result: Pick<ReturnType<typeof routedSimulation>, 'deck' | 'evidence' | 'probes' | 'timings'>
@@ -64,6 +67,7 @@ async function capture(pattern: NonNullable<Ddr3Options['pattern']>, directory: 
       const ledger = JSON.parse(await readFile(`${reuse}/extraction.json`, 'utf8'))
       if (duration > ledger.options.durationSeconds * (1 + 1e-12) || process.env.SI_ROUTE_PANELS && Number(process.env.SI_ROUTE_PANELS) !== ledger.options.panels) throw new Error('Compiled deck cannot extend switching history or change its field mesh')
       if ((ledger.changes?.driverModel ?? 'Model_352') !== driverModel || JSON.stringify(ledger.changes?.nets) !== JSON.stringify(nets)
+        || JSON.stringify(ledger.changes?.scopeNets) !== JSON.stringify(scopeNets)
         || ledger.changes?.packageOff && !packageOff || ledger.changes?.termination && ledger.changes.termination !== termination) throw new Error('Compiled deck has different what-if declarations')
       if (JSON.stringify(ledger.hashes) !== JSON.stringify(hashes) || ledger.scope.lateralDistanceMm !== distance || ledger.options.refinement !== refinement || ledger.options.cellsPerRise !== cellsPerRise) throw new Error('Compiled deck does not match board, models, block, pattern, copper scope or spatial refinement')
       const deck = await readFile(`${reuse}/simulation.cir`, 'utf8')

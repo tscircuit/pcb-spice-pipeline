@@ -1,3 +1,19 @@
+import { channelCopperScope, connectedSourceIds, type CopperScope } from '../../src/board'
+import { endpointPorts, type PreparedBlock } from '../../src/pipeline/signals'
+
+/** Reduce geometry admission only; retain every declared quiet driver and its vendor load. */
+export function reducedCopperScope(block: PreparedBlock, names: readonly string[], distance: number): CopperScope {
+  const selected = new Set(block.signals.filter(signal => names.includes(signal.name)).flatMap(signal => endpointPorts(signal.driver)).flatMap(port => [...connectedSourceIds(block.circuit, port)]))
+  if (names.some(name => !block.signals.some(signal => signal.name === name))) throw new Error('Unknown reduced-scope signal')
+  const rails = new Set([...block.pins.values()].flatMap(pin => [pin.power, pin.ground])
+    .concat(block.circuit.filter(record => record.type === 'source_net').filter(net => net.is_ground || net.is_power).map(net => net.source_net_id))
+    .flatMap(port => [...connectedSourceIds(block.circuit, port)]))
+  const reference = connectedSourceIds(block.circuit, block.settings.channelReference!.sourcePortId!)
+  const scope = channelCopperScope(block.circuit, selected, reference, rails, distance)
+  if (block.settings.copperScope!.selectedPcbTraceIds.some(id => !scope.pcbTraceIds.includes(id))) throw new Error('Reduced geometry would omit a declared quiet channel')
+  return scope
+}
+
 /** Remove package parasitics only; retain die buffers, C_comp and ideal die supplies. */
 export function withoutPackage(deck: string): string {
   return deck.split('\n').flatMap(line => {
