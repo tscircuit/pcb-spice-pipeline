@@ -67,8 +67,10 @@ and local vendor files available:
 export OMP_NUM_THREADS=1 TSX_TSCONFIG_PATH=examples/tsconfig.json
 export IBIS_MODEL_DIR=models
 export SI_DDR3_BOARD=/absolute/path/to/am3352-ddr-track-a-local-dfm-wip-20261007/dist/index/circuit.json
-export SI_ROUTE_RUN_DIR=runs/addr-cmd/before
+export SI_ROUTE_RUN_DIR=runs/addr-cmd/capture-c05 SI_ROUTE_BATCH=1
+export SI_ROUTE_CELLS_PER_RISE=0.5
 node --import tsx scripts/run-routed-ddr3.tsx addr-cmd
+python scripts/summarize-addr-cmd.py "$SI_ROUTE_RUN_DIR"
 ```
 
 The runner finds the requested block **by name** (`SI_ROUTE_BLOCK`), not
@@ -98,6 +100,19 @@ The [terminal-control qualification limits](terminal-inductance.md) still
 apply: completing this capture cannot certify a whole board or close the
 remaining full-wave crosstalk disagreement.
 
+The default two-cells-per-rise attempt completed field extraction but needed
+1,205 ladder cells, exceeding the unchanged 1,024-cell memory guard. The
+bounded capture command above uses 0.5 cells per rise, the existing permitted
+minimum. Its spatial convergence is **not established**. It retains all
+24 selected routes and the original nearby-copper scope. No neighbour is
+cropped out and no guard is lifted to admit it.
+
+Batch mode runs the main and both quiet-victim experiments **serially** in
+one process. An explicit in-memory cache reuses only identical field
+geometry/material keys, with matching panel resolution, including oblique
+surrogates. Changing stimuli still recompiles the vendor buffers; native
+solves are separate. This avoids three repeated ten-minute field passes.
+
 ```mermaid
 flowchart LR
   tsx[Named TSX addr/cmd declarations] --> pins[Bind actual U1 and U3 balls and selector models]
@@ -105,6 +120,7 @@ flowchart LR
   preset[JLC08121H-3313 TSX preset] --> routes[Physical coupled sections and via transitions]
   pins --> buffers[Validate and compile IBIS switching schedules]
   buffers --> routes
+  routes <--> cache[Reuse identical field geometry and materials across stimuli]
   routes --> spice[Serial bounded native transient]
   spice --> capture[Small receiver CSV and waveform PNG]
 ```

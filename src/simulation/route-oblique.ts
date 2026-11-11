@@ -1,14 +1,15 @@
-import { closestRoutePoints, routeCrossSection, solveCrossSection, type ExtractedRoutes, type RouteMaterials } from '../extraction'
+import { closestRoutePoints, routeCrossSection, solveCrossSection, type ExtractedRoutes, type RouteMaterials, type RouteFieldCache } from '../extraction'
 import { type SectionGeometry, type CopperScope, type RouteWire, type RouteXY } from '../board'
 import type { RouteLadder } from './route-ladder'
 
 /** Bounded weak-coupling electrostatic correction for oblique encounters; no silent angular rejection. */
-export function routeOblique(geometry: SectionGeometry, extracted: ExtractedRoutes, ladder: RouteLadder, scope: CopperScope, materials: RouteMaterials, panels: number = 12): {
+export function routeOblique(geometry: SectionGeometry, extracted: ExtractedRoutes, ladder: RouteLadder, scope: CopperScope, materials: RouteMaterials, panels: number = 12, shared?: RouteFieldCache): {
   lines: string[]; records: Record<string, unknown>[]; solveMilliseconds: number; solves: number
 } {
   const lines: string[] = []
   const records: Record<string, unknown>[] = []
-  const cache = new Map<string, number>()
+  if (shared && shared.panels !== panels) throw new Error('Field cache panel resolution disagrees with extraction')
+  const cache = shared?.oblique ?? new Map<string, number>()
   let solveMilliseconds = 0
   const active = geometry.wires.filter(wire => ladder.wireNodes.has(wire.id))
   /** Nearest existing electrical ladder node; the spatial-error distance is recorded per encounter. */

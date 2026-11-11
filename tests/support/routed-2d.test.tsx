@@ -47,7 +47,12 @@ test('TSX routed 2D preserves nearby conductors, changes actual reference and ca
   assert.deepEqual(new Set(geometry.slices.flatMap(slice => slice.references.map(ref => ref.layer))), new Set(['inner1', 'inner3']))
   const inner4 = { ...geometry.wires[0], layer: 'inner4' }
   assert.deepEqual(routeReferences(geometry, inner4, -2).map(plane => plane.layer), ['inner5', 'inner3'], 'inner5 power copper intervenes before inner6 GND')
-  const extracted = extractRoutes(geometry, { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 })
+  const fieldCache = { panels: 12, sections: new Map(), oblique: new Map() }
+  const extracted = extractRoutes(geometry, { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }, 12, fieldCache)
+  const reused = extractRoutes(geometry, { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }, 12, fieldCache)
+  assert.equal(reused.solveMilliseconds, 0, 'unchanged physical fields are reused across different stimuli')
+  assert.strictEqual(reused.slices[0].line, extracted.slices[0].line)
+  assert.throws(() => extractRoutes(geometry, { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }, 16, fieldCache), /panel resolution/)
   assert.ok(extracted.cache.size <= geometry.slices.length)
   const pair = extracted.slices.find(slice => slice.wires.length === 2)!.line
   const referenced = referenceSeries(pair, [1])

@@ -12,6 +12,7 @@ export interface ExtractedRoutes {
   coupling: RouteCoupling[]
 }
 export interface RouteMaterials { maskMm: number; maskEr: number; maskLoss: number; substrateLoss: number }
+export interface RouteFieldCache { panels: number; sections: Map<string, CrossSectionResult>; oblique: Map<string, number> }
 
 /** Material slabs fill absent copper layers with the nearest laminate (rather than fictitious air gaps). */
 export function routeCrossSection(geometry: SectionGeometry, slice: RouteSlice, materials: RouteMaterials): CrossSection {
@@ -50,9 +51,10 @@ export function routeCrossSection(geometry: SectionGeometry, slice: RouteSlice, 
 }
 
 /** Cache geometry only, independent of physical IDs, route position and longitudinal cell length. */
-export function extractRoutes(geometry: SectionGeometry, materials: RouteMaterials, panels: number = 12): ExtractedRoutes {
+export function extractRoutes(geometry: SectionGeometry, materials: RouteMaterials, panels: number = 12, shared?: RouteFieldCache): ExtractedRoutes {
   const start = performance.now()
-  const cache = new Map<string, CrossSectionResult>()
+  if (shared && shared.panels !== panels) throw new Error('Field cache panel resolution disagrees with extraction')
+  const cache = shared?.sections ?? new Map<string, CrossSectionResult>()
   let solveMilliseconds = 0
   /** Share exact relative geometry between pair screens and retained multiconductor solves. */
   const solve = (slice: RouteSlice): CrossSectionResult => {
