@@ -20,6 +20,7 @@ const pattern = process.env.SI_ROUTE_PATTERN ?? 'prbs7'
 if (pattern !== 'prbs7' && pattern !== 'simultaneous' && pattern !== 'quiet' && pattern !== 'victim-even' && pattern !== 'victim-odd' && pattern !== 'isolated-a4') throw new Error('Expected prbs7, simultaneous, quiet, victim-even, victim-odd or isolated-a4 pattern')
 const driverModel = process.env.SI_ROUTE_DRIVER_MODEL ?? 'Model_352'
 if (driverModel !== 'Model_352' && driverModel !== 'Model_345' && driverModel !== 'Model_273') throw new Error('Unsupported addr/cmd selector row')
+const nets = process.env.SI_ROUTE_NETS?.split(',')
 const packageOff = process.env.SI_ROUTE_PACKAGE_OFF === '1'
 const termination = Number(process.env.SI_ROUTE_VTT_OHMS ?? 0)
 if (!Number.isFinite(termination) || termination < 0) throw new Error('Invalid VTT resistance')
@@ -42,7 +43,7 @@ if (process.env.SI_ROUTE_FIELD_CACHE) {
 async function capture(pattern: NonNullable<Ddr3Options['pattern']>, directory: string): Promise<void> {
   await mkdir(directory, { recursive: true })
   await Promise.all(['waveform.dat', 'receiver.csv', 'receiver-incomplete.csv', 'result.json', 'failure.json', 'native.json', 'ngspice-native.log', 'ngspice.log'].map(file => rm(`${directory}/${file}`, { force: true })))
-  const circuit = await fullBoardDdr3(boardPath!, { block: blockName, pattern, durationSeconds: duration, driverModel })
+  const circuit = await fullBoardDdr3(boardPath!, { block: blockName, pattern, durationSeconds: duration, driverModel, nets })
   for (let i = circuit.length - 1; i >= 0; i--) {
     const record = circuit[i]
     if (mode === 'dq0' && record.type === 'simulation_signal' && record.name !== 'DQ0') circuit.splice(i, 1)
@@ -53,7 +54,7 @@ async function capture(pattern: NonNullable<Ddr3Options['pattern']>, directory: 
   if (!block) throw new Error(`Missing requested simulation block ${blockName}`)
   const preparationMs = performance.now() - preparation
   console.log(`${mode}: declarations ready in ${preparationMs.toFixed(0)} ms`)
-  const changes = { driverModel, packageOff, termination }
+  const changes = { driverModel, packageOff, termination, ...(nets ? { nets } : {}) }
   const hashes = { board_sha256: createHash('sha256').update(await readFile(boardPath!)).digest('hex'), block: blockName, pattern, sources: Object.fromEntries(Object.entries(sources).map(([file, bytes]) => [file, createHash('sha256').update(bytes).digest('hex')])) }
   const extractionStart = performance.now()
   let result: Pick<ReturnType<typeof routedSimulation>, 'deck' | 'evidence' | 'probes' | 'timings'>
@@ -62,7 +63,8 @@ async function capture(pattern: NonNullable<Ddr3Options['pattern']>, directory: 
     if (reuse) {
       const ledger = JSON.parse(await readFile(`${reuse}/extraction.json`, 'utf8'))
       if (duration > ledger.options.durationSeconds * (1 + 1e-12) || process.env.SI_ROUTE_PANELS && Number(process.env.SI_ROUTE_PANELS) !== ledger.options.panels) throw new Error('Compiled deck cannot extend switching history or change its field mesh')
-      if (ledger.changes && JSON.stringify(ledger.changes) !== JSON.stringify(changes) || !ledger.changes && driverModel !== 'Model_352') throw new Error('Compiled deck has different what-if declarations')
+      if ((ledger.changes?.driverModel ?? 'Model_352') !== driverModel || JSON.stringify(ledger.changes?.nets) !== JSON.stringify(nets)
+        || ledger.changes?.packageOff && !packageOff || ledger.changes?.termination && ledger.changes.termination !== termination) throw new Error('Compiled deck has different what-if declarations')
       if (JSON.stringify(ledger.hashes) !== JSON.stringify(hashes) || ledger.scope.lateralDistanceMm !== distance || ledger.options.refinement !== refinement || ledger.options.cellsPerRise !== cellsPerRise) throw new Error('Compiled deck does not match board, models, block, pattern, copper scope or spatial refinement')
       const deck = await readFile(`${reuse}/simulation.cir`, 'utf8')
       result = { deck: deck.slice(0, deck.indexOf('.control\n')).replace(/abstol=[^\s]+/, `abstol=${Number(process.env.SI_ROUTE_ABSTOL ?? 1e-9)}`) + routedControl(ledger.probes, /^save (.+)$/m.exec(deck)![1], step, duration).join('\n') + '\n', probes: ledger.probe_names, timings: {},
@@ -72,13 +74,9 @@ async function capture(pattern: NonNullable<Ddr3Options['pattern']>, directory: 
     await writeFile(`${directory}/failure.json`, JSON.stringify({ status: 'extraction-failed', mode, hashes, scope: block.settings.copperScope, preparation_ms: preparationMs, extraction_ms: performance.now() - extractionStart, error: { message: (error as Error).message, ...error as object } }, null, 2))
     throw error
   }
-  if (!process.env.SI_ROUTE_REUSE_DIR) {
-    if (packageOff) result.deck = withoutPackage(result.deck)
-    if (termination) result.deck = receiverTermination(result.deck, result.evidence.probes as { name: string; signalNode: string }[], termination)
-  } else if (!result.evidence.changes) {
-    if (packageOff) result.deck = withoutPackage(result.deck)
-    if (termination) result.deck = receiverTermination(result.deck, result.evidence.probes as { name: string; signalNode: string }[], termination)
-  }
+  const previous = result.evidence.changes as typeof changes | undefined
+  if (packageOff && !previous?.packageOff) result.deck = withoutPackage(result.deck)
+  if (termination && !previous?.termination) result.deck = receiverTermination(result.deck, result.evidence.probes as { name: string; signalNode: string }[], termination)
   await writeFile(`${directory}/simulation.cir`, result.deck)
   await writeFile(`${directory}/extraction.json`, JSON.stringify({ ...result.evidence, hashes, changes, stimuli: block.signals.map(signal => ({ name: signal.name, pattern: signal.pattern, seed: signal.seed, bit_rate_bps: signal.bit_rate_bps, offset_s: signal.offset_s })), timings: { preparation_ms: preparationMs, ...result.timings }, probe_names: result.probes }, null, 2))
   console.log(JSON.stringify({ directory, ...result.timings, sections: result.evidence.sections, solves: result.evidence.unique_cross_sections, cells: result.evidence.cells, netlist_bytes: result.deck.length }))

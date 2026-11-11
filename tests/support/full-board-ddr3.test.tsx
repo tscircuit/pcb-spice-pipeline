@@ -61,4 +61,9 @@ test('A4 isolation and weaker/slower selectors are real TSX declarations with un
       assert.equal(signal.driver.ibis_model_name, signal.name === 'CK' || signal.name === 'CKn' ? 'Model_343' : driverModel)
     }
   }
+  const selected = ['A4', 'A5', 'A7', 'A9', 'A11', 'CASn']
+  const reduced = await fullBoardDdr3(path!, { block: 'DDR3_ADDR_CMD', nets: selected, pattern: 'victim-even' })
+  assert.deepEqual(reduced.slice(0, original.length), original)
+  assert.deepEqual(reduced.filter(record => record.type === 'simulation_signal').map(signal => signal.name), selected)
+  assert.equal(reduced.filter(record => record.type === 'simulation_signal').find(signal => signal.name === 'A4')!.pattern, '0')
 })
