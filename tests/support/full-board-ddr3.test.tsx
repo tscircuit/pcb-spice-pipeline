@@ -46,3 +46,19 @@ test('real DDR3 TSX declarations preserve copper and select the intended write a
   assert.deepEqual(stack.layers.filter(layer => layer.layer_type === 'dielectric').map(layer => layer.thickness), [.0994, .2, .1088, .2, .1088, .2, .0994])
   assert.equal(stack.plated_hole_copper_thickness, .018)
 })
+
+test('A4 isolation and weaker/slower selectors are real TSX declarations with unchanged board copper', { skip: !path || !process.env.IBIS_MODEL_DIR }, async () => {
+  const original = JSON.parse(await readFile(path!, 'utf8'))
+  for (const driverModel of ['Model_352', 'Model_345', 'Model_273'] as const) {
+    const circuit = await fullBoardDdr3(path!, { block: 'DDR3_ADDR_CMD', pattern: 'isolated-a4', driverModel })
+    assert.deepEqual(circuit.slice(0, original.length), original)
+    const signals = circuit.filter(record => record.type === 'simulation_signal')
+    assert.equal(signals.length, 24)
+    assert.equal(signals.find(signal => signal.name === 'A4')!.pattern, 'prbs7')
+    assert.ok(signals.filter(signal => signal.name !== 'A4').every(signal => signal.pattern === '0'))
+    for (const signal of signals) {
+      assert.ok('source_port_id' in signal.driver)
+      assert.equal(signal.driver.ibis_model_name, signal.name === 'CK' || signal.name === 'CKn' ? 'Model_343' : driverModel)
+    }
+  }
+})

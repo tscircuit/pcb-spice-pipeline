@@ -14,10 +14,10 @@ export const addrCmdPins = [
   ['CASn', 'F1', 'K3'], ['RASn', 'G4', 'J3'], ['CSn0', 'H2', 'L2'], ['CKE', 'G3', 'K9'],
   ['ODT', 'G1', 'K1'], ['WEn', 'B2', 'L3'], ['CK', 'D2', 'J7'], ['CKn', 'D1', 'K7'],
 ] as const
-export interface Ddr3Options { block?: 'DDR3_LOWER_WRITE' | 'DDR3_ADDR_CMD'; pattern?: 'prbs7' | 'simultaneous' | 'quiet' | 'victim-even' | 'victim-odd'; durationSeconds?: number }
+export interface Ddr3Options { block?: 'DDR3_LOWER_WRITE' | 'DDR3_ADDR_CMD'; pattern?: 'prbs7' | 'simultaneous' | 'quiet' | 'victim-even' | 'victim-odd' | 'isolated-a4'; durationSeconds?: number; driverModel?: 'Model_352' | 'Model_345' | 'Model_273' }
 
 /** Only declarations are retained from this TSX; every physical record comes from the full board. */
-function Signals({ 'addr-cmd': addrCmd, pattern = 'prbs7', 'duration-seconds': duration = 8e-9 }: { 'addr-cmd': boolean; pattern?: Ddr3Options['pattern']; 'duration-seconds'?: number }): React.JSX.Element {
+function Signals({ 'addr-cmd': addrCmd, pattern = 'prbs7', 'duration-seconds': duration = 8e-9, 'driver-model': driverModel = 'Model_352' }: { 'addr-cmd': boolean; pattern?: Ddr3Options['pattern']; 'duration-seconds'?: number; 'driver-model'?: Ddr3Options['driverModel'] }): React.JSX.Element {
   const cpuPins = addrCmd ? addrCmdPins.map(([, pin]) => pin) : cpu
   const dramPins = addrCmd ? addrCmdPins.map(([, , pin]) => pin) : dram
   return <board width={30} height={10} layers={8} thickness={1.2} fabricatorPreset="jlcpcb_standard" routingDisabled schematicDisabled>
@@ -28,16 +28,16 @@ function Signals({ 'addr-cmd': addrCmd, pattern = 'prbs7', 'duration-seconds': d
       <trace from={`.${name} > .${power}`} to="net.VDDQ" /><trace from={`.${name} > .${ground}`} to="net.GND" />
       <simulation.ibismodel componentRef={`.${name}`} ibisModelAsset={{ project_relative_path: `models/${file}`, url: `./models/${file}`, mimetype: 'text/plain' }}
         ibisComponentName={component} ibisPinNameToPortLabel={Object.fromEntries([...pins, power, ground].map(pin => [pin, pin]))}
-        ibisPinNameToModelName={Object.fromEntries(pins.map((pin, i) => [pin, name === 'U3' ? addrCmd ? 'CMD' : 'ODT_60' : addrCmd ? i >= 22 ? 'Model_343' : 'Model_352' : i === 9 ? 'Model_655' : i === 10 ? 'Model_847' : 'Model_336']))}
+        ibisPinNameToModelName={Object.fromEntries(pins.map((pin, i) => [pin, name === 'U3' ? addrCmd ? 'CMD' : 'ODT_60' : addrCmd ? i >= 22 ? 'Model_343' : driverModel : i === 9 ? 'Model_655' : i === 10 ? 'Model_847' : 'Model_336']))}
         ibisPinNameToReferencePortLabels={Object.fromEntries(pins.map(pin => [pin, { pullup: power, pulldown: ground, powerClamp: power, groundClamp: ground }]))} />
     </React.Fragment>)}
     {cpuPins.map((pin, i) => <React.Fragment key={pin}><trace from={`.U1 > .${pin}`} to={`.U3 > .${dramPins[i]}`} /></React.Fragment>)}
     {!addrCmd && <differentialpair positiveConnection=".U1 > .P1" negativeConnection=".U1 > .P2" />}
     {addrCmd ? <simulation.pcbtransientchannelsimulation name="DDR3_ADDR_CMD" bitRate="400Mbps" duration={duration} allowUnroutedTraces>
       {addrCmdPins.map(([name, from, to], i) => <simulation.pcbchannel key={name} name={name}
-        driverRef={{ pin: `.U1 > .${from}`, model: i >= 22 ? 'Model_343' : 'Model_352' }} receiverRef={{ pin: `.U3 > .${to}`, model: 'CMD' }}
+        driverRef={{ pin: `.U1 > .${from}`, model: i >= 22 ? 'Model_343' : driverModel }} receiverRef={{ pin: `.U3 > .${to}`, model: 'CMD' }}
         bitRate={i >= 22 ? '800Mbps' : '400Mbps'}
-        pattern={i >= 22 ? i === 22 ? '0001111111111111' : '1110000000000000' : pattern === 'quiet' || pattern === 'victim-even' && i % 2 === 0 || pattern === 'victim-odd' && i % 2 === 1 ? '0' : pattern === 'simultaneous' ? '01' : 'prbs7'}
+        pattern={pattern === 'isolated-a4' ? name === 'A4' ? 'prbs7' : '0' : i >= 22 ? i === 22 ? '0001111111111111' : '1110000000000000' : pattern === 'quiet' || pattern === 'victim-even' && i % 2 === 0 || pattern === 'victim-odd' && i % 2 === 1 ? '0' : pattern === 'simultaneous' ? '01' : 'prbs7'}
         seed={32 + i * 7 % 32} />)}
     </simulation.pcbtransientchannelsimulation> : <simulation.pcbtransientchannelsimulation name="DDR3_LOWER_WRITE" bitRate="800Mbps" allowUnroutedTraces>
       {cpu.slice(0, 9).map((pin, i) => <React.Fragment key={pin}><simulation.pcbchannel name={i === 8 ? 'DQM0' : `DQ${i}`}
@@ -51,7 +51,7 @@ function Signals({ 'addr-cmd': addrCmd, pattern = 'prbs7', 'duration-seconds': d
 /** Preserve all source-board records; append TSX SI declarations and the requested preset when absent. */
 export async function fullBoardDdr3(path: string, options: Ddr3Options = {}): Promise<CircuitJson> {
   const board: CircuitJson = JSON.parse(await readFile(path, 'utf8'))
-  const declarations = await renderCoreSignals(<Signals addr-cmd={options.block === 'DDR3_ADDR_CMD'} pattern={options.pattern} duration-seconds={options.durationSeconds} />)
+  const declarations = await renderCoreSignals(<Signals addr-cmd={options.block === 'DDR3_ADDR_CMD'} pattern={options.pattern} duration-seconds={options.durationSeconds} driver-model={options.driverModel} />)
   const ids = new Map<string, string>()
   for (const component of declarations.filter(record => record.type === 'source_component')) {
     const actual = board.filter(record => record.type === 'source_component').find(record => record.name === component.name)
