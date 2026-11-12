@@ -516,6 +516,144 @@
       "waveform_sha256": "488339ce4d41aef1b04c92d701b2f6a50725d9bde0a9217709f59c11b40106d0",
       "last_saved_time_ns": 2.0,
       "policy": "no accepted extrema; reuse physical compilation only for matched 4.999 ns retry"
+    },
+    {
+      "case": "vtt/before",
+      "status": "transient-failed",
+      "error": "ngspice failed (0); inspect /Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si/runs/addr-cmd/qualification/vtt/before/ngspice.log",
+      "cells": 444,
+      "radius_mm": 1,
+      "options": {
+        "riseSeconds": 2.3e-10,
+        "refinement": 1,
+        "stepSeconds": 1e-11,
+        "durationSeconds": 8e-09,
+        "panels": 12,
+        "currentToleranceA": 1e-09,
+        "cellsPerRise": 2
+      },
+      "native": {
+        "seconds": 97.816219792,
+        "peakRssKiB": 244912,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 7.281082708,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.484715666999996,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 26.663859707999997,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 44.005484958000004,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 90.93306029200001,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "incomplete_waveform_sha256": "bfa1da18157deb6d806038005c78c01df8741ab6924e845dee2fb0526a2c4433",
+      "last_saved_time_ns": 2.50000066557771
+    },
+    {
+      "case": "vtt/victim-even",
+      "status": "transient-failed",
+      "error": "ngspice failed (0); inspect /Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si/runs/addr-cmd/qualification/vtt/victim-even/ngspice.log",
+      "cells": 444,
+      "radius_mm": 1,
+      "options": {
+        "riseSeconds": 2.3e-10,
+        "refinement": 1,
+        "stepSeconds": 1e-11,
+        "durationSeconds": 8e-09,
+        "panels": 12,
+        "currentToleranceA": 1e-09,
+        "cellsPerRise": 2
+      },
+      "native": {
+        "seconds": 80.052628458,
+        "peakRssKiB": 243904,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 7.278409833000001,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.4795175,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 25.637341666999998,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.984512499999994,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 73.58289787500001,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "incomplete_waveform_sha256": "e46513819d29189fc4b25715f9f8edf1be3f53c134560e85491841d6ee52de97",
+      "last_saved_time_ns": 2.5000000163386997
+    },
+    {
+      "case": "vtt/victim-odd",
+      "status": "transient-failed",
+      "error": "ngspice failed (0); inspect /Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si/runs/addr-cmd/qualification/vtt/victim-odd/ngspice.log",
+      "cells": 444,
+      "radius_mm": 1,
+      "options": {
+        "riseSeconds": 2.3e-10,
+        "refinement": 1,
+        "stepSeconds": 1e-11,
+        "durationSeconds": 8e-09,
+        "panels": 12,
+        "currentToleranceA": 1e-09,
+        "cellsPerRise": 2
+      },
+      "native": {
+        "seconds": 87.626841625,
+        "peakRssKiB": 243808,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 7.277978082999998,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.481669083,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 25.644211749999997,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.988471624999995,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 80.731002833,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "incomplete_waveform_sha256": "cef0391325dde3a2baf54119e333aa55bfc6ec5efc242f80b91ca65ca58e16c1",
+      "last_saved_time_ns": 2.500000091152395
     }
   ]
 }

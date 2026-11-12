@@ -127,6 +127,34 @@
     "stop_ns": 4.999,
     "baseline": "before-prefix",
     "overlay": "width-overlay.png",
-    "label": "Outer bodies 0.10 to 0.18 mm: first event"
+    "label": "Outer bodies 0.10 to 0.18 mm: first event",
+    "quiet_case": "width-even-prefix",
+    "quiet_baseline": "victim-even-prefix"
+  },
+  {
+    "name": "width-even-prefix",
+    "directory": "runs/addr-cmd/qualification/width-prefix/victim-even",
+    "stop_ns": 4.999,
+    "baseline": "victim-even-prefix"
+  },
+  {
+    "name": "width-odd-prefix",
+    "directory": "runs/addr-cmd/qualification/width-prefix/victim-odd",
+    "stop_ns": 4.999,
+    "baseline": "victim-odd-prefix"
+  },
+  {
+    "name": "weak",
+    "directory": "runs/addr-cmd/qualification/weak/before",
+    "stop_ns": 8,
+    "baseline": "before",
+    "overlay": "weak-overlay.png",
+    "label": "Model_345: 1.14 x RExt calibration what-if"
+  },
+  {
+    "name": "weak-prefix",
+    "directory": "runs/addr-cmd/qualification/weak/before",
+    "stop_ns": 4.999,
+    "baseline": "before-prefix"
   }
 ]

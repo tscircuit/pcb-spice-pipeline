@@ -36,7 +36,9 @@ Overshoot and undershoot use the nominal 1.5 V rails. Quiet-victim disturbance
 removes the pre-edge DC baseline; it includes both routed copper and package
 coupling. Settling uses the earlier 5% band and 0.5 ns confirmation/censoring
 rule. Pulse area integrates native piecewise-linear samples above 1.5 V or
-below 0 V, inserting exact rail crossings. Both the largest contiguous lobe
+below 0 V, inserting exact rail crossings and the comparison-window endpoint.
+The endpoint is interpolated between recorded samples when necessary; a
+requested window beyond the native capture is rejected. Both the largest contiguous lobe
 and the complete capture's sum are retained; they are different quantities.
 Areas are observed within the stated capture window. A lobe touching its
 boundary can continue outside it, so its recorded area is not an upper bound.
@@ -247,20 +249,29 @@ energy matrix in those two decks, not physical package/model errors.
 
 ### What the terminal controls can and cannot bound
 
-All corrected quiet-victim peak errors in `terminal-inductance.md` are
-negative (2D underpredicts): -5.883/-12.983 mV in the tight near/far cases,
-and -2.702/-3.319 mV in the short near/far cases. Relative to the corresponding
-fine-reference peaks, the largest residual is about 3.685% (3.319/90.077).
-If that relative envelope transferred to A4, it would be 15.82 mV at
-429.42 mV; even subtracting that amount leaves about 413.60 mV. This is
-**conditional arithmetic, not a validated board-level error bound**.
-The largest saved quiet waveform point error is 15.380 mV in those controls.
-Their source, termination, geometry and excitation differ from this board.
-No finite general crosstalk inflation bound follows from these partially
-agreeing referee controls. In particular, radius truncation, oblique surrogates, package
-assumptions and missing endpoint loads are not bounded by that 15.82 mV.
-The known terminal correction alone offers no evidence that it creates a
-400 mV spurious positive crosstalk result.
+All saved quiet-victim extrema in both the original and corrected terminal
+fixtures **underpredict absolute noise**. Corrected positive-peak errors are
+-5.883/-12.983 mV in the tight near/far cases and -2.702/-3.319 mV in the short
+cases. The original uncorrected far errors are -21.990 and -3.949 mV. Relative
+to the corresponding fine-reference extrema, the largest corrected magnitude
+error is 3.685%; including the uncorrected fixtures raises it to 4.384%
+(3.949/90.077). `terminal-error-envelope.json` checks positive and negative
+extrema, preserving the error sign.
+
+If that larger fractional envelope transferred to A4, it would be 18.83 mV
+at 429.42 mV; even hypothetically subtracting it leaves about 410.59 mV. This
+is **conditional arithmetic, not a validated board-level error bound**. The
+largest saved corrected quiet waveform point error is 15.380 mV, a separate
+quantity from the extrema errors. No new openEMS solve is claimed.
+
+The terminal correction is for the referee's explicit vertical current paths.
+Ordinary routed BGA pads receive no inferred post; this board keeps its existing
+geometry-derived via/barrel/pad/return-loop models. The fixture source,
+termination, geometry and excitation differ from this board. No finite general
+crosstalk inflation bound follows from those partially agreeing controls.
+Radius truncation, oblique surrogates, package assumptions and missing endpoint
+loads are not bounded by 18.83 mV. The known terminal errors offer no evidence
+that they create a 400 mV spurious noise result.
 
 ## Winbond peak and area limits
 
@@ -328,6 +339,9 @@ there is no unsupported linear taper. Narrow lengths are 4.095 mm (CSn0),
 layers and vias stay fixed. Synthetic tests check width-step length/endpoints
 and layer isolation; the routing check uses the actual copied board. The final
 copy SHA-256 is `a47befc73e97330db43da0415278042cd51692b0790fd119ac344673a1ba884f`.
+The copied route data's `point_widths_mm` is local review metadata. The actual
+stepped-width `circuit.json` copy is what the solver and routing checks consume;
+integration of variable-width data into the upstream route schema is not shipped.
 
 The full-geometry width copy has 455 cells. Its 8 ns main and even-victim
 captures reached the 1,200 s guard (265.188 / 263.969 MiB sampled native maxima)
@@ -341,7 +355,7 @@ In the original completed 8 ns captures, every main-pattern command positive
 peak and every quiet-victim absolute maximum already occurs within this prefix; the comparison
 is recorded in `before-window-coverage.json`. Later main-pattern undershoot
 does occur outside it; the odd-victim pattern also has a per-net positive
-peak 1.062 mV higher later. This coverage check does not bound later candidate
+peak 0.985 mV higher later. This coverage check does not bound later candidate
 peaks or make the short-window areas complete pulses.
 
 The width main retry completed in 1,092.119 s with 264.453 MiB sampled native
@@ -358,8 +372,27 @@ maximum RSS. All following values compare the same 0–4.999 ns first event:
 The [width receiver overlay](../runs/addr-cmd/qualification/summary/width-overlay.png)
 shows a modest improvement, with substantial inner ringing remaining. Even
 the first-event maximum remains 19.739 mV above the absolute upper rating.
-Quiet-victim width comparisons are still pending; no noise improvement is
-inferred from these driven-net peaks.
+The even-victim retry completed in 1,111.028 s with 263.078 MiB sampled native
+maximum RSS. Its full-geometry, first-event noise comparison is:
+
+| Even-victim metric, 0–4.999 ns | Before | Width correction |
+|---|---:|---:|
+| Worst quiet absolute disturbance | 429.418 mV, A4 | 427.458 mV, A4 |
+| Median quiet absolute disturbance | 260.057 mV | 239.029 mV |
+| A4 positive peak | +0.429419 V | +0.408483 V |
+| A4 negative peak | -0.397358 V | -0.427458 V |
+| A4 observed below-ground lobe | 0.195778 V ns | 0.210368 V ns |
+
+Worst noise barely changes, while the negative excursion worsens by 30.100 mV
+and crosses -0.4 V. The width overlay includes this held-low waveform in mV
+relative to DC. The odd-victim retry also completed, in 1,136.492 s with
+263.266 MiB sampled native maximum RSS; its worst quiet disturbance is
+388.276 mV on A7, versus 399.576 mV before. Across both parity experiments,
+median quiet noise changes from 259.768 to 242.167 mV, while the maximum
+changes from 429.418 to 427.458 mV. All three width first-event captures are
+complete. `width-prefix-check.json` verifies identical circuit bodies and
+original switching profiles between each 8 ns compilation and shorter retry.
+Width behavior after 4.999 ns remains unverified.
 
 TI explicitly says a [single-x16 point-to-point AM335x DDR3 connection does
 not require VTT](https://www.ti.com/lit/an/sprabn2a/sprabn2a.pdf), while discussing
@@ -367,6 +400,23 @@ VTT for larger topologies. The requested ideal receiver-ball termination is
 therefore a topology what-if, not evidence that TI requires a fly-by/VTT
 redesign of this board. Static VTT load, level swing and power must accompany
 any ringing reduction; no regulator performance is simulated here.
+
+At the original 10 ps maximum step, all three ideal-VTT patterns abort
+numerically at their first 2.5 ns command transition. The guard rejects the
+ngspice error despite process exit code zero and later control-script progress
+echoes. These captures supply no accepted peak, area or noise result. A single
+smaller-step sanity check is planned after the independent sweep; VTT is not
+yet ranked as a demonstrated improvement.
+
+The Model_345 main capture completed the original 8 ns window in 1,006.650 s,
+using 239.266 MiB sampled native maximum RSS. Its largest peak is 1.986697 V
+on A9; median outer/inner overshoot is 21.013% / 24.068%. A4 peaks at
+1.913228 V, versus 2.024868 V before. The same global peak and group medians
+occur in the matched first-event prefix. The
+[weaker-drive overlay](../runs/addr-cmd/qualification/summary/weak-overlay.png)
+shows the complete 8 ns main capture. The maximum remains 11.697 mV above the
+absolute upper rating. Quiet-victim results remain pending, and actual
+firmware/calibration implementation is unverified.
 
 ## Reproduction and validation
 
@@ -397,6 +447,12 @@ comparison windows. It rejects incomplete native captures and writes compact
 metrics, provenance and optional receiver overlays. Synthetic triangle and
 split-lobe checks verify exact rail-crossing integration; these checks are
 not native circuit evidence.
+`scripts/summarize-addr-cmd-qualification.test.py` adds three analytical window
+checks. The reproduction exposed up to 4.983 ps missing from the sliced before
+prefix. Interpolating its endpoint corrects prefix areas without changing the
+main first-event peaks or quiet-noise extrema. The complete 8 ns before areas
+are unchanged. These are post-processing corrections, separate from native
+solver qualification.
 
 Lint, module rules, vocabulary and typecheck pass; lint retains the existing
 535-line `src/extraction/mesh.ts` warning. With
@@ -420,7 +476,7 @@ flowchart LR
   copy[Read-only board and copied route edits] --> controls
   controls --> guards[Exact-input extraction and native budgets]
   guards --> complete{Complete native capture?}
-  complete -->|yes| metrics[Native extrema, censored settling and pulse areas]
+  complete -->|yes| metrics[Exact window extrema, settling and pulse areas]
   complete -->|no| failures[Retain failure evidence without waveform claims]
   metrics --> compare[Matched stimulus and scope comparisons]
   compare --> verdict[Model result and hardware uncertainty kept explicit]

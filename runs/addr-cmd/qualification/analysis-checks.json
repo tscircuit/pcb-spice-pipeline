@@ -1,38 +1,68 @@
-[
-  {
-    "name": "triangle",
-    "expected": [
-      0.5,
-      0.5
-    ],
-    "actual": [
-      0.5,
-      0.5
-    ],
-    "status": "passed-synthetic-numerical-check"
-  },
-  {
-    "name": "split-lobes",
-    "expected": [
-      1,
-      2
-    ],
-    "actual": [
-      1.0,
-      2.0
-    ],
-    "status": "passed-synthetic-numerical-check"
-  },
-  {
-    "name": "rail-crossings",
-    "expected": [
-      0.25,
-      0.5
-    ],
-    "actual": [
-      0.25,
-      0.5
-    ],
-    "status": "passed-synthetic-numerical-check"
+{
+  "lobe_checks": [
+    {
+      "name": "triangle",
+      "expected": [
+        0.5,
+        0.5
+      ],
+      "actual": [
+        0.5,
+        0.5
+      ],
+      "status": "passed-synthetic-numerical-check"
+    },
+    {
+      "name": "split-lobes",
+      "expected": [
+        1,
+        2
+      ],
+      "actual": [
+        1.0,
+        2.0
+      ],
+      "status": "passed-synthetic-numerical-check"
+    },
+    {
+      "name": "rail-crossings",
+      "expected": [
+        0.25,
+        0.5
+      ],
+      "actual": [
+        0.25,
+        0.5
+      ],
+      "status": "passed-synthetic-numerical-check"
+    }
+  ],
+  "window_regression": {
+    "kind": "synthetic analytical ramp through real summary interface; no native evidence",
+    "reproduction_commit": "a9eb835",
+    "tests": 3,
+    "passing_after_fix": 3,
+    "largest_actual_report_changes": {
+      "max_v": [
+        7.65235497903749e-05,
+        "victim-odd-prefix",
+        "A6"
+      ],
+      "min_v": [
+        0.0,
+        "width-prefix",
+        "WEn"
+      ],
+      "quiet_victim_mv": [
+        0.0,
+        "victim-odd-prefix",
+        "WEn"
+      ],
+      "max_overshoot_lobe_v_ns": [
+        0.0016430559998072969,
+        "before-prefix",
+        "A9"
+      ]
+    }
   }
-]
+}

@@ -1,5 +1,5 @@
 {
-  "evidence": "same original completed 8 ns native captures sliced; no new solver run",
+  "evidence": "same original completed 8 ns native captures sliced with exact boundary interpolation; no new solver run",
   "short_window_ns": 4.999,
   "full_window_ns": 8,
   "comparisons": {
@@ -14,7 +14,7 @@
       "largest_per_net_minimum_difference_v": 0.18227043064996326
     },
     "victim-odd": {
-      "largest_per_net_positive_peak_difference_v": 0.0010618238100696953,
+      "largest_per_net_positive_peak_difference_v": 0.0009853002602793204,
       "largest_per_net_quiet_noise_difference_mv": 0.0,
       "largest_per_net_minimum_difference_v": 0.16444085212508305
     }
