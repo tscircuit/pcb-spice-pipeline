@@ -26,7 +26,7 @@ export function parseSpiceVectors(text: string): SpiceVector[] {
   return vectors
 }
 
-/** Give native batch output and the WASM engine API the same real-vector transport. */
+/** Format real vectors for protocol fixtures using the native batch transport. */
 export function formatSpiceVectors(vectors: SpiceVector[]): string {
   const points = vectors[0]?.values.length ?? 0
   if (vectors.length < 2 || points < 2 || vectors.some(vector => vector.values.length !== points || vector.values.some(value => !Number.isFinite(value)) || !/^\S+$/.test(vector.name) || !/^\S+$/.test(vector.type)))

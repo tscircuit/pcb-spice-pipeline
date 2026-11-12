@@ -112,7 +112,7 @@ candidate 2.5D path; `runPipeline` still runs the 3D workflow above in this PR.
 Construct `new RoutedPipelineSolver(problem, { runSolver, progress })` and await
 `solver.solveAsync()`. Synchronous stages can still be stepped up to stage 5;
 `RouteTransientSolver` awaits one live ngspice run and admits complete probe vectors.
-The debugger runs it in an isolated WASM worker with a 15 minute watchdog.
+Inject the local native adapter to run stage 5 with a bounded process timeout.
 
 <!-- routed-stages:start -->
 | # | Stage solver |
@@ -137,7 +137,7 @@ flowchart LR
   s2 --> s3
   s3 --> s4
   s4 --> s5
-  s5 <-->|"await RunSolver"| engine["native or worker WASM ngspice"]
+  s5 <-->|"await RunSolver"| engine["local native ngspice"]
   classDef root fill:#dbeafe
 ```
 

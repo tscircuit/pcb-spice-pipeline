@@ -9,7 +9,7 @@ import type { RoutedDeck, RoutedCapture } from './routed-types'
 
 export interface RouteTransientInput { compiled: RoutedDeck; artifactPrefix: string; context: SolverContext }
 
-/** Native batch writes ASCII raw vectors; WASM returns the same vectors through its API. */
+/** Native batch writes complete ASCII raw vectors for the declarative transient deck. */
 export function routedRequest(compiled: Pick<RoutedDeck, 'deck'>): SolverRequest & { outputFiles: ['waveform.raw'] } {
   return { solver: 'ngspice', files: { 'simulation.cir': compiled.deck }, args: ['-n', '-b', '-r', 'waveform.raw', 'simulation.cir'], outputFiles: ['waveform.raw'] }
 }

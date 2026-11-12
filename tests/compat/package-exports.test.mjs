@@ -7,6 +7,6 @@ import { readFileSync } from 'node:fs'
 // in native TSX. Keep it out of the public package surface.
 test('package exports do not expose the internal ImportedBoard bridge', () => {
   const manifest = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'))
-  assert.deepEqual(Object.keys(manifest.exports).sort(), ['.', './browser', './node'])
+  assert.deepEqual(Object.keys(manifest.exports).sort(), ['.', './node'])
   for (const entry of Object.values(manifest.exports)) assert.doesNotMatch(JSON.stringify(entry), /tsx/)
 })

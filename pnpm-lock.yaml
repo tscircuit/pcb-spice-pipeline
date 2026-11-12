@@ -23,9 +23,6 @@ importers:
       earcut:
         specifier: 3.2.4
         version: 3.2.4
-      eecircuit-engine:
-        specifier: 1.9.0
-        version: 1.9.0
       format-si-unit:
         specifier: 0.0.12
         version: 0.0.12(typescript@5.9.3)
@@ -1301,9 +1298,6 @@ packages:
 
   earcut@3.2.4:
     resolution: {integrity: sha512-FHc6yNpnTORB0tM5kmZ03iD2mDuNakDE2lvf4Hw1XkfxtEHIGVi01B/GqUSwx+NcC1WGjidAfpTXzeALtPtfpg==}
-
-  eecircuit-engine@1.9.0:
-    resolution: {integrity: sha512-qmCR+2/sz8nkaCsXL2ZebBua7sff//Zu2zAQqQ+qkkXLcFjxfpbY1TNRax284UFq6hhi9q2y1E/VxIRhOHWXVA==}
 
   entities@4.5.0:
     resolution: {integrity: sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==}
@@ -3133,8 +3127,6 @@ snapshots:
       domhandler: 5.0.3
 
   earcut@3.2.4: {}
-
-  eecircuit-engine@1.9.0: {}
 
   entities@4.5.0: {}
 

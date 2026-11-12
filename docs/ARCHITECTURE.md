@@ -159,7 +159,7 @@ flowchart LR
   s2 --> s3
   s3 --> s4
   s4 --> s5
-  s5 <-->|"await RunSolver"| engine["native or worker WASM ngspice"]
+  s5 <-->|"await RunSolver"| engine["local native ngspice"]
   classDef root fill:#dbeafe
 ```
 
@@ -200,21 +200,14 @@ and waveform x=0..220/y=120..200, with PCB y and stack z positive upward. Neighb
 copper and waveform drawings are capped for display only; numerical inputs and
 native samples are retained in full.
 
-`RouteTransientSolver` awaits one `solver.invoke` call in `_stepAsync`. The same
-self-contained `.save` + `.tran` deck keeps KLU and Gear in native batch ngspice
-and WASM. Native batch emits ASCII raw vectors (`SPICE_ASCIIRAWFILE=1`); the WASM
-engine API emits that same real-vector transport. Diagnostics, finite samples,
-start and final simulated time are checked before publishing a capture. Errors
-leave the stage failed without partial output. Native adapter instances share a
-process queue and set OMP_NUM_THREADS=1.
-
-The `/browser` adapter creates one Web Worker per run, reports elapsed wall time
-while the engine runs, and terminates the worker on completion, failure, timeout
-or cancellation. It pins npm `eecircuit-engine@1.9.0` (ngspice 45.2), matching the
-spike and avoiding an unpublished CDN-only wrapper. The engine does not expose
-simulated-time progress; the host heartbeat reports elapsed time and the limit.
-Large DDR3 transients remain unverified. Completion is candidate evidence without
-independent convergence qualification. `runPipeline` and the 3D path are unchanged.
+`RouteTransientSolver` awaits one `solver.invoke` call in `_stepAsync`. Its
+self-contained `.save` + `.tran` deck keeps KLU and Gear in native batch ngspice.
+Native batch emits ASCII raw vectors (`SPICE_ASCIIRAWFILE=1`). Diagnostics, finite
+samples, start and final simulated time are checked before publishing a capture.
+Errors leave the stage failed without partial output. Native adapter instances
+share a process queue and set OMP_NUM_THREADS=1. Large DDR3 transients remain
+unverified. Completion is candidate evidence without independent convergence
+qualification. `runPipeline` and the 3D path are unchanged.
 
 Async stepping uses solver-utils PR #62 at `127f17012c7c391005254993864b26801f418249`
 through an integrity-locked pkg.pr.new URL. Switch to a release after #62 ships.

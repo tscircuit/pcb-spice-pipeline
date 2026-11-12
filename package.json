@@ -22,10 +22,6 @@
     "./node": {
       "types": "./dist/adapters/index.d.ts",
       "import": "./dist/adapters/index.js"
-    },
-    "./browser": {
-      "types": "./dist/adapters/browser/index.d.ts",
-      "import": "./dist/adapters/browser/index.js"
     }
   },
   "files": [
@@ -34,7 +30,6 @@
     "LICENSE"
   ],
   "scripts": {
-    "routed:debugger": "vite examples/routed --host 127.0.0.1",
     "test": "node --import tsx --test --test-concurrency=1 'tests/**/*.test.mjs' 'tests/**/*.test.ts' 'tests/**/*.test.tsx'",
     "test:native": "npm run build && node --import tsx --test --test-concurrency=1 tests/general.integration.mjs",
     "typecheck": "tsc --noEmit && tsc -p tests/tsconfig.json && tsc -p examples/tsconfig.json --noEmit",
@@ -55,8 +50,7 @@
     "earcut": "3.2.4",
     "format-si-unit": "0.0.12",
     "graphics-debug": "0.0.101",
-    "zod": "3.25.76",
-    "eecircuit-engine": "1.9.0"
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@resvg/resvg-js": "2.6.2",

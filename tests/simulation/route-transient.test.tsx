@@ -4,7 +4,6 @@ import { RouteTransientSolver, type RoutedDeck, routedControl } from '../../src/
 import { routedRequest } from '../../src/simulation/route-transient'
 import { formatSpiceVectors, probeWaveformRows, sampleVoltage } from '../../src/observation'
 import { createNativeSolver } from '../../src/adapters'
-import { runSpiceEngine } from '../../src/adapters/browser/spice-engine'
 import { RoutedAdmissionSolver, RoutedBlockSolver } from '../../src/pipeline'
 import { routedProblem } from '../support/routed-fixture'
 import type { SolverContext, SolverResult } from '../../src/solver'
@@ -82,7 +81,7 @@ function oldControl(deck: RoutedDeck): string {
   return deck.deck.replace(routedControl(saved, deck.stepSeconds, deck.durationSeconds).join('\n'), [...lines, 'quit', '.endc', '.end'].join('\n'))
 }
 
-test('real TSX two-trace: old/native deck parity and sequential native/WASM engine parity', { skip: process.env.SI_NATIVE_TESTS !== '1' && 'Set SI_NATIVE_TESTS=1 and IBIS_MODEL_DIR for bounded sequential native/WASM checks' }, async context => {
+test('real TSX two-trace: old/new native deck parity', { skip: process.env.SI_NATIVE_TESTS !== '1' && 'Set SI_NATIVE_TESTS=1 and IBIS_MODEL_DIR for bounded sequential native checks' }, async context => {
   const input = await routedProblem(context, { 'bit-rate': '50Mbps', 'duration-seconds': 40e-9 })
   if (!input) return
   const admission = new RoutedAdmissionSolver(input)
@@ -102,16 +101,9 @@ test('real TSX two-trace: old/native deck parity and sequential native/WASM engi
   const nativeMs = performance.now() - nativeStart
   const native = compiler.getOutput().value.capture
   const nativeRows = native.timestampsSeconds.map((time, i) => [time, ...native.probes.map(probe => probe.voltageLevels[i])])
-  const wasmStart = performance.now()
-  const wasm = new RouteTransientSolver({ compiled: deck, artifactPrefix: 'wasm', context: { ...port, runSolver: request => runSpiceEngine(request.files['simulation.cir']) } })
-  await wasm.solveAsync()
-  const wasmMs = performance.now() - wasmStart
-  const capture = wasm.getOutput().value
-  const wasmRows = capture.timestampsSeconds.map((time, i) => [time, ...capture.probes.map(probe => probe.voltageLevels[i])])
+  const capture = native
   const oldNativeMaxV = maximumDifference(oldRows, nativeRows)
-  const nativeWasmMaxV = maximumDifference(nativeRows, wasmRows)
   assert.ok(oldNativeMaxV <= .001, `old/new native max difference ${oldNativeMaxV} V`)
-  assert.ok(nativeWasmMaxV <= .0012, `native/WASM max difference ${nativeWasmMaxV} V`)
   assert.equal(capture.probes.length, deck.probes.length)
   assert.equal(capture.timestampsSeconds.at(-1), 40e-9)
   assert.ok(capture.timestampsSeconds.length > 20)
@@ -119,7 +111,7 @@ test('real TSX two-trace: old/native deck parity and sequential native/WASM engi
   assert.ok(Math.abs(signal[0]) < .01, 'switching capture must begin low')
   assert.ok(signal.at(-1)! > 3 && signal.at(-1)! < 3.5, 'switching capture must finish near 3.3 V')
   assert.ok(Math.max(...signal) - Math.min(...signal) > 3, 'comparison must exercise a full voltage swing')
-  context.diagnostic(JSON.stringify({ durationSeconds: 40e-9, bitRateHz: 50e6, signalSwingV: Math.max(...signal) - Math.min(...signal), finalSignalV: signal.at(-1), originalMs, nativeMs, wasmMs, oldNativeMaxV, nativeWasmMaxV, nativeSamples: nativeRows.length, wasmSamples: wasmRows.length }))
+  context.diagnostic(JSON.stringify({ durationSeconds: 40e-9, bitRateHz: 50e6, signalSwingV: Math.max(...signal) - Math.min(...signal), finalSignalV: signal.at(-1), originalMs, nativeMs, oldNativeMaxV, nativeSamples: nativeRows.length }))
 })
 
 
