@@ -7,13 +7,17 @@ export class RouteEnergy {
   }
   /** Preserve integration order exactly; structural zeros consume no storage. */
   add(i: number, j: number, value: number): void {
-    if (!value) return
+    if (value === 0) return
     this.set(i, j, (this.rows[i].get(j) ?? 0) + value)
   }
   /** Replace hybrid terms without changing their floating-point evaluation. */
   set(i: number, j: number, value: number): void {
     const row = this.rows[i]
-    if (!row.has(j) && value !== 0 && ++this.budget.entries > 500_000) throw new Error('Route energy exceeds sparse-memory limit of 500000 matrix entries')
+    if (!Number.isFinite(value)) throw new Error('Route energy requires finite coefficients')
+    if (!row.has(j) && value !== 0) {
+      if (this.budget.entries >= 500_000) throw new Error('Route energy exceeds sparse-memory limit of 500000 matrix entries')
+      this.budget.entries++
+    }
     if (value === 0) {
       if (row.delete(j)) this.budget.entries--
     } else row.set(j, value)

@@ -1,4 +1,4 @@
-import { closestRoutePoints, routeCrossSection, solveCrossSection, type ExtractedRoutes, type RouteMaterials } from '../extraction'
+import { closestRoutePoints, routeCrossSection, solveSectionCapacitance, type ExtractedRoutes, type RouteMaterials } from '../extraction'
 import { type SectionGeometry, type CopperScope, type RouteWire, type RouteXY } from '../board'
 import type { RouteLadder } from './route-ladder'
 
@@ -49,7 +49,7 @@ export function routeOblique(geometry: SectionGeometry, extracted: ExtractedRout
     if (capacitancePerM === undefined) {
       const start = performance.now()
       try {
-        capacitancePerM = Math.max(0, -solveCrossSection(section, { panelsPerEdge: panels }).C[0][1])
+        capacitancePerM = Math.max(0, -solveSectionCapacitance(section, { panelsPerEdge: panels })[0][1])
       } catch (error) {
         throw Object.assign(error as Error, { routeSection: section, wires: [a, b], obliqueSolves: cache.size, solveMilliseconds: solveMilliseconds })
       }

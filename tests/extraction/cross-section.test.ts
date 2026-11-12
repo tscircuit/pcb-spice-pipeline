@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { solveCrossSection, type CrossSectionResult, type Matrix } from '../../src/extraction'
+import { solveCrossSection, solveSectionCapacitance, type CrossSectionResult, type Matrix } from '../../src/extraction'
 import { coupledMicrostrip, coupledStripline, singleMicrostrip } from './cross-section-reference'
 import { sectionFixture } from './cross-section-fixtures'
 
@@ -95,4 +95,13 @@ test('2D extraction: independent single/coupled formulas, matrix energy, loss, c
     rows.push({ fixture: `${kind} 12`, panels: result.diagnostics.panels, ms: +elapsed.toFixed(2), rawReciprocityPercent: +(result.diagnostics.reciprocityResidual * 100).toFixed(3) })
   }
   console.table(rows)
+})
+
+
+test('electrostatic-only path is byte-exact with full extraction for one/two-plane coupled sections', () => {
+  for (const kind of ['microstrip', 'stripline'] as const) {
+    const section = sectionFixture(kind, 2)
+    assert.deepEqual(solveSectionCapacitance(section), solveCrossSection(section).C)
+  }
+  assert.throws(() => solveSectionCapacitance(sectionFixture('microstrip', 1), { panelsPerEdge: 2 }), /panels per edge/)
 })

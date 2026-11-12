@@ -7,6 +7,21 @@ import { symmetrize, type Matrix } from './linalg'
 
 export type { CrossSection, CrossSectionOptions, CrossSectionResult, SectionConductor, SectionPlane, SectionDielectric } from './cross-section-types'
 
+/** Electrostatic-only extraction uses the identical dielectric solve without unused magnetic/loss solves. */
+export function solveSectionCapacitance(section: CrossSection, options: Pick<CrossSectionOptions, 'panelsPerEdge' | 'interfaceExtent'> = {}): Matrix {
+  validateSection(section)
+  const count = options.panelsPerEdge ?? 12
+  const extent = options.interfaceExtent ?? 24
+  if (!Number.isInteger(count) || count < 6 || !Number.isFinite(extent) || extent < 4) fail('mesh_convergence', 'Use >=6 panels per edge and interface extent >=4')
+  const C = section.conductors.map(() => section.conductors.map(() => 0))
+  for (const { region, indices } of sectionRegions(section)) {
+    const field = sectionField(region, count, extent, false)
+    for (const [i, ii] of indices.entries()) for (const [j, jj] of indices.entries()) C[ii][jj] = field.C[i][j]
+  }
+  sectionPassive(C, true)
+  return C
+}
+
 /** High-frequency external inductance from the vacuum Maxwell capacitance. */
 function inductance(C0: Matrix): Matrix {
   return symmetrize(sectionInverse(C0).map(row => row.map(value => sectionMu0 * sectionEpsilon0 * value)))
