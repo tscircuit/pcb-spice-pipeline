@@ -22,7 +22,7 @@ export async function routedCopper(): Promise<{ circuitJson: CircuitJson; scope:
 }
 
 /** Explicitly skip unavailable vendor assets; they are never replaced with synthetic native models. */
-export async function routedProblem(context: TestContext): Promise<RoutedProblem | undefined> {
+export async function routedProblem(context: TestContext, props: React.ComponentProps<typeof TwoTraceBoard> = {}): Promise<RoutedProblem | undefined> {
   if (!process.env.IBIS_MODEL_DIR) {
     context.skip('Set IBIS_MODEL_DIR to local vendor sn74lvc1g04.ibs; vendor bytes are not committed')
     return
@@ -36,5 +36,5 @@ export async function routedProblem(context: TestContext): Promise<RoutedProblem
     context.skip('Local vendor sn74lvc1g04.ibs is unavailable')
     return
   }
-  return { circuitJson: await renderCoreSignals(<TwoTraceBoard />), ibisSources: { 'models/sn74lvc1g04.ibs': bytes.toString('utf8') }, scopeDistanceMm: 1 }
+  return { circuitJson: await renderCoreSignals(<TwoTraceBoard {...props} />), ibisSources: { 'models/sn74lvc1g04.ibs': bytes.toString('utf8') }, scopeDistanceMm: 1 }
 }

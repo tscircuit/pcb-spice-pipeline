@@ -4,6 +4,7 @@ import { rootScope, snapshot, sha256, type Produced } from '../kernel'
 import { invoke, type SolverContext, type SolverRequest } from '../solver'
 import { spiceProbeRows } from '../observation'
 import { fail } from './diagnostics'
+import { routeWaveformDrawing } from './waveform-visual'
 import type { RoutedDeck, RoutedCapture } from './routed-types'
 
 export interface RouteTransientInput { compiled: RoutedDeck; artifactPrefix: string; context: SolverContext }
@@ -44,8 +45,8 @@ export class RouteTransientSolver extends BaseSolver {
   }
   /** The runtime capability must be supplied again when constructing a new solver. */
   override getConstructorParams(): [RouteTransientInput] { return [this.input] }
-  /** Replaced by the shared waveform drawing after rebasing onto the parent visual work. */
+  /** Use the parent pipeline's pure atlas renderer for actual live probe samples. */
   override visualize(): GraphicsObject {
-    return { texts: [{ x: 0, y: 200, text: this.failed ? this.error ?? 'Transient failed' : this.output ? 'Transient: candidate-unqualified' : 'Transient: awaiting live ngspice', color: this.failed ? '#dc2626' : '#d97706', fontSize: 2.5 }] }
+    return routeWaveformDrawing(this.output?.value, this.input.compiled.durationSeconds, this.failed ? this.error ?? 'Transient failed' : undefined)
   }
 }

@@ -1,7 +1,7 @@
 import type { GraphicsObject, Point } from 'graphics-debug'
 import type { RoutedCapture } from './routed-types'
 
-/** Pure atlas drawing shared by synchronous capture and the live async transient solver. */
+/** Pure atlas drawing for the live async transient solver. */
 export function routeWaveformDrawing(capture: RoutedCapture | undefined, durationSeconds: number, error?: string): GraphicsObject {
   const drawing: GraphicsObject = { coordinateSystem: 'cartesian', lines: [], texts: [] }
   /** All labels remain visible with SVG object labels switched off. */
@@ -11,7 +11,7 @@ export function routeWaveformDrawing(capture: RoutedCapture | undefined, duratio
   text(
     2,
     198,
-    error ? `Capture failed: ${error}` : capture?.kind === 'completed' ? '5 · Capture: native samples · candidate-unqualified' : '5 · Capture: native not run',
+    error ? `Transient failed: ${error}` : capture?.kind === 'completed' ? '5 · Transient: ngspice samples · candidate-unqualified' : '5 · Transient: awaiting live ngspice',
     error ? '#dc2626' : '#a16207',
     2.8,
   )
@@ -65,7 +65,7 @@ export function routeWaveformDrawing(capture: RoutedCapture | undefined, duratio
   text(2, 189, 'Voltage (V) · Red dashed: 1.9 V / −0.4 V limits', '#475569', 1.9)
   text(96, 124, 'Time (ns)', '#475569', 2)
   if (capture?.kind !== 'completed') {
-    text(65, 160, error ? 'No completed native result' : 'native not run — no waveform data', '#a16207', 2.4)
+    text(65, 160, error ? 'No completed ngspice result' : 'Awaiting live ngspice — no waveform data', '#a16207', 2.4)
     return drawing
   }
   for (const [i, probe] of capture.probes.entries()) {

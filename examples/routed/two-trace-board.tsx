@@ -2,7 +2,7 @@ import React from 'react'
 import { simulation } from '@tscircuit/core'
 
 /** Two physical 8 mm traces; vendor bytes must be supplied locally. */
-export function TwoTraceBoard(): React.JSX.Element {
+export function TwoTraceBoard({ 'bit-rate': bitRate = '400Mbps', 'duration-seconds': durationSeconds = 4e-9, 'data-pattern': dataPattern = '01' }: { 'bit-rate'?: string; 'duration-seconds'?: number; 'data-pattern'?: string } = {}): React.JSX.Element {
   return <board width={16} height={12} layers={4} thickness={1.6} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled isViaInPadAllowed>
     {[0, 1].map(i => <React.Fragment key={i}>
       {[-4, 4].map(x => {
@@ -29,8 +29,8 @@ export function TwoTraceBoard(): React.JSX.Element {
     <net name="GND" /><net name="VCC" />
     <copperpour name="POWER" connectsTo="net.VCC" layer="top" unbroken outline={[{ x: -7, y: 2.3 }, { x: 7, y: 2.3 }, { x: 7, y: 5 }, { x: -7, y: 5 }]} />
     <copperpour name="RETURN" connectsTo="net.GND" layer="bottom" unbroken outline={[{ x: -7, y: -5 }, { x: 7, y: -5 }, { x: 7, y: 5 }, { x: -7, y: 5 }]} />
-    <simulation.pcbtransientchannelsimulation name="TWO" bitRate="400Mbps" duration={4e-9}>
-      <simulation.pcbchannel name="DATA" driverRef=".TX0 > .Y" receiverRef=".RX0 > .A" pattern="01" />
+    <simulation.pcbtransientchannelsimulation name="TWO" bitRate={bitRate} duration={durationSeconds}>
+      <simulation.pcbchannel name="DATA" driverRef=".TX0 > .Y" receiverRef=".RX0 > .A" pattern={dataPattern} />
       <simulation.pcbchannel name="VICTIM" driverRef=".TX1 > .Y" receiverRef=".RX1 > .A" pattern="0" />
     </simulation.pcbtransientchannelsimulation>
   </board>

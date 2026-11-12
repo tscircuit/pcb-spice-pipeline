@@ -6,9 +6,9 @@ import { Resvg } from '@resvg/resvg-js'
 import { type BaseSolver } from '@tscircuit/solver-utils'
 import { Circuit } from '@tscircuit/core'
 import { RoutedAdmissionSolver, RoutedBlockSolver, RoutedPipelineSolver, routedStages, type RoutedProblem } from '../src/pipeline'
-import { RouteCaptureSolver, executeRoutedDeck, routeWaveformDrawing } from '../src/simulation'
+import { RouteNetworkSolver, routeWaveformDrawing } from '../src/simulation'
 import { createNativeSolver } from '../src/adapters'
-import { rootScope, sha256 } from '../src/kernel'
+import { sha256 } from '../src/kernel'
 import { routeText, type CircuitJson } from '../src/board'
 import { TwoTraceBoard } from '../examples/routed/two-trace-board'
 import { withDdr3Signals } from '../examples/routed/ddr3-signals'
@@ -33,23 +33,33 @@ async function render(name: string, drawing: GraphicsObject): Promise<void> {
 
 /** Record each completed stage as it becomes available, without re-running the field extraction. */
 async function stages(name: string, input: RoutedProblem): Promise<void> {
-  const root = new RoutedPipelineSolver(input)
+  const execute = name === 'two-trace' && process.argv.includes('--native-two-trace')
+  const context = { runSolver: createNativeSolver({ timeoutMs: 10_000 }), progress: console.log }
+  const root = new RoutedPipelineSolver(input, context)
   await render(`${name}-root-initial`, root.initialVisualize())
   const admission = new RoutedAdmissionSolver(input)
   admission.solve()
   await render(`${name}-0-admission`, admission.visualize())
   const plan = structuredClone(admission.getOutput().value[0])
-  if (name === 'two-trace') plan.bindings.options = { riseSeconds: 1e-9, refinement: 1, durationSeconds: 4e-9, stepSeconds: 1e-11 }
-  const block = new RoutedBlockSolver(plan)
+  if (name === 'two-trace') plan.bindings.options = { riseSeconds: 1e-9, refinement: 1, durationSeconds: execute ? 40e-9 : 4e-9, stepSeconds: 1e-11 }
+  const block = new RoutedBlockSolver({ ...plan, context })
   const seen = new Set<string>()
   let progress = performance.now()
   while (!block.solved) {
+    if (block.getCurrentStageName() === 'RouteTransientSolver' && !execute) {
+      await render(`${name}-5-transient-pending`, routeWaveformDrawing(undefined, plan.bindings.options.durationSeconds))
+      break
+    }
     try {
-      block.step()
+      await block.stepAsync()
     } catch (error) {
       const stage = block.getCurrentStageName()
       const index = routedStages.findIndex((entry) => entry.solverName === stage)
       const solver = block.getSolver(stage)!
+      if (stage === 'RouteTransientSolver') {
+        await render(`${name}-5-transient-failed`, solver.visualize())
+        throw error
+      }
       await render(`${name}-${index}-network-rejected`, solver.visualize())
       const capture = routeWaveformDrawing(undefined, plan.bindings.options.durationSeconds)
       routeText(capture, 65, 153, 'Upstream network rejected; no deck to execute', '#dc2626', 2)
@@ -76,34 +86,25 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
           JSON.stringify({ input: solver.getConstructorParams(), output: solver.getOutput() }),
         )
       const index = routedStages.findIndex((entry) => entry.solverName === stage.solverName)
-      await render(`${name}-${index}-${['admission', 'sections', 'fields', 'bindings', 'network', 'capture'][index]}`, solver.visualize())
+      await render(`${name}-${index}-${['admission', 'sections', 'fields', 'bindings', 'network', 'transient'][index]}`, solver.visualize())
     }
     if (performance.now() - progress > 15_000) {
       console.log(`${name}: stepping ${block.getCurrentStageName()} ${JSON.stringify(block.getSolver(block.getCurrentStageName())?.stats)}`)
       progress = performance.now()
     }
   }
-  const compiled = block.getOutput().value.compiled
+  const compiled = block.getSolver<RouteNetworkSolver>('RouteNetworkSolver')!.getOutput().value
   await writeFile(join(output, `${name}.evidence.json`), JSON.stringify(compiled.evidence))
   await writeFile(join(output, `${name}.cir`), compiled.deck)
   manifest[`${name}-deck`] = { bytes: Buffer.byteLength(compiled.deck), sha256: sha256(compiled.deck) }
-  if (name === 'two-trace' && process.argv.includes('--native-two-trace')) {
-    const execution = await executeRoutedDeck(
-      { runSolver: createNativeSolver({ timeoutMs: 10_000 }), progress: console.log },
-      compiled,
-      rootScope('simulation').child('visual'),
-    )
-    const capture = new RouteCaptureSolver({ compiled, execution: execution.value, artifactPrefix: 'visual' })
-    capture.solve()
-    await render(`${name}-5-capture-native`, capture.visualize())
-  }
-  // A completed root delegates its final atlas to this completed block.
-  await render(`${name}-root-final`, block.visualize())
+  // Compile-only renders stop before stage 5; only a completed live run gets a final atlas.
+  if (block.solved) await render(`${name}-root-final`, block.visualize())
+
 }
 
 const twoSource = await readFile(join(models, 'sn74lvc1g04.ibs'), 'utf8')
 const core = new Circuit({ platform: { partsEngineDisabled: true, platformFetch: async () => new Response(twoSource) } })
-core.add(<TwoTraceBoard />)
+core.add(process.argv.includes('--native-two-trace') ? <TwoTraceBoard bit-rate="50Mbps" duration-seconds={40e-9} /> : <TwoTraceBoard />)
 await core.renderUntilSettled()
 await stages('two-trace', { circuitJson: core.getCircuitJson() as CircuitJson, ibisSources: { 'models/sn74lvc1g04.ibs': twoSource }, scopeDistanceMm: 1 })
 

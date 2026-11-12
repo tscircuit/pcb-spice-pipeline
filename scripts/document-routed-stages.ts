@@ -4,7 +4,7 @@ import { routedStages } from '../src/pipeline'
 /** Generate both documentation views from the same tuple used by the debugger. */
 export function routedStageDocumentation(): string {
   const table = ['| # | Stage solver |', '|---|---|', ...routedStages.map((stage, i) => `| ${i} | ${stage.solverName} |`)].join('\n')
-  const flow = ['flowchart LR', ...routedStages.map((stage, i) => `  s${i}["${stage.solverName}"]${i ? '' : ':::root'}`), ...routedStages.slice(1).map((_, i) => `  s${i} --> s${i + 1}`), `  s${routedStages.length - 2} -. "headless caller, async RunSolver" .-> native[executeRoutedDeck]`, `  native -. "completed result" .-> s${routedStages.length - 1}`, '  classDef root fill:#dbeafe'].join('\n')
+  const flow = ['flowchart LR', ...routedStages.map((stage, i) => `  s${i}["${stage.solverName}"]${i ? '' : ':::root'}`), ...routedStages.slice(1).map((_, i) => `  s${i} --> s${i + 1}`), `  s${routedStages.length - 1} <-->|"await RunSolver"| engine["native or worker WASM ngspice"]`, '  classDef root fill:#dbeafe'].join('\n')
   const states = ['stateDiagram-v2', `  [*] --> ${routedStages[0].solverName}`, ...routedStages.slice(1).map((stage, i) => `  ${routedStages[i].solverName} --> ${stage.solverName}`), `  ${routedStages.at(-1)!.solverName} --> [*]`, ...routedStages.map(stage => `  ${stage.solverName} --> failed`), '  failed --> [*]'].join('\n')
   return `${table}\n\n\`\`\`mermaid\n${flow}\n\`\`\`\n\n\`\`\`mermaid\n${states}\n\`\`\`\n`
 }

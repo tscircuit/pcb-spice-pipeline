@@ -27,6 +27,7 @@ test('TSX two-trace routed deck deliberately changes to declarative transient ve
   assert.equal(result.evidence.sections, 1)
   // V8 and JavaScriptCore differ in the final digits of the unchanged BEM coefficients.
   const expected = process.versions.bun ? '4419db05deeaad89a957f518bb9334987543fb33e89ead228ef7c954e4ebbbd2' : 'c63a3b089f0d51c211a7792cdeed9af6700f91643b081ff78f1458ee60631cb9'
+  assert.equal(Buffer.byteLength(result.deck), 22205)
   assert.equal(sha256(result.deck), expected, 'full deck bytes, including vendor compilation and coupling, pinned per JS engine')
 })
 
@@ -100,6 +101,6 @@ test('completed root atlas has one board heading and retains cross-section foreg
   assert.deepEqual(drawing, block.visualize())
   assert.equal(drawing.texts!.filter(text => text.text.includes('Board plan')).length, 1)
   assert.ok(drawing.polygons!.some(polygon => polygon.stroke === '#9333ea'))
-  assert.ok(drawing.texts!.some(text => text.text.includes('native not run')))
+  assert.ok(drawing.texts!.some(text => text.text.includes('ngspice samples')))
   assertRouteVisual(drawing, 'pipeline', 'routed-pipeline-atlas')
 })

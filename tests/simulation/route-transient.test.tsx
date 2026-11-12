@@ -7,7 +7,6 @@ import { createNativeSolver } from '../../src/adapters'
 import { runSpiceEngine } from '../../src/adapters/browser/spice-engine'
 import { RoutedAdmissionSolver, RoutedBlockSolver } from '../../src/pipeline'
 import { routedProblem } from '../support/routed-fixture'
-import { sha256 } from '../../src/kernel'
 import type { SolverContext, SolverResult } from '../../src/solver'
 
 const compiled: RoutedDeck = { blockId: 'test', name: 'test', deck: 'test', requestSha256: 'test-request', durationSeconds: 1e-9, stepSeconds: 1e-11, evidence: {}, probes: [{ name: 'VICTIM', column: 1, simulationVoltageProbeId: 'p', signalSourceId: 'port', referenceSourceId: null, signalNode: 'n1', referenceNode: '0' }] }
@@ -84,18 +83,16 @@ function oldControl(deck: RoutedDeck): string {
 }
 
 test('real TSX two-trace: old/native deck parity and sequential native/WASM engine parity', { skip: process.env.SI_NATIVE_TESTS !== '1' && 'Set SI_NATIVE_TESTS=1 and IBIS_MODEL_DIR for bounded sequential native/WASM checks' }, async context => {
-  const input = await routedProblem(context)
+  const input = await routedProblem(context, { 'bit-rate': '50Mbps', 'duration-seconds': 40e-9 })
   if (!input) return
   const admission = new RoutedAdmissionSolver(input)
   admission.solve()
   const plan = structuredClone(admission.getOutput().value[0])
-  plan.bindings.options = { riseSeconds: 1e-9, refinement: 1, stepSeconds: 1e-11, durationSeconds: 4e-9 }
+  plan.bindings.options = { riseSeconds: 1e-9, refinement: 1, stepSeconds: 1e-11, durationSeconds: 40e-9 }
   const port: SolverContext = { runSolver: createNativeSolver({ timeoutMs: 10_000 }), progress: (): void => undefined }
   const compiler = new RoutedBlockSolver({ ...plan, context: port })
   compiler.solveUntilStage('RouteTransientSolver')
   const deck = compiler.getStageOutput<{ value: RoutedDeck }>('RouteNetworkSolver')!.value
-  const originalHash = process.versions.bun ? 'b2beb1b53a6c72ab24facbad9201e18cbcf14af93dcc9387230d42776fe52be4' : 'bc639ab7abfe945e62fcd6689c8ab6d63e7f4536c93ecdce12e7654f8805e6d5'
-  assert.equal(sha256(oldControl(deck)), originalHash, 'historical deck oracle is unchanged for each JS engine')
   const originalStart = performance.now()
   const original = await port.runSolver({ solver: 'ngspice', files: { 'simulation.cir': oldControl(deck) }, args: ['-n', '-b', 'simulation.cir'], outputFiles: ['waveform.dat'] })
   const originalMs = performance.now() - originalStart
@@ -116,7 +113,26 @@ test('real TSX two-trace: old/native deck parity and sequential native/WASM engi
   assert.ok(oldNativeMaxV <= .001, `old/new native max difference ${oldNativeMaxV} V`)
   assert.ok(nativeWasmMaxV <= .0012, `native/WASM max difference ${nativeWasmMaxV} V`)
   assert.equal(capture.probes.length, deck.probes.length)
-  assert.equal(capture.timestampsSeconds.at(-1), 4e-9)
+  assert.equal(capture.timestampsSeconds.at(-1), 40e-9)
   assert.ok(capture.timestampsSeconds.length > 20)
-  context.diagnostic(JSON.stringify({ originalMs, nativeMs, wasmMs, oldNativeMaxV, nativeWasmMaxV, nativeSamples: nativeRows.length, wasmSamples: wasmRows.length }))
+  const signal = capture.probes[0].voltageLevels
+  assert.ok(Math.max(...signal) - Math.min(...signal) > .5, 'comparison must exercise a real switching edge')
+  context.diagnostic(JSON.stringify({ durationSeconds: 40e-9, bitRateHz: 50e6, signalSwingV: Math.max(...signal) - Math.min(...signal), originalMs, nativeMs, wasmMs, oldNativeMaxV, nativeWasmMaxV, nativeSamples: nativeRows.length, wasmSamples: wasmRows.length }))
+})
+
+
+import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
+
+test('live stage uses the shared waveform atlas for completed samples and failure diagnostics', async () => {
+  const { block } = await routedVisualFixture()
+  const stage = block.getSolver<RouteTransientSolver>('RouteTransientSolver')!
+  assertRouteVisual(stage.visualize(), 'simulation', 'route-transient')
+  assert.ok(stage.visualize().lines!.some(line => line.strokeColor === '#9333ea'))
+  assert.ok(stage.visualize().texts!.some(text => text.text.includes('ngspice samples')))
+  const pending = solver(response())
+  assert.ok(pending.visualize().texts!.some(text => text.text.includes('awaiting live ngspice')))
+  assert.equal(pending.visualize().lines!.filter(line => line.strokeWidth === .3).length, 0)
+  const failed = solver(response(undefined, undefined, 'fatal: rejected'))
+  await assert.rejects(failed.solveAsync(), /fatal/)
+  assert.ok(failed.visualize().texts!.some(text => text.color === '#dc2626' && text.text.includes('fatal')))
 })

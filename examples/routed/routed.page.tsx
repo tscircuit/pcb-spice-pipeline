@@ -9,7 +9,7 @@ import { TwoTraceBoard } from './two-trace-board'
 import { withDdr3Signals } from './ddr3-signals'
 
 type BoardSource = { 'board-tree'?: React.ReactElement; 'load-board'?: never } | { 'board-tree'?: never; 'load-board': () => Promise<CircuitJson> }
-const demo = <TwoTraceBoard />
+const demo = <TwoTraceBoard bit-rate="50Mbps" duration-seconds={40e-9} />
 
 /** Rendering and local asset IO finish before constructing the live solver. */
 export function RoutedDebugger({ 'board-tree': boardTree = demo, 'load-board': loadBoard, 'ibis-sources': ibisSources }: BoardSource & { 'ibis-sources': IbisSources }): React.JSX.Element {

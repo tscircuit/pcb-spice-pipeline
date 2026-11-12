@@ -9,6 +9,7 @@ architecture notes until those packages are released.
 Select the two-trace TSX demo and choose your local `sn74lvc1g04.ibs` file. No vendor
 bytes are included. Inspect/step through the six stages in GenericSolverDebugger.
 Stage 5 awaits one live ngspice WASM transient, then draws actual probe waveforms.
+The demo uses 50 Mbps over 40 ns so the vendor transition can settle.
 The main thread stays available; status reports engine startup and elapsed wall
 time. Every run has a 15 minute watchdog that terminates its worker. Changing
 inputs or unmounting the debugger cancels the old worker.
@@ -38,8 +39,9 @@ To render every stage headlessly, run `bun scripts/render-routed-stages.tsx` wit
 `IBIS_MODEL_DIR` pointing at local vendor files. Set `SI_STAGE_VISUALS_DIR` for the
 uncommitted SVG/PNG output directory and `SI_DDR3_BOARD` for the real DDR3 board
 JSON. Without that board the script explicitly reports DDR3 as unavailable. Add
-`--native-two-trace` for one serial, ten-second-bounded ngspice run and a second
-capture image using actual results; otherwise capture shows **native not run**.
+`--native-two-trace` for one serial, ten-second-bounded 40 ns / 50 Mbps ngspice run and a second
+transient image using actual results; otherwise the script stops before stage 5
+and draws a pending panel. DDR3 transient execution is never enabled by this flag.
 `manifest.json` records render paths, display object counts and exact deck hashes.
 
 Visual regression tests use the actual two-trace TSX with original synthetic IBIS
@@ -48,7 +50,8 @@ fills, geometry and visible labels with object labels disabled. After inspecting
 the PNGs, regenerate these snapshots with `UPDATE_ROUTED_VISUALS=1 bun test`
 followed by the stage test filenames. The pure `routeWaveformDrawing` export takes
 only a capture, duration and optional error, so the live transient solver can reuse
-it without depending on `RouteCaptureSolver` internals.
+it directly. The visual fixture uses synthetic engine responses explicitly for
+drawing tests, separate from the real native/WASM comparison.
 
 If a real board reaches an existing compiler admission limit, the render script
 keeps the completed stages, renders the rejected stage with its reason, and emits

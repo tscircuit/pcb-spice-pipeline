@@ -55,7 +55,7 @@ export class RoutedBlockSolver extends BasePipelineSolver<RoutedBlockPlan & { co
   /** Completed atlas uses one board view plus fields and capture, preserving foreground polygons. */
   override visualize(): GraphicsObject {
     if (!this.solved) return super.visualize()
-    const drawings = [RouteNetworkSolver.name, RouteFieldsSolver.name, RouteCaptureSolver.name].map(name => this.getSolver(name)!.visualize())
+    const drawings = [RouteNetworkSolver.name, RouteFieldsSolver.name, RouteTransientSolver.name].map(name => this.getSolver(name)!.visualize())
     return {
       coordinateSystem: 'cartesian',
       lines: drawings.flatMap(drawing => drawing.lines ?? []),
@@ -63,7 +63,8 @@ export class RoutedBlockSolver extends BasePipelineSolver<RoutedBlockPlan & { co
       circles: drawings.flatMap(drawing => drawing.circles ?? []),
       points: drawings.flatMap(drawing => drawing.points ?? []),
       polygons: drawings.flatMap(drawing => drawing.polygons ?? []),
-      texts: drawings.flatMap(drawing => drawing.texts ?? []),
+      // The network panel describes its pre-execution state; this atlas has completed the transient.
+      texts: drawings.flatMap(drawing => drawing.texts ?? []).map(text => ({ ...text, text: text.text.replace(' · native not run', '') })),
     }
   }
   /** Original admitted block input. */
@@ -101,12 +102,12 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
   override initialVisualize(): GraphicsObject { return routeBoardDrawing(this.inputProblem.circuitJson, undefined, 'Routed 2.5D compiler') }
   /** Keep the completed debugger atlas free of overlapping admission/section/binding labels. */
   override visualize(): GraphicsObject { return this.solved ? this.finalVisualize() : super.visualize() }
-  /** Compilation completion never implies native completion. */
+  /** A completed atlas contains the actual live transient from its final block. */
   override finalVisualize(): GraphicsObject {
     const block = this.pipelineDef.map(stage => this.getSolver(stage.solverName)).findLast(solver => solver instanceof RoutedBlockSolver && solver.solved)
     if (block) return block.visualize()
     const drawing = routeBoardDrawing(this.inputProblem.circuitJson, undefined, 'Routed 2.5D · compilation complete')
-    routeText(drawing, 2, 87, 'Sections → fields → bindings → network; native not run', '#a16207', 1.9)
+    routeText(drawing, 2, 87, 'No signal-integrity blocks to simulate', '#a16207', 1.9)
     return drawing
   }
 }
