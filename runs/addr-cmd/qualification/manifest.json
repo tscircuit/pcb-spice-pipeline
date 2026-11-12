@@ -120,5 +120,13 @@
     "baseline": "before-prefix",
     "overlay": "package-off-prefix-overlay.png",
     "label": "Full bus: package removed, first event (diagnostic)"
+  },
+  {
+    "name": "width-prefix",
+    "directory": "runs/addr-cmd/qualification/width-prefix/before",
+    "stop_ns": 4.999,
+    "baseline": "before-prefix",
+    "overlay": "width-overlay.png",
+    "label": "Outer bodies 0.10 to 0.18 mm: first event"
   }
 ]

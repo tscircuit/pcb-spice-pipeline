@@ -1027,6 +1027,60 @@
         "packageOff": true,
         "termination": 0
       }
+    },
+    "width-prefix": {
+      "directory": "runs/addr-cmd/qualification/width-prefix/before",
+      "native": {
+        "seconds": 1092.119296292,
+        "peakRssKiB": 270800,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 10.336809584000001,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 28.705131625000003,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 46.045722125,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 78.694782167,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 572.424323,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a47befc73e97330db43da0415278042cd51692b0790fd119ac344673a1ba884f",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "prbs7",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "7a05ac2e26c57af250e4f5fa1c0b926d635efadc59ed8f2cf3b4b092adc18f9c",
+      "window_ns": 4.999,
+      "cells": 455,
+      "native_deck_sha256": "e775971d0347a9c185221751a52a4a831e9ec86ffcf68613cd55f1fceb7fc2f5",
+      "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
+      "declared_duration_ns": 4.999,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_352",
+        "packageOff": false,
+        "termination": 0
+      }
     }
   }
 }

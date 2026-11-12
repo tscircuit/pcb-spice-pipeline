@@ -329,6 +329,38 @@ layers and vias stay fixed. Synthetic tests check width-step length/endpoints
 and layer isolation; the routing check uses the actual copied board. The final
 copy SHA-256 is `a47befc73e97330db43da0415278042cd51692b0790fd119ac344673a1ba884f`.
 
+The full-geometry width copy has 455 cells. Its 8 ns main and even-victim
+captures reached the 1,200 s guard (265.188 / 263.969 MiB sampled native maxima)
+with their last saved checkpoint at 4 ns; neither enters accepted metrics.
+The newly started 8 ns odd-victim capture was stopped after those failures,
+before two minutes elapsed. All three width patterns are retried over
+0–4.999 ns using their original compiled 8 ns switching histories and copied
+full copper geometry. This is a first-event comparison against the matching
+before prefixes; later width behavior remains unverified.
+In the original completed 8 ns captures, every main-pattern command positive
+peak and every quiet-victim absolute maximum already occurs within this prefix; the comparison
+is recorded in `before-window-coverage.json`. Later main-pattern undershoot
+does occur outside it; the odd-victim pattern also has a per-net positive
+peak 1.062 mV higher later. This coverage check does not bound later candidate
+peaks or make the short-window areas complete pulses.
+
+The width main retry completed in 1,092.119 s with 264.453 MiB sampled native
+maximum RSS. All following values compare the same 0–4.999 ns first event:
+
+| Main-pattern metric | Before | Width correction |
+|---|---:|---:|
+| Largest command peak | 2.092877 V, A9 | 1.994739 V, A4 |
+| Median outer overshoot | 27.592% | 21.657% |
+| Median inner overshoot | 30.916% | 29.271% |
+| A5 outer peak | 2.088331 V | 1.979272 V |
+| A4 inner peak | 2.024868 V | 1.994739 V |
+
+The [width receiver overlay](../runs/addr-cmd/qualification/summary/width-overlay.png)
+shows a modest improvement, with substantial inner ringing remaining. Even
+the first-event maximum remains 19.739 mV above the absolute upper rating.
+Quiet-victim width comparisons are still pending; no noise improvement is
+inferred from these driven-net peaks.
+
 TI explicitly says a [single-x16 point-to-point AM335x DDR3 connection does
 not require VTT](https://www.ti.com/lit/an/sprabn2a/sprabn2a.pdf), while discussing
 VTT for larger topologies. The requested ideal receiver-ball termination is
@@ -377,6 +409,10 @@ completed; `orchestration-note.json` distinguishes that runner-edit error from
 native failures. The runner was syntax-checked and frozen before subsequent
 stages. `guard-failures.json` retains rejected captures separately from the
 accepted metrics and compact provenance.
+Stopping the width batch also left its exclusive lock behind. That lock
+correctly denied six subsequent attempts before any native solver started.
+`stale-lock-note.json` records those attempts and recovery after verifying
+the owner and all native processes had exited; none contributes metrics.
 
 ```mermaid
 flowchart LR
