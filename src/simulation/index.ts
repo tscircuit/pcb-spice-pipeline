@@ -35,3 +35,5 @@ export type { RoutedCompileOptions, RouteBindingsInput, RoutedBindings, RouteNet
 export { routeWaveformDrawing } from './waveform-visual'
 
 export type { RouteSpatialPoint, RouteSpatialWaveform } from './route-spatial'
+
+export { compactRouteVectors } from './route-spatial'

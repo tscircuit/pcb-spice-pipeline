@@ -223,9 +223,28 @@ for display only; numerical inputs and native samples remain complete.
 
 `RouteTransientSolver` awaits one `solver.invoke` call in `_stepAsync`. Its
 self-contained `.save` + `.tran` deck keeps KLU and Gear in native batch ngspice.
+`route-spatial.ts` records each selected-net ladder node at the exact endpoint
+allocation in Circuit JSON board mm, including both via layers, barrel and stub
+nodes. Points retain physical route order and distinct electrical node identity.
+The deck saves at most 2,000 spatial points, sharing slots along routes while
+retaining probe nodes and route ends. `RoutedCapture.spatial` exposes `points`,
+`timeSeconds` and point-major `volts`; it retains at most 1,000 actual native
+timestamps, including both ends. Existing probe waveforms keep every adaptive
+sample and their original differential/reference semantics. `net` uses a source
+net name, then the selected channel name, then source-trace identity. Multiple
+conductors in one channel append their driver port ID to keep differential legs
+distinct while sharing labels with same-net termination stubs.
+
 Native batch emits ASCII raw vectors (`SPICE_ASCIIRAWFILE=1`). Diagnostics, finite
 samples, start and final simulated time are checked before publishing a capture.
-Errors leave the stage failed without partial output. Native adapter instances
+Errors leave the stage failed without partial output. The default vendor-loaded
+8 mm two-trace fixture crosses 1.65 V at its driver 23.814 ps before its receiver;
+Fields gives 52.802 ps from the per-length diagonal L/C. The decimated capture
+reports 23.809 ps (0.005 ps difference). The position/order check passes, but this
+mid-supply crossing gap does not establish agreement with unloaded flight time;
+no quantitative flight-time qualification is claimed. Spatial saves leave all
+existing probe samples numerically identical on two-trace and level1-differential.
+Native adapter instances
 share a process queue and set OMP_NUM_THREADS=1. Large DDR3 transients remain
 unverified. Completion is candidate evidence without independent convergence
 qualification. `runPipeline` and the 3D path are unchanged.
@@ -249,12 +268,20 @@ stateDiagram-v2
   validate --> queued: accepted request
   queued --> rejected: queue full
   queued --> running: single slot available
-  running --> completed: result and output files
+  running --> completed: full probes and bounded spatial ASCII files
   running --> failed: native error or 120 s timeout
   completed --> [*]: release slot and clean temp directory
   failed --> [*]: release slot and clean temp directory
   rejected --> [*]
 ```
+
+The generated deck's `* Routed probe nodes:` declaration lets the backend keep
+full-resolution probe vectors in `waveform.raw` and send the voltage vectors at
+at most 1,000 timestamps in `spatial.raw`. Engine-only branch currents are
+removed after execution. `native-waveform.sha256` preserves the original native
+raw digest; capture evidence uses that digest. Direct native callers still
+receive the original complete raw file and the same bounded spatial capture.
+HTTP and direct paths parse the same native numbers without rounding probes.
 
 Version probes share the queue, and the existing native adapter enforces
 OMP_NUM_THREADS=1. The request cannot override tools or cwd. Local asset reads

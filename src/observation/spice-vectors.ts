@@ -37,8 +37,8 @@ export function formatSpiceVectors(vectors: SpiceVector[]): string {
 }
 
 /** Difference receiver and reference vectors at the actual adaptive sample times. */
-export function spiceProbeRows(text: string, probes: readonly { signalNode: string; referenceNode: string }[]): number[][] {
-  const vectors = new Map(parseSpiceVectors(text).map(vector => [vector.name, vector.values]))
+export function spiceProbeRows(text: string | readonly SpiceVector[], probes: readonly { signalNode: string; referenceNode: string }[]): number[][] {
+  const vectors = new Map((typeof text === 'string' ? parseSpiceVectors(text) : text).map(vector => [vector.name, vector.values]))
   const times = vectors.get('time')
   if (!times) return fail('waveform', 'Missing ngspice time vector')
   if (times.some((time, i) => i > 0 && time < times[i - 1])) fail('waveform', 'Expected increasing actual solver timestamps')

@@ -1,9 +1,10 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
 import type { GraphicsObject } from 'graphics-debug'
-import { connectedSourceIds, routePosition, routeContactFrame, routeSectionDrawing, routeBoardPoint, routeText, routeDisplayItems, type RouteWire, type RouteXY } from '../board'
+import { connectedSourceIds, resolveRouteVias, routePosition, routeContactFrame, routeSectionDrawing, routeBoardPoint, routeText, routeDisplayItems, type RouteWire, type RouteXY } from '../board'
 import { rootScope, snapshot, sha256, type Produced } from '../kernel'
 import { namespaceSpice } from './netlist'
 import { branchSaves } from './branch-saves'
+import { routeSpatialPoints, type RouteSpatialPoint } from './route-spatial'
 import { routedControl } from './routed-control'
 import { routedRequest } from './route-transient'
 import { routeLadderSteps, type RouteLadder } from './route-ladder'
@@ -45,6 +46,7 @@ export class RouteNetworkSolver extends BaseSolver {
     }
     const aliases: string[] = []
     const known = new Map<string, string>()
+    const spatialNodes = new Map<string, Map<string, RouteSpatialPoint>>()
     /** Coordinates join actual physical copper only; no straightening or whole-net ideal bypass. */
     const key = (layer: string, point: RouteXY): string => `${layer}:${point.map(n => n.toFixed(6)).join(',')}`
     for (const port of bindings.circuitJson.filter(record => record.type === 'pcb_port')) for (const layer of port.layers) {
@@ -63,6 +65,11 @@ export class RouteNetworkSolver extends BaseSolver {
       if (!node) {
         node = `route${known.size}`
         known.set(id, node)
+      }
+      if (scope.selectedPcbTraceIds.includes(wire.trace)) {
+        let points = spatialNodes.get(wire.trace)
+        if (!points) spatialNodes.set(wire.trace, points = new Map())
+        points.set(node, { node, net: wire.source, layer: wire.layer, x: point[0], y: point[1] })
       }
       return node
     }
@@ -98,8 +105,46 @@ export class RouteNetworkSolver extends BaseSolver {
     for (const probe of [...plan.probes].filter(probe => probe.referenceNode !== '0')) {
       for (const [suffix, signalNode, signalSourceId] of [['P', probe.signalNode, probe.signalSourceId], ['N', probe.referenceNode, probe.referenceSourceId]] as const) plan.probes.push({ ...probe, name: `${probe.name}_${suffix}`, simulationVoltageProbeId: `${probe.simulationVoltageProbeId}_${suffix}`, column: plan.probes.length + 1, signalNode, signalSourceId: signalSourceId!, referenceNode: '0', referenceSourceId: bindings.groundSourcePortId })
     }
-    // Only save receiver nodes and behavioural-source branch dependencies; the engine exposes the resulting vectors.
-    const save = [...new Set(plan.probes.flatMap(probe => [probe.signalNode, probe.referenceNode]).filter(node => node !== '0'))].map(node => `v(${node})`).concat(saved).join(' ')
+    const probeNodes = plan.probes.flatMap(probe => [probe.signalNode, probe.referenceNode]).filter(node => node !== '0')
+    const activeNodes = new Set([...ladder.wireNodes.values()].flatMap(records => records.map(record => record.node)).concat(probeNodes, aliases.flatMap(line => line.split(' ').slice(1, 3))))
+    for (const transition of transitions.records) for (const point of transition.nodes ?? []) {
+      activeNodes.add(point.node)
+      const points = spatialNodes.get(transition.trace!)
+      points?.set(point.node, { ...point, net: transition.trace! })
+    }
+    const spatialRoutes = bindings.circuitJson.filter(record => record.type === 'pcb_trace').filter(trace => spatialNodes.has(trace.pcb_trace_id)).map(trace => {
+      const route = resolveRouteVias(bindings.circuitJson, trace)
+      const connected = connectedSourceIds(bindings.circuitJson, bindings.circuitJson.filter(record => record.type === 'source_trace').find(source => source.source_trace_id === trace.source_trace_id)!.connected_source_port_ids[0])
+      const net = bindings.circuitJson.find(record => record.type === 'source_net' && connected.has(record.source_net_id))
+      const mapping = mappings.find(mapping => connected.has(mapping.from))
+      const drivers = new Set(mappings.filter(other => other.port === mapping?.port).map(other => other.from))
+      const label = net?.type === 'source_net' ? net.name : mapping ? `${mapping.port}${drivers.size > 1 ? `:${mapping.from}` : ''}` : trace.source_trace_id!
+      /** Locate the exact allocated node along this physical polyline, including layer transitions. */
+      const distance = (point: RouteSpatialPoint): number => {
+        let offset = 0
+        let nearest = Infinity
+        let position = 0
+        for (const [i, b] of route.entries()) {
+          if (!i) continue
+          const a = route[i - 1]
+          const length = Math.hypot(b.x - a.x, b.y - a.y)
+          const layer = b.route_type === 'via' ? b.to_layer : b.layer
+          const fraction = length ? Math.max(0, Math.min(1, ((point.x - a.x) * (b.x - a.x) + (point.y - a.y) * (b.y - a.y)) / length ** 2)) : 0
+          const gap = Math.hypot(point.x - a.x - fraction * (b.x - a.x), point.y - a.y - fraction * (b.y - a.y)) + (point.layer === layer ? 0 : 1e6)
+          if (gap < nearest) {
+            nearest = gap
+            position = offset + fraction * length + i * 1e-9
+          }
+          offset += length
+        }
+        return position
+      }
+      return [...spatialNodes.get(trace.pcb_trace_id)!.values()].filter(point => activeNodes.has(point.node)).map(point => ({ ...point, net: label })).sort((a, b) => distance(a) - distance(b))
+    })
+    const spatialPoints = routeSpatialPoints(spatialRoutes, probeNodes)
+    // Save probes first to preserve their ordering, plus bounded physical nodes and behavioural dependencies.
+    const save = [...new Set([...probeNodes, ...spatialPoints.map(point => point.node)])].map(node => `v(${node})`).concat(saved).join(' ')
+    lines.push(`* Routed probe nodes: ${[...new Set(probeNodes)].join(' ')}`)
     lines.push(...routedControl(save, options.stepSeconds, options.durationSeconds))
     const ground = connectedSourceIds(bindings.circuitJson, bindings.groundSourcePortId)
     const powerReferences = geometry.slices.flatMap(slice => slice.references.filter(plane => !ground.has(plane.net)).map(plane => ({ plane, traces: slice.wires.map(wire => wire.trace), start: slice.start, end: slice.end })))
@@ -126,7 +171,7 @@ export class RouteNetworkSolver extends BaseSolver {
     evidence.warnings.unshift(...this.input.warnings)
     this.obliqueRecords = oblique.records
     const deck = lines.join('\n') + '\n'
-    const value = snapshot({ blockId: this.input.blockId, name: this.input.name, deck, requestSha256: sha256(JSON.stringify(routedRequest({ deck }))), probes: plan.probes, durationSeconds: options.durationSeconds, stepSeconds: options.stepSeconds, evidence })
+    const value = snapshot({ blockId: this.input.blockId, name: this.input.name, deck, requestSha256: sha256(JSON.stringify(routedRequest({ deck }))), probes: plan.probes, spatialPoints, durationSeconds: options.durationSeconds, stepSeconds: options.stepSeconds, evidence })
     const artifactScope = rootScope('simulation').child(this.input.artifactPrefix)
     return { value, artifacts: [artifactScope.text('simulation.cir', deck), artifactScope.json('evidence.json', evidence)] }
   }

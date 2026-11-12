@@ -6,9 +6,9 @@ import { formatSpiceVectors, probeWaveformRows, sampleVoltage } from '../../src/
 import { createNativeSolver } from '../../src/adapters'
 import { RoutedPipelineSolver } from '../../src/pipeline'
 import { routedProblem } from '../support/routed-fixture'
-import type { SolverContext, SolverResult } from '../../src/solver'
+import type { RunSolver, SolverContext, SolverRequest, SolverResult } from '../../src/solver'
 
-const compiled: RoutedDeck = { blockId: 'test', name: 'test', deck: 'test', requestSha256: 'test-request', durationSeconds: 1e-9, stepSeconds: 1e-11, evidence: {}, probes: [{ name: 'VICTIM', column: 1, simulationVoltageProbeId: 'p', signalSourceId: 'port', referenceSourceId: null, signalNode: 'n1', referenceNode: '0' }] }
+const compiled: RoutedDeck = { blockId: 'test', name: 'test', deck: 'test', requestSha256: 'test-request', durationSeconds: 1e-9, stepSeconds: 1e-11, evidence: {}, spatialPoints: [{ node: 'n1', net: 'VICTIM', layer: 'top', x: 4, y: .35 }], probes: [{ name: 'VICTIM', column: 1, simulationVoltageProbeId: 'p', signalSourceId: 'port', referenceSourceId: null, signalNode: 'n1', referenceNode: '0' }] }
 /** Synthetic protocol fixture, never native waveform evidence. */
 function response(times: number[] = [0, 2e-10, 1e-9], values: number[] = [0, .3, .1], stdout: string = ''): SolverResult {
   return { stdout, stderr: '', files: { 'waveform.raw': formatSpiceVectors([{ name: 'time', type: 'time', values: times }, { name: 'v(n1)', type: 'voltage', values }]) } }
@@ -35,6 +35,7 @@ test('one async step invokes once and keeps adaptive times and candidate labels'
   const output = stage.getOutput()
   assert.deepEqual(output.value.timestampsSeconds, [0, 2e-10, 1e-9])
   assert.deepEqual(output.value.probes[0].voltageLevels, [0, .3, .1])
+  assert.deepEqual(output.value.spatial, { points: compiled.spatialPoints, timeSeconds: [0, 2e-10, 1e-9], volts: [[0, .3, .1]] })
   assert.equal(output.value.qualification, 'candidate-unqualified')
   assert.ok(output.artifacts.some(artifact => artifact.owner === 'solver' && artifact.path.endsWith('ngspice.request.json')))
 })
@@ -64,7 +65,7 @@ test('engine rejection is a failed async stage without a capture', async () => {
 /** Maximum piecewise-linear difference over the union of both adaptive time grids. */
 function maximumDifference(left: number[][], right: number[][]): number {
   const times = [...new Set([...left, ...right].map(row => row[0]))].sort((a, b) => a - b)
-  return Math.max(...times.flatMap(time => left[0].slice(1).map((_, i) => Math.abs(sampleVoltage(left, i + 1, time) - sampleVoltage(right, i + 1, time)))))
+  return times.reduce((maximum, time) => left[0].slice(1).reduce((value, _, i) => Math.max(value, Math.abs(sampleVoltage(left, i + 1, time) - sampleVoltage(right, i + 1, time))), maximum), 0)
 }
 
 /** The removed control deck exists only as the historical comparison oracle in this test. */
@@ -128,4 +129,109 @@ test('live stage uses the shared waveform atlas for completed samples and failur
   const failed = solver(response(undefined, undefined, 'fatal: rejected'))
   await assert.rejects(failed.solveAsync(), /fatal/)
   assert.ok(failed.visualize().texts!.some(text => text.color === '#dc2626' && text.text.includes('fatal')))
+})
+
+import React from 'react'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
+import { writeFile } from 'node:fs/promises'
+import { TwoTraceBoard } from '../../examples/routed/two-trace-board'
+import Differential from '../../examples/level1-differential/level1-differential'
+import { renderCoreSignals } from '../support/core-render'
+import { readFile } from 'node:fs/promises'
+import { createSolverMiddleware } from '../../src/adapters/solver-middleware'
+import { createHttpSolver } from '../../src/adapters/browser'
+import { parseSpiceVectors, spiceProbeRows } from '../../src/observation'
+import { sha256 } from '../../src/kernel'
+
+/** Interpolate the first rising threshold crossing on actual native or decimated timestamps. */
+function crossing(times: readonly number[], volts: readonly number[], level: number): number {
+  const index = volts.findIndex((value, i) => i > 0 && volts[i - 1] < level && value >= level)
+  assert.ok(index > 0, `Missing rising ${level} V crossing`)
+  return times[index - 1] + (times[index] - times[index - 1]) * (level - volts[index - 1]) / (volts[index] - volts[index - 1])
+}
+
+test('real TSX spatial capture: serial pre-spatial probe parity, physical delay and native HTTP transport', { skip: process.env.SI_SPATIAL_NATIVE_TESTS !== '1' && 'Set SI_SPATIAL_NATIVE_TESTS=1 and IBIS_MODEL_DIR for serial two-trace and differential checks' }, async context => {
+  const engine = createNativeSolver({ timeoutMs: 120_000 })
+  let nativeRaw = ''
+  /** Optional local cache contains only completed native results, keyed by the complete request bytes. */
+  const native: RunSolver = async (request: SolverRequest): Promise<SolverResult> => {
+    const file = process.env.SI_SPATIAL_NATIVE_CACHE && `${process.env.SI_SPATIAL_NATIVE_CACHE}/${sha256(JSON.stringify(request))}.json`
+    if (file) {
+      try {
+        const result = JSON.parse(await readFile(file, 'utf8')) as SolverResult
+        nativeRaw = result.files['waveform.raw']
+        return result
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      }
+    }
+    const result = await engine(request)
+    nativeRaw = result.files['waveform.raw']
+    if (file) await writeFile(file, JSON.stringify(result))
+    return result
+  }
+  const middleware = createSolverMiddleware({ runSolver: native })
+  const http = createServer((request, response) => middleware(request, response, () => response.end()))
+  await new Promise<void>(resolve => http.listen(0, '127.0.0.1', resolve))
+  context.after(() => new Promise<void>(resolve => {
+    http.close(() => resolve())
+    http.closeAllConnections()
+  }))
+  const base = `http://127.0.0.1:${(http.address() as AddressInfo).port}`
+  const evidence: Record<string, unknown>[] = []
+  for (const [name, tree, file] of [['two-trace', <TwoTraceBoard />, 'sn74lvc1g04.ibs'], ['level1-differential', <Differential />, 'sn65hvd72.ibs']] as const) {
+    let responseBytes = 0
+    const httpSolver = createHttpSolver({ fetch: async (url, options) => {
+      const response = await fetch(new URL(String(url), base), options)
+      const text = await response.text()
+      responseBytes = Buffer.byteLength(text)
+      return new Response(text, { status: response.status, headers: response.headers })
+    } })
+    const compiler = new RoutedPipelineSolver({ circuitJson: await renderCoreSignals(tree), ibisSources: { [`models/${file}`]: await readFile(`${process.env.IBIS_MODEL_DIR ?? 'models'}/${file}`, 'utf8') } }, { runSolver: httpSolver, progress: (): void => undefined })
+    compiler.solveUntilStage('RouteTransientSolver')
+    const deck = compiler.stageOutput('RouteNetworkSolver').value[0]
+    const probeNodes = new Set(deck.probes.flatMap(probe => [probe.signalNode, probe.referenceNode]))
+    // Reconstruct the exact pre-spatial .save line; every electrical element and transient option stays identical.
+    const baseline = deck.deck.replace(/^\* Routed probe nodes: .+\n/m, '').replace(/^\.save (.+)$/m, (_line, save: string) => `.save ${save.split(' ').filter(name => !name.startsWith('v(') || probeNodes.has(name.slice(2, -1))).join(' ')}`)
+    if (name === 'two-trace') assert.equal(sha256(baseline), '555f72a50ff66adda88251833e0d108825d8f13dbf3aa8b2f36b23e7cb77ee0a')
+    const before = await native(routedRequest({ deck: baseline }))
+    const beforeRows = spiceProbeRows(before.files['waveform.raw'], deck.probes)
+    await compiler.solveAsync()
+    const capture = compiler.getOutput().blocks[0].capture
+    const afterRows = capture.timestampsSeconds.map((time, i) => [time, ...capture.probes.map(probe => probe.voltageLevels[i])])
+    const maximumProbeDifferenceV = maximumDifference(beforeRows, afterRows)
+    assert.ok(maximumProbeDifferenceV <= .0001, `${name}: pre-spatial probe difference ${maximumProbeDifferenceV} V`)
+    const spatial = capture.spatial
+    assert.ok(spatial.points.length > 0 && spatial.points.length <= 2000)
+    assert.ok(spatial.timeSeconds.length > 0 && spatial.timeSeconds.length <= 1000)
+    assert.ok(spatial.volts.every(vector => vector.length === spatial.timeSeconds.length))
+    assert.ok(spatial.volts.flat().every(Number.isFinite))
+    assert.equal(spatial.timeSeconds.at(-1), deck.durationSeconds)
+    assert.ok(Buffer.byteLength(JSON.stringify(spatial)) < 2_000_000)
+    assert.ok(responseBytes < 30_000_000, `${name}: compact HTTP response ${responseBytes} bytes`)
+    let delay: Record<string, number> | undefined
+    if (name === 'two-trace') {
+      const start = spatial.points.findIndex(point => point.net === 'DATA' && Math.abs(point.x + 4) < 1e-6)
+      const end = spatial.points.findIndex(point => point.net === 'DATA' && Math.abs(point.x - 4) < 1e-6)
+      assert.ok(start >= 0 && end >= 0)
+      const vectors = new Map(parseSpiceVectors(nativeRaw).map(vector => [vector.name, vector.values]))
+      const times = vectors.get('time')!
+      const driverCrossingSeconds = crossing(times, vectors.get(`v(${spatial.points[start].node})`)!, 1.65)
+      const receiverCrossingSeconds = crossing(times, vectors.get(`v(${spatial.points[end].node})`)!, 1.65)
+      const fields = compiler.stageOutput('RouteFieldsSolver').value[0]
+      const source = (deck.evidence.routes as { port: string; sourceTraceId: string }[]).find(route => route.port === 'DATA')!.sourceTraceId
+      const expectedSeconds = fields.slices.reduce((sum, slice) => sum + slice.wires.reduce((total, wire, i) => total + (wire.source === source ? (slice.end - slice.start) / 1000 * Math.sqrt(slice.line.L[i][i] * slice.line.C[i][i]) : 0), 0), 0)
+      const measuredSeconds = receiverCrossingSeconds - driverCrossingSeconds
+      const spatialSeconds = crossing(spatial.timeSeconds, spatial.volts[end], 1.65) - crossing(spatial.timeSeconds, spatial.volts[start], 1.65)
+      // The loaded, slow IBIS edge need not cross mid-supply one unloaded flight time later. Report both without fitting the electrical network.
+      assert.ok(measuredSeconds > 0, `Driver must cross before receiver: ${measuredSeconds} s`)
+      assert.ok(spatialSeconds > 0 && Math.abs(spatialSeconds - measuredSeconds) < 5e-12)
+      delay = { driverCrossingSeconds, receiverCrossingSeconds, measuredSeconds, expectedSeconds, spatialSeconds }
+    }
+    const measured = { name, points: spatial.points.length, timeSamples: spatial.timeSeconds.length, probeSamples: capture.timestampsSeconds.length, spatialBytes: Buffer.byteLength(JSON.stringify(spatial)), captureBytes: Buffer.byteLength(JSON.stringify(capture)), httpResponseBytes: responseBytes, maximumProbeDifferenceV, baselineDeckSha256: sha256(baseline), spatialDeckSha256: sha256(deck.deck), delay }
+    evidence.push(measured)
+    context.diagnostic(JSON.stringify(measured))
+  }
+  if (process.env.SI_SPATIAL_EVIDENCE) await writeFile(process.env.SI_SPATIAL_EVIDENCE, JSON.stringify(evidence, null, 2) + '\n')
 })

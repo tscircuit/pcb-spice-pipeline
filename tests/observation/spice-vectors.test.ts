@@ -7,6 +7,7 @@ const vectors = [{ name: 'v(n2)', type: 'voltage', values: [1, 2, 3] }, { name: 
 test('ASCII native and engine vector transport preserves ordering, precision and differential probes', () => {
   const raw = formatSpiceVectors(vectors)
   assert.deepEqual(parseSpiceVectors(raw), vectors)
+  assert.deepEqual(spiceProbeRows(vectors, [{ signalNode: 'n1', referenceNode: 'n2' }]), spiceProbeRows(raw, [{ signalNode: 'n1', referenceNode: 'n2' }]))
   assert.deepEqual(spiceProbeRows(raw, [{ signalNode: 'N1', referenceNode: 'n2' }, { signalNode: 'n2', referenceNode: '0' }]), [[0, 2, 1], [1e-9, 3, 2], [2e-9, 4, 3]])
 })
 

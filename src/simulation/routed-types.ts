@@ -1,4 +1,4 @@
-import type { RouteSpatialWaveform } from './route-spatial'
+import type { RouteSpatialPoint, RouteSpatialWaveform } from './route-spatial'
 import type { CircuitJson, CopperScope, LaneMapping, SectionGeometry } from '../board'
 import type { CompiledBuffer, IbisSources } from '../buffers'
 import type { ExtractedRoutes, RouteMaterials, RouteReturn } from '../extraction'
@@ -51,6 +51,7 @@ export interface RoutedDeck {
   name: string
   deck: string
   requestSha256: string
+  spatialPoints: RouteSpatialPoint[]
   probes: VoltageProbePlan[]
   durationSeconds: number
   stepSeconds: number

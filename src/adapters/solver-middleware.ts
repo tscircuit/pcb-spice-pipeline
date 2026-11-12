@@ -7,6 +7,7 @@ import { promisify } from 'node:util'
 import { z } from 'zod'
 import type { RunSolver, SolverRequest } from '../solver'
 import { createNativeSolver } from './native-solver'
+import { compactRouteVectors } from '../simulation'
 import { relativeFile } from './paths'
 
 const exec = promisify(execFile)
@@ -213,7 +214,11 @@ export function createSolverMiddleware({
         }
         const input = solverRequest(await readRequest(request, maxRequestBytes))
         try {
-          send(200, await queue(() => runSolver(input)))
+          send(200, await queue(async () => {
+            const result = await runSolver(input)
+            const raw = result.files['waveform.raw']
+            return raw ? { ...result, files: { ...result.files, ...compactRouteVectors(input.files['simulation.cir'], raw) } } : result
+          }))
         } catch (error) {
           send(
             (error as { status?: number; code?: string }).status ??

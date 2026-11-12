@@ -13,3 +13,5 @@ export { transmittedBits } from './simulation'
 export { RoutedPipelineSolver } from './pipeline'
 export type { RoutedProblem, RoutedInspection } from './pipeline'
 export { RouteTransientSolver } from './simulation'
+
+export type { RouteSpatialPoint, RouteSpatialWaveform } from './simulation'

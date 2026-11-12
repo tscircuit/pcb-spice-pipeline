@@ -1,7 +1,7 @@
 import { connectedSourceIds, resolveRouteVias, routeReferences, routeContactFrame, type CircuitJson, type CopperScope, type SectionGeometry, type RouteWire, type RouteXY, type RouteReference } from '../board'
 import { validateMatrix, type Matrix } from '../extraction'
 
-export interface RouteTransition { kind: string; id: string; inductanceH?: number; capacitanceF?: number; [key: string]: unknown }
+export interface RouteTransition { kind: string; id: string; trace?: string; nodes?: { node: string; layer: string; x: number; y: number }[]; inductanceH?: number; capacitanceF?: number; [key: string]: unknown }
 export interface RouteTransitions { lines: string[]; records: RouteTransition[]; warnings: string[] }
 
 /** Per-end external L for explicit, equal-height vertical local-return posts (mm, H/m).
@@ -71,6 +71,7 @@ export function routeTransitions(circuit: CircuitJson, scope: CopperScope, geome
       const tag = `VT${output.records.length}`
       const a = node(wire, via.from_layer, [via.x, via.y])
       const b = node(wire, via.to_layer, [via.x, via.y])
+      const nodes = [{ node: a, layer: via.from_layer, x: via.x, y: via.y }, { node: `${tag}r`, layer: via.from_layer, x: via.x, y: via.y }, { node: b, layer: via.to_layer, x: via.x, y: via.y }]
       const h = Math.abs(height(via.from_layer) - height(via.to_layer))
       const diameter = physical.hole_diameter + 2 * geometry.stack.viaPlatingMm!
       const antipad = physical.outer_diameter + .2
@@ -113,9 +114,11 @@ export function routeTransitions(circuit: CircuitJson, scope: CopperScope, geome
       const stubs = [Math.max(0, lo - Math.min(...spans)), Math.max(0, Math.max(...spans) - hi)]
       for (const [i, stub] of stubs.entries()) if (stub > 1e-6) {
         const tap = Math.abs(height(via.from_layer) - (i ? hi : lo)) < 1e-6 ? a : b
+        const spanLayers = [...physical.layers].sort((a, b) => height(a) - height(b))
+        nodes.push({ node: `${tag}s${i}`, layer: i ? spanLayers.at(-1)! : spanLayers[0], x: via.x, y: via.y })
         output.lines.push(`L${tag}s${i} ${tap} ${tag}s${i} ${barrelInductance(stub, diameter)}`, `C${tag}s${i} ${tag}s${i} 0 ${barrelCapacitance(stub, diameter, antipad, er)}`)
       }
-      output.records.push({ kind: 'via', id: physical.pcb_via_id, inductanceH, capacitanceF, returnInductanceH, nearestGroundVia: nearest?.pcb_via_id ?? null, groundViaDistanceMm: distance, stubsMm: stubs, antipadMm: antipad, references, resistanceOhm: resistance, padAreaMm2, padCapacitanceF })
+      output.records.push({ kind: 'via', id: physical.pcb_via_id, trace: trace.pcb_trace_id, nodes, inductanceH, capacitanceF, returnInductanceH, nearestGroundVia: nearest?.pcb_via_id ?? null, groundViaDistanceMm: distance, stubsMm: stubs, antipadMm: antipad, references, resistanceOhm: resistance, padAreaMm2, padCapacitanceF })
       if (!nearest && returnInductanceH) output.warnings.push(`${physical.pcb_via_id}: no spanning ground stitch found; return-loop estimate uses explicit 10 mm spreading distance`)
       if (references.some(ref => !ground.has(ref.net))) output.warnings.push(`${physical.pcb_via_id}: reference includes a different-net power plane; ideal AC rail/reference assumption omits PDN impedance`)
     }
