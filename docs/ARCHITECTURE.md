@@ -132,45 +132,49 @@ flowchart LR
 
 Stage classes live with their domain knowledge. Root admission calls
 `prepareBlockById`, also used by `prepareBlocks`, once per SI block. Each admitted
-block becomes a nested `BasePipelineSolver`; the single `routedStages` tuple
-supplies the debugger order, tests, artifact manifest and generated docs below.
+block is passed through the same six static top-level stages. The entire
+`pipelineDef` exists before admission starts; no step creates stages at runtime.
+`RoutedStageSolver` steps each domain algorithm across all admitted blocks in
+order, one domain item per step, and publishes an immutable array in admission
+order. It is a `BaseSolver`, with no nested pipeline or child debugger rows.
+The single `routedStages` tuple supplies the debugger order, tests, artifact
+manifest and generated docs below.
 Regenerate with `pnpm exec tsx scripts/document-routed-stages.ts`.
 
 <!-- routed-stages:start -->
 | # | Stage solver |
 |---|---|
-| 0 | RoutedAdmissionSolver |
-| 1 | RouteSectionsSolver |
-| 2 | RouteFieldsSolver |
-| 3 | RouteBindingsSolver |
-| 4 | RouteNetworkSolver |
-| 5 | RouteTransientSolver |
+| 1 | RoutedAdmissionSolver |
+| 2 | RouteSectionsSolver |
+| 3 | RouteFieldsSolver |
+| 4 | RouteBindingsSolver |
+| 5 | RouteNetworkSolver |
+| 6 | RouteTransientSolver |
 
 ```mermaid
 flowchart LR
-  s0["RoutedAdmissionSolver"]:::root
-  s1["RouteSectionsSolver"]
-  s2["RouteFieldsSolver"]
-  s3["RouteBindingsSolver"]
-  s4["RouteNetworkSolver"]
-  s5["RouteTransientSolver"]
+  s0["RoutedAdmissionSolver<br/>Admit one SI block per step"]
+  s1["RouteSectionsSolver<br/>All admitted blocks, one item per step"]
+  s2["RouteFieldsSolver<br/>All admitted blocks, one item per step"]
+  s3["RouteBindingsSolver<br/>All admitted blocks, one item per step"]
+  s4["RouteNetworkSolver<br/>All admitted blocks, one item per step"]
+  s5["RouteTransientSolver<br/>All admitted blocks, one item per step"]
   s0 --> s1
   s1 --> s2
   s2 --> s3
   s3 --> s4
   s4 --> s5
   s5 <-->|"await RunSolver"| engine["local native ngspice"]
-  classDef root fill:#dbeafe
 ```
 
 ```mermaid
 stateDiagram-v2
   [*] --> RoutedAdmissionSolver
-  RoutedAdmissionSolver --> RouteSectionsSolver
-  RouteSectionsSolver --> RouteFieldsSolver
-  RouteFieldsSolver --> RouteBindingsSolver
-  RouteBindingsSolver --> RouteNetworkSolver
-  RouteNetworkSolver --> RouteTransientSolver
+  RoutedAdmissionSolver --> RouteSectionsSolver: all blocks completed
+  RouteSectionsSolver --> RouteFieldsSolver: all blocks completed
+  RouteFieldsSolver --> RouteBindingsSolver: all blocks completed
+  RouteBindingsSolver --> RouteNetworkSolver: all blocks completed
+  RouteNetworkSolver --> RouteTransientSolver: all blocks completed
   RouteTransientSolver --> [*]
   RoutedAdmissionSolver --> failed
   RouteSectionsSolver --> failed
@@ -190,15 +194,37 @@ numerical primitive callers. Network stepping creates one route run's cells;
 its final step assembles the coupled global matrices, oblique/via terms and deck.
 One BEM solve is atomic. The 40-conductor and 1024-cell limits remain enforced.
 
-Completed domain values are copied and frozen. Only the root folds stage
+Completed domain values are copied and frozen. Only the root folds the six stages'
 `Produced` artifacts into `ArtifactLedger`; runtime timings stay in `stats`.
 Original assumptions, coupling decisions, reference omissions, external ports,
 model provenance, node maps, via/oblique policies and deck evidence remain visible.
 
-The shared graphics atlas uses board x/y=0..100, cross-section x=120..220/y=0..100,
-and waveform x=0..220/y=120..200, with PCB y and stack z positive upward. Neighbour
-copper and waveform drawings are capped for display only; numerical inputs and
-native samples are retained in full.
+The site's `Step` input starts at 0 for the initial board, then synchronizes to
+stages 1–6, matching table rows 01–06 and visualization titles. Entering a number
+selects that retained stage until the next pipeline advance. Each flat stage
+retains its last completed block's domain solver and final drawing; selecting
+an earlier stage never recomputes it. Each domain solver draws its physical input
+before its first step. Stage wrappers construct that domain solver when admitted,
+and root transitions preview the incoming immutable input before the next step.
+Fields preview the first physical cross-section without solving coefficients.
+Pending transients retain routed board context and a deck summary, then switch
+to the waveform only after complete samples arrive. Future stages whose inputs
+are incomplete retain the known board context with a not-run note. Values outside 0–6 are clamped silently; clicking
+a table row also selects that stage. Selection lives in fixture component state.
+The page starts with this input and the debugger; local asset loading remains,
+while only blocking load, backend and solver errors appear inline.
+
+Stage visuals share one world-unit `routeTextSize` scale. Board drawings use
+x=0..120/y=0..100; fields use x=130..340/y=-6..100, including material labels
+outside thin slabs with leader lines. The waveform uses x=0..305/y=108..181,
+with integer voltage ticks covering the capture and both red limit annotations.
+PCB y and stack z stay positive upward. Cosmos measures its container before
+mounting `CanvasGraphics`, fits the full text bounds with 16 px padding, and
+caps height at 620 px to leave room for the selector in a laptop window. This
+avoids the DOM renderer's fixed 600 px initial camera and screen-pixel text sizes.
+Atlas coordinates are display units, so the grid stays hidden while physical
+axis labels remain explicit. Neighbour copper and waveform drawings are capped
+for display only; numerical inputs and native samples remain complete.
 
 `RouteTransientSolver` awaits one `solver.invoke` call in `_stepAsync`. Its
 self-contained `.save` + `.tran` deck keeps KLU and Gear in native batch ngspice.
@@ -211,3 +237,32 @@ qualification. `runPipeline` and the 3D path are unchanged.
 
 Async stepping uses solver-utils PR #62 at `127f17012c7c391005254993864b26801f418249`
 through an integrity-locked pkg.pr.new URL. Switch to a release after #62 ships.
+
+### Cosmos development backend
+
+`vite.config.ts` installs `createSolverMiddleware` in Cosmos's Vite renderer.
+The Cosmos UI listens on 127.0.0.1:5000; the renderer and API listen on
+127.0.0.1:5050. The plugin's config hook overrides Cosmos 6's inline wildcard
+host. The renderer URL is explicitly IPv4 loopback, matching the API's Host and
+Origin checks. `createHttpSolver` is a browser-safe adapter inside `adapters`;
+it adds no Node imports to the fixture graph.
+
+```mermaid
+stateDiagram-v2
+  [*] --> validate: POST /api/run-solver
+  validate --> rejected: invalid JSON / size / solver / paths / flags / origin
+  validate --> queued: accepted request
+  queued --> rejected: queue full
+  queued --> running: single slot available
+  running --> completed: result and output files
+  running --> failed: native error or 120 s timeout
+  completed --> [*]: release slot and clean temp directory
+  failed --> [*]: release slot and clean temp directory
+  rejected --> [*]
+```
+
+Version probes share the queue, and the existing native adapter enforces
+OMP_NUM_THREADS=1. The request cannot override tools or cwd. Local asset reads
+are limited to the four known example IBIS filenames under IBIS_MODEL_DIR and
+the board file selected by SI_DDR3_BOARD; URLs cannot select filesystem paths.
+These assets are loaded at runtime and never part of a published static bundle.

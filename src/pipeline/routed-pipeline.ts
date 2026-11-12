@@ -1,34 +1,71 @@
 import { BaseSolver, BasePipelineSolver, definePipelineStep } from '@tscircuit/solver-utils'
 import type { PipelineStep } from '@tscircuit/solver-utils'
 import type { SolverContext } from '../solver'
-import type { GraphicsObject } from 'graphics-debug'
-import { RouteSectionsSolver, routeBoardDrawing, routeText } from '../board'
-import { RouteFieldsSolver } from '../extraction'
-import { RouteBindingsSolver, RouteNetworkSolver, RouteTransientSolver, type RoutedDeck, type RoutedCapture } from '../simulation'
-import { ArtifactLedger, rootScope, snapshot, type Produced, type FileMap } from '../kernel'
+import { getBounds, type GraphicsObject } from 'graphics-debug'
+import { RouteSectionsSolver, routeBoardDrawing, routeText, type RoutedSections } from '../board'
+import { RouteFieldsSolver, type ExtractedRoutes } from '../extraction'
+import {
+  RouteBindingsSolver,
+  RouteNetworkSolver,
+  RouteTransientSolver,
+  type RoutedDeck,
+  type RoutedCapture,
+  type RoutedBindings,
+} from '../simulation'
+import { ArtifactLedger, rootScope, snapshot, type FileMap, type Produced } from '../kernel'
 import { RoutedAdmissionSolver, type RoutedProblem, type RoutedBlockPlan } from './routed-admission'
+import { routedStage } from './routed-stage'
 
-/** Typed read boundary for solver-utils' dynamic slots; incomplete/wrong stages never escape. */
-function completed<I, S extends BaseSolver>(pipeline: BasePipelineSolver<unknown>, solverClass: new (input: I) => S): ReturnType<S['getOutput']> {
-  const stage = pipeline.pipelineDef.find(stage => stage.solverClass === solverClass)
-  const solver = stage && pipeline.getSolver<S>(stage.solverName)
-  if (!(solver instanceof solverClass) || !solver.solved) throw new Error(`Incomplete stage ${solverClass.name}`)
-  return solver.getOutput()
-}
-
-/** The single ordered stage tuple, walked by nested pipelines, tests and documentation. */
+/** All six rows exist before the first step; every stage drains all admitted blocks in order. */
 export const routedStages = [
-  definePipelineStep('RoutedAdmissionSolver', RoutedAdmissionSolver, (p: RoutedPipelineSolver) => [p.inputProblem], {
-    onSolved: (p: RoutedPipelineSolver): void => {
-      for (const plan of completed(p, RoutedAdmissionSolver).value) p.pipelineDef.push(definePipelineStep(`block:${plan.id}`, RoutedBlockSolver, () => [{ ...plan, context: p.context }]))
-    },
-  }),
-  definePipelineStep('RouteSectionsSolver', RouteSectionsSolver, (p: RoutedBlockSolver) => [p.inputProblem.sections]),
-  definePipelineStep('RouteFieldsSolver', RouteFieldsSolver, (p: RoutedBlockSolver) => [{ geometry: completed(p, RouteSectionsSolver).value.geometry, circuitJson: p.inputProblem.sections.circuitJson, scope: completed(p, RouteSectionsSolver).value.scope, maskThicknessMm: completed(p, RouteSectionsSolver).value.maskThicknessMm, materials: p.inputProblem.bindings.options.materials, artifactPrefix: p.inputProblem.sections.artifactPrefix }]),
-  definePipelineStep('RouteBindingsSolver', RouteBindingsSolver, (p: RoutedBlockSolver) => [{ ...p.inputProblem.bindings, scope: completed(p, RouteSectionsSolver).value.scope }]),
-  definePipelineStep('RouteNetworkSolver', RouteNetworkSolver, (p: RoutedBlockSolver) => [{ blockId: p.inputProblem.id, name: p.inputProblem.name, geometry: completed(p, RouteSectionsSolver).value.geometry, extracted: completed(p, RouteFieldsSolver).value, bindings: completed(p, RouteBindingsSolver).value, materials: completed(p, RouteFieldsSolver).value.materials, options: p.inputProblem.bindings.options, warnings: p.inputProblem.warnings, artifactPrefix: p.inputProblem.sections.artifactPrefix }]),
-  definePipelineStep('RouteTransientSolver', RouteTransientSolver, (p: RoutedBlockSolver) => [{ compiled: completed(p, RouteNetworkSolver).value, artifactPrefix: p.inputProblem.sections.artifactPrefix, context: p.inputProblem.context }]),
+  definePipelineStep('RoutedAdmissionSolver', RoutedAdmissionSolver, (p: RoutedPipelineSolver) => [p.inputProblem]),
+  definePipelineStep('RouteSectionsSolver', routedStage(RouteSectionsSolver), (p: RoutedPipelineSolver) => [
+    p.stageOutput('RoutedAdmissionSolver').value.map((plan) => plan.sections),
+  ]),
+  definePipelineStep('RouteFieldsSolver', routedStage(RouteFieldsSolver), (p: RoutedPipelineSolver) => [
+    p.stageOutput('RouteSectionsSolver').value.map((sections, i) => ({
+      geometry: sections.geometry,
+      circuitJson: sections.circuitJson,
+      scope: sections.scope,
+      maskThicknessMm: sections.maskThicknessMm,
+      materials: p.stageOutput('RoutedAdmissionSolver').value[i].bindings.options.materials,
+      artifactPrefix: p.stageOutput('RoutedAdmissionSolver').value[i].sections.artifactPrefix,
+    })),
+  ]),
+  definePipelineStep('RouteBindingsSolver', routedStage(RouteBindingsSolver), (p: RoutedPipelineSolver) => [
+    p.stageOutput('RoutedAdmissionSolver').value.map((plan, i) => ({ ...plan.bindings, scope: p.stageOutput('RouteSectionsSolver').value[i].scope })),
+  ]),
+  definePipelineStep('RouteNetworkSolver', routedStage(RouteNetworkSolver), (p: RoutedPipelineSolver) => [
+    p.stageOutput('RoutedAdmissionSolver').value.map((plan, i) => ({
+      blockId: plan.id,
+      name: plan.name,
+      geometry: p.stageOutput('RouteSectionsSolver').value[i].geometry,
+      extracted: p.stageOutput('RouteFieldsSolver').value[i],
+      bindings: p.stageOutput('RouteBindingsSolver').value[i],
+      materials: p.stageOutput('RouteFieldsSolver').value[i].materials,
+      options: plan.bindings.options,
+      warnings: plan.warnings,
+      artifactPrefix: plan.sections.artifactPrefix,
+    })),
+  ]),
+  definePipelineStep('RouteTransientSolver', routedStage(RouteTransientSolver), (p: RoutedPipelineSolver) => [
+    p.stageOutput('RouteNetworkSolver').value.map((compiled, i) => ({
+      compiled,
+      board: p.stageOutput('RouteSectionsSolver').value[i],
+      artifactPrefix: p.stageOutput('RoutedAdmissionSolver').value[i].sections.artifactPrefix,
+      context: p.context,
+    })),
+  ]),
 ] as const satisfies readonly PipelineStep<BaseSolver>[]
+
+interface RoutedStageOutputs {
+  RoutedAdmissionSolver: Produced<RoutedBlockPlan[]>
+  RouteSectionsSolver: Produced<RoutedSections[]>
+  RouteFieldsSolver: Produced<ExtractedRoutes[]>
+  RouteBindingsSolver: Produced<RoutedBindings[]>
+  RouteNetworkSolver: Produced<RoutedDeck[]>
+  RouteTransientSolver: Produced<RoutedCapture[]>
+}
 
 export interface RoutedBlockView {
   id: string
@@ -42,72 +79,80 @@ export interface RoutedInspection {
   files: FileMap
 }
 
-/** Per-block nested pipeline; immutable values are handed directly between domain stages. */
-export class RoutedBlockSolver extends BasePipelineSolver<RoutedBlockPlan & { context: SolverContext }> {
-  override pipelineDef: PipelineStep<BaseSolver>[] = routedStages.slice(1)
-  /** Keep the execution port outside the immutable domain plan. */
-  constructor(input: RoutedBlockPlan & { context: SolverContext }) { super(input) }
-  /** Completion aggregates stage artifacts; only the root owns a ledger. */
-  override getOutput(): Produced<RoutedBlockView> {
-    if (!this.solved) throw new Error('Routed block is incomplete')
-    return { value: snapshot({ id: this.inputProblem.id, name: this.inputProblem.name, compiled: completed(this, RouteNetworkSolver).value, capture: completed(this, RouteTransientSolver).value }), artifacts: this.pipelineDef.flatMap(stage => this.getStageOutput<Produced<unknown>>(stage.solverName)!.artifacts) }
-  }
-  /** Completed atlas uses one board view plus fields and capture, preserving foreground polygons. */
-  override visualize(): GraphicsObject {
-    if (!this.solved) return super.visualize()
-    const drawings = [RouteNetworkSolver.name, RouteFieldsSolver.name, RouteTransientSolver.name].map(name => this.getSolver(name)!.visualize())
-    return {
-      coordinateSystem: 'cartesian',
-      lines: drawings.flatMap(drawing => drawing.lines ?? []),
-      rects: drawings.flatMap(drawing => drawing.rects ?? []),
-      circles: drawings.flatMap(drawing => drawing.circles ?? []),
-      points: drawings.flatMap(drawing => drawing.points ?? []),
-      polygons: drawings.flatMap(drawing => drawing.polygons ?? []),
-      // The network panel describes its pre-execution state; this atlas has completed the transient.
-      texts: drawings.flatMap(drawing => drawing.texts ?? []).map(text => ({ ...text, text: text.text.replace(' · native not run', '') })),
-    }
-  }
-  /** Original admitted block input. */
-  override getConstructorParams(): [RoutedBlockPlan & { context: SolverContext }] { return [this.inputProblem] }
-}
-
-/** Browser-safe stages followed by one awaited live transient per block. */
+/** A single static pipeline, from admission through sequential live transients. */
 export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
-  override pipelineDef: PipelineStep<BaseSolver>[] = [routedStages[0]]
+  override pipelineDef: PipelineStep<BaseSolver>[] = [...routedStages]
   private output?: RoutedInspection
-  /** Normalize exact UTF-8 assets for constructor downloads, without decoding lossy bytes. */
-  constructor(input: RoutedProblem, readonly context: SolverContext) {
-    const ibisSources = Object.fromEntries(Object.entries(input.ibisSources).map(([name, bytes]) => [name, typeof bytes === 'string' ? bytes : new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)]))
+  /** Preserve exact model bytes while keeping runtime capabilities outside immutable input. */
+  constructor(
+    input: RoutedProblem,
+    readonly context: SolverContext,
+  ) {
+    const ibisSources = Object.fromEntries(
+      Object.entries(input.ibisSources).map(([name, bytes]) => [
+        name,
+        typeof bytes === 'string' ? bytes : new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes),
+      ]),
+    )
     super(snapshot({ ...input, ibisSources }))
   }
-  /** The sole artifact fold, performed once after all nested pipelines complete. */
+  /** Each completed row exposes its domain array in admission order. */
+  stageOutput<K extends keyof RoutedStageOutputs>(name: K): RoutedStageOutputs[K] {
+    const output = this.getStageOutput<RoutedStageOutputs[K]>(name)
+    if (!output) throw new Error(`Incomplete stage ${name}`)
+    return output
+  }
+  /** Fold each flat stage's artifacts once, preserving per-block values and paths. */
   override getOutput(): RoutedInspection {
     if (!this.solved) throw new Error('Routed pipeline is incomplete')
     if (this.output) return this.output
     let ledger = ArtifactLedger.empty()
-    const blocks: RoutedBlockView[] = []
-    for (const stage of this.pipelineDef) {
-      const output = this.getStageOutput<Produced<unknown>>(stage.solverName)!
-      ledger = ledger.add(output.artifacts)
-      const solver = this.getSolver(stage.solverName)
-      if (solver instanceof RoutedBlockSolver) blocks.push(solver.getOutput().value)
-    }
-    ledger = ledger.add([rootScope('pipeline').json('stages.json', routedStages.map(stage => stage.solverName))])
+    for (const stage of this.pipelineDef) ledger = ledger.add(this.getStageOutput<Produced<unknown>>(stage.solverName)!.artifacts)
+    const plans = this.stageOutput('RoutedAdmissionSolver').value
+    const compiled = this.stageOutput('RouteNetworkSolver').value
+    const captures = this.stageOutput('RouteTransientSolver').value
+    const blocks = plans.map((plan, i) => ({ id: plan.id, name: plan.name, compiled: compiled[i], capture: captures[i] }))
+    ledger = ledger.add([
+      rootScope('pipeline').json(
+        'stages.json',
+        routedStages.map((stage) => stage.solverName),
+      ),
+    ])
     this.output = snapshot({ kind: 'routed-inspection', blocks, files: ledger.seal() })
     return this.output
   }
-  /** Exact source input and injected execution context, without solver state. */
-  override getConstructorParams(): [RoutedProblem, SolverContext] { return [this.inputProblem, this.context] }
-  /** Physical board context before any work has run. */
-  override initialVisualize(): GraphicsObject { return routeBoardDrawing(this.inputProblem.circuitJson, undefined, 'Routed 2.5D compiler') }
-  /** Keep the completed debugger atlas free of overlapping admission/section/binding labels. */
-  override visualize(): GraphicsObject { return this.solved ? this.finalVisualize() : super.visualize() }
-  /** A completed atlas contains the actual live transient from its final block. */
-  override finalVisualize(): GraphicsObject {
-    const block = this.pipelineDef.map(stage => this.getSolver(stage.solverName)).findLast(solver => solver instanceof RoutedBlockSolver && solver.solved)
-    if (block) return block.visualize()
-    const drawing = routeBoardDrawing(this.inputProblem.circuitJson, undefined, 'Routed 2.5D · compilation complete')
-    routeText(drawing, 2, 87, 'No signal-integrity blocks to simulate', '#a16207', 1.9)
+  /** Exact source inputs plus the injected execution capability. */
+  override getConstructorParams(): [RoutedProblem, SolverContext] {
+    return [this.inputProblem, this.context]
+  }
+  /** Inspect retained output or the incoming stage's immutable input, without executing work. */
+  visualizeStage(number: number): GraphicsObject {
+    if (number === 0) return this.initialVisualize()
+    const definition = this.pipelineDef[number - 1]
+    let solver = this.getSolver(definition.solverName)
+    if (!solver && number - 1 <= this.currentPipelineStageIndex) {
+      solver = new definition.solverClass(...definition.getConstructorParams(this))
+    }
+    const scope = this.getStageOutput<Produced<RoutedBlockPlan[]>>('RoutedAdmissionSolver')?.value[0]?.sections.scope
+    const drawing =
+      solver?.visualize() ??
+      routeBoardDrawing(this.inputProblem.circuitJson, scope, `${number} · ${definition.solverName.replace(/^Routed?|Solver$/g, '')}`)
+    if (!solver || solver.iterations === 0) {
+      const { minX, minY } = getBounds(drawing)
+      routeText(drawing, minX, minY - 6, 'Not run yet', '#64748b')
+    }
     return drawing
+  }
+  /** Stage boundaries show the incoming input immediately, before its first step. */
+  override visualize(): GraphicsObject {
+    return this.visualizeStage(this.iterations === 0 ? 0 : Math.min(this.currentPipelineStageIndex + 1, this.pipelineDef.length))
+  }
+  /** Show admission's initial physical board before any stage has run. */
+  override initialVisualize(): GraphicsObject {
+    return routeBoardDrawing(this.inputProblem.circuitJson, undefined, '0 · Initial board')
+  }
+  /** A completed pipeline follows the final transient; earlier stages keep their own drawings. */
+  override finalVisualize(): GraphicsObject {
+    return this.getSolver('RouteTransientSolver')?.visualize() ?? this.initialVisualize()
   }
 }

@@ -66,6 +66,39 @@ Consumers should write the supplied `files` map and its index for oversized data
 CLI #5736 still needs to guard its additional aggregate `JSON.stringify` so it can
 use these indexed parts rather than hitting the same V8 string limit.
 
+### Local fixture site
+
+Run `bun install && bun dev` with **ngspice on PATH**. Cosmos opens
+[http://127.0.0.1:5000](http://127.0.0.1:5000); its Vite fixture renderer and local
+API use port 5050. Both bind only to `127.0.0.1`.
+
+The sidebar lists the two-trace TSX board, every signal level, the DDR3 addr/cmd
+scope, and a paste/upload Circuit JSON page. Each mounts `GenericSolverDebugger`
+with `RoutedPipelineSolver`. Step through admission, geometry, fields, buffers,
+network assembly, then the live local ngspice transient. Captures remain candidate
+results without independent convergence qualification.
+
+Set `IBIS_MODEL_DIR` to the examples' local vendor directory (default `models`).
+Set `SI_DDR3_BOARD` to the real physical DDR3 board JSON for the addr/cmd page.
+Missing files show `missing local asset: <path>`. Each fixture loads models from
+local paths. Vendor assets and board JSON are never bundled or committed.
+The site requires its local backend.
+
+```mermaid
+flowchart LR
+  fixture["Cosmos TSX / uploaded Circuit JSON"] --> debugger["GenericSolverDebugger · routed stages 1–6"]
+  assets["Fixed local model paths / SI_DDR3_BOARD"] --> debugger
+  debugger --> transient["RouteTransientSolver · stepAsync"]
+  transient <-->|"POST /api/run-solver · HTTP RunSolver"| queue["Vite middleware · single slot"]
+  queue <-->|"isolated temp dir · 120 s limit · OMP_NUM_THREADS=1"| native["Local ngspice on PATH"]
+  transient --> capture["Actual waveform samples"]
+```
+
+The backend accepts bounded JSON bodies (16 MiB), checks same-origin loopback
+requests, rejects other solvers and executable/cwd options, and serializes native
+runs and version probes. `GET http://127.0.0.1:5050/api/solvers` reports ngspice
+availability and version. A missing binary shows `ngspice not found on PATH`.
+
 ## General workflow
 
 ```mermaid
@@ -110,45 +143,49 @@ stateDiagram-v2
 The browser-safe routed pipeline is inspectable with solver-utils. It is a
 candidate 2.5D path; `runPipeline` still runs the 3D workflow above in this PR.
 Construct `new RoutedPipelineSolver(problem, { runSolver, progress })` and await
-`solver.solveAsync()`. Synchronous stages can still be stepped up to stage 5;
+`solver.solveAsync()`. All six stage rows exist before the first step; each stage
+processes all admitted blocks in order, with no nested block pipelines. The site's
+`Step` input starts at 0 for the initial view. Enter 1–6 to inspect a retained stage
+by table row number; the next pipeline advance updates the input to the active
+stage. Unrun stages show a not-run note. Synchronous stages can still be stepped
+up to stage 6;
 `RouteTransientSolver` awaits one live ngspice run and admits complete probe vectors.
-Inject the local native adapter to run stage 5 with a bounded process timeout.
+Inject the local native adapter to run stage 6 with a bounded process timeout.
 
 <!-- routed-stages:start -->
 | # | Stage solver |
 |---|---|
-| 0 | RoutedAdmissionSolver |
-| 1 | RouteSectionsSolver |
-| 2 | RouteFieldsSolver |
-| 3 | RouteBindingsSolver |
-| 4 | RouteNetworkSolver |
-| 5 | RouteTransientSolver |
+| 1 | RoutedAdmissionSolver |
+| 2 | RouteSectionsSolver |
+| 3 | RouteFieldsSolver |
+| 4 | RouteBindingsSolver |
+| 5 | RouteNetworkSolver |
+| 6 | RouteTransientSolver |
 
 ```mermaid
 flowchart LR
-  s0["RoutedAdmissionSolver"]:::root
-  s1["RouteSectionsSolver"]
-  s2["RouteFieldsSolver"]
-  s3["RouteBindingsSolver"]
-  s4["RouteNetworkSolver"]
-  s5["RouteTransientSolver"]
+  s0["RoutedAdmissionSolver<br/>Admit one SI block per step"]
+  s1["RouteSectionsSolver<br/>All admitted blocks, one item per step"]
+  s2["RouteFieldsSolver<br/>All admitted blocks, one item per step"]
+  s3["RouteBindingsSolver<br/>All admitted blocks, one item per step"]
+  s4["RouteNetworkSolver<br/>All admitted blocks, one item per step"]
+  s5["RouteTransientSolver<br/>All admitted blocks, one item per step"]
   s0 --> s1
   s1 --> s2
   s2 --> s3
   s3 --> s4
   s4 --> s5
   s5 <-->|"await RunSolver"| engine["local native ngspice"]
-  classDef root fill:#dbeafe
 ```
 
 ```mermaid
 stateDiagram-v2
   [*] --> RoutedAdmissionSolver
-  RoutedAdmissionSolver --> RouteSectionsSolver
-  RouteSectionsSolver --> RouteFieldsSolver
-  RouteFieldsSolver --> RouteBindingsSolver
-  RouteBindingsSolver --> RouteNetworkSolver
-  RouteNetworkSolver --> RouteTransientSolver
+  RoutedAdmissionSolver --> RouteSectionsSolver: all blocks completed
+  RouteSectionsSolver --> RouteFieldsSolver: all blocks completed
+  RouteFieldsSolver --> RouteBindingsSolver: all blocks completed
+  RouteBindingsSolver --> RouteNetworkSolver: all blocks completed
+  RouteNetworkSolver --> RouteTransientSolver: all blocks completed
   RouteTransientSolver --> [*]
   RoutedAdmissionSolver --> failed
   RouteSectionsSolver --> failed

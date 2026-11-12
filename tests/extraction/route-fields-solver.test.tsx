@@ -33,13 +33,16 @@ test('field steps reuse canonical pair geometry, preserve coefficients and publi
 import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
 
 test('two-trace TSX route-fields-solver visual SVG snapshot', async () => {
-  const { block } = await routedVisualFixture()
-  assertRouteVisual(block.getSolver<RouteFieldsSolver>('RouteFieldsSolver')!.visualize(), 'extraction', 'route-fields-solver')
+  const { root } = await routedVisualFixture()
+  assertRouteVisual(root.getSolver<RouteFieldsSolver>('RouteFieldsSolver')!.visualize(), 'extraction', 'route-fields-solver')
 })
 
 test('field drawing explains physical materials and self/mutual units without hover labels', async () => {
-  const { block } = await routedVisualFixture()
-  const drawing = block.getSolver<RouteFieldsSolver>('RouteFieldsSolver')!.visualize()
+  const { root } = await routedVisualFixture()
+  const drawing = root.getSolver<RouteFieldsSolver>('RouteFieldsSolver')!.visualize()
+  const labels = drawing.texts!.filter(text => /^(Mask|Dielectric) εr=/.test(text.text)).sort((a, b) => b.y - a.y)
+  assert.ok(labels.every(text => text.x > 292), 'layer labels sit outside thin slabs')
+  assert.ok(labels.slice(1).every((text, i) => labels[i].y - text.y >= 6), 'layer labels cannot collide')
   assert.ok(drawing.rects!.some((rect) => rect.fill === '#fef3c7'))
   assert.ok(drawing.rects!.some((rect) => rect.fill === '#cffafe'))
   assert.ok(drawing.rects!.filter((rect) => rect.fill === '#2563eb').every((rect) => rect.height > 1))

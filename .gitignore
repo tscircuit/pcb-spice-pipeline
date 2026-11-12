@@ -6,3 +6,4 @@ dist/
 runs-*.log
 examples/**/models/
 models/
+bun.lock

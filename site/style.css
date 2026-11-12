@@ -1,0 +1,29 @@
+body { margin: 0; font-family: system-ui, sans-serif; color: #18263a; background: #f7f9fc; }
+main { padding: 12px; }
+h1 { margin: 0 0 8px; font-size: 24px; }
+label { display: inline-flex; align-items: center; gap: 8px; }
+select, button, textarea { font: inherit; padding: 6px 10px; }
+textarea { display: block; box-sizing: border-box; width: 100%; min-height: 160px; margin: 12px 0; font-family: monospace; }
+[role=alert] { color: #a12825; white-space: pre-wrap; overflow-wrap: anywhere; }
+summary, button { cursor: pointer; }
+
+.routed-atlas { background: white; width: 100%; }
+/* CanvasGraphics' dimension overlay needs a height for its absolute canvas. */
+.routed-atlas [tabindex='0'] { height: 100%; }
+
+/* The complete stats already live in the summary; keep that text visible without a disclosure. */
+.routed-debugger td summary { white-space: normal; overflow: visible; max-width: none; list-style: none; pointer-events: none; cursor: default; }
+.routed-debugger td summary::-webkit-details-marker { display: none; }
+/* Keep solver names, statuses and untruncated stats in separate readable columns. */
+.routed-debugger col:nth-child(1) { width: 31% !important; }
+.routed-debugger col:nth-child(2) { width: 10% !important; }
+.routed-debugger col:nth-child(3) { width: 4% !important; }
+.routed-debugger col:nth-child(4) { width: 7% !important; }
+.routed-debugger col:nth-child(5) { width: 9% !important; }
+.routed-debugger col:nth-child(6) { width: 7% !important; }
+.routed-debugger col:nth-child(7) { width: 24% !important; }
+.routed-debugger col:nth-child(8) { width: 8% !important; }
+
+.step-selector { display: flex; align-items: center; gap: 12px; margin: 8px 0; font-size: 14px; }
+.step-selector input { width: 7ch; font: inherit; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; }
+.routed-debugger tbody > tr { cursor: pointer; }

@@ -3,8 +3,11 @@ import type { CircuitJson } from './schema'
 import type { CopperScope } from './geometry/scope'
 import { routePosition, type RouteXY, type RouteSlice, type SectionGeometry } from './route-sections'
 
+/** World-unit typography shared by every stage, canvas and SVG export. */
+export const routeTextSize = { body: 3.6, title: 4.6 } as const
+
 /** Visible text is independent of hover labels and the SVG export's label option. */
-export function routeText(drawing: GraphicsObject, x: number, y: number, text: string, color: string = '#334155', fontSize: number = 2): void {
+export function routeText(drawing: GraphicsObject, x: number, y: number, text: string, color: string = '#334155', fontSize: number = routeTextSize.body): void {
   drawing.texts ??= []
   drawing.texts.push({ x, y, text, color, fontSize, anchorSide: 'center_left' })
 }
@@ -15,11 +18,11 @@ export function routeDisplayItems<T>(items: readonly T[], limit: number = 160): 
   return Array.from({ length: limit }, (_, i) => items[Math.round((i * (items.length - 1)) / (limit - 1))])
 }
 
-/** Board millimetres fitted into the shared 0..100 atlas panel, positive y upward. */
+/** Board millimetres fitted into the shared x=0..120/y=0..100 atlas panel, positive y upward. */
 export function routeBoardPoint(circuit: CircuitJson, point: RouteXY): Point {
   const board = circuit.find((record) => record.type === 'pcb_board')
-  const scale = 68 / Math.max(board?.width ?? 1, board?.height ?? 1)
-  return { x: 50 + (point[0] - (board?.center.x ?? 0)) * scale, y: 50 + (point[1] - (board?.center.y ?? 0)) * scale }
+  const scale = 50 / Math.max(board?.width ?? 1, board?.height ?? 1)
+  return { x: 60 + (point[0] - (board?.center.x ?? 0)) * scale, y: 50 + (point[1] - (board?.center.y ?? 0)) * scale }
 }
 
 /** Human-readable net or endpoint names, with source identity as a last resort. */
@@ -47,8 +50,8 @@ export function routeBoardDrawing(circuit: CircuitJson, scope: CopperScope | und
   const drawing: GraphicsObject = { coordinateSystem: 'cartesian', lines: [], texts: [], points: [], circles: [], rects: [], polygons: [] }
   const board = circuit.find((record) => record.type === 'pcb_board')
   if (board) {
-    const scale = 68 / Math.max(board.width ?? 1, board.height ?? 1)
-    drawing.rects!.push({ center: { x: 50, y: 50 }, width: (board.width ?? 1) * scale, height: (board.height ?? 1) * scale, stroke: '#94a3b8' })
+    const scale = 50 / Math.max(board.width ?? 1, board.height ?? 1)
+    drawing.rects!.push({ center: { x: 60, y: 50 }, width: (board.width ?? 1) * scale, height: (board.height ?? 1) * scale, stroke: '#94a3b8' })
   }
   for (const trace of [...routeDisplayItems(neighbours, 120), ...selected]) {
     const points = routeDisplayItems(
@@ -73,16 +76,16 @@ export function routeBoardDrawing(circuit: CircuitJson, scope: CopperScope | und
         drawing.lines!.push({ points: [...vertices, vertices[0]], strokeColor: '#16a34a', strokeDash: i ? '1 1' : undefined, strokeWidth: 0.2 })
     }
   }
-  routeText(drawing, 2, 98, title, '#0f172a', 3)
-  routeText(drawing, 2, 92, 'Board plan · x / y in mm · y points up')
-  routeText(drawing, 2, 8, 'Blue: selected signal   Grey: neighbour   Green: ground / rail', '#475569', 1.8)
+  routeText(drawing, 2, 98, title, '#0f172a', routeTextSize.title)
+  routeText(drawing, 2, 91, 'Board plan · x / y in mm · y points up')
+  routeText(drawing, 2, 12, 'Blue: selected · Grey: neighbour', '#475569')
+  routeText(drawing, 2, 7, 'Green: ground / rail', '#475569')
   routeText(
     drawing,
     2,
-    4,
+    2,
     `${selected.length} selected routes; ${Math.min(neighbours.length, 120)}/${neighbours.length} neighbour routes shown`,
     '#64748b',
-    1.7,
   )
   return drawing
 }
@@ -121,10 +124,11 @@ export function routeSectionDrawing(circuit: CircuitJson, geometry: SectionGeome
     stroke: '#f97316',
   }))
   for (const [i, source] of sources.slice(0, 6).entries())
-    routeText(drawing, 2 + (i % 2) * 49, 24 - Math.floor(i / 2) * 4, routeNetLabel(circuit, source).slice(0, 35), colors[i % colors.length], 1.7)
+    routeText(drawing, 2 + (i % 2) * 60, 28 - Math.floor(i / 2) * 5, routeNetLabel(circuit, source).slice(0, 35), colors[i % colors.length])
   // Replace the admission legend: segmented wires are coloured by net here.
-  drawing.texts = drawing.texts!.filter((text) => text.y !== 8)
-  routeText(drawing, 2, 8, 'Net colours above · Orange: via · Magenta: join · Green: pour', '#475569', 1.8)
+  drawing.texts = drawing.texts!.filter((text) => text.y !== 12 && text.y !== 7)
+  routeText(drawing, 2, 12, 'Net colours above · Orange: via', '#475569')
+  routeText(drawing, 2, 7, 'Magenta: join · Green: pour', '#475569')
   routeText(drawing, 2, 87, `${geometry.wires.length} wire sections · ${geometry.slices.length} field slices · ${geometry.viaContacts.length} via contacts`)
   return drawing
 }
@@ -146,5 +150,5 @@ export function routeSliceDrawing(drawing: GraphicsObject, circuit: CircuitJson,
   drawing.polygons.push({ points, fill: '#fbbf24', stroke: '#d97706', strokeWidth: 0.2 })
   const point = routeBoardPoint(circuit, routePosition(first, middle))
   drawing.lines!.push({ points: [point, { x: 57, y: 36 }], strokeColor: '#d97706', strokeWidth: 0.15 })
-  routeText(drawing, 57, 34, 'Amber band: current slice', '#a16207', 1.8)
+  routeText(drawing, 57, 34, 'Amber: current slice', '#a16207')
 }

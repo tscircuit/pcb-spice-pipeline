@@ -1,8 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { RoutedAdmissionSolver } from '../../src/pipeline'
+import { RoutedAdmissionSolver, RoutedStageSolver } from '../../src/pipeline'
 import { RouteSectionsSolver } from '../../src/board'
-import { RouteBindingsSolver } from '../../src/simulation'
+import { RouteBindingsSolver, type RouteBindingsInput, type RoutedBindings } from '../../src/simulation'
 import { routedProblem } from '../support/routed-fixture'
 
 test('bindings compile one buffer per step and freeze the fully allocated node map', async (context) => {
@@ -28,13 +28,13 @@ test('bindings compile one buffer per step and freeze the fully allocated node m
 import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
 
 test('two-trace TSX route-bindings visual SVG snapshot', async () => {
-  const { block } = await routedVisualFixture()
-  assertRouteVisual(block.getSolver<RouteBindingsSolver>('RouteBindingsSolver')!.visualize(), 'simulation', 'route-bindings')
+  const { root } = await routedVisualFixture()
+  assertRouteVisual(root.getSolver<RouteBindingsSolver>('RouteBindingsSolver')!.visualize(), 'simulation', 'route-bindings')
 })
 
 test('missing IBIS bytes mark physical endpoints and rejection reason red', async () => {
-  const { block } = await routedVisualFixture()
-  const params = block.getSolver<RouteBindingsSolver>('RouteBindingsSolver')!.getConstructorParams()[0]
+  const { root } = await routedVisualFixture()
+  const params = root.getSolver<RoutedStageSolver<RouteBindingsInput, RoutedBindings>>('RouteBindingsSolver')!.getConstructorParams()[0][0]
   const missing = new RouteBindingsSolver({ ...params, ibisSources: {} })
   assert.throws(() => missing.solve())
   const drawing = missing.visualize()

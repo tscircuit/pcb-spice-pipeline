@@ -62,8 +62,8 @@ export class RouteSectionsSolver extends BaseSolver {
   /** Physical copper, orange vias, magenta joins and the current amber slice. */
   override visualize(): GraphicsObject {
     const drawing = this.geometry
-      ? routeSectionDrawing(this.input.circuitJson, this.geometry, this.scope, '1 · Sections: partition routed copper')
-      : routeBoardDrawing(this.input.circuitJson, this.scope, '1 · Sections: partition routed copper')
+      ? routeSectionDrawing(this.input.circuitJson, this.geometry, this.scope, '2 · Sections: partition routed copper')
+      : routeBoardDrawing(this.input.circuitJson, this.scope, '2 · Sections: partition routed copper')
     const slice = this.geometry?.slices.at(-1)
     if (slice) routeSliceDrawing(drawing, this.input.circuitJson, slice)
     if (this.failed) routeText(drawing, 2, 83, this.error ?? 'Rejected endpoint', '#dc2626')

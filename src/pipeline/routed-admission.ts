@@ -67,7 +67,7 @@ export class RoutedAdmissionSolver extends BaseSolver {
   /** Selected routes and endpoints blue, neighbours grey, references green, rejection red. */
   override visualize(): GraphicsObject {
     const plan = this.plans.at(-1)
-    const drawing = routeBoardDrawing(this.input.circuitJson, plan?.sections.scope, '0 · Admission: choose signal copper')
+    const drawing = routeBoardDrawing(this.input.circuitJson, plan?.sections.scope, '1 · Admission: choose signal copper')
     routeText(
       drawing,
       2,
@@ -96,13 +96,12 @@ export class RoutedAdmissionSolver extends BaseSolver {
           y - 1.5,
           source?.type === 'source_port' ? `${component && component.type === 'source_component' ? component.name : ''}.${source.name}` : id,
           '#1d4ed8',
-          1.8,
         )
       }
     }
     if (this.failed) {
       for (const [i, reason] of (`Rejected: ${this.error ?? 'Invalid signal scope'}`.match(/.{1,85}/g) ?? []).slice(0, 3).entries())
-        routeText(drawing, 2, 83 - i * 3, reason, '#dc2626', 1.7)
+        routeText(drawing, 2, 83 - i * 3, reason, '#dc2626')
       drawing.lines?.push({
         points: [
           { x: 16, y: 16 },
