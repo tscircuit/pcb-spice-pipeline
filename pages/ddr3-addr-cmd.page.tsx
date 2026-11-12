@@ -12,10 +12,10 @@ async function loadBoard(sources: IbisSources): Promise<CircuitJson> {
 /** Keep the fixture callable so Cosmos 6 can load React 19 elements. */
 export default function Page(): React.JSX.Element {
   return (
-  <BoardPage
-    title="DDR3 · addr/cmd scope (24 nets)"
-    load-board={loadBoard}
-    models={['sprm552c.ibs', 'W631GG6MB-12.ibs']}
-  />
-)
+    <BoardPage
+      title="DDR3 · addr/cmd scope (24 nets)"
+      load-board={loadBoard}
+      models={['sprm552c.ibs', 'W631GG6MB-12.ibs']}
+    />
+  )
 }

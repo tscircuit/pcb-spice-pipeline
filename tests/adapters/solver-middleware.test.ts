@@ -91,6 +91,7 @@ test('rejects unsupported solvers, executable/cwd options, unsafe paths and unsa
     { ...request, args: ['-c', '/tmp/elsewhere'] },
     ...[
       '.control\nshell touch /tmp/escape\n.endc',
+      '.control ignored-argument\nshell touch /tmp/escape\n.endc',
       '.include /tmp/secret',
       '.control\ncd /tmp\n.endc',
       '.osdi /tmp/module',
@@ -117,7 +118,7 @@ test('bounds body size, rejects malformed JSON/content types and rejects foreign
   assert.equal((await fetch(`${url}/api/run-solver`, { method: 'POST', body: '{}' })).status, 415)
   assert.equal((await fetch(`${url}/api/solvers`, { headers: { Origin: 'https://example.com' } })).status, 403)
   const status = await new Promise<number | undefined>((resolve, reject) => {
-    get(`${url}/api/solvers`, { headers: { Host: 'example.com' } }, response => {
+    get(`${url}/api/solvers`, { headers: { Host: 'example.com' } }, (response) => {
       response.resume()
       resolve(response.statusCode)
     }).on('error', reject)
@@ -184,4 +185,30 @@ test('detects only the fixed ngspice executable on PATH and reports its version 
   await writeFile(join(root, 'ngspice'), '#!/bin/sh\necho ngspice-test\n')
   await chmod(join(root, 'ngspice'), 0o755)
   assert.deepEqual(await detectLocalSolvers(), { ngspice: { available: true, version: 'ngspice-test' } })
+})
+
+test('rejects an overfull queue and admits later work after a failed process', { timeout: 3000 }, async (t) => {
+  let release!: () => void
+  const blocked = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  t.after(() => release())
+  let calls = 0
+  const url = await server(t, {
+    runSolver: async () => {
+      const call = ++calls
+      if (call === 1) {
+        await blocked
+        throw new Error('ngspice failed')
+      }
+      return result
+    },
+  })
+  const pending = Array.from({ length: 5 }, () => post(url, request))
+  const extra = await Promise.race(pending)
+  release()
+  assert.equal(extra.status, 429)
+  const replies = await Promise.all(pending)
+  assert.deepEqual(replies.map((reply) => reply.status).sort(), [200, 200, 200, 429, 502])
+  assert.equal((await post(url, request)).status, 200)
 })

@@ -12,7 +12,11 @@ export default function CircuitJsonPage(): React.JSX.Element {
       ...new Set(
         (records ?? [])
           .filter((record) => record.type === 'simulation_ibis_model')
-          .map((record) => record.ibis_model_asset.project_relative_path.split('/').at(-1)!),
+          .flatMap((record) =>
+            typeof record.ibis_model_asset?.project_relative_path === 'string'
+              ? [record.ibis_model_asset.project_relative_path.split('/').at(-1)!]
+              : [],
+          ),
       ),
     ],
     [records],

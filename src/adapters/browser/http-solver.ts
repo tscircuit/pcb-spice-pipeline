@@ -19,7 +19,7 @@ export function createHttpSolver({ fetch = globalThis.fetch, signal }: HttpSolve
     if (!response.ok)
       fail(
         response.status === 504 ? 'native_timeout' : 'native_solver',
-        result.error ?? `Local backend returned HTTP ${response.status}`,
+        result?.error ?? `Local backend returned HTTP ${response.status}`,
       )
     if (
       !result ||

@@ -1,10 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Circuit } from '@tscircuit/core'
 import { GenericSolverDebugger } from '@tscircuit/solver-utils/react'
+import { InteractiveGraphics } from 'graphics-debug/react'
 import { createHttpSolver } from '../src/adapters/browser'
 import { RoutedPipelineSolver } from '../src/pipeline'
 import type { CircuitJson } from '../src/board'
 import type { IbisSources } from '../src/buffers'
+
+type DebuggerSolver = NonNullable<React.ComponentProps<typeof GenericSolverDebugger>['solver']>
+
+// graphics-debug keeps its initial camera when graphics change. Fit again at
+// stage boundaries so the later cross-section and waveform panels stay visible.
+const renderer = {
+  name: 'Routed atlas',
+  /** Preserve pan/zoom within a stage, then fit the next stage's actual drawing. */
+  render(solver: DebuggerSolver): React.JSX.Element {
+    let stage = solver
+    while (stage.activeSubSolver) stage = stage.activeSubSolver
+    return <InteractiveGraphics key={`${stage.getSolverName()}:${stage.solved}`} graphics={solver.visualize()} />
+  },
+  /** Download the same graphics shown in the debugger. */
+  getDownload(solver: DebuggerSolver): ReturnType<DebuggerSolver['visualize']> {
+    return solver.visualize()
+  },
+}
 
 export interface BoardPageProps {
   title: string
@@ -141,6 +160,7 @@ export function BoardPage({
       {ready && (
         <GenericSolverDebugger
           key={ready.revision}
+          customRenderer={renderer}
           solver={ready.solver as unknown as React.ComponentProps<typeof GenericSolverDebugger>['solver']}
         />
       )}

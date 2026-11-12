@@ -11,7 +11,7 @@ export default defineConfig({
       config: () => ({
         server: {
           host: '127.0.0.1',
-        open: 'http://127.0.0.1:5000',
+          open: 'http://127.0.0.1:5000',
           strictPort: true,
           cors: false,
           fs: { deny: ['**/models/**', '**/*.ibs', '**/*.circuit.json', '**/.env*', '**/.git/**'] },

@@ -83,38 +83,17 @@ function solverRequest(value: unknown): SolverRequest {
   paths.forEach(relativeFile)
   const args = JSON.stringify(request.args)
   const outputs = JSON.stringify(request.outputFiles)
-  if (request.solver === 'ngspice') {
-    if (
-      !(
-        (args === '["-n","-b","-r","waveform.raw","simulation.cir"]' && outputs === '["waveform.raw"]') ||
-        (args === '["-n","-b","simulation.cir"]' && outputs === '["waveform.dat"]')
-      ) ||
-      !Object.hasOwn(request.files, 'simulation.cir')
-    )
-      throw new Error('Expected pipeline ngspice batch arguments')
-    for (const body of Object.values(request.files)) {
-      let control = false
-      for (const line of body.split(/\r?\n/).map((line) => line.trim())) {
-        if (!line || line.startsWith('*')) continue
-        if (/^\.control$/i.test(line)) {
-          control = true
-        } else if (/^\.endc$/i.test(line)) {
-          control = false
-        } else if (
-          control &&
-          !/^(?:set (?:wr_singlescale|wr_vecnames|numdgt=17)|save all|tran [\d.eE+\s-]+|let probe\d+ = [vV\d()n.eE+\s-]+|wrdata waveform\.dat(?: probe\d+)+|quit)$/i.test(
-            line,
-          )
-        )
-          throw new Error('Unsupported ngspice control command')
-        else if (/^\.(?:include|inc|lib)\s/i.test(line)) {
-          const path = line.split(/\s+/)[1].replace(/^['"]|['"]$/g, '')
-          relativeFile(path)
-          if (!Object.hasOwn(request.files, path)) throw new Error('Include must name a supplied input file')
-        } else if (/^\.(?:sp|hdl|osdi|pre_osdi)\b/i.test(line)) throw new Error('External ngspice modules are disabled')
-      }
-    }
-  }
+  if (
+    args !== '["-n","-b","-r","waveform.raw","simulation.cir"]' ||
+    outputs !== '["waveform.raw"]' ||
+    JSON.stringify(Object.keys(request.files)) !== '["simulation.cir"]'
+  )
+    throw new Error('Expected a self-contained routed ngspice batch request')
+  // The routed compiler emits an inlined .save/.tran deck. Control scripts can
+  // invoke shells, change cwd or load external modules, so they are never IO.
+  if (/^\s*\.(?:control|include|inc|lib|sp|hdl|osdi|pre_osdi)\b/im.test(request.files['simulation.cir']))
+    throw new Error('External ngspice files, modules and control scripts are disabled')
+
   return request
 }
 
