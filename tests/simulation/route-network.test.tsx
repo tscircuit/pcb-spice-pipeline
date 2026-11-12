@@ -1,15 +1,19 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { RoutedPipelineSolver, RoutedBlockSolver } from '../../src/pipeline'
+import { RoutedAdmissionSolver, RoutedBlockSolver } from '../../src/pipeline'
 import { RouteNetworkSolver } from '../../src/simulation'
 import { routedProblem } from '../support/routed-fixture'
 
 test('network owns real ladder node samples, complete probe evidence and the executable deck', async (context) => {
   const input = await routedProblem(context)
   if (!input) return
-  const solver = new RoutedPipelineSolver(input)
-  solver.solve()
-  const block = solver.getSolver<RoutedBlockSolver>(solver.pipelineDef[1].solverName)!
+  const port = { progress: (): void => undefined, runSolver: async (): Promise<never> => {
+    throw new Error('network test must not run ngspice')
+  } }
+  const admission = new RoutedAdmissionSolver(input)
+  admission.solve()
+  const block = new RoutedBlockSolver({ ...admission.getOutput().value[0], context: port })
+  block.solveUntilStage('RouteTransientSolver')
   const network = block.getSolver<RouteNetworkSolver>(RouteNetworkSolver.name)!
   const output = network.getOutput().value
   assert.ok(network.iterations >= 3)

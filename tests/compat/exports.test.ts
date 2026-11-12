@@ -5,7 +5,7 @@ import * as node from '../../src/adapters'
 
 // Existing 3D exports plus the deliberate routed compiler/execution additions.
 // (Type-only exports are pinned by `pnpm typecheck` of the consumer tests, not here.)
-const ROOT = ['RouteCaptureSolver', 'RoutedPipelineSolver', 'executeRoutedDeck', 'generateReport', 'runPipeline', 'stackupFromCircuitJson', 'transmittedBits']
+const ROOT = ['RouteTransientSolver', 'RoutedPipelineSolver', 'generateReport', 'runPipeline', 'stackupFromCircuitJson', 'transmittedBits']
 const NODE = ['createNativeSolver', 'loadIbisSources', 'writePipelineOutput']
 
 test('root entry exports exactly today\'s runtime names, all functions', () => {

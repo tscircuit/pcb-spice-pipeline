@@ -107,13 +107,12 @@ stateDiagram-v2
   failed --> [*]
 ```
 
-The browser-safe routed compiler is also inspectable with solver-utils. It is a
+The browser-safe routed pipeline is inspectable with solver-utils. It is a
 candidate 2.5D path; `runPipeline` still runs the 3D workflow above in this PR.
-`RoutedPipelineSolver({ circuitJson, ibisSources, scopeDistanceMm: 1 }).solve()`
-compiles synchronously. `executeRoutedDeck` runs the compiled block asynchronously
-through `RunSolver`, and `RouteCaptureSolver` parses that completed result.
-The debugger currently shows **native not run**. Live WASM execution and async
-stepping are follow-up work; there is no recording replay loader.
+Construct `new RoutedPipelineSolver(problem, { runSolver, progress })` and await
+`solver.solveAsync()`. Synchronous stages can still be stepped up to stage 5;
+`RouteTransientSolver` awaits one live ngspice run and admits complete probe vectors.
+The debugger runs it in an isolated WASM worker with a 15 minute watchdog.
 
 <!-- routed-stages:start -->
 | # | Stage solver |
@@ -123,7 +122,7 @@ stepping are follow-up work; there is no recording replay loader.
 | 2 | RouteFieldsSolver |
 | 3 | RouteBindingsSolver |
 | 4 | RouteNetworkSolver |
-| 5 | RouteCaptureSolver |
+| 5 | RouteTransientSolver |
 
 ```mermaid
 flowchart LR
@@ -132,14 +131,13 @@ flowchart LR
   s2["RouteFieldsSolver"]
   s3["RouteBindingsSolver"]
   s4["RouteNetworkSolver"]
-  s5["RouteCaptureSolver"]
+  s5["RouteTransientSolver"]
   s0 --> s1
   s1 --> s2
   s2 --> s3
   s3 --> s4
   s4 --> s5
-  s4 -. "headless caller, async RunSolver" .-> native[executeRoutedDeck]
-  native -. "completed result" .-> s5
+  s5 <-->|"await RunSolver"| engine["native or worker WASM ngspice"]
   classDef root fill:#dbeafe
 ```
 
@@ -150,14 +148,14 @@ stateDiagram-v2
   RouteSectionsSolver --> RouteFieldsSolver
   RouteFieldsSolver --> RouteBindingsSolver
   RouteBindingsSolver --> RouteNetworkSolver
-  RouteNetworkSolver --> RouteCaptureSolver
-  RouteCaptureSolver --> [*]
+  RouteNetworkSolver --> RouteTransientSolver
+  RouteTransientSolver --> [*]
   RoutedAdmissionSolver --> failed
   RouteSectionsSolver --> failed
   RouteFieldsSolver --> failed
   RouteBindingsSolver --> failed
   RouteNetworkSolver --> failed
-  RouteCaptureSolver --> failed
+  RouteTransientSolver --> failed
   failed --> [*]
 ```
 <!-- routed-stages:end -->

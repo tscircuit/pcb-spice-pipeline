@@ -2,31 +2,37 @@
 
 Run `pnpm install`, then `pnpm routed:debugger` and open the printed localhost URL.
 `pnpm exec vite build examples/routed --outDir ../../.cache/routed-debugger` checks
-the browser bundle without a server. The runner uses Vite, as solver-utils does,
-and the build writes only `.cache/`.
-This branch still needs the sibling RFC Circuit JSON/Core/Props builds described
-in the architecture notes until those packages are released.
+the browser bundle. The runner and worker use Vite, as solver-utils does.
+This branch needs the sibling RFC Circuit JSON/Core/Props builds described in
+architecture notes until those packages are released.
 
 Select the two-trace TSX demo and choose your local `sn74lvc1g04.ibs` file. No vendor
-bytes are included in the repository. Inspect/step through the six stages in
-GenericSolverDebugger. The waveform stage says **native not run**.
+bytes are included. Inspect/step through the six stages in GenericSolverDebugger.
+Stage 5 awaits one live ngspice WASM transient, then draws actual probe waveforms.
+The main thread stays available; status reports engine startup and elapsed wall
+time. Every run has a 15 minute watchdog that terminates its worker. Changing
+inputs or unmounting the debugger cancels the old worker.
 
-For DDR3, choose the real physical board JSON and local `sprm552c.ibs` and
-`W631GG6MB-12.ibs`. The board must be the 1.2 mm eight-layer board. The loader renders
-24 addr/cmd declarations from TSX and remaps declaration identities onto that board;
-it preserves the physical records. Files remain in the browser. Changing board or
-models remounts the solver. No recording replay or synthetic waveform is provided.
+For DDR3, choose the real 1.2 mm eight-layer physical board JSON and local
+`sprm552c.ibs` and `W631GG6MB-12.ibs`. The loader renders 24 addr/cmd declarations
+from TSX and preserves physical records. Files remain in the browser. Full DDR3
+WASM transients are unverified and may need 11–15 minutes. No full DDR transient
+is run by the tests.
 
-For headless execution, solve `RoutedPipelineSolver`, take a block's `compiled`
-output and await `executeRoutedDeck(ctx, compiled, scope)`. Pass its `value` to
-`new RouteCaptureSolver({ compiled, execution: result.value, artifactPrefix })`.
-The execution shell serializes requests. The native adapter sets OMP_NUM_THREADS=1;
-use a short timeout for local experiments. This is candidate evidence, without
-independent convergence or electromagnetic qualification.
+For headless execution, inject `createNativeSolver({ timeoutMs: 10_000 })` from
+`@tscircuit/signal-integrity-pipeline/node` and await `solver.solveAsync()`.
+Native processes are serialized across adapter instances and use OMP_NUM_THREADS=1.
+Stage 5 has no recording/replay input or successful not-run state. Completion is
+candidate evidence without independent convergence qualification.
 
-The test suite skips vendor-dependent tests explicitly when local files are
-unavailable. Opt into the bounded native two-trace test with `SI_NATIVE_TESTS=1`
-and `IBIS_MODEL_DIR`; it uses a four-nanosecond deck and a ten-second process limit.
+The browser adapter is exported from `@tscircuit/signal-integrity-pipeline/browser`.
+It uses npm `eecircuit-engine@1.9.0` (ngspice 45.2), the published engine tested by
+the spike. The worker must be bundled by a tool supporting `new Worker(new URL(...,
+import.meta.url))`, such as Vite. Async debugger stepping is pinned to solver-utils
+PR #62 and must switch to a released version once that PR ships.
+
+Opt into bounded two-trace native/old-deck/WASM comparisons with `SI_NATIVE_TESTS=1`
+and `IBIS_MODEL_DIR`. Vendor-dependent tests explicitly skip without local files.
 
 To render every stage headlessly, run `bun scripts/render-routed-stages.tsx` with
 `IBIS_MODEL_DIR` pointing at local vendor files. Set `SI_STAGE_VISUALS_DIR` for the

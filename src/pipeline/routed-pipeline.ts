@@ -1,9 +1,10 @@
 import { BaseSolver, BasePipelineSolver, definePipelineStep } from '@tscircuit/solver-utils'
 import type { PipelineStep } from '@tscircuit/solver-utils'
+import type { SolverContext } from '../solver'
 import type { GraphicsObject } from 'graphics-debug'
 import { RouteSectionsSolver, routeBoardDrawing, routeText } from '../board'
 import { RouteFieldsSolver } from '../extraction'
-import { RouteBindingsSolver, RouteNetworkSolver, RouteCaptureSolver, type RoutedDeck, type RoutedCapture } from '../simulation'
+import { RouteBindingsSolver, RouteNetworkSolver, RouteTransientSolver, type RoutedDeck, type RoutedCapture } from '../simulation'
 import { ArtifactLedger, rootScope, snapshot, type Produced, type FileMap } from '../kernel'
 import { RoutedAdmissionSolver, type RoutedProblem, type RoutedBlockPlan } from './routed-admission'
 
@@ -19,14 +20,14 @@ function completed<I, S extends BaseSolver>(pipeline: BasePipelineSolver<unknown
 export const routedStages = [
   definePipelineStep('RoutedAdmissionSolver', RoutedAdmissionSolver, (p: RoutedPipelineSolver) => [p.inputProblem], {
     onSolved: (p: RoutedPipelineSolver): void => {
-      for (const plan of completed(p, RoutedAdmissionSolver).value) p.pipelineDef.push(definePipelineStep(`block:${plan.id}`, RoutedBlockSolver, () => [plan]))
+      for (const plan of completed(p, RoutedAdmissionSolver).value) p.pipelineDef.push(definePipelineStep(`block:${plan.id}`, RoutedBlockSolver, () => [{ ...plan, context: p.context }]))
     },
   }),
   definePipelineStep('RouteSectionsSolver', RouteSectionsSolver, (p: RoutedBlockSolver) => [p.inputProblem.sections]),
   definePipelineStep('RouteFieldsSolver', RouteFieldsSolver, (p: RoutedBlockSolver) => [{ geometry: completed(p, RouteSectionsSolver).value.geometry, circuitJson: p.inputProblem.sections.circuitJson, scope: completed(p, RouteSectionsSolver).value.scope, maskThicknessMm: completed(p, RouteSectionsSolver).value.maskThicknessMm, materials: p.inputProblem.bindings.options.materials, artifactPrefix: p.inputProblem.sections.artifactPrefix }]),
   definePipelineStep('RouteBindingsSolver', RouteBindingsSolver, (p: RoutedBlockSolver) => [{ ...p.inputProblem.bindings, scope: completed(p, RouteSectionsSolver).value.scope }]),
   definePipelineStep('RouteNetworkSolver', RouteNetworkSolver, (p: RoutedBlockSolver) => [{ blockId: p.inputProblem.id, name: p.inputProblem.name, geometry: completed(p, RouteSectionsSolver).value.geometry, extracted: completed(p, RouteFieldsSolver).value, bindings: completed(p, RouteBindingsSolver).value, materials: completed(p, RouteFieldsSolver).value.materials, options: p.inputProblem.bindings.options, warnings: p.inputProblem.warnings, artifactPrefix: p.inputProblem.sections.artifactPrefix }]),
-  definePipelineStep('RouteCaptureSolver', RouteCaptureSolver, (p: RoutedBlockSolver) => [{ compiled: completed(p, RouteNetworkSolver).value, artifactPrefix: p.inputProblem.sections.artifactPrefix }]),
+  definePipelineStep('RouteTransientSolver', RouteTransientSolver, (p: RoutedBlockSolver) => [{ compiled: completed(p, RouteNetworkSolver).value, artifactPrefix: p.inputProblem.sections.artifactPrefix, context: p.inputProblem.context }]),
 ] as const satisfies readonly PipelineStep<BaseSolver>[]
 
 export interface RoutedBlockView {
@@ -42,12 +43,14 @@ export interface RoutedInspection {
 }
 
 /** Per-block nested pipeline; immutable values are handed directly between domain stages. */
-export class RoutedBlockSolver extends BasePipelineSolver<RoutedBlockPlan> {
+export class RoutedBlockSolver extends BasePipelineSolver<RoutedBlockPlan & { context: SolverContext }> {
   override pipelineDef: PipelineStep<BaseSolver>[] = routedStages.slice(1)
+  /** Keep the execution port outside the immutable domain plan. */
+  constructor(input: RoutedBlockPlan & { context: SolverContext }) { super(input) }
   /** Completion aggregates stage artifacts; only the root owns a ledger. */
   override getOutput(): Produced<RoutedBlockView> {
     if (!this.solved) throw new Error('Routed block is incomplete')
-    return { value: snapshot({ id: this.inputProblem.id, name: this.inputProblem.name, compiled: completed(this, RouteNetworkSolver).value, capture: completed(this, RouteCaptureSolver).value }), artifacts: this.pipelineDef.flatMap(stage => this.getStageOutput<Produced<unknown>>(stage.solverName)!.artifacts) }
+    return { value: snapshot({ id: this.inputProblem.id, name: this.inputProblem.name, compiled: completed(this, RouteNetworkSolver).value, capture: completed(this, RouteTransientSolver).value }), artifacts: this.pipelineDef.flatMap(stage => this.getStageOutput<Produced<unknown>>(stage.solverName)!.artifacts) }
   }
   /** Completed atlas uses one board view plus fields and capture, preserving foreground polygons. */
   override visualize(): GraphicsObject {
@@ -64,15 +67,15 @@ export class RoutedBlockSolver extends BasePipelineSolver<RoutedBlockPlan> {
     }
   }
   /** Original admitted block input. */
-  override getConstructorParams(): [RoutedBlockPlan] { return [this.inputProblem] }
+  override getConstructorParams(): [RoutedBlockPlan & { context: SolverContext }] { return [this.inputProblem] }
 }
 
-/** Browser-safe synchronous compiler; native execution remains outside its step loop. */
+/** Browser-safe stages followed by one awaited live transient per block. */
 export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
   override pipelineDef: PipelineStep<BaseSolver>[] = [routedStages[0]]
   private output?: RoutedInspection
   /** Normalize exact UTF-8 assets for constructor downloads, without decoding lossy bytes. */
-  constructor(input: RoutedProblem) {
+  constructor(input: RoutedProblem, readonly context: SolverContext) {
     const ibisSources = Object.fromEntries(Object.entries(input.ibisSources).map(([name, bytes]) => [name, typeof bytes === 'string' ? bytes : new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)]))
     super(snapshot({ ...input, ibisSources }))
   }
@@ -93,7 +96,7 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
     return this.output
   }
   /** Serializable exact source input, without solver state or native capabilities. */
-  override getConstructorParams(): [RoutedProblem] { return [this.inputProblem] }
+  override getConstructorParams(): [RoutedProblem, SolverContext] { return [this.inputProblem, this.context] }
   /** Physical board context before any work has run. */
   override initialVisualize(): GraphicsObject { return routeBoardDrawing(this.inputProblem.circuitJson, undefined, 'Routed 2.5D compiler') }
   /** Keep the completed debugger atlas free of overlapping admission/section/binding labels. */

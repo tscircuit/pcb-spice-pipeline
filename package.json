@@ -22,6 +22,10 @@
     "./node": {
       "types": "./dist/adapters/index.d.ts",
       "import": "./dist/adapters/index.js"
+    },
+    "./browser": {
+      "types": "./dist/adapters/browser/index.d.ts",
+      "import": "./dist/adapters/browser/index.js"
     }
   },
   "files": [
@@ -46,12 +50,13 @@
   "dependencies": {
     "@noble/hashes": "1.8.0",
     "@tscircuit/ibis-to-spice": "https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317",
-    "@tscircuit/solver-utils": "0.0.25",
+    "@tscircuit/solver-utils": "https://pkg.pr.new/tscircuit/solver-utils/@tscircuit/solver-utils@127f17012c7c391005254993864b26801f418249",
     "clipper2-ts": "2.0.1-18",
     "earcut": "3.2.4",
     "format-si-unit": "0.0.12",
     "graphics-debug": "0.0.101",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "eecircuit-engine": "1.9.0"
   },
   "devDependencies": {
     "@resvg/resvg-js": "2.6.2",

@@ -144,7 +144,7 @@ Regenerate with `pnpm exec tsx scripts/document-routed-stages.ts`.
 | 2 | RouteFieldsSolver |
 | 3 | RouteBindingsSolver |
 | 4 | RouteNetworkSolver |
-| 5 | RouteCaptureSolver |
+| 5 | RouteTransientSolver |
 
 ```mermaid
 flowchart LR
@@ -153,14 +153,13 @@ flowchart LR
   s2["RouteFieldsSolver"]
   s3["RouteBindingsSolver"]
   s4["RouteNetworkSolver"]
-  s5["RouteCaptureSolver"]
+  s5["RouteTransientSolver"]
   s0 --> s1
   s1 --> s2
   s2 --> s3
   s3 --> s4
   s4 --> s5
-  s4 -. "headless caller, async RunSolver" .-> native[executeRoutedDeck]
-  native -. "completed result" .-> s5
+  s5 <-->|"await RunSolver"| engine["native or worker WASM ngspice"]
   classDef root fill:#dbeafe
 ```
 
@@ -171,14 +170,14 @@ stateDiagram-v2
   RouteSectionsSolver --> RouteFieldsSolver
   RouteFieldsSolver --> RouteBindingsSolver
   RouteBindingsSolver --> RouteNetworkSolver
-  RouteNetworkSolver --> RouteCaptureSolver
-  RouteCaptureSolver --> [*]
+  RouteNetworkSolver --> RouteTransientSolver
+  RouteTransientSolver --> [*]
   RoutedAdmissionSolver --> failed
   RouteSectionsSolver --> failed
   RouteFieldsSolver --> failed
   RouteBindingsSolver --> failed
   RouteNetworkSolver --> failed
-  RouteCaptureSolver --> failed
+  RouteTransientSolver --> failed
   failed --> [*]
 ```
 <!-- routed-stages:end -->
@@ -201,11 +200,21 @@ and waveform x=0..220/y=120..200, with PCB y and stack z positive upward. Neighb
 copper and waveform drawings are capped for display only; numerical inputs and
 native samples are retained in full.
 
-`executeRoutedDeck(ctx, deck, scope)` serializes requests and calls `solver.invoke`
-outside the step loop. The native adapter uses OMP_NUM_THREADS=1. Stage 5 accepts
-its completed value directly and checks diagnostics, finite samples and full
-recording coverage. Missing execution yields `not-run`, without any fabricated
-waveform. Native completion remains candidate evidence, without the RFC numerical
-acceptance claim. There is no browser recording format or replay loader. Later
-PRs add async solver-utils stepping and a WASM `RunSolver` for live browser execution.
-`runPipeline` and the 3D path are unchanged until PR 2 removes 3D.
+`RouteTransientSolver` awaits one `solver.invoke` call in `_stepAsync`. The same
+self-contained `.save` + `.tran` deck keeps KLU and Gear in native batch ngspice
+and WASM. Native batch emits ASCII raw vectors (`SPICE_ASCIIRAWFILE=1`); the WASM
+engine API emits that same real-vector transport. Diagnostics, finite samples,
+start and final simulated time are checked before publishing a capture. Errors
+leave the stage failed without partial output. Native adapter instances share a
+process queue and set OMP_NUM_THREADS=1.
+
+The `/browser` adapter creates one Web Worker per run, reports elapsed wall time
+while the engine runs, and terminates the worker on completion, failure, timeout
+or cancellation. It pins npm `eecircuit-engine@1.9.0` (ngspice 45.2), matching the
+spike and avoiding an unpublished CDN-only wrapper. The engine does not expose
+simulated-time progress; the host heartbeat reports elapsed time and the limit.
+Large DDR3 transients remain unverified. Completion is candidate evidence without
+independent convergence qualification. `runPipeline` and the 3D path are unchanged.
+
+Async stepping uses solver-utils PR #62 at `127f17012c7c391005254993864b26801f418249`
+through an integrity-locked pkg.pr.new URL. Switch to a release after #62 ships.
