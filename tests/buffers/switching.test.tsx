@@ -99,6 +99,15 @@ test('TSX 800 Mbps driver accepts a settled acquisition tail longer than its 1.2
   assert.equal(knots.at(-1)![0], 5e-9)
   assert.ok(interpolate(knots, 1e-9) > .99)
   assert.ok(interpolate(knots, 2.25e-9) < .01)
+  // A femtosecond hold before each table forced the routed DDR deck below ngspice's minimum step.
+  const table = switchingWeights(parseIbis(source).getBuffer('driver'), 'typical', 'rising')
+  const resolution = Math.min(...table.slice(1).map((row, i) => row[0] - table[i][0]))
+  for (const label of ['KU', 'KD']) {
+    const column = points(converted.source, label)
+    assert.ok(column.every((row, i) => i === 0 || row[0] - column[i - 1][0] >= resolution * (1 - 1e-9)), `${label} has no stitch interval finer than the IBIS table`)
+    const edge = column.findIndex(row => Math.abs(row[0] - 1.25e-9) < 1e-18)
+    assert.equal(column[edge][1], column[edge - 1][1], `${label} falling edge starts from the held coefficient`)
+  }
   const repeated = convert(run('1111100000', '0.25ns'))
   assert.deepEqual(points(repeated.source, 'KU'), knots, 'identical bits never retrigger an edge')
   assert.throws(() => convert(run('10', '0.25ns')), /has not settled before the next edge/)
@@ -138,7 +147,8 @@ test('TSX 800 Mbps driver accepts a settled acquisition tail longer than its 1.2
   assert.ok(interpolate(points(shifted.source, 'KU'), .6e-9) > .99)
   const long = run('10', '5ns', '10ns')
   assert.equal(convert(long).metadata.switchingTails, undefined)
-  assert.deepEqual(points(convert(long).source, 'KU'), points(convertIbisModelToSpice(source, { ...long.definition, packagePolicy: 'omit' }, long.run).source, 'KU'))
+  const upstream = points(convertIbisModelToSpice(source, { ...long.definition, packagePolicy: 'omit' }, long.run).source, 'KU')
+  assert.deepEqual(points(convert(long).source, 'KU'), upstream.filter((row, i) => !(upstream[i + 1]?.[0] - row[0] < resolution / 2)), 'upstream knots without its femtosecond hold')
   assert.doesNotThrow(() => convert(run('10', '4ns', '8ns')), 'a settled table ending exactly at the next trigger is valid')
   const inversePolarity = source.replace('Polarity Non-Inverting', 'Polarity Inverting')
   const polarity = convert(run('10', '1.25ns'), inversePolarity)
