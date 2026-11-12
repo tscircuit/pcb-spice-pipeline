@@ -35,24 +35,24 @@ export class RouteEnergy {
 /** Stable SPICE precision, bounded far beyond board tolerances. */
 const number = (value: number): string => Number(value.toPrecision(12)).toString()
 
-/** Coupled series matrix: sensor-controlled mutual R or ordinary mutually coupled inductors. */
+/** Coupled series matrix: normalized reciprocal R multiport or mutually coupled inductors. */
 export function seriesEnergy(lines: string[], tag: string, before: string[], after: string[], matrix: RouteEnergy, kind: 'R' | 'L'): void {
   for (let i = 0; i < before.length; i++) {
     if (before[i] === after[i]) continue
     if (kind === 'R') {
-      if (before.length === 1) {
-        lines.push(`R${tag}${i} ${before[i]} ${after[i]} ${number((matrix.rows[i].get(i) ?? 0))}`)
+      const resistance = matrix.rows[i].get(i) ?? 0
+      const terms = matrix.entries(i).filter(([j, r]) => j !== i && before[j] !== after[j] && Math.abs(r) >= 1e-20)
+      if (!terms.length) {
+        lines.push(`R${tag}${i} ${before[i]} ${after[i]} ${number(resistance)}`)
         continue
       }
-      lines.push(`V${tag}${i} ${before[i]} ${tag}s${i} 0`, `R${tag}${i} ${tag}s${i} ${tag}r${i} ${number((matrix.rows[i].get(i) ?? 0))}`)
-      const terms = matrix.entries(i).flatMap(([j, r]) => j === i || before[j] === after[j] || Math.abs(r) < 1e-20 ? [] : [{ r, j }])
-      let current = `${tag}r${i}`
-      if (!terms.length) lines.push(`V${tag}O${i} ${current} ${after[i]} 0`)
-      for (const [k, term] of terms.entries()) {
-        const next = k === terms.length - 1 ? after[i] : `${tag}h${i}_${k}`
-        lines.push(`H${tag}${i}_${k} ${current} ${next} V${tag}${term.j} ${number(term.r)}`)
-        current = next
-      }
+      // x = sqrt(diag(R)) I; the auxiliary KCL is normalized R x = V/sqrt(diag(R)).
+      // Opposite G stamps are lossless gyrators. No tiny CCVS voltage differences or sensor currents.
+      const current = `${tag}r${i}`
+      const scale = 1 / Math.sqrt(resistance)
+      lines.push(`R${tag}${i} ${current} 0 1`, `G${tag}I${i} ${before[i]} ${after[i]} ${current} 0 ${number(scale)}`,
+        `G${tag}V${i} ${current} 0 ${before[i]} ${after[i]} ${number(-scale)}`)
+      for (const [j, mutual] of terms) lines.push(`G${tag}${i}_${j} ${current} 0 ${tag}r${j} 0 ${number(mutual / Math.sqrt(resistance * matrix.rows[j].get(j)!))}`)
     } else lines.push(`L${tag}${i} ${before[i]} ${after[i]} ${number((matrix.rows[i].get(i) ?? 0))}`)
   }
   if (kind === 'L') for (let i = 0; i < before.length; i++) for (const [j, mutual] of matrix.entries(i)) {

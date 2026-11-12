@@ -18,6 +18,33 @@ test('sparse series realization equals dense self and signed mutual coefficients
   assert.deepEqual(matrix.scaled(2).entries(0), [[0, 8e-9], [1, 2e-9]])
 })
 
+test('normalized reciprocal resistance obeys V = R I down to tiny Foster voltages', () => {
+  const matrix = [[4e-5, 1e-5, 0], [1e-5, 9e-5, -3e-5], [0, -3e-5, 16e-5]]
+  const currents = [2e-9, -1e-9, 3e-9]
+  const voltages = matrix.map(row => row.reduce((sum, r, j) => sum + r * currents[j], 0))
+  const lines: string[] = []
+  seriesEnergy(lines, 'T', ['a', 'b', 'c'], ['0', '0', '0'], energy(matrix), 'R')
+  // Independently evaluate every emitted R/G branch's KCL at the exact terminal solution.
+  const nodes = new Map(['a', 'b', 'c'].map((node, i) => [node, voltages[i]]))
+  nodes.set('0', 0)
+  currents.forEach((current, i) => nodes.set(`Tr${i}`, Math.sqrt(matrix[i][i]) * current))
+  const residual = new Map<string, number>()
+  for (const line of lines) {
+    const [name, a, b, c, d, gain] = line.split(' ')
+    assert.ok(/^[RG]/.test(name), 'no sensor or series CCVS branch unknowns at near-zero Foster voltage')
+    const current = name.startsWith('R') ? (nodes.get(a)! - nodes.get(b)!) / Number(c) : Number(gain) * (nodes.get(c)! - nodes.get(d)!)
+    residual.set(a, (residual.get(a) ?? 0) + current)
+    residual.set(b, (residual.get(b) ?? 0) - current)
+  }
+  for (const [i, node] of ['a', 'b', 'c'].entries()) {
+    assert.ok(Math.abs(residual.get(node)! / currents[i] - 1) < 1e-11)
+    assert.ok(Math.abs(residual.get(`Tr${i}`)!) < 1e-22)
+  }
+  const diagonal: string[] = []
+  seriesEnergy(diagonal, 'D', ['a', 'b'], ['c', 'd'], energy([[1e-4, 0], [0, 2e-4]]), 'R')
+  assert.deepEqual(diagonal, ['RD0 a c 0.0001', 'RD1 b d 0.0002'])
+})
+
 test('sparse Maxwell shunts preserve dense row sums, pair ordering and Foster loss', () => {
   const lines: string[] = []
   shuntEnergy(lines, 'T', ['a', 'b', 'c'], energy([[4e-12, -1e-12, 0], [-1e-12, 5e-12, -2e-12], [0, -2e-12, 6e-12]]))

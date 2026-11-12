@@ -17,7 +17,7 @@ import { renderCoreSignals } from '../support/core-render'
 import Differential from '../../examples/level1-differential/level1-differential'
 import type { GraphicsObject } from 'graphics-debug'
 
-test('TSX two-trace routed deck deliberately changes to declarative transient vectors', { skip: !process.env.IBIS_MODEL_DIR && 'Set IBIS_MODEL_DIR to local vendor sn74lvc1g04.ibs; vendor bytes are not committed' }, async () => {
+test('TSX two-trace routed deck pins normalized reciprocal resistance and declarative transient vectors', { skip: !process.env.IBIS_MODEL_DIR && 'Set IBIS_MODEL_DIR to local vendor sn74lvc1g04.ibs; vendor bytes are not committed' }, async () => {
   const circuit = await renderCoreSignals(<TwoTraceBoard bit-rate="400Mbps" duration-seconds={4e-9} />)
   const bytes = await readFile(`${process.env.IBIS_MODEL_DIR}/sn74lvc1g04.ibs`)
   assert.equal(sha256(bytes), '03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00', 'oracle uses the same vendor revision')
@@ -34,8 +34,8 @@ test('TSX two-trace routed deck deliberately changes to declarative transient ve
   assert.equal(result.evidence.geometry_wires, 2)
   assert.equal(result.evidence.sections, 1)
   // V8 and JavaScriptCore differ in the final digits of the unchanged BEM coefficients.
-  const expected = process.versions.bun ? '4419db05deeaad89a957f518bb9334987543fb33e89ead228ef7c954e4ebbbd2' : 'c63a3b089f0d51c211a7792cdeed9af6700f91643b081ff78f1458ee60631cb9'
-  assert.equal(Buffer.byteLength(result.deck), 22205)
+  const expected = process.versions.bun ? 'd8fa092bec3f490d6fa6f22e77ebc74a092d6e1e5a91e5887cc0c1dc76da925b' : '86f3adc7a50e6e217fb28f45ab170602fa32370ac7adfa360ffa89d017094577'
+  assert.equal(Buffer.byteLength(result.deck), 22999)
   assert.equal(sha256(result.deck), expected, 'full deck bytes, including vendor compilation and coupling, pinned per JS engine')
 })
 
@@ -120,7 +120,7 @@ test('default two-trace TSX deck retains the measured driver lead-in and capture
   solver.solveUntilStage('RouteTransientSolver')
   assert.equal(solver.stageOutput('RoutedAdmissionSolver').value[0].bindings.options.durationSeconds, 40e-9)
   const deck = solver.stageOutput('RouteNetworkSolver').value[0]
-  if (!process.versions.bun) assert.equal(sha256(deck.deck), '555f72a50ff66adda88251833e0d108825d8f13dbf3aa8b2f36b23e7cb77ee0a', 'default two-trace deck is byte-identical to the nested pipeline')
+  if (!process.versions.bun) assert.equal(sha256(deck.deck), '68a8dc638efe037ada2ee09f898cc9f0763a048611ef4d24574dfc0decdd0cf4', 'default two-trace deck pins the deliberate normalized resistance realization')
   const values = /^VKU0 .*PWL\((.+)\)$/m.exec(deck.deck)![1].split(/\s+/).map(Number)
   const weights = values.filter((_, i) => i % 2 === 0).map((time, i) => [time, values[2 * i + 1]])
   // The old 2.5 ns trigger plus preserved lead-in fell outside its 4 ns capture.
