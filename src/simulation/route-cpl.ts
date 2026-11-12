@@ -23,7 +23,7 @@ export function* routeCplSteps(extracted: ExtractedRoutes, endpoint: (wire: Rout
   const result: RouteLadder = { lines: [], cells: 0, maximumDelaySeconds: 0, wireNodes: new Map(), model: 'research CPL/LTRA: DC R, extracted L/C, G=0', warnings: [
     'Research CPL/LTRA omits skin resistance and dielectric loss/dispersion; comparison with the causal-loss ladder changes the physical model. Not accuracy-qualified.',
     'CPL has at most eight active conductors; shorter sections can force sub-picosecond steps despite integer-picosecond internal history. Boundary-only oblique placement is unqualified.',
-    'Distributed evidence cells counts conductor sections, not lumped ladder cells. Bends retain physical endpoint continuity; existing bend excess omission and lumped vias/pads remain.',
+    'Distributed evidence cells and maximum_cell_delay_s describe conductor sections and maximum section delay. Bends retain physical endpoint continuity; existing bend excess omission and lumped vias/pads remain.',
   ] }
   for (const [index, slice] of extracted.slices.entries()) {
     const grounded = slice.wires.flatMap((wire, i) => endpoint(wire, routePosition(wire, slice.start)) === '0' && endpoint(wire, routePosition(wire, slice.end)) === '0' ? [i] : [])

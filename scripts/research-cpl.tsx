@@ -29,7 +29,7 @@ const root = new RoutedPipelineSolver({ circuitJson, ibisSources, scopeDistanceM
   progress: (): void => undefined,
   runSolver: async (): Promise<never> => { throw new Error('Research compiler must never spawn ngspice') },
 })
-root.solveUntilStage('RouteNetworkSolver')
+root.solveUntilStage('RouteTransientSolver')
 const stage = root.getSolver<RoutedStageSolver<RouteNetworkInput, RoutedDeck>>('RouteNetworkSolver')!
 const input = stage.getConstructorParams()[0][0]
 const summary: Record<string, unknown> = { name, extractedSlices: input.extracted.slices.length, maximumConductors: Math.max(...input.extracted.slices.map(slice => slice.wires.length)), conductorHistogram: input.extracted.slices.reduce<Record<string, number>>((counts, slice) => ({ ...counts, [slice.wires.length]: (counts[slice.wires.length] ?? 0) + 1 }), {}) }

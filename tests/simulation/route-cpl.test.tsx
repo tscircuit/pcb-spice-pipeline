@@ -31,6 +31,15 @@ test('real two-trace TSX emits packed Maxwell CPL and chains a nonuniform bounda
   assert.ok(result.value.warnings!.some(warning => warning.includes('omits skin')))
   const invalid = routeCplSteps({ ...extracted, slices: [{ ...slice, wires: Array(9).fill(slice.wires[0]) }] }, endpoint, 1e-9)
   assert.throws(() => invalid.next(), /at most 8/)
+  const reduced = routeCplSteps({ ...extracted, slices: [slice] }, (wire, point) => wire.id === slice.wires[1].id ? '0' : endpoint(wire, point), 1e-9)
+  let rail = reduced.next()
+  while (!rail.done) rail = reduced.next()
+  assert.equal(rail.value.cells, 1)
+  const model = rail.value.lines.find(line => line.startsWith('.model'))!
+  assert.match(model, /LTRA R=\S+ L=\S+ G=0 C=\S+ LEN=/)
+  const inductance = Number(/ L=(\S+)/.exec(model)![1])
+  const expected = slice.line.L[0][0] - slice.line.L[0][1] ** 2 / slice.line.L[1][1]
+  assert.ok(Math.abs(inductance / expected - 1) < 1e-10, 'grounded rail current reduces the series energy')
 })
 
 test('alternate compiler retains actual IBIS, probes and lumped transitions without changing default deck', async () => {
@@ -40,6 +49,7 @@ test('alternate compiler retains actual IBIS, probes and lumped transitions with
   const original = root.stageOutput('RouteNetworkSolver').value[0]
   const compiled = compileRouteCpl(input).value
   assert.deepEqual(compiled.probes, original.probes)
+  assert.deepEqual(compiled.evidence.transitions, original.evidence.transitions)
   assert.match(compiled.deck, /\.model ROUTECPL\d+ CPL/)
   assert.match(compiled.deck, /XIBIS0/)
   assert.ok(compiled.deck.length < original.deck.length)
