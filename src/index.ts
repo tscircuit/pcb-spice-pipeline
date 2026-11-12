@@ -12,4 +12,4 @@ export { transmittedBits } from './simulation'
 
 export { RoutedPipelineSolver } from './pipeline'
 export type { RoutedProblem, RoutedInspection } from './pipeline'
-export { executeRoutedDeck, RouteCaptureSolver } from './simulation'
+export { RouteTransientSolver } from './simulation'

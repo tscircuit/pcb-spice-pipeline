@@ -1,7 +1,6 @@
 import type { CircuitJson, CopperScope, LaneMapping, SectionGeometry } from '../board'
 import type { CompiledBuffer, IbisSources } from '../buffers'
 import type { ExtractedRoutes, RouteMaterials, RouteReturn } from '../extraction'
-import type { AcceptedRun } from '../solver'
 import type { SimulationModeling, SimulationPlan, VoltageProbePlan } from './types'
 
 export interface RoutedCompileOptions {
@@ -56,12 +55,8 @@ export interface RoutedDeck {
   stepSeconds: number
   evidence: Record<string, unknown>
 }
-/** Result from the existing execution port; no browser replay format. */
-export interface RoutedExecution {
-  requestSha256: string
-  run: AcceptedRun<'waveform.dat'>
-}
-export type RoutedCapture = { kind: 'not-run' } | {
+/** A completed live transient; failures never expose a partial capture. */
+export interface RoutedCapture {
   kind: 'completed'
   qualification: 'candidate-unqualified'
   timestampsSeconds: number[]

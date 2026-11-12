@@ -15,8 +15,8 @@ importers:
         specifier: https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317
         version: https://api.github.com/repos/tscircuit/ibis-to-spice/tarball/ad1ec9e640a92a4d370fc76acbbd8db245563317
       '@tscircuit/solver-utils':
-        specifier: 0.0.25
-        version: 0.0.25(graphics-debug@0.0.101(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(react@19.2.4)(typescript@5.9.3)
+        specifier: https://pkg.pr.new/tscircuit/solver-utils/@tscircuit/solver-utils@127f17012c7c391005254993864b26801f418249
+        version: https://pkg.pr.new/tscircuit/solver-utils/@tscircuit/solver-utils@127f17012c7c391005254993864b26801f418249(graphics-debug@0.0.101(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(react@19.2.4)(typescript@5.9.3)
       clipper2-ts:
         specifier: 2.0.1-18
         version: 2.0.1-18
@@ -928,8 +928,9 @@ packages:
       graphics-debug: '*'
       typescript: ^5
 
-  '@tscircuit/solver-utils@0.0.25':
-    resolution: {integrity: sha512-7Y1CoX/hNOe7fAQMifXKKTdPVnkkNONbWAiX6RcsGlk7lEJKuWd+0iYJ/AVY6yTYXM6eAnA8KQQMu3sUdjRw5g==}
+  '@tscircuit/solver-utils@https://pkg.pr.new/tscircuit/solver-utils/@tscircuit/solver-utils@127f17012c7c391005254993864b26801f418249':
+    resolution: {integrity: sha512-cIgByXYWB7kZur0gpOW1JAwki0NENDJv0LvKZgag1PdCLTozlWZajnyfk/3OtKcazHEzRk5D5/pIYhDeGiHRig==, tarball: https://pkg.pr.new/tscircuit/solver-utils/@tscircuit/solver-utils@127f17012c7c391005254993864b26801f418249}
+    version: 0.0.25
     peerDependencies:
       graphics-debug: '*'
       react: '*'
@@ -2686,7 +2687,7 @@ snapshots:
       graphics-debug: 0.0.99(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.10)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
       typescript: 5.9.3
 
-  '@tscircuit/solver-utils@0.0.25(graphics-debug@0.0.101(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(react@19.2.4)(typescript@5.9.3)':
+  '@tscircuit/solver-utils@https://pkg.pr.new/tscircuit/solver-utils/@tscircuit/solver-utils@127f17012c7c391005254993864b26801f418249(graphics-debug@0.0.101(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(react@19.2.4)(typescript@5.9.3)':
     dependencies:
       graphics-debug: 0.0.101(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
       typescript: 5.9.3

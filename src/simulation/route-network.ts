@@ -5,7 +5,7 @@ import { rootScope, snapshot, sha256, type Produced } from '../kernel'
 import { namespaceSpice } from './netlist'
 import { branchSaves } from './branch-saves'
 import { routedControl } from './routed-control'
-import { routedRequest } from './route-capture'
+import { routedRequest } from './route-transient'
 import { routeLadderSteps, type RouteLadder } from './route-ladder'
 import { closestRoutePoints } from '../extraction'
 import { routeOblique } from './route-oblique'
@@ -98,9 +98,9 @@ export class RouteNetworkSolver extends BaseSolver {
     for (const probe of [...plan.probes].filter(probe => probe.referenceNode !== '0')) {
       for (const [suffix, signalNode, signalSourceId] of [['P', probe.signalNode, probe.signalSourceId], ['N', probe.referenceNode, probe.referenceSourceId]] as const) plan.probes.push({ ...probe, name: `${probe.name}_${suffix}`, simulationVoltageProbeId: `${probe.simulationVoltageProbeId}_${suffix}`, column: plan.probes.length + 1, signalNode, signalSourceId: signalSourceId!, referenceNode: '0', referenceSourceId: bindings.groundSourcePortId })
     }
-    // Only save receiver nodes and behavioural-source branch dependencies; vectors are released after wrdata.
+    // Only save receiver nodes and behavioural-source branch dependencies; the engine exposes the resulting vectors.
     const save = [...new Set(plan.probes.flatMap(probe => [probe.signalNode, probe.referenceNode]).filter(node => node !== '0'))].map(node => `v(${node})`).concat(saved).join(' ')
-    lines.push(...routedControl(plan.probes, save, options.stepSeconds, options.durationSeconds))
+    lines.push(...routedControl(save, options.stepSeconds, options.durationSeconds))
     const ground = connectedSourceIds(bindings.circuitJson, bindings.groundSourcePortId)
     const powerReferences = geometry.slices.flatMap(slice => slice.references.filter(plane => !ground.has(plane.net)).map(plane => ({ plane, traces: slice.wires.map(wire => wire.trace), start: slice.start, end: slice.end })))
     const mapped = new Set(models.flatMap(model => Object.values(model.spicePinMapping)))

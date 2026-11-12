@@ -1,39 +1,40 @@
 # Routed stage debugger
 
-Run `pnpm install`, then `pnpm routed:debugger` and open the printed localhost URL.
-`pnpm exec vite build examples/routed --outDir ../../.cache/routed-debugger` checks
-the browser bundle without a server. The runner uses Vite, as solver-utils does,
-and the build writes only `.cache/`.
-This branch still needs the sibling RFC Circuit JSON/Core/Props builds described
-in the architecture notes until those packages are released.
+The two-trace and DDR3 TSX boards are inputs to `RoutedPipelineSolver`.
+Stage 5 awaits a live local ngspice transient and draws actual probe waveforms.
+The demo uses 50 Mbps over 40 ns so the vendor transition can settle. The old
+400 Mbps / 4 ns window ended before the vendor waveform lead-in: its logical edge
+was at 2.5 ns, but the DATA receiver first crossed 1.65 V at about 5.625 ns in a
+single-edge diagnostic. Driver power and probe mapping were correct. The scheduler
+preserves measured IBIS lead-in; it does not force the analog output to switch at
+the logical bit boundary. A longer repeated 400 Mbps pattern is rejected because
+this selected model's active transitions overlap.
 
-Select the two-trace TSX demo and choose your local `sn74lvc1g04.ibs` file. No vendor
-bytes are included in the repository. Inspect/step through the six stages in
-GenericSolverDebugger. The waveform stage says **native not run**.
+Quiet channels intentionally have two probes: RX far at the receiver and TX near
+at the quiet driver. The drawing labels those endpoints; these are separate
+physical nodes, not duplicate measurements.
+For DDR3, supply the real 1.2 mm eight-layer physical board JSON and local
+`sprm552c.ibs` and `W631GG6MB-12.ibs`. The loader renders 24 addr/cmd declarations
+from TSX and preserves physical records. No full DDR transient is run by the tests.
 
-For DDR3, choose the real physical board JSON and local `sprm552c.ibs` and
-`W631GG6MB-12.ibs`. The board must be the 1.2 mm eight-layer board. The loader renders
-24 addr/cmd declarations from TSX and remaps declaration identities onto that board;
-it preserves the physical records. Files remain in the browser. Changing board or
-models remounts the solver. No recording replay or synthetic waveform is provided.
+For headless execution, inject `createNativeSolver({ timeoutMs: 10_000 })` from
+`@tscircuit/signal-integrity-pipeline/node` and await `solver.solveAsync()`.
+Native processes are serialized across adapter instances and use OMP_NUM_THREADS=1.
+Stage 5 has no recording/replay input or successful not-run state. Completion is
+candidate evidence without independent convergence qualification.
 
-For headless execution, solve `RoutedPipelineSolver`, take a block's `compiled`
-output and await `executeRoutedDeck(ctx, compiled, scope)`. Pass its `value` to
-`new RouteCaptureSolver({ compiled, execution: result.value, artifactPrefix })`.
-The execution shell serializes requests. The native adapter sets OMP_NUM_THREADS=1;
-use a short timeout for local experiments. This is candidate evidence, without
-independent convergence or electromagnetic qualification.
-
-The test suite skips vendor-dependent tests explicitly when local files are
-unavailable. Opt into the bounded native two-trace test with `SI_NATIVE_TESTS=1`
-and `IBIS_MODEL_DIR`; it uses a four-nanosecond deck and a ten-second process limit.
+Async debugger stepping is pinned to solver-utils PR #62 and must switch to a
+released version once that PR ships. Opt into the bounded two-trace old/new native
+comparison with `SI_NATIVE_TESTS=1` and `IBIS_MODEL_DIR`. Vendor-dependent tests
+explicitly skip without local files.
 
 To render every stage headlessly, run `bun scripts/render-routed-stages.tsx` with
 `IBIS_MODEL_DIR` pointing at local vendor files. Set `SI_STAGE_VISUALS_DIR` for the
 uncommitted SVG/PNG output directory and `SI_DDR3_BOARD` for the real DDR3 board
 JSON. Without that board the script explicitly reports DDR3 as unavailable. Add
-`--native-two-trace` for one serial, ten-second-bounded ngspice run and a second
-capture image using actual results; otherwise capture shows **native not run**.
+`--native-two-trace` for one serial, ten-second-bounded 40 ns / 50 Mbps ngspice run and a second
+transient image using actual results; otherwise the script stops before stage 5
+and draws a pending panel. DDR3 transient execution is never enabled by this flag.
 `manifest.json` records render paths, display object counts and exact deck hashes.
 
 Visual regression tests use the actual two-trace TSX with original synthetic IBIS
@@ -42,7 +43,8 @@ fills, geometry and visible labels with object labels disabled. After inspecting
 the PNGs, regenerate these snapshots with `UPDATE_ROUTED_VISUALS=1 bun test`
 followed by the stage test filenames. The pure `routeWaveformDrawing` export takes
 only a capture, duration and optional error, so the live transient solver can reuse
-it without depending on `RouteCaptureSolver` internals.
+it directly. The visual fixture uses synthetic engine responses explicitly for
+drawing tests, separate from the real native comparison.
 
 If a real board reaches an existing compiler admission limit, the render script
 keeps the completed stages, renders the rejected stage with its reason, and emits

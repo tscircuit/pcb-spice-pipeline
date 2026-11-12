@@ -29,8 +29,8 @@ test('waveform SVG snapshot includes axes, explicit limits, probe key and purple
   for (const point of drawing.lines!.flatMap((line) => line.points)) assert.ok(point.x >= 0 && point.x <= 220 && point.y >= 120 && point.y <= 200)
 })
 
-test('missing execution and failed result are honest banners with no invented probe traces', () => {
-  assertRouteVisual(routeWaveformDrawing(undefined, 1e-9), 'simulation', 'waveform-visual-not-run')
+test('pending and failed results are honest banners with no invented probe traces', () => {
+  assertRouteVisual(routeWaveformDrawing(undefined, 1e-9), 'simulation', 'waveform-visual-pending')
   const failed = routeWaveformDrawing(undefined, 1e-9, 'native timeout')
   assertRouteVisual(failed, 'simulation', 'waveform-visual-failed')
   assert.ok(failed.texts!.some((text) => text.color === '#dc2626' && text.text.includes('native timeout')))

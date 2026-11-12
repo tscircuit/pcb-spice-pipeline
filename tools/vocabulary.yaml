@@ -18,6 +18,10 @@
 threshold: 85
 
 domain:
+  transient: a circuit simulation that follows voltage and current through time
+  vector: one named sequence of engine samples, such as time or a node voltage
+  worker: an isolated browser thread that can be terminated to stop a solver
+  watchdog: a host timer that terminates an engine exceeding its runtime limit
   admission: validation and derivation of one declared signal-integrity block
   network: the connected electrical cells and correction elements of routed copper
   execution: a completed invocation through the solver port
@@ -194,6 +198,7 @@ domain:
   wire: a piece of copper that carries a signal; in plain words, a trace or via
 
 abbreviations:
+  wasm: WebAssembly, the portable binary format used to run ngspice in a browser
   abstol: absolute current tolerance (ngspice option)
   ac: alternating current; in DDR thresholds, the level a signal must reach
   args: arguments
