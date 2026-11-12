@@ -76,3 +76,46 @@ test('a row completed directly by the debugger can be inspected before the root 
   assert.ok(state.scopes.length)
   assert.deepEqual(state.sections, [])
 })
+
+test('the spatial contract colours actual routed copper and remains gated by the selected stage', async () => {
+  const { stageOverlay } = await import('../../site/board-3d/overlay')
+  const { voltageColor } = await import('../../site/board-3d/state')
+  const { circuitJson } = await routedCopper()
+  const stack = stackupFromCircuitJson(circuitJson)
+  const route = copperRoutes(circuitJson)[0]
+  const spatial = {
+    points: [route.a, route.b].map(([x, y], i) => ({ node: `native-node-${i}`, net: route.net, layer: route.layer, x, y })),
+    timeSeconds: [0, 1e-9, 4e-9],
+    volts: [
+      [0, 2, 5],
+      [1, 3, 4],
+    ],
+  }
+  // Synthetic native-output-shaped fixture verifies the consumer; it is not engine evidence.
+  const state = {
+    scopes: [],
+    sections: [],
+    fields: [],
+    bindings: [],
+    networks: [],
+    captures: [
+      {
+        kind: 'completed' as const,
+        qualification: 'candidate-unqualified' as const,
+        timestampsSeconds: spatial.timeSeconds,
+        probes: [],
+        spatial,
+      },
+    ],
+  }
+  const overlay = stageOverlay(circuitJson, stack, state, 6, 0, 0.5, 0.5e-9)
+  const samples = overlay.children.filter((object) => object.userData.spatial)
+  assert.ok(samples.length > 0)
+  assert.ok(samples.every((object) => object.position.z === boardPosition(stack, 0, 0, route.layer)[2]))
+  for (const sample of samples) {
+    assert.equal(sample.userData.spatial, spatial)
+    assert.ok([0, 1].includes(sample.userData.pointIndex))
+  }
+  assert.equal(stageOverlay(circuitJson, stack, state, 5, 0, 0.5, 0.5e-9).children.filter((object) => object.userData.spatial).length, 0)
+  assert.notEqual(voltageColor(0), voltageColor(3.3))
+})
