@@ -31,6 +31,8 @@ test('victim windows are one-hop, use strict thresholds and report omitted quadr
   assert.equal(a.dropped.resistanceW, 2 * .02 * .02 ** 2)
   assert.deepEqual(routePartitions(input, 'victim-window', .2)[0].nets, ['A'])
   assert.throws(() => routePartitions(input, 'victim-window', NaN), /Finite/)
+  input.pairs[0].capacitanceF = NaN
+  assert.throws(() => routePartitions(input, 'exact'), /finite nonnegative/)
 })
 
 test('binding closure preserves non-switching aggressors and shared package/termination dependencies', () => {
@@ -61,6 +63,7 @@ test('TSX network projection preserves the full deck, IBIS bindings, quiet state
   assert.equal(reduced.bindings.models.length, 2, 'included driver and receiver keep their real models')
   assert.equal(reduced.geometry.wires.length, input.geometry.wires.length / 2)
   assert.ok(window.dropped.electricJ > 0)
+  assert.ok(reduced.extracted.slices.some(slice => JSON.parse(slice.key).coefficientProjection?.originalIndices.length === 1), 'projected coefficients identify their original field geometry and mixed boundary conditions')
   assert.equal(reduced.options.delayBound, projected.options.delayBound)
   assert.throws(() => partitionNetworkInput(input, topology, { ...exact, nets: window.nets }), /cuts/)
 })

@@ -1,7 +1,6 @@
 # Coupling-group research spike
 
-This is a research branch stacked on `fix/routed-ddr3-level4`. Native measurements
-and the DDR verdict are pending. It does not change the pipeline's default deck.
+This is a research branch stacked on `fix/routed-ddr3-level4`. Native measurements are recorded below; the DDR victim-window pilot is a negative result. It does not change the pipeline's default deck.
 
 `simulation/route-partition.ts` builds a net graph from solved RLGC/loss matrices,
 actual source connectivity, physical contacts, emitted oblique capacitance, and
@@ -16,7 +15,7 @@ connected component.
 
 Projection retains principal submatrices and their original diagonals. Excluded
 conductors therefore remain implicit AC-grounded electrostatic loading in self C;
-this approximation is explicit. It does not re-extract the geometry. Full-network
+this approximation is explicit. Excluded series currents are set to zero. Projected cross-section keys identify the original coefficient indices and these mixed boundary conditions. It does not re-extract the geometry. Full-network
 delay bounds retain the same spatial mesh. Quiet drivers retain their compiled
 schedules and real IBIS terminations. Compiled multi-pin packages are never split.
 Ideal independent supply sources and unrelated selected electrical passives are
@@ -49,7 +48,7 @@ requires `SI_DDR3_BOARD` as documented in the root README. Local RFC builds of
 circuit-json, props and core are required. No dependency changes are committed.
 
 ```sh
-node --import tsx scripts/research-coupling-groups.tsx compile small
+SI_GROUPS_SHORT_WINDOWS=1 SI_GROUPS_UI_COUNT=8 SI_GROUPS_STEP_DIVISOR=4 node --import tsx scripts/research-coupling-groups.tsx compile small
 node --import tsx scripts/research-coupling-groups.tsx measure small
 node --import tsx scripts/research-coupling-groups.tsx compile ddr
 node --import tsx scripts/research-coupling-groups.tsx measure ddr
@@ -102,3 +101,80 @@ candidate network, not a qualification of the field-model omissions.
 
 [Every scoped net's neighbours at k > 0.01, 0.03 and 0.1](coupling-groups-neighbours.md)
 are listed separately to keep the summary readable.
+
+
+## Native evidence and current verdict
+
+The full DDR reference completed **0–1 ns in 502.654 s**, with **90 finite saved
+points** and **24 finite receiver probes**, under the shared machine lock and a
+600 s native deadline. Its amortized cost is **5.585 s per saved point**, including
+setup and operating-point work. This prefix contains no switching edges: addr/cmd
+receiver values remain near zero and CKn remains near 1.5 V. It is not an 8 ns
+switching capture.
+
+The common 24-net victim window (721 cells, 10,869,484 bytes, 25,131 K terms),
+used at every tested threshold, **aborted after 265.686 s**. Ngspice reported
+`Timestep too small` at **12.5555 fs**, with timestep **2.99268e-24 s**, at
+`arcd688`. There are only nine partial saved points; **29.521 s/point is a failed-run
+diagnostic, not a usable transient cost**. This window cannot reproduce the full
+1 ns capture or support an 8 ns completion forecast. It is a negative result even
+though the deck is smaller. The native deadline was 600 s; the engine aborted
+before that deadline.
+
+The exact dominant component retains **all 36,814 K terms**. A 60 s pilot timed
+out without readable saved points; a separate 600 s run is pending. Each of the
+five isolated exact components completed 1 ns in less than 0.1 s. All 72 victim
+windows and all six exact component decks have been emitted. Identical windows
+reduce to 15 distinct runs at threshold 0.01, 11 at 0.03, and 5 at 0.1 (21 across
+all thresholds). Per-partition sizes, dropped-term amplitude bounds and native
+pilot costs are in [the cost table](coupling-groups-ddr-costs.md). Pilot limits are
+60 s; all runs remain below the required 600 s hard cap. Unmeasured entries are
+explicitly pending.
+
+A purely linear extrapolation of the full quiet prefix gives **4,021 s / 67.0 min
+for 8 ns**. This assumes unchanged timestep density and cost and is **not a
+forecast of the switching interval**. It does not refute the original 8–25 h
+active-run estimate. Exact splitting should leave the dominant workload near the
+full deck because it retains every K term; victim-window completion cannot be
+projected from an aborted run. No DDR threshold is qualified by this spike.
+
+There is a separate baseline limitation: **67 of the 91 scoped nets have no
+vendor endpoint binding**. The 24 declared nets retain their real IBIS models,
+reference connections and quiet-driver schedules. Other included neighbours
+retain the baseline open/ideal-logical terminations and the existing warnings;
+this spike does not invent vendor loads. Thus the requested real-termination
+qualification cannot be claimed for those neighbours.
+
+## Small-board parity and temporal resolution
+
+The initial bounded measurements compared full and projected native traces on
+the union of their adaptive time grids, using linear interpolation of actual
+samples. They used 40 ns for two-trace, 16 us for differential, and 200 ns for
+level2/level3. Each individual ngspice run had a 90 s hard deadline and ran under
+the shared lock.
+
+| Case | Exact components | EXACT maximum error, mV | Victim 0.01 | Victim 0.03 | Victim 0.1 |
+|---|---:|---:|---:|---:|---:|
+| two-trace | 1 | 0 | 0 | 0 | 0 |
+| level1-differential | 1 | 0 | 0 | 0 | 0 |
+| level2 | 2 | 1.80e-14 | 1.80e-14 | 1.80e-14 | 1.80e-14 |
+| level3 TRAFFIC | 3 | **8.9783** | **8.9783** | **8.9783** | **8.9783** |
+| level3 XTALK_LOW | 3 | 1.99e-7 | 1.99e-7 | 1.99e-7 | 1.99e-7 |
+| level3 XTALK_HIGH | 3 | 2.08e-7 | 2.08e-7 | 2.08e-7 | 2.08e-7 |
+
+Two-trace and differential retain their complete network at these thresholds,
+so byte-identical decks reuse the full-deck measurement. Level2/level3 are actual
+independent emitted decks; their extracted graph has no inter-net edges. At these
+thresholds their windows equal their exact components, so these rows do not
+validate dropping a nonzero coupling. The 8.9783 mV TRAFFIC discrepancy is retained
+as failed evidence. A controlled repeat with maximum timestep divided by four,
+and longer prefixes (32 us differential and 400 ns level2/level3) to include the
+first transitions, is pending. Algebraic independence alone does not guarantee
+1 mV agreement between unconverged adaptive numerical runs.
+
+Local lint (one pre-existing mesh-length warning), module and vocabulary checks,
+and all project typecheck configurations pass with local RFC dependency builds.
+The full suite passed 281 tests with 37 skips; focused partition checks passed
+four tests after the projection-evidence changes. CI still fails because the
+published circuit-json dependency lacks the required RFC exports. Dependency
+files are unchanged. This is a draft research result; no merge is requested.

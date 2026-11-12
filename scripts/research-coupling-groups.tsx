@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { resolve, join } from 'node:path'
 import { RoutedPipelineSolver, RoutedStageSolver } from '../src/pipeline'
 import { routeGraph, routePartitions, partitionNetworkInput, RouteNetworkSolver, type RouteGraph, type RouteNetworkInput, type RoutedDeck, type RoutePartition } from '../src/simulation'
+import { routedRequest } from '../src/simulation/route-transient'
 import { spiceProbeRows, sampleVoltage } from '../src/observation'
 import { renderCoreSignals } from '../tests/support/core-render'
 import { TwoTraceBoard } from '../examples/routed/two-trace-board'
@@ -19,7 +20,7 @@ const phase = process.argv[2]
 const selection = process.argv[3] ?? 'small'
 const thresholds = [.01, .03, .1]
 interface Case { kind: string; plan?: RoutePartition; path: string; sha: string; cells: unknown; bytes: number; duration: number; probes: RoutedDeck['probes'] }
-interface Block { name: string; graph: RouteGraph; cases: Case[] }
+interface Block { name: string; blockName: string; graph: RouteGraph; cases: Case[] }
 interface NativeRun { wallSeconds: number; timedOut: boolean; samples: number; lastTimeSeconds: number | null }
 interface Measurement { native: NativeRun; samples?: number[][]; error?: string; path: string }
 
@@ -43,15 +44,21 @@ async function compile(): Promise<void> {
     root.solveUntilStage('RouteTransientSolver')
     const inputs = root.getSolver<RoutedStageSolver<RouteNetworkInput, RoutedDeck>>('RouteNetworkSolver')!.getConstructorParams()[0]
     for (const [index, original] of inputs.entries()) {
-      const input = selection === 'ddr' ? { ...original, options: { ...original.options, durationSeconds: 1e-9 } } : original
+      const units = Number(process.env.SI_GROUPS_UI_COUNT ?? 8)
+      const divisor = Number(process.env.SI_GROUPS_STEP_DIVISOR ?? 1)
+      if (![units, divisor].every(value => Number.isFinite(value) && value >= 1)) throw new Error('Positive UI count and timestep divisor >= 1 required')
+      const durationSeconds = selection === 'ddr' ? 1e-9 : process.env.SI_GROUPS_SHORT_WINDOWS === '1' ? name === 'level1-differential' ? units * 4e-6 : name === 'two-trace' ? 40e-9 : units * 50e-9 : original.options.durationSeconds
+      const stepSeconds = original.options.stepSeconds / divisor
+      const input = { ...original, options: { ...original.options, durationSeconds, stepSeconds } }
       let compiled = root.stageOutput('RouteNetworkSolver').value[index]
-      if (selection === 'ddr') compiled = { ...compiled, deck: compiled.deck.replace(/^\.tran .+$/m, `.tran ${compiled.stepSeconds} 1e-9 0 ${compiled.stepSeconds}`), durationSeconds: 1e-9 }
+      const deck = compiled.deck.replace(/^\.tran .+$/m, `.tran ${stepSeconds} ${durationSeconds} 0 ${stepSeconds}`)
+      compiled = { ...compiled, deck, durationSeconds, stepSeconds, requestSha256: createHash('sha256').update(JSON.stringify(routedRequest({ deck }))).digest('hex') }
       const graph = routeGraph(input, compiled)
       const selected = new Set(input.bindings.mappings.map(mapping => mapping.sourceTraceId))
       const windows = thresholds.flatMap(threshold => routePartitions(graph, 'victim-window', threshold, selection === 'ddr' ? 1.5 : 3.3, .02))
         .filter(plan => graph.nets.find(net => net.id === plan.victim)?.sources.some(source => selected.has(source)))
       const plans = routePartitions(graph, 'exact').concat(windows)
-      const block: Block = { name: `${name}-${index}`, graph, cases: [] }
+      const block: Block = { name: `${name}-${index}`, blockName: compiled.name, graph, cases: [] }
       const seen = new Map<string, RoutedDeck>()
       for (const [i, plan] of [undefined, ...plans].entries()) {
         const key = plan?.nets.join(',') ?? 'full'
@@ -119,7 +126,7 @@ async function compare(): Promise<void> {
           errors.push({ name: probe.name, maxErrorMv: 1000 * times.reduce((maximum, time) => Math.max(maximum, Math.abs(sampleVoltage(run.samples!, i + 1, time) - sampleVoltage(full!.samples!, column, time))), 0) })
         }
       }
-      results.push({ block: block.name, kind: row.kind, plan: row.plan, cells: row.cells, bytes: row.bytes, native: run.native, reused: run.path !== row.path, error: run.error, probes: errors })
+      results.push({ block: block.name, blockName: block.blockName, kind: row.kind, plan: row.plan, cells: row.cells, bytes: row.bytes, native: run.native, reused: run.path !== row.path, error: run.error, probes: errors })
       await save(join(output, `${selection}-results.json`), results)
       console.log('Measured', block.name, row.kind, row.plan?.threshold, run.error ?? errors)
     }

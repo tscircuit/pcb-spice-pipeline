@@ -10,6 +10,8 @@ import time
 
 if sys.argv[1] != '--locked':
     lock = os.environ['SI_NGSPICE_LOCK']
+    # Yield between pilots so the other research tracks can acquire the shared slot.
+    time.sleep(2)
     raise SystemExit(subprocess.call([lock, sys.executable, __file__, '--locked', *sys.argv[1:]]))
 
 folder = Path(sys.argv[2]).resolve()

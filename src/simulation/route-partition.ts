@@ -59,7 +59,7 @@ export function routeGraph(input: RouteNetworkInput, compiled: RoutedDeck): Rout
   const pair = (a: string | undefined, b: string | undefined): RoutePair | undefined => {
     if (!a || !b || a === b) return
     const ids = [a, b].sort() as [string, string]
-    const key = ids.join(':')
+    const key = JSON.stringify(ids)
     let result = pairs.get(key)
     if (!result) {
       result = { nets: ids, inductive: 0, capacitive: 0, capacitanceF: 0, inductanceH: 0, resistanceOhm: 0, skinResistance: 0, dielectricLossF: 0, hard: false }
@@ -170,6 +170,7 @@ export function routePartitions(graph: RouteGraph, mode: RoutePartition['mode'],
   if (!['exact', 'victim-window'].includes(mode) || ![threshold, voltageV, currentA].every(value => Number.isFinite(value) && value >= 0)) throw new Error('Finite nonnegative partition threshold and amplitude limits required')
   const ids = graph.nets.map(net => net.id)
   if (new Set(ids).size !== ids.length || graph.pairs.some(pair => pair.nets.some(id => !ids.includes(id)))) throw new Error('Partition graph has duplicate or unknown nets')
+  if (graph.pairs.some(pair => [pair.inductive, pair.capacitive, pair.capacitanceF, pair.inductanceH, pair.resistanceOhm, pair.skinResistance, pair.dielectricLossF].some(value => !Number.isFinite(value) || value < 0))) throw new Error('Partition graph requires finite nonnegative coupling coefficients')
   const remaining = new Set(ids)
   const results: RoutePartition[] = []
   for (const victim of ids) {
@@ -211,9 +212,10 @@ export function partitionNetworkInput(input: RouteNetworkInput, graph: RouteGrap
     const line = { ...slice.line } as RouteCoefficients
     for (const key of ['C', 'C0', 'L', 'dcResistance', 'skinResistance', 'dielectricLoss'] as const) line[key] = indices.map(i => indices.map(j => slice.line[key][i][j]))
     line.conductorIds = indices.map(i => slice.line.conductorIds[i])
-    return { ...slice, wires: indices.map(i => slice.wires[i]), line }
+    const key = indices.length === slice.wires.length ? slice.key : JSON.stringify({ ...JSON.parse(slice.key), coefficientProjection: { originalIndices: indices, electrostatic: 'excluded voltages are zero', series: 'excluded currents are zero', source: 'original solved matrices; no new field solve' } })
+    return { ...slice, key, wires: indices.map(i => slice.wires[i]), line }
   }
   const slices = input.extracted.slices.map(slice).filter(slice => slice.wires.length)
   const scope = { ...input.bindings.scope, pcbTraceIds: input.bindings.scope.pcbTraceIds.filter(id => traces.has(id)), selectedPcbTraceIds: input.bindings.scope.selectedPcbTraceIds.filter(id => traces.has(id)) }
-  return { ...input, geometry: { ...input.geometry, wires, slices: input.geometry.slices.map(slice => ({ ...slice, wires: slice.wires.filter(wire => traces.has(wire.trace)) })).filter(slice => slice.wires.length), viaContacts: input.geometry.viaContacts.filter(contact => traces.has(contact.trace)) }, extracted: { ...input.extracted, slices, sections: slices.map(({ key, line }) => ({ key, line })) }, bindings: { ...input.bindings, scope, mappings: input.bindings.mappings.filter(mapping => sources.has(mapping.sourceTraceId)), models: input.bindings.models.filter(model => model.metadata.pins.some(pin => ports.has(pin.port))), plan: { ...input.bindings.plan, probes: input.bindings.plan.probes.filter(probe => ports.has(probe.signalSourceId) && (probe.referenceNode === '0' || ports.has(probe.referenceSourceId!))) } }, options: { ...input.options, delayBound: routeDelayBound(input.extracted), wireOrder: [...new Set(input.extracted.slices.flatMap(slice => slice.wires.map(wire => wire.id)))].sort((a, b) => a - b) }, warnings: [...input.warnings, `Research ${partition.mode} partition; ${partition.nets.length}/${graph.nets.length} nets; threshold ${partition.threshold}. Multi-pin IBIS bindings and physical/electrical contacts are indivisible; oblique C is included in the threshold and dropped-term accounting. Original quiet-driver states and terminations are retained. Self C is retained: excluded conductors remain implicit AC-grounded electrostatic loads. Dropped cross-term amplitude bounds: ${JSON.stringify(partition.dropped)}; these are not measured omitted energy or waveform-error bounds.`] }
+  return { ...input, geometry: { ...input.geometry, wires, slices: input.geometry.slices.map(slice => ({ ...slice, wires: slice.wires.filter(wire => traces.has(wire.trace)) })).filter(slice => slice.wires.length), viaContacts: input.geometry.viaContacts.filter(contact => traces.has(contact.trace)) }, extracted: { ...input.extracted, slices, sections: [...new Map(slices.map(({ key, line }) => [key, { key, line }])).values()] }, bindings: { ...input.bindings, scope, mappings: input.bindings.mappings.filter(mapping => sources.has(mapping.sourceTraceId)), models: input.bindings.models.filter(model => model.metadata.pins.some(pin => ports.has(pin.port))), plan: { ...input.bindings.plan, probes: input.bindings.plan.probes.filter(probe => ports.has(probe.signalSourceId) && (probe.referenceNode === '0' || ports.has(probe.referenceSourceId!))) } }, options: { ...input.options, delayBound: routeDelayBound(input.extracted), wireOrder: [...new Set(input.extracted.slices.flatMap(slice => slice.wires.map(wire => wire.id)))].sort((a, b) => a - b) }, warnings: [...input.warnings, `Research ${partition.mode} partition; ${partition.nets.length}/${graph.nets.length} nets; threshold ${partition.threshold}. Multi-pin IBIS bindings and physical/electrical contacts are indivisible; oblique C is included in the threshold and dropped-term accounting. Original quiet-driver states and terminations are retained. Self C is retained: excluded conductors remain implicit AC-grounded electrostatic loads. Dropped cross-term amplitude bounds: ${JSON.stringify(partition.dropped)}; these are not measured omitted energy or waveform-error bounds.`] }
 }
