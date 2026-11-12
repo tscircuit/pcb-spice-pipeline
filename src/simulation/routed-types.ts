@@ -1,3 +1,4 @@
+import type { RouteSpatialWaveform } from './route-spatial'
 import type { CircuitJson, CopperScope, LaneMapping, SectionGeometry } from '../board'
 import type { CompiledBuffer, IbisSources } from '../buffers'
 import type { ExtractedRoutes, RouteMaterials, RouteReturn } from '../extraction'
@@ -59,6 +60,7 @@ export interface RoutedDeck {
 export interface RoutedCapture {
   kind: 'completed'
   qualification: 'candidate-unqualified'
+  spatial: RouteSpatialWaveform
   timestampsSeconds: number[]
   probes: { name: string; sourcePortId: string; voltageLevels: number[] }[]
 }

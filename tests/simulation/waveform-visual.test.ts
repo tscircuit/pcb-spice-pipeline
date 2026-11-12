@@ -8,6 +8,7 @@ import { assertRouteVisual } from '../support/routed-visual-fixture'
 const capture: Extract<RoutedCapture, { kind: 'completed' }> = {
   kind: 'completed',
   qualification: 'candidate-unqualified',
+  spatial: { points: [], timeSeconds: [], volts: [] },
   timestampsSeconds: [0, 0.2e-9, 0.21e-9, 0.25e-9, 1e-9],
   probes: [
     { name: 'DATA', sourcePortId: 'data', voltageLevels: [0, 0.8, 2.1, 1.5, 1.5] },

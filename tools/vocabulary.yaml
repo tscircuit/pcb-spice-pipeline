@@ -18,6 +18,7 @@
 threshold: 85
 
 domain:
+  spatial: located at a physical board position along a routed electrical network
   middleware: the local HTTP handler installed in the Vite development server
   local: running on the user's computer through its installed native solver
   detect: check whether a solver executable is available on PATH
