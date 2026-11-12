@@ -1,12 +1,78 @@
 // FastHenry / FasterCap deck text (was geometry.ts fastHenryDeck/fasterCapDeck + copper.ts copper*Deck).
 import { polygonContains as contains, type CopperPoint as Point, type CopperXYZ as XYZ, type CopperPath as Path,
-  type ExtractionSettings, type GeometryCell } from '../board'
+  type CopperSegment as Segment, type ExtractionSettings, type GeometryCell } from '../board'
 import { groundMesh, pathSolids, surfacePanels, copperPanelSizing } from './mesh'
 
 // FasterCap has absolute panel-area thresholds. Millimetre coordinates keep
 // real fine copper edges numerically resolvable. Electrostatic capacitance
 // scales linearly with length, so rescale the raw matrix back to SI farads.
 export const copperCapacitanceScaleToFarads=1e-3
+
+/** Euclidean 3D distance in millimetres between two copper points. */
+const segmentDistance = (first: XYZ, next: XYZ): number =>
+  Math.hypot(next[0] - first[0], next[1] - first[1], next[2] - first[2])
+
+/** True when two horizontal copper segments lie on the same layer z-plane with identical cross-section. */
+const matchesSegment = (first: Segment, next: Segment): boolean =>
+  first.a[2] === first.b[2] &&
+  next.a[2] === next.b[2] &&
+  first.a[2] === next.a[2] &&
+  first.widthMm === next.widthMm &&
+  first.thicknessMm === next.thicknessMm
+
+/** Joins a slice of compatible segments into one chord while scaling conductivitySm to preserve exact series DC resistance. */
+function mergeSegmentRange(span: Segment[], defaultSm: number): Segment {
+  if (span.length === 1) return span[0]
+  const first = span[0]
+  const last = span.at(-1)!
+  const lengthMm = segmentDistance(first.a, last.b)
+  let originalMm = 0
+  let resistanceFactor = 0
+  let sameSm = true
+  for (const current of span) {
+    const stepMm = segmentDistance(current.a, current.b)
+    const sm = current.conductivitySm ?? defaultSm
+    originalMm += stepMm
+    resistanceFactor += stepMm / sm
+    if (current.conductivitySm !== first.conductivitySm) sameSm = false
+  }
+  const conductivitySm = sameSm && Math.abs(lengthMm - originalMm) <= 1e-12 * originalMm
+    ? first.conductivitySm
+    : resistanceFactor > 0 ? lengthMm / resistanceFactor : first.conductivitySm
+  return { ...first, b: last.b, conductivitySm }
+}
+
+/** Coalesces consecutive sub-width horizontal segments into chords at least one trace width long so finely sampled curves
+ * do not emit overlapping FastHenry filament boxes (#46), while keeping board geometry and series DC resistance unchanged. */
+function mergeCurveSegments(segments: Segment[], defaultSm: number): Segment[] {
+  const out: Segment[] = []
+  let index = 0
+  while (index < segments.length) {
+    const start = segments[index]
+    let end = index
+    while (
+      end + 1 < segments.length &&
+      matchesSegment(start, segments[end + 1]) &&
+      segmentDistance(start.a, segments[end].b) < start.widthMm
+    ) {
+      end++
+    }
+    out.push(mergeSegmentRange(segments.slice(index, end + 1), defaultSm))
+    index = end + 1
+    const last = out.at(-1)!
+    const previous = out.at(-2)
+    if (
+      previous &&
+      segmentDistance(last.a, last.b) < last.widthMm &&
+      matchesSegment(previous, last) &&
+      (index >= segments.length || !matchesSegment(last, segments[index])) &&
+      segmentDistance(previous.a, last.b) > 1e-10
+    ) {
+      out.splice(-2, 2, mergeSegmentRange([previous, last], defaultSm))
+    }
+  }
+  return out
+}
 
 /** FastHenry conductor mesh follows the selected polygon, including every cutout. */
 export function copperFastHenryDeck(cell: GeometryCell, extraction: ExtractionSettings): string {
@@ -18,14 +84,15 @@ export function copperFastHenryDeck(cell: GeometryCell, extraction: ExtractionSe
   let serial = 0
   /** Emits one copper path as a chain of FastHenry segments from node a to node b (or an .equiv when the path has no segments). */
   const path = (p: Path, a: string, b: string): void => {
-    if (!p.segments.length) {
+    const segments = mergeCurveSegments(p.segments, cell.conductivitySm)
+    if (!segments.length) {
       lines.push(`${a} ${coordinates(p.terminals[0])}`)
       if (a !== b) lines.push(`${b} ${coordinates(p.terminals[0])}`, `.equiv ${a} ${b}`)
       return
     }
-    const names = [a, ...p.segments.slice(1).map(() => `Nt${serial++}`), b]
-    lines.push(`${names[0]} ${coordinates(p.segments[0].a)}`)
-    for (const [i, s] of p.segments.entries()) {
+    const names = [a, ...segments.slice(1).map(() => `Nt${serial++}`), b]
+    lines.push(`${names[0]} ${coordinates(segments[0].a)}`)
+    for (const [i, s] of segments.entries()) {
       lines.push(`${names[i + 1]} ${coordinates(s.b)}`)
       const dx = s.b[0] - s.a[0]
       const dy = s.b[1] - s.a[1]
