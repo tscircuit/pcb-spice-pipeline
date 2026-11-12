@@ -113,8 +113,7 @@ omissions are recorded. This does not alter the public 3D scope.
 from the existing two-contact 3D geometry, without native C. `simulation/route-ladder.ts`
 adds its passive shared-return closure or replaces series magnetics with full
 3D loop R/L. Both modes are explicit unqualified hybrids; they are not automatic
-fallbacks or substitutes for a multi-contact return. See the
-[measurements and remaining failures](routed-2d-step4.md).
+fallbacks or substitutes for a multi-contact return.
 
 ```mermaid
 flowchart LR

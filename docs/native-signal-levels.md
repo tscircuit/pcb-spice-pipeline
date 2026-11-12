@@ -26,11 +26,6 @@ unfinished BGA autoroute. Its intended waveforms remain unavailable.
 
 ## Numerical contract
 
-The [step-4 investigation](routed-2d-step4.md) distinguishes numerical acceptance
-from physical return completeness: the RFC three-channel board has six ground
-contacts, while the accepted field model extracts two selected leads and a
-shared return. It is not a multi-contact board/PDN reference.
-
 R/L retain the signal-minus-return loop transform and 5% mesh criterion. C and G
 select the grounded primitive signal block. The raw signal-block C reciprocity
 limit remains 2.5%; only a passing block is symmetrized. FasterCap's auto residual

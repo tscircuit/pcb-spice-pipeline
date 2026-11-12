@@ -1,17 +1,11 @@
-# Routed 2D channel experiment (step 2 candidate)
+# Routed 2D coupled channel
 
-Step-2 acquisition below is retained as historical evidence. The subsequent
-[step-3 comparison and transient benchmarks](routed-2d-validation.md) record RFC
-model discrepancies and the current runner's electrical-cell/checkpoint changes.
-The [step-4 investigation](routed-2d-step4.md) replaces the fixed coupling cutoff
-and adds explicit experimental finite-return hybrids. Both quiet-victim cases
-still fail even with full 3D R/L and routed 2D C; the path remains unqualified.
-
-This is an **experimental, incomplete implementation**, not an accepted DDR3
-simulation. `pipeline/routed.ts` compiles physical routed copper and the existing
-IBIS package/switching models into a candidate ngspice deck. The public RFC entry
-still uses the existing 3D stage chain. No vendor models, board JSON, generated
-netlists or plots are committed. Run artifacts remain in ignored `runs/routed-2d/`.
+This is an **experimental, unqualified path**, not an accepted DDR3 simulation.
+`pipeline/routed.ts` compiles physical routed copper and the existing IBIS
+package/switching models into a candidate ngspice deck, using the
+[2D cross-section solver](2d-cross-section.md) for per-unit-length RLGC. The
+public RFC entry still uses the existing 3D stage chain. No vendor models, board
+JSON, generated netlists or plots are committed.
 
 ## Geometry and scope
 
@@ -128,8 +122,7 @@ largest retained slice has 33. No FastHenry/FasterCap runs were performed.
 Refinement is explicit and bounded: `SI_ROUTE_REFINEMENT=1,2,4` changes space;
 `SI_ROUTE_STEP_PS` changes time independently. Completed native output remains
 `candidate-unqualified` until independent waveform comparisons establish the
-existing 1% + 1 mV RMS/signed-peak policy. Independent DQ0 refinements and the
-full-lane execution blocker are recorded below. A bounded automatic acceptance controller and RFC result integration remain
+existing 1% + 1 mV RMS/signed-peak policy. A bounded automatic acceptance controller and RFC result integration remain
 unimplemented. `SI_ROUTE_REUSE_DIR` reuses a hashed-board/model-compatible compiled
 deck for time-only refinement without repeating field extraction. Reuse cannot
 extend the compiled switching history or change its field mesh.
@@ -170,101 +163,17 @@ Via-in-pad contacts are explicit even when the pad-layer wire has zero length.
 Every selected endpoint must touch a physical wire or via before field solves.
 DQS exports differential voltage and both physical DRAM pin voltages.
 
-## Run and evidence (2026-11-11)
+## Terminal inductance
 
-Build sibling core first, then provide the read-only board and local models:
+`terminalInductance` computes external magnetic energy for explicit vertical
+port connections: the inward half of the pad, at its height above the plane.
+Its PEC image doubles the post length; half the rectangular-bar self and
+parallel-filament mutual is retained. The horizontal infinite-line end excess
+and the line length to the port centre are subtracted. No constant is fitted.
+This is a short-post approximation, not a full discontinuity extraction.
 
-```sh
-SI_CORE_MODULE="$PWD/../core/dist/index.js" \
-TSX_TSCONFIG_PATH=examples/tsconfig.json IBIS_MODEL_DIR=models \
-NGSPICE_BIN=/opt/homebrew/bin/ngspice OMP_NUM_THREADS=1 \
-SI_DDR3_BOARD=/absolute/path/to/circuit.json \
-SI_ROUTE_DURATION_NS=2 SI_ROUTE_NATIVE_LIMIT_SECONDS=60 \
-node --import tsx scripts/run-routed-ddr3.tsx dq0
-```
-
-Use `lane` for all DQ0–7, DQM0 and differential DQS0. `SI_ROUTE_EXTRACT_ONLY=1`
-prevents native execution. Default duration is 10 ns; short captures are finite
-PRBS7 fragments, not full 127-bit periods or compliance eyes. Seeds are distinct
-(DQ0 seed 85); bit rate is 800 Mbps with the existing DQS phase/polarity. Every
-run records input hashes, whole-net scope, matrices, physical contacts, references,
-transitions, assumptions, probe identities and wall timings. Errors preserve a
-failure ledger and any checkpoint output as `receiver-incomplete.csv`.
-
-The final DQ0 baseline uses 4 ns, 10 ps maximum step and 218 electrical cells;
-independent 5 ps and 427-cell refinements use the same physical network. Final
-measurements and comparisons are written to `runs/routed-2d/dq0-convergence.json`.
-Both comparisons pass over 0–4 ns: timestep RMS/peak change 0.111/0.260 mV;
-space RMS/peak change 0.401/0.425 mV. The 427-cell run completed in 385.025 s.
-Its linear shunt realization is algebraically equivalent to the coarse cases.
-These are finite-window numerical results; physical board-model accuracy remains
-unqualified.
-
-The lane compiles 2,634 sections / 1,981 unique slices into 977 electrical cells.
-A via-in-pad mapping defect was exposed by flat receiver traces and fixed with
-an actual TSX reproduction. The earlier completed 2 ns / 569.9 s pilot has six
-floating receiver contacts and is **rejected**, retained only in
-`runs/routed-2d/lane-via-contact-invalid-diagnostic/`. It is not a lane result.
-
-The first contact-corrected run was stopped at a 24.1 minute projection; its
-ledger remains in `runs/routed-2d/lane-s1-t5-n2/`. Replacing behavioural linear
-shunt expressions with ordinary VCVS elements then allowed the final network to
-advance through **2 ns**. It stopped after **765.179 s**, when its 4 ns projection
-reached **1,206 s**. This is an incomplete baseline, with no lane convergence or
-full write-burst result. The 1,534 retained native samples contain real physical
-receiver voltages for all 11 nets, including DQS differential and both P/N pins.
-The CSV/PNG are explicitly marked incomplete, with the uncomputed 2–4 ns region
-shaded. Full spatial refinement needs 1,906 cells, exceeding the configured
-1,024-cell guard; the admission-only check started no native process.
-
-Observed wall times for the final model cases (some preparation/field work ran
-concurrently; these are not controlled throughput benchmarks):
-
-| Stage | DQ0, 218 cells / 10 ps | DQ0, 427 cells / 5 ps | Lane, 977 cells / 10 ps |
-|---|---:|---:|---:|
-| Preparation | 4.906 s | 2.890 s | 6.272 s |
-| Segmentation | 1.490 s | 0.958 s | 2.221 s |
-| Unique 2D solves, including oblique | 514 / 33.269 s | 514 / 26.340 s | 1,981 / 125.852 s |
-| Section-geometry overhead | 0.015 s | 0.012 s | 0.051 s |
-| IBIS compilation | 1.535 s | 1.355 s | 2.448 s |
-| Netlist construction | 1.719 s | 1.276 s | 3.975 s |
-| ngspice | 117.860 s | 385.024 s | 765.179 s, budget stopped |
-| Peak native RSS, sampled | 136.3 MiB | 311.0 MiB | 528.8 MiB |
-
-The independent DQ0 time-only check reused the coarse extraction and took
-96.257 s in ngspice. The coarse cases use the algebraically equivalent earlier
-shunt implementation. DQ0's final receiver range is 0.001103–1.499998 V.
-
-Artifacts (ignored, not committed):
-
-- `runs/routed-2d/dq0-s2-t5-n4/receiver.csv` and `receiver.png`.
-- `runs/routed-2d/dq0-convergence.json` and `dq0-convergence.png`.
-- `runs/routed-2d/lane-s1-t10-n4/receiver-incomplete.csv`,
-  `receiver-incomplete.png`, `failure.json` and `extraction.json`.
-- `runs/routed-2d/lane-space-refinement-limit.json`.
-
-The cheap independently refined **local-slice** check uses actual DQ0 width,
-thickness and JLC reference gap: bare 65.276 ohm / 5.529 ps/mm, assumed planar mask
-59.528 ohm / 6.063 ps/mm. Masked single-slice mesh/domain changes are 0.0018% /
-0.0059%. This supports the quasi-static slice, not the complete channel. The
-provided trace map selected DDR_D0 / pcb_trace_387. No expensive 3D run was used.
-
-Before a before/after route-edit loop: reduce full-lane native cost (loss-pole
-compression and a faster coupled-line realization are candidates), complete the
-lane capture and independent refinement, add finite coplanar pour electrodes, qualify return,
-aperture/oblique and external-load approximations against a stronger oracle,
-then integrate the opt-in path and its acceptance evidence into the RFC workflow.
-Persistence of cross-section caches between route edits also remains to be added.
-
-```mermaid
-flowchart LR
-  TSX[TSX declarations and unchanged full board] --> scope[Retain full physical neighbour scope]
-  scope --> sections[Local frames, actual pour boundaries and transitions]
-  sections --> field[Cached 2D cross-section matrices]
-  field --> energy[Integrate energies into delay-bounded arc cells]
-  energy --> spice[Causal coupled ladders plus existing IBIS]
-  spice --> pilot[Bounded sequential ngspice pilot]
-  pilot --> check{Complete capture and independent convergence?}
-  check -->|yes, future work| accepted[Accepted RFC result integration]
-  check -->|no| evidence[Failure ledger and clearly incomplete artifacts]
-```
+`channelSpice` accepts explicit input/output terminal matrices and adds them to
+the first/last series section; omitting them preserves the existing channel.
+Ordinary BGA pads do not specify a port-to-plane current path and receive no
+inferred vertical post. Real-board vias keep the transition models above, so
+the same transition is never added twice.
