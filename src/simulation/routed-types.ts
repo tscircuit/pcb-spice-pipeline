@@ -13,6 +13,8 @@ export interface RoutedCompileOptions {
   cellsPerRise?: number
   materials?: RouteMaterials
   returnPath?: RouteReturn
+  /** Full-network mesh bound for partitioned decks, in seconds per metre. */
+  delayBound?: number
 }
 export interface RouteBindingsInput {
   circuitJson: CircuitJson

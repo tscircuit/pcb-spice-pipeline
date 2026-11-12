@@ -33,3 +33,6 @@ export { RouteTransientSolver } from './route-transient'
 export type { RoutedCompileOptions, RouteBindingsInput, RoutedBindings, RouteNetworkInput, RoutedDeck, RoutedCapture } from './routed-types'
 
 export { routeWaveformDrawing } from './waveform-visual'
+
+export { routeGraph, routePartitions, partitionNetworkInput } from './route-partition'
+export type { RouteNet, RoutePair, RouteGraph, RoutePartition } from './route-partition'

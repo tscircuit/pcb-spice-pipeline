@@ -12,17 +12,23 @@ function delayPerMetre(slice: ExtractedRouteSlice): number {
   return Math.sqrt(Math.max(...slice.line.L.map(row => row.reduce((total, entry) => total + Math.abs(entry), 0))) * Math.max(...slice.line.C.map(row => row.reduce((total, entry) => total + Math.abs(entry), 0))))
 }
 
+/** Preserve the full network's spatial grid when independent routes are emitted separately. */
+export function routeDelayBound(extracted: ExtractedRoutes): number {
+  return Math.max(...extracted.slices.map(delayPerMetre))
+}
+
 interface ArcCell { wire: RouteWire; start: number; end: number; before: string; after: string }
 interface ArcWire { offset: number; length: number; cells: number[]; sign: number }
 
 /** Integrate every local matrix energy onto delay-bounded route-arc cells, independent of curve tessellation. */
-export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn): Generator<RouteLadder, RouteLadder> {
+export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn, delayBound?: number): Generator<RouteLadder, RouteLadder> {
   if (!(riseSeconds > 0) || !Number.isInteger(refinement) || refinement < 1 || refinement > 4) throw new Error('Positive rise time and bounded integer spatial refinement (1..4) required')
   if (!(cellsPerRise >= .5 && cellsPerRise <= 40)) throw new Error('Cells per rise time must be in [0.5,40]')
   const lines: string[] = []
   const wireNodes: RouteLadder['wireNodes'] = new Map()
   const wires = [...new Map(extracted.slices.flatMap(slice => slice.wires.map(wire => [wire.id, wire] as const))).values()].sort((a, b) => a.id - b.id)
-  const maximumDelayPerMetre = Math.max(...extracted.slices.map(delayPerMetre))
+  const maximumDelayPerMetre = delayBound ?? routeDelayBound(extracted)
+  if (!Number.isFinite(maximumDelayPerMetre) || maximumDelayPerMetre < routeDelayBound(extracted) * (1 - 1e-12)) throw new Error('Route delay bound must cover every retained slice')
   const targetMm = riseSeconds / cellsPerRise / refinement / maximumDelayPerMetre * 1000
   const cells: ArcCell[] = []
   const arc = new Map<number, ArcWire>()

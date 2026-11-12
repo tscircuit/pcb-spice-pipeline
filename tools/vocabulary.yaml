@@ -105,6 +105,8 @@ domain:
   tangent: dielectric dissipation factor or direction along a boundary panel
   vacuum: reference material with relative permittivity one
   admit: the first stage, which reads the board's Circuit JSON and checks it before anything else uses it
+  partition: a subset of coupled nets emitted as an independent simulation deck
+  victim: the signal whose waveform a coupling window measures
   artifact: a file the pipeline produces (solver deck, log, waveform, report data), recorded in the ledger
   assembly: the bundle of converted IBIS chip models used by one experiment
   asset: an IBIS model file that the board names (ibis_model_asset in Circuit JSON)

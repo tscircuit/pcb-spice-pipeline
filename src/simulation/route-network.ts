@@ -71,7 +71,7 @@ export class RouteNetworkSolver extends BaseSolver {
       const to = endpoint(wire, join.to)
       if (from !== to) aliases.push(`RJOIN${aliases.length} ${from} ${to} 1e-6`)
     }
-    const steps = routeLadderSteps(extracted, endpoint, options.riseSeconds, options.refinement, options.cellsPerRise, options.returnPath)
+    const steps = routeLadderSteps(extracted, endpoint, options.riseSeconds, options.refinement, options.cellsPerRise, options.returnPath, options.delayBound)
     let result = steps.next()
     while (!result.done) {
       this.ladder = result.value
