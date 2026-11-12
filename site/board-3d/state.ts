@@ -1,18 +1,15 @@
 import type { RoutedPipelineSolver } from '../../src/pipeline'
 import type { RoutedSections, CopperScope } from '../../src/board'
 import type { ExtractedRoutes } from '../../src/extraction'
-import type { RoutedBindings, RoutedCapture, RoutedDeck } from '../../src/simulation'
+import type { RoutedBindings, RoutedCapture, RoutedDeck, RouteSpatialWaveform } from '../../src/simulation'
 
-/** Pending upstream contract: native samples only; no waveform is fabricated in the UI. */
-export interface RouteSpatialPoint { node: string; net: string; layer: string; x: number; y: number }
-export interface RouteSpatialWaveform { points: RouteSpatialPoint[]; timeSeconds: number[]; volts: number[][] }
 export interface BoardStageState {
   scopes: CopperScope[]
   sections: RoutedSections[]
   fields: ExtractedRoutes[]
   bindings: RoutedBindings[]
   networks: RoutedDeck[]
-  captures: (RoutedCapture & { spatial?: RouteSpatialWaveform })[]
+  captures: RoutedCapture[]
 }
 
 /** Read completed immutable outputs only, gated by the same selected Step as the atlas. */
