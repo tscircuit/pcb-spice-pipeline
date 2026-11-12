@@ -195,9 +195,15 @@ Completed domain values are copied and frozen. Only the root folds stage
 Original assumptions, coupling decisions, reference omissions, external ports,
 model provenance, node maps, via/oblique policies and deck evidence remain visible.
 
-The shared graphics atlas uses board x/y=0..100, cross-section x=120..220/y=0..100,
-and waveform x=0..220/y=120..200, with PCB y and stack z positive upward. Neighbour
-copper and waveform drawings are capped for display only; numerical inputs and
+The shared graphics atlas uses board x=0..120/y=0..100, cross-section
+x=130..300/y=-6..100, and waveform x=0..305/y=108..181, with PCB y and stack z
+positive upward. `routeTextSize` in the board visual helpers defines world-unit
+body and title sizes for every stage. Cosmos measures its container before
+mounting `CanvasGraphics`, fits the full text bounds with 16 px padding, and
+sizes the canvas to the drawing aspect ratio, capped at 680 px for laptop
+windows. This avoids the DOM renderer's fixed 600 px initial camera and its screen-pixel text sizes. The canvas grid is
+hidden because atlas coordinates are display units; physical axes stay explicit.
+Neighbour copper and waveform drawings are capped for display only; numerical inputs and
 native samples are retained in full.
 
 `RouteTransientSolver` awaits one `solver.invoke` call in `_stepAsync`. Its

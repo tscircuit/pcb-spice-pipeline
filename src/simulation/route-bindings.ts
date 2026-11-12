@@ -66,7 +66,6 @@ export class RouteBindingsSolver extends BaseSolver {
       87,
       `${this.models.length}/${this.declarations?.models.length ?? '?'} models bound · Blue: driver · Cyan: receiver · Green: rail`,
       '#475569',
-      1.8,
     )
     const labels = new Map<string, { point: { x: number; y: number }; name: string; color: string; pins: number }>()
     for (const model of routeDisplayItems(this.models, 48)) {
@@ -90,14 +89,14 @@ export class RouteBindingsSolver extends BaseSolver {
       }
     }
     for (const [i, label] of [...labels.values()].slice(0, 6).entries()) {
-      const y = 36 - i * 3.5
+      const y = 38 - i * 5
       drawing.lines?.push({ points: [label.point, { x: 20 + i * 8, y: y + 1 }], strokeColor: label.color, strokeWidth: 0.1 })
-      routeText(drawing, 2, y, `${label.name}${label.pins > 1 ? ` (${label.pins} pins)` : ''}`, label.color, 1.8)
+      routeText(drawing, 2, y, `${label.name}${label.pins > 1 ? ` (${label.pins} pins)` : ''}`, label.color)
     }
-    if (labels.size > 6) routeText(drawing, 2, 12, `First 6 bindings labelled; all ${this.models.length} models retained`, '#64748b', 1.7)
+    if (labels.size > 6) routeText(drawing, 2, 12, `First 6 bindings labelled; all ${this.models.length} models retained`, '#64748b')
     if (this.failed) {
       for (const [i, reason] of (`Missing / rejected model: ${this.error ?? 'IBIS binding unavailable'}`.match(/.{1,85}/g) ?? []).slice(0, 3).entries())
-        routeText(drawing, 2, 82 - i * 3, reason, '#dc2626', 1.7)
+        routeText(drawing, 2, 82 - i * 3, reason, '#dc2626')
       for (const port of routeDisplayItems(
         circuit
           .filter((record) => record.type === 'pcb_port')

@@ -26,7 +26,7 @@ test('waveform SVG snapshot includes axes, explicit limits, probe key and purple
   assert.ok(victim.points[1].x < victim.points[2].x)
   assert.ok(drawing.texts!.some((text) => /Time \(ns\)/.test(text.text)))
   for (const limit of ['1.9 V', '-0.4 V']) assert.ok(drawing.texts!.some((text) => text.text === limit))
-  for (const point of drawing.lines!.flatMap((line) => line.points)) assert.ok(point.x >= 0 && point.x <= 220 && point.y >= 120 && point.y <= 200)
+  for (const point of drawing.lines!.flatMap((line) => line.points)) assert.ok(point.x >= 0 && point.x <= 300 && point.y >= 108 && point.y <= 181)
 })
 
 test('pending and failed results are honest banners with no invented probe traces', () => {
@@ -45,7 +45,7 @@ test('display reduction keeps a one-sample overshoot and last sample in a long r
   const drawing = routeWaveformDrawing(long, 1e-8)
   const line = drawing.lines!.find((line) => line.label === 'DATA')!
   assert.ok(line.points.length <= 1600)
-  assert.equal(line.points.at(-1)!.x, 204)
+  assert.equal(line.points.at(-1)!.x, 292)
   const top = Math.max(...line.points.map((point) => point.y))
   const limit = drawing.lines!.find((line) => line.label === '1.9 V')!.points[0].y
   assert.ok(top > limit, 'narrow overshoot survives downsampling')

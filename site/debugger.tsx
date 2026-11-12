@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Circuit } from '@tscircuit/core'
 import { GenericSolverDebugger } from '@tscircuit/solver-utils/react'
-import { InteractiveGraphics } from 'graphics-debug/react'
+import { CanvasGraphics } from 'graphics-debug/react'
+import { computeTransformFromViewbox, getBounds, type GraphicsObject } from 'graphics-debug'
 import { createHttpSolver } from '../src/adapters/browser'
 import { RoutedPipelineSolver } from '../src/pipeline'
 import type { CircuitJson } from '../src/board'
@@ -9,15 +10,37 @@ import type { IbisSources } from '../src/buffers'
 
 type DebuggerSolver = NonNullable<React.ComponentProps<typeof GenericSolverDebugger>['solver']>
 
-// graphics-debug keeps its initial camera when graphics change. Fit again at
-// stage boundaries so the later cross-section and waveform panels stay visible.
+/** Fit the measured container and scale world-unit text exactly as in SVG exports. */
+function RoutedAtlas({ graphics }: { graphics: GraphicsObject }): React.JSX.Element {
+  const container = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(0)
+  useEffect(() => {
+    const observer = new ResizeObserver(([entry]) => setWidth(Math.floor(entry.contentRect.width)))
+    observer.observe(container.current!)
+    return (): void => observer.disconnect()
+  }, [])
+  const { minX, maxX, minY, maxY } = getBounds(graphics)
+  const height = Math.min(680, Math.ceil(((width - 32) * (maxY - minY)) / Math.max(maxX - minX, 1) + 32))
+  const transform = useMemo(
+    () => computeTransformFromViewbox({ minX, maxX, minY, maxY }, width, height, { padding: 16, yFlip: true }),
+    [minX, maxX, minY, maxY, width, height],
+  )
+  return (
+    <div ref={container} className="routed-atlas" aria-label="Routed pipeline atlas">
+      {width > 0 && (
+        <CanvasGraphics key={`${width}:${height}`} graphics={graphics} width={width} height={height} initialTransform={transform} withGrid={false} />
+      )}
+    </div>
+  )
+}
+
 const renderer = {
   name: 'Routed atlas',
   /** Preserve pan/zoom within a stage, then fit the next stage's actual drawing. */
   render(solver: DebuggerSolver): React.JSX.Element {
     let stage = solver
     while (stage.activeSubSolver) stage = stage.activeSubSolver
-    return <InteractiveGraphics key={`${stage.getSolverName()}:${stage.solved}`} graphics={solver.visualize()} />
+    return <RoutedAtlas key={`${stage.getSolverName()}:${stage.solved}`} graphics={solver.visualize()} />
   },
   /** Download the same graphics shown in the debugger. */
   getDownload(solver: DebuggerSolver): ReturnType<DebuggerSolver['visualize']> {
@@ -62,12 +85,7 @@ async function renderBoard(tree: React.ReactElement, sources: IbisSources): Prom
 }
 
 /** Show a fixture's routed stages using the local ngspice HTTP execution port. */
-export function BoardPage({
-  title,
-  'board-tree': boardTree,
-  'load-board': loadBoard,
-  models,
-}: BoardPageProps): React.JSX.Element {
+export function BoardPage({ title, 'board-tree': boardTree, 'load-board': loadBoard, models }: BoardPageProps): React.JSX.Element {
   const revision = useRef(0)
   const [backend, setBackend] = useState('Checking local ngspice…')
   const [native, setNative] = useState<boolean>()
@@ -83,9 +101,7 @@ export function BoardPage({
         const solvers = (await response.json()) as { ngspice: { available: boolean; version?: string } }
         if (cancelled) return
         setNative(solvers.ngspice.available)
-        setBackend(
-          solvers.ngspice.available ? `Local backend · ${solvers.ngspice.version}` : 'ngspice not found on PATH',
-        )
+        setBackend(solvers.ngspice.available ? `Local backend · ${solvers.ngspice.version}` : 'ngspice not found on PATH')
       })
       .catch(() => {
         if (!cancelled) setBackend('Local backend unavailable; start bun dev')
@@ -113,10 +129,7 @@ export function BoardPage({
           assets[path] ??= assets[`models/${path.split('/').at(-1)}`]
         }
       setReady({
-        solver: new RoutedPipelineSolver(
-          { circuitJson, ibisSources: assets, scopeDistanceMm: 1 },
-          { runSolver, progress: setProgress },
-        ),
+        solver: new RoutedPipelineSolver({ circuitJson, ibisSources: assets, scopeDistanceMm: 1 }, { runSolver, progress: setProgress }),
         revision: ++revision.current,
       })
       setProgress(`Ready · ${circuitJson.length} Circuit JSON records · local ngspice`)
@@ -131,31 +144,31 @@ export function BoardPage({
   }, [boardTree, loadBoard, models, sources])
   return (
     <>
-      <header>
-        <h1>{title}</h1>
-        <p>Inspect the routed SI pipeline stage by stage. Stage 5 runs a live ngspice transient.</p>
-      </header>
-      <section className="controls">
-        <span role={native === false ? 'alert' : undefined}>{backend}</span>
-        <details>
-          <summary>Local IBIS upload</summary>
-          <label>
-            Override model files{' '}
-            <input
-              type="file"
-              multiple
-              accept=".ibs"
-              onChange={(event) => {
-                void Promise.all(
-                  Array.from(event.target.files ?? []).map(async (file) => [`models/${file.name}`, await file.text()]),
-                )
-                  .then((entries) => setSources((previous) => ({ ...previous, ...Object.fromEntries(entries) })))
-                  .catch((cause) => setError(String(cause)))
-              }}
-            />
-          </label>
-        </details>
-      </section>
+      <div className="board-heading">
+        <header>
+          <h1>{title}</h1>
+          <p>Inspect the routed SI pipeline stage by stage. Stage 5 runs a live ngspice transient.</p>
+        </header>
+        <section className="controls">
+          <span role={native === false ? 'alert' : undefined}>{backend}</span>
+          <details>
+            <summary>Local IBIS upload</summary>
+            <label>
+              Override model files{' '}
+              <input
+                type="file"
+                multiple
+                accept=".ibs"
+                onChange={(event) => {
+                  void Promise.all(Array.from(event.target.files ?? []).map(async (file) => [`models/${file.name}`, await file.text()]))
+                    .then((entries) => setSources((previous) => ({ ...previous, ...Object.fromEntries(entries) })))
+                    .catch((cause) => setError(String(cause)))
+                }}
+              />
+            </label>
+          </details>
+        </section>
+      </div>
       {error ? <p role="alert">{error}</p> : <p role="status">{progress}</p>}
       {ready && (
         <GenericSolverDebugger

@@ -149,7 +149,6 @@ export class RouteNetworkSolver extends BaseSolver {
       87,
       `${this.ladder?.cells ?? 0} cells · max cell delay ${((this.ladder?.maximumDelaySeconds ?? 0) * 1e12).toFixed(2)} ps`,
       '#a16207',
-      2.2,
     )
     const nodes = [...(this.ladder?.wireNodes ?? [])].flatMap(([id, samples]) => samples.map((sample) => ({ id, position: sample.position })))
     for (const sample of routeDisplayItems(nodes, 800)) {
@@ -179,18 +178,18 @@ export class RouteNetworkSolver extends BaseSolver {
         const via = circuit.find((item) => item.type === 'pcb_via' && item.pcb_via_id === record.id)
         if (via?.type === 'pcb_via') drawing.circles?.push({ center: routeBoardPoint(circuit, [via.x, via.y]), radius: 1, stroke: '#f97316' })
       }
-    routeText(drawing, 2, 79, 'Amber ticks: ladder cells · Purple: oblique encounters · Orange rings: vias', '#475569', 1.7)
+    routeText(drawing, 2, 81, 'Amber: cells · Purple: oblique encounters', '#475569')
+    routeText(drawing, 2, 76, 'Orange rings: vias', '#475569')
     routeText(
       drawing,
       2,
-      75,
+      71,
       `${Math.min(nodes.length, 800)}/${nodes.length} node ticks shown · ${this.output ? this.obliqueRecords.length : 'pending'} oblique encounters · native not run`,
       '#64748b',
-      1.7,
     )
     if (this.failed)
       for (const [i, reason] of (`Network rejected: ${this.error ?? 'Compilation incomplete'}`.match(/.{1,85}/g) ?? []).slice(0, 3).entries())
-        routeText(drawing, 2, 70 - i * 3, reason, '#dc2626', 1.7)
+        routeText(drawing, 2, 70 - i * 3, reason, '#dc2626')
     return drawing
   }
 }

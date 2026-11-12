@@ -6,6 +6,8 @@ import { TwoTraceBoard } from '../../examples/routed/two-trace-board'
 import { RoutedAdmissionSolver, RoutedBlockSolver, RoutedPipelineSolver } from '../../src/pipeline'
 import { formatSpiceVectors } from '../../src/observation'
 import type { SolverContext } from '../../src/solver'
+import { getBounds, computeTransformFromViewbox } from 'graphics-debug'
+import { routeTextSize } from '../../src/board'
 import { sha256 } from '../../src/kernel'
 import { BasePipelineSolver } from '@tscircuit/solver-utils'
 import { routedStages } from '../../src/pipeline'
@@ -102,6 +104,13 @@ test('completed root atlas has one board heading and retains cross-section foreg
   assert.equal(drawing.texts!.filter(text => text.text.includes('Board plan')).length, 1)
   assert.ok(drawing.polygons!.some(polygon => polygon.stroke === '#9333ea'))
   assert.ok(drawing.texts!.some(text => text.text.includes('ngspice samples')))
+  const bounds = getBounds(drawing)
+  assert.ok(bounds.minX >= 0 && bounds.maxX <= 305 && bounds.minY >= -6 && bounds.maxY <= 181, 'all atlas content fits the documented panels')
+  const transform = computeTransformFromViewbox(bounds, 1080, 680, { padding: 16, yFlip: true })
+  assert.ok(drawing.texts!.every(text => text.fontSize! * transform.a >= 12.5), 'default laptop fit keeps every caption readable')
+  for (const stage of [root.getSolver('RoutedAdmissionSolver')!, ...block.pipelineDef.map(stage => block.getSolver(stage.solverName)!)]) {
+    assert.ok(stage.visualize().texts!.every(text => text.fontSize === routeTextSize.body || text.fontSize === routeTextSize.title), 'every stage shares one typography scale')
+  }
   assertRouteVisual(drawing, 'pipeline', 'routed-pipeline-atlas')
 })
 

@@ -1,6 +1,6 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
 import type { GraphicsObject } from 'graphics-debug'
-import { routeText, routeDisplayItems, routeNetLabel, type SectionGeometry, type RouteSlice, type CircuitJson, type CopperScope } from '../board'
+import { routeText, routeTextSize, routeDisplayItems, routeNetLabel, type SectionGeometry, type RouteSlice, type CircuitJson, type CopperScope } from '../board'
 import { rootScope, snapshot, type Produced } from '../kernel'
 import { routeCrossSection, type RouteMaterials, type RouteCoefficients, type ExtractedRoutes, type ExtractedRouteSlice } from './route-lines'
 import { routeCoupling, type RouteCoupling } from './route-coupling'
@@ -104,10 +104,10 @@ export class RouteFieldsSolver extends BaseSolver {
   override visualize(): GraphicsObject {
     const section = this.current
     const drawing: GraphicsObject = { coordinateSystem: 'cartesian', rects: [], lines: [], texts: [], circles: [], polygons: [] }
-    routeText(drawing, 122, 98, '2 · Fields: solve a cross-section', '#0f172a', 3)
-    routeText(drawing, 122, 92, 'Transverse x (mm) × stack z (mm); thin layers expanded', '#475569', 1.8)
+    routeText(drawing, 132, 98, '2 · Fields: solve a cross-section', '#0f172a', routeTextSize.title)
+    routeText(drawing, 132, 91, 'Transverse x (mm) × stack z (mm); thin layers expanded', '#475569')
     if (!section) {
-      routeText(drawing, 122, 75, 'Waiting for the first slice; no field solve yet')
+      routeText(drawing, 132, 75, 'Waiting for the first slice; no field solve yet')
       return drawing
     }
     const low = Math.min(...section.conductors.map((c) => c.xMm - c.widthMm / 2)) - 0.1
@@ -122,12 +122,12 @@ export class RouteFieldsSolver extends BaseSolver {
     const heights = levels.slice(1).map((v, i) => Math.max(0.04, Math.sqrt(v - levels[i])))
     const total = heights.reduce((sum, height) => sum + height, 0)
     /** Transverse widths use one linear physical scale. */
-    const x = (v: number): number => 126 + ((v - low) / (high - low)) * 88
+    const x = (v: number): number => 136 + ((v - low) / (high - low)) * 156
     /** Piecewise physical z scale keeps thin copper and mask visible without changing their order. */
     const z = (v: number): number => {
       let height = 0
       for (let i = 1; i < levels.length; i++) height += heights[i - 1] * Math.max(0, Math.min(1, (v - levels[i - 1]) / (levels[i] - levels[i - 1])))
-      return 36 + (height / Math.max(total, 0.001)) * 42
+      return 40 + (height / Math.max(total, 0.001)) * 29
     }
     for (const slab of section.dielectrics) {
       const mask =
@@ -138,16 +138,16 @@ export class RouteFieldsSolver extends BaseSolver {
         )
       const middle = (z(slab.zMm) + z(slab.zMm + slab.thicknessMm)) / 2
       drawing.rects!.push({
-        center: { x: 170, y: middle },
-        width: 88,
+        center: { x: 214, y: middle },
+        width: 156,
         height: z(slab.zMm + slab.thicknessMm) - z(slab.zMm),
         fill: mask ? '#cffafe' : '#fef3c7',
       })
       if (z(slab.zMm + slab.thicknessMm) - z(slab.zMm) > 3 && section.planes.every((plane) => Math.abs(z(plane.zMm) - middle) > 3))
-        routeText(drawing, 127, middle, `${mask ? 'Mask' : 'Dielectric'} εr=${slab.er}`, '#0f172a', 1.6)
+        routeText(drawing, 137, middle, `${mask ? 'Mask' : 'Dielectric'} εr=${slab.er}`, '#0f172a')
     }
     // Explicit legend remains legible even when a slab is too thin for an interior label.
-    routeText(drawing, 122, 87, `Amber: laminate · Cyan: solder mask εr=${this.materials.maskEr} · Blue: copper`, '#475569', 1.7)
+    routeText(drawing, 132, 86, `Amber: laminate · Cyan: mask εr=${this.materials.maskEr} · Blue: copper`, '#475569')
     for (const [i, c] of section.conductors.entries()) {
       drawing.rects!.push({
         center: { x: x(c.xMm), y: (z(c.zMm) + z(c.zMm + c.thicknessMm)) / 2 },
@@ -156,13 +156,13 @@ export class RouteFieldsSolver extends BaseSolver {
         fill: '#2563eb',
         stroke: '#1d4ed8',
       })
-      routeText(drawing, x(c.xMm) - 8, 82 - (i % 2) * 3, `${c.id}: ${c.widthMm.toFixed(3)} × ${c.thicknessMm.toFixed(3)} mm`, '#1d4ed8', 1.5)
+      routeText(drawing, x(c.xMm) - 8, 80 - (i % 2) * 5, `${c.id}: ${c.widthMm.toFixed(3)} × ${c.thicknessMm.toFixed(3)} mm`, '#1d4ed8')
     }
     for (const [i, plane] of section.planes.entries()) {
       drawing.lines!.push({
         points: [
-          { x: 126, y: z(plane.zMm) },
-          { x: 214, y: z(plane.zMm) },
+          { x: 136, y: z(plane.zMm) },
+          { x: 292, y: z(plane.zMm) },
         ],
         strokeColor: '#16a34a',
         strokeWidth: 0.5,
@@ -170,15 +170,15 @@ export class RouteFieldsSolver extends BaseSolver {
       const reference = this.currentSlice?.references[i]
       drawing.polygons!.push({
         points: [
-          { x: 126, y: z(plane.zMm) },
-          { x: 214, y: z(plane.zMm) },
+          { x: 136, y: z(plane.zMm) },
+          { x: 292, y: z(plane.zMm) },
         ],
         stroke: '#16a34a',
         strokeWidth: 0.5,
       })
-      routeText(drawing, 128, z(plane.zMm) + (i % 2 ? 2 : -2), `Reference: ${reference?.layer ?? 'plane'} · z=${plane.zMm.toFixed(3)} mm`, '#15803d', 1.8)
+      routeText(drawing, 138, z(plane.zMm) + (i % 2 ? 3 : -3), `Reference: ${reference?.layer ?? 'plane'} · z=${plane.zMm.toFixed(3)} mm`, '#15803d')
     }
-    routeText(drawing, 126, 31, `x: ${low.toFixed(3)} … ${high.toFixed(3)} mm; z: ${levels[0].toFixed(3)} … ${levels.at(-1)!.toFixed(3)} mm`, '#64748b', 1.6)
+    routeText(drawing, 132, 33, `x: ${low.toFixed(3)} … ${high.toFixed(3)} mm; z: ${levels[0].toFixed(3)} … ${levels.at(-1)!.toFixed(3)} mm`, '#64748b')
     const line = this.cache.get(JSON.stringify(section))
     if (!line) return drawing
     for (const [i, c] of section.conductors.slice(0, 4).entries()) {
@@ -186,20 +186,19 @@ export class RouteFieldsSolver extends BaseSolver {
       const inductance = line.L[i][i]
       routeText(
         drawing,
-        122,
-        26 - i * 3.5,
+        132,
+        27 - i * 5,
         `${c.id}: C ${(capacitance * 1e12).toFixed(1)} pF/m · L ${(inductance * 1e9).toFixed(1)} nH/m · Z0 ${Math.sqrt(inductance / capacitance).toFixed(1)} Ω · delay ${(Math.sqrt(inductance * capacitance) * 1e9).toFixed(2)} ps/mm`,
         '#0f172a',
-        1.65,
       )
     }
     if (this.currentSlice) {
       const slice = this.currentSlice
       const names = slice.wires
         .slice(0, 2)
-        .map((wire, i) => `${i}=${this.input.circuitJson ? routeNetLabel(this.input.circuitJson, wire.source) : wire.source} (${wire.layer})`)
+        .map((wire, i) => `${i}=${this.input.circuitJson ? routeNetLabel(this.input.circuitJson, wire.source) : wire.source} /${wire.layer}`)
         .join(' · ')
-      routeText(drawing, 122, 12, `Slice ${slice.start.toFixed(2)}…${slice.end.toFixed(2)} mm · ${names}`, '#64748b', 1.5)
+      routeText(drawing, 132, 6, `Slice ${slice.start.toFixed(2)}…${slice.end.toFixed(2)} mm · ${names}`, '#64748b')
     }
     const pairs = section.conductors.flatMap((a, i) =>
       section.conductors.slice(i + 1).map((b, offset) => {
@@ -226,21 +225,19 @@ export class RouteFieldsSolver extends BaseSolver {
     const pair = [...pairs].sort((a, b) => b.k - a.k)[0]
     routeText(
       drawing,
-      122,
-      8,
+      132,
+      1,
       pair
         ? `Strongest pair ${pair.a.id}↔${pair.b.id}: Cm ${(pair.cm * 1e12).toFixed(2)} pF/m · Lm ${(pair.lm * 1e9).toFixed(2)} nH/m · k=${pair.k.toFixed(3)}`
         : 'One conductor in this slice: no mutual coupling',
       '#7e22ce',
-      1.7,
     )
     routeText(
       drawing,
-      122,
-      4,
+      132,
+      -4,
       `Purple thickness = coupling · ${section.conductors.length} conductors · self values above${section.conductors.length > 4 ? ' (first 4)' : ''}`,
       '#64748b',
-      1.7,
     )
     return drawing
   }

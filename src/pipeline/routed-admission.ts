@@ -96,13 +96,12 @@ export class RoutedAdmissionSolver extends BaseSolver {
           y - 1.5,
           source?.type === 'source_port' ? `${component && component.type === 'source_component' ? component.name : ''}.${source.name}` : id,
           '#1d4ed8',
-          1.8,
         )
       }
     }
     if (this.failed) {
       for (const [i, reason] of (`Rejected: ${this.error ?? 'Invalid signal scope'}`.match(/.{1,85}/g) ?? []).slice(0, 3).entries())
-        routeText(drawing, 2, 83 - i * 3, reason, '#dc2626', 1.7)
+        routeText(drawing, 2, 83 - i * 3, reason, '#dc2626')
       drawing.lines?.push({
         points: [
           { x: 16, y: 16 },

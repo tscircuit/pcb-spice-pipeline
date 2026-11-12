@@ -1,5 +1,5 @@
 body { margin: 0; font-family: system-ui, sans-serif; color: #18263a; background: #f7f9fc; }
-main { padding: 20px; }
+main { padding: 12px; }
 h1 { margin: 0 0 8px; font-size: 24px; }
 header p { color: #52647a; }
 .controls { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding: 12px; background: white; border: 1px solid #d9e1ed; border-radius: 6px; }
@@ -9,3 +9,11 @@ textarea { display: block; box-sizing: border-box; width: 100%; min-height: 160p
 [role=alert] { color: #a12825; white-space: pre-wrap; overflow-wrap: anywhere; }
 [role=status] { font-size: 13px; color: #52647a; }
 summary, button { cursor: pointer; }
+
+.board-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.board-heading h1 { font-size: 20px; line-height: 26px; margin-bottom: 2px; }
+.board-heading p { font-size: 12px; line-height: 18px; }
+.board-heading .controls { font-size: 13px; padding: 8px; gap: 12px; }
+.routed-atlas { background: white; width: 100%; }
+/* CanvasGraphics' dimension overlay needs a height for its absolute canvas. */
+.routed-atlas [tabindex='0'] { height: 100%; }
