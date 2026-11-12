@@ -451,6 +451,15 @@ Model_345, but leaves a higher maximum driven voltage. Its A4 largest positive
 lobe is 0.431916 V ns versus 0.444789 before: lower peak height does not imply
 an equally large decrease in area. The register mapping remains unverified.
 
+The spacing main and even-victim prefixes complete in 314.640 and 679.525 s,
+with 238.484 and 238.172 MiB sampled native maximum RSS. The maximum driven
+peak is 2.092926 V, only 0.049 mV above before. Median outer/inner overshoot is
+27.587% / 30.945%. A4 worst quiet disturbance is 429.279 mV versus 429.418 mV
+before; its minimum is -0.397692 V. These changes do not demonstrate a useful
+remedy. The [spacing overlay](../runs/addr-cmd/qualification/summary/spacing-overlay.png)
+shows the matched 4.999 ns comparison. The odd-victim prefix remains pending;
+there is no combined two-pattern spacing result yet.
+
 ## Reproduction and validation
 
 All declarations and selectors originate in `tests/support/full-board-ddr3.tsx`.

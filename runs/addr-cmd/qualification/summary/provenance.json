@@ -1903,6 +1903,118 @@
         "packageOff": false,
         "termination": 0
       }
+    },
+    "spacing-prefix": {
+      "directory": "runs/addr-cmd/qualification/spacing-prefix/before",
+      "native": {
+        "seconds": 314.64004375,
+        "peakRssKiB": 244208,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.167654208,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 9.216556332999998,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 14.266563499999998,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 23.355785333,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 163.7235915,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "8010c9aabb291a4643de54c8bb37e2edadc8730d41dadde2f271161c4293ba25",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "prbs7",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "5f6bf5d9b91b70e223b19fe22380439cd3cc39aaae0f91e6acecb098b7793dac",
+      "window_ns": 4.999,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
+      "native_deck_sha256": "2a0bc078d96eeccc4a12948031f955c5cd9d20a0009ebaefe574f94edf9ae9fb",
+      "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
+      "declared_duration_ns": 4.999,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_352",
+        "packageOff": false,
+        "termination": 0
+      }
+    },
+    "spacing-even-prefix": {
+      "directory": "runs/addr-cmd/qualification/spacing-prefix/victim-even",
+      "native": {
+        "seconds": 679.524962875,
+        "peakRssKiB": 243888,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.16883525,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 10.226755334000002,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 16.287759,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 27.410542125,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 408.742779125,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "8010c9aabb291a4643de54c8bb37e2edadc8730d41dadde2f271161c4293ba25",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-even",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "a95bc7d139cd4aab49e9f3585f7abbf5bcab98b524d1856d48aa4defad8d8aa8",
+      "window_ns": 4.999,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
+      "native_deck_sha256": "856bae498fde7c6a75d9c1520f978fdf480879e7a93a54c7a81a203e54549047",
+      "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
+      "declared_duration_ns": 4.999,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_352",
+        "packageOff": false,
+        "termination": 0
+      }
     }
   }
 }

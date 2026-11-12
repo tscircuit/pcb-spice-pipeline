@@ -222,5 +222,21 @@
     "directory": "runs/addr-cmd/qualification/slowest/victim-odd",
     "stop_ns": 4.999,
     "baseline": "victim-odd-prefix"
+  },
+  {
+    "name": "spacing-prefix",
+    "directory": "runs/addr-cmd/qualification/spacing-prefix/before",
+    "stop_ns": 4.999,
+    "baseline": "before-prefix",
+    "overlay": "spacing-overlay.png",
+    "label": "BA2 body spacing +0.25 mm from A4",
+    "quiet_case": "spacing-even-prefix",
+    "quiet_baseline": "victim-even-prefix"
+  },
+  {
+    "name": "spacing-even-prefix",
+    "directory": "runs/addr-cmd/qualification/spacing-prefix/victim-even",
+    "stop_ns": 4.999,
+    "baseline": "victim-even-prefix"
   }
 ]
