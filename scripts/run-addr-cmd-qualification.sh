@@ -68,6 +68,17 @@ case "${1:?Choose refine, refine-reduced, radius, isolate, package-off, width, v
   width|spacing)
     capture "$1" SI_ROUTE_BATCH=1 SI_DDR3_BOARD="$root/$1-board/circuit.json"
     ;;
+  width-prefix|spacing-prefix)
+    candidate="${1%-prefix}"
+    for pattern in prbs7 victim-even victim-odd; do
+      folder="$pattern"
+      if [[ "$pattern" == prbs7 ]]; then folder=before; fi
+      if [[ ! -f "$root/$candidate/$folder/extraction.json" || ! -f "$root/$candidate/$folder/simulation.cir" ]]; then
+        capture "$candidate/$folder" SI_DDR3_BOARD="$root/$candidate-board/circuit.json" SI_ROUTE_PATTERN="$pattern" SI_ROUTE_EXTRACT_ONLY=1 || { failed=1; continue; }
+      fi
+      capture "$1/$folder" SI_DDR3_BOARD="$root/$candidate-board/circuit.json" SI_ROUTE_PATTERN="$pattern" SI_ROUTE_REUSE_DIR="$root/$candidate/$folder" SI_ROUTE_DURATION_NS=4.999 || failed=1
+    done
+    ;;
   weak)
     capture weak SI_ROUTE_BATCH=1 SI_ROUTE_DRIVER_MODEL=Model_345
     ;;

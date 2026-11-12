@@ -458,7 +458,8 @@ runner `bash scripts/run-addr-cmd-qualification.sh <stage>` runs serial native
 experiments, retains individual failures and continues independent patterns,
 then returns nonzero if a capture failed. Stages include `refine`, `radius`,
 `scope-refine`, `scope-fine`, `scope-radius`,
-`isolate`, `package-off`, `width`, `vtt`, `weak`, `slowest`, and `spacing`.
+`isolate`, `package-off`, `width`, `vtt`, `weak`, `slowest`, `spacing`,
+`width-prefix`, and `spacing-prefix`.
 `refine-reduced` preserves the original signal-removal reproduction of the
 inactive-buffer failure; it is not the corrected quiet-driver control.
 The width/spacing stages require the copied boards prepared with
@@ -474,26 +475,13 @@ Use the source's `data/cloud-ddr-routes.json` as the route-data input.
 An optional `SI_ROUTE_FIELD_CACHE` points to a local saved geometry cache;
 vendor data and large decks/fields stay ignored under `runs/`.
 
-To reproduce the bounded width comparison without first spending time on the
-rejected full-length native captures, compile the original 8 ns histories only,
-then reuse each over the accepted window:
+The bounded copied-route stages compile missing 8 ns histories without native
+execution, then reuse each over 4.999 ns. Existing compilations must pass the
+same exact-input reuse checks. After preparing the copied boards:
 
 ```sh
-SI_DDR3_BOARD=runs/addr-cmd/qualification/width-board/circuit.json \
-SI_ROUTE_RUN_DIR=runs/addr-cmd/qualification/width-history8 \
-SI_ROUTE_DURATION_NS=8 SI_ROUTE_BATCH=1 SI_ROUTE_EXTRACT_ONLY=1 \
-node --import tsx scripts/run-routed-ddr3.tsx addr-cmd
-
-for pattern in prbs7 victim-even victim-odd; do
-  folder="$pattern"
-  if [ "$pattern" = prbs7 ]; then folder=before; fi
-  SI_DDR3_BOARD=runs/addr-cmd/qualification/width-board/circuit.json \
-  SI_ROUTE_REUSE_DIR="runs/addr-cmd/qualification/width-history8/$folder" \
-  SI_ROUTE_RUN_DIR="runs/addr-cmd/qualification/width-prefix/$folder" \
-  SI_ROUTE_PATTERN="$pattern" SI_ROUTE_DURATION_NS=4.999 \
-  SI_ROUTE_BATCH=0 SI_ROUTE_EXTRACT_ONLY=0 \
-  node --import tsx scripts/run-routed-ddr3.tsx addr-cmd
-done
+bash scripts/run-addr-cmd-qualification.sh width-prefix
+bash scripts/run-addr-cmd-qualification.sh spacing-prefix
 ```
 
 The summary script takes a JSON manifest of complete case directories and
@@ -519,6 +507,12 @@ completed; `orchestration-note.json` distinguishes that runner-edit error from
 native failures. The runner was syntax-checked and frozen before subsequent
 stages. `guard-failures.json` retains rejected captures separately from the
 accepted metrics and compact provenance.
+The spacing full-window main run records a late timeout at 1,258.792 s despite
+the unchanged 1,200 s timer. Its rejected record is retained; timer delay is
+not validated as a physical circuit effect. The remaining full-window spacing
+batch was stopped after its native failure and lock cleanup. The bounded
+prefix retry runs under a temporary idle-sleep assertion. This does not change
+the solver or its admission, memory and runtime guards.
 Stopping the width batch also left its exclusive lock behind. That lock
 correctly denied six subsequent attempts before any native solver started.
 `stale-lock-note.json` records those attempts and recovery after verifying
@@ -528,7 +522,10 @@ the owner and all native processes had exited; none contributes metrics.
 flowchart LR
   tsx[Original TSX signal declarations] --> controls[Named scope and isolated A4 controls]
   copy[Read-only board and copied route edits] --> controls
-  controls --> guards[Exact-input extraction and native budgets]
+  controls --> compile[Exact-input extraction and compiled history]
+  compile --> guards[Guarded native capture or shorter reuse]
+  compile --> padding[Optional numerical corner preparation]
+  padding --> guards
   guards --> complete{Complete native capture?}
   complete -->|yes| metrics[Exact window extrema, settling and pulse areas]
   complete -->|no| failures[Retain failure evidence without waveform claims]
