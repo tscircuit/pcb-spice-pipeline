@@ -75,16 +75,25 @@ export function boardCameraShot(circuit: CircuitJson, stack: BoardStackup, input
     const first = input.slice.wires[0].transverse
     const left = Math.min(...input.slice.wires.map((wire) => wire.transverse - first - wire.width / 2))
     const right = Math.max(...input.slice.wires.map((wire) => wire.transverse - first + wire.width / 2))
-    target = boardSlicePosition(pose, (left + right) / 2, frame.center)
+    // Frame the signal copper and its nearest reference plane, not the full board thickness.
+    const index = stack.copperLayers.findIndex((layer) => layer.name === input.slice!.wires[0].layer)
+    const copper = stack.copperLayers[index]
+    const z = (copper.zMinMm + copper.zMaxMm) / 2
+    const reference = [stack.copperLayers[index - 1], stack.copperLayers[index + 1]]
+      .filter((layer) => layer !== undefined)
+      .map((layer) => (layer.zMinMm + layer.zMaxMm) / 2)
+      .sort((a, b) => Math.abs(a - z) - Math.abs(b - z))[0] ?? z
+    const gap = Math.abs(reference - z)
+    target = boardSlicePosition(pose, (left + right) / 2, (z + reference) / 2)
     direction = pose.normal.map((value) => -value) as BoardPosition
-    span = Math.max(frame.top - frame.bottom + 0.8, (right - left + 0.8) / Math.max(1, input.aspect ?? 2.4))
+    span = Math.max(gap * 2.2 + 0.1, (right - left + 2 * gap + 0.3) / Math.max(1, input.aspect ?? 2.4))
   }
   target = [
     Math.max(low[0], Math.min(high[0], target[0])),
     Math.max(low[1], Math.min(high[1], target[1])),
     Math.max(frame.bottom - frame.center, Math.min(frame.top - frame.center, target[2])),
   ]
-  const distance = Math.max(0.8, span * (input.stage === 3 ? 0.78 : 1.55))
+  const distance = Math.max(0.8, span * (input.stage === 3 ? 0.6 : 1.55))
   const length = Math.hypot(...direction)
   return { target, position: target.map((value, axis) => value + (direction[axis] / length) * distance) as BoardPosition, up: [0, 0, 1] }
 }

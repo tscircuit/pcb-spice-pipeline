@@ -43,7 +43,9 @@ export function Board3dPanel({
   const [time, setTime] = useState(0)
   const [playing, setPlaying] = useState(false)
   const slices = step >= 3 ? state.fields.flatMap((field) => field.slices) : state.sections.flatMap((section) => section.geometry.slices)
-  const currentSliceIndex = sliceIndex < 0 ? Math.max(0, slices.length - 1) : Math.min(sliceIndex, Math.max(0, slices.length - 1))
+  // Until a slice is chosen, show the longest uniform section rather than a short fanout piece.
+  const longest = slices.reduce((best, slice, index) => (slice.end - slice.start > slices[best].end - slices[best].start ? index : best), 0)
+  const currentSliceIndex = sliceIndex < 0 ? longest : Math.min(sliceIndex, Math.max(0, slices.length - 1))
   const duration = Math.max(
     0,
     ...state.captures.map((capture) => capture.spatial?.timeSeconds.at(-1) ?? capture.timestampsSeconds.at(-1) ?? 0),
@@ -101,6 +103,10 @@ export function Board3dPanel({
       observer.disconnect()
     }
   }, [])
+  useEffect(() => {
+    // Sections' fly-through leaves its last slice selected; Fields opens on the longest section instead.
+    if (step === 3) onSliceChange(-1)
+  }, [step, onSliceChange])
   useEffect(() => {
     setShotProgress(reducedMotion || step === 0 || step === 3 || step === 6 ? 1 : 0)
     if (reducedMotion || !stageReady) return
@@ -160,6 +166,12 @@ export function Board3dPanel({
     })
   }, [time, root, state, step, currentSliceIndex, fraction, shotProgress])
   useEffect(() => {
+    // Placeholder names explain the full-board shots; focus shots hide them behind the visible fade chip.
+    root?.traverse((object) => {
+      if (object.userData.placeholder) object.visible = step < 2
+    })
+  }, [root, step, circuit])
+  useEffect(() => {
     if (!root) return
     const originals = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>()
     /** Board assets load asynchronously; clone their materials without changing component models. */
@@ -168,8 +180,10 @@ export function Board3dPanel({
         object.frustumCulled = false
         const mesh = object as THREE.Mesh
         let owner: THREE.Object3D | null = object
+        let physical = false
         while (owner && owner.name !== 'board') {
           if (owner.name === 'signal-integrity-overlay') return
+          physical ||= owner.name === 'physical-board-stack'
           owner = owner.parent
         }
         if (!mesh.material || originals.has(mesh) || object.userData.spatial || object.parent?.name === 'signal-integrity-overlay') return
@@ -181,6 +195,8 @@ export function Board3dPanel({
         const copy = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).map((material) => {
           const clone = material.clone()
           const opacity = mesh.type === 'Sprite' && step === 3 ? 0 : step === 0 || step === 1 ? 1 : owner ? (step === 3 ? 0.035 : 0.18) : step === 3 ? 0.08 : step === 4 ? 0.18 : 0.4
+          // The axial Fields shot sits inside the board; only the dielectric slabs and the true-scale section remain.
+          clone.visible = step !== 3 || physical
           if (opacity < 1) {
             clone.transparent = true
             clone.opacity = opacity
@@ -228,7 +244,9 @@ export function Board3dPanel({
       <header>
         <strong>3D · {stageName}</strong>
         <span className="board-shot">Automatic camera · orbit / pan / zoom locked</span>
-        {step >= 2 && <span className="board-focus-chip">Components faded · upper layers translucent</span>}
+        {step >= 2 && (
+          <span className="board-focus-chip">{step === 3 ? 'Components hidden · stack translucent' : 'Components faded · upper layers translucent'}</span>
+        )}
         {step === 4 && <span className="board-focus-chip">{shotProgress < 0.5 ? 'Driver pads' : 'Receiver pads'}</span>}
       </header>
       <div className="board-3d-canvas" ref={canvasRef} aria-label="Scripted board camera">

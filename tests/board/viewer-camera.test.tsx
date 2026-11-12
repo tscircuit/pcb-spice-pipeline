@@ -26,6 +26,8 @@ test('every scripted stage targets the TSX board bounds; Fields looks along the 
         assert.ok(Math.abs(direction[2]) < 1e-12)
         assert.ok(Math.abs(direction[0] * slice.wires[0].u[1] - direction[1] * slice.wires[0].u[0]) < 1e-12)
         assert.ok(direction[0] * slice.wires[0].u[0] + direction[1] * slice.wires[0].u[1] > 0)
+        // The true-scale cross-section of copper and its nearest plane fills the frame, not the whole board.
+        assert.ok(Math.hypot(...direction) < 1, `${Math.hypot(...direction)}`)
       }
     }
 })

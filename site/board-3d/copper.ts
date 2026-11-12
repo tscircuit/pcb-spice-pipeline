@@ -144,8 +144,7 @@ export function fullCopper(circuit: CircuitJson, stack: BoardStackup): THREE.Gro
       group,
       [mesh.position.x, mesh.position.y, mesh.position.z + height],
       `${source && source.type === 'source_component' ? source.name : component.pcb_component_id} · no model`,
-      0.6,
-    )
+    ).userData.placeholder = true
   }
   return group
 }

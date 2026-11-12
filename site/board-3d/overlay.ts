@@ -51,17 +51,19 @@ function sectionPlane(
   }
   if (!fields) band(0, (frame.top + frame.bottom) / 2, boardWidth, frame.top - frame.bottom + 1, '#f59e0b', 0.13)
   if (!fields) return
-  for (const dielectric of section.dielectrics)
-    band((low + high) / 2, dielectric.zMm + dielectric.thicknessMm / 2, high - low, dielectric.thicknessMm, '#38bdf8', 0.55)
+  for (const [index, dielectric] of section.dielectrics.entries())
+    band((low + high) / 2, dielectric.zMm + dielectric.thicknessMm / 2, high - low, dielectric.thicknessMm, index % 2 ? '#7dd3fc' : '#38bdf8', 0.55)
   for (const conductor of section.conductors)
     band(conductor.xMm, conductor.zMm + conductor.thicknessMm / 2, conductor.widthMm, conductor.thicknessMm, '#fbbf24', 1)
   for (const reference of section.planes) band((low + high) / 2, reference.zMm, high - low, 0.008, '#22c55e', 1)
-  const values = slice.line.C.map(
-    (row, i) =>
-      `C${i} ${(row[i] * 1e12).toFixed(1)} pF/m · L${i} ${(slice.line.L[i][i] * 1e9).toFixed(1)} nH/m · Z0 ${Math.sqrt(slice.line.L[i][i] / row[i]).toFixed(1)} Ω`,
-  ).join(' | ')
-  const point = new THREE.Vector3((low + high) / 2, frame.top + 0.28, 0).applyQuaternion(plane.quaternion).add(plane.position)
-  label(group, point.toArray(), values, 0.13)
+  // One per-unit-length label above each conductor, anchored in the slice plane.
+  for (const [i, conductor] of section.conductors.entries()) {
+    const c = slice.line.C[i]?.[i]
+    const l = slice.line.L[i]?.[i]
+    if (c === undefined || l === undefined) continue
+    const point = new THREE.Vector3(conductor.xMm, conductor.zMm + conductor.thicknessMm * 3, 0).applyQuaternion(plane.quaternion).add(plane.position)
+    label(group, point.toArray(), `C ${(c * 1e12).toFixed(1)} pF/m · L ${(l * 1e9).toFixed(0)} nH/m · Z0 ${Math.sqrt(l / c).toFixed(1)} Ω`, i)
+  }
 }
 
 /** Draw selected and neighbouring copper, physical sections, bindings and actual ladder node ticks. */
@@ -141,7 +143,7 @@ export function stageOverlay(
           const point = boardPosition(stack, port.x, port.y, port.layers[0])
           const focused = driver === progress < 0.5
           marker(group, point, focused ? 0.15 : 0.07, focused ? '#f59e0b' : '#06b6d4')
-          if (focused) label(group, [point[0], point[1], point[2] + 0.45], `${driver ? 'TX' : 'RX'} ${pin.model}`, 0.15)
+          if (focused) label(group, [point[0], point[1], point[2] + 0.1], `${driver ? 'TX' : 'RX'} ${pin.model}`)
         }
   if (step === 5)
     for (const network of state.networks) {
@@ -157,7 +159,7 @@ export function stageOverlay(
         segment(group, a, b, active ? 0.08 : 0.04, active ? '#f59e0b' : '#c026d3')
         if (active) {
           marker(group, boardPosition(stack, x, y, wire.layer), 0.12, '#f59e0b')
-          label(group, [x, y, a[2] + 0.7], `Cell ${index + 1} · ${tick.node}`, 0.18)
+          label(group, [x, y, a[2] + 0.1], `Cell ${index + 1} · ${tick.node}`)
         }
       }
     }
@@ -207,8 +209,8 @@ export function stageOverlay(
           const port = circuit.find((record) => record.type === 'pcb_port' && record.source_port_id === id)
           if (port?.type !== 'pcb_port') continue
           const point = boardPosition(stack, port.x, port.y, port.layers[0])
-          marker(group, point, 0.23, '#dc2626')
-          label(group, [point[0], point[1], point[2] + 1.5], `${probe.name}${ports.length > 1 ? (index ? ' (−)' : ' (+)') : ''}`, 0.55)
+          marker(group, point, 0.1, '#dc2626')
+          label(group, [point[0], point[1], point[2] + 0.15], `${probe.name}${ports.length > 1 ? (index ? ' (−)' : ' (+)') : ''}`)
         }
       }
     }
@@ -219,7 +221,9 @@ export function stageOverlay(
     const material = object.material as THREE.MeshBasicMaterial
     material.depthTest = false
     material.depthWrite = false
-    object.renderOrder = 4
+    // Translucent board layers render in the transparent pass; joining it after them keeps marks unwashed.
+    material.transparent = true
+    object.renderOrder = 8
   })
   return group
 }

@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from 'react'
 import type { RoutedPipelineSolver } from '../src/pipeline'
 import { Board3dPanel } from './board-3d/panel'
 
+/** The newest stage that has begun work, so the scene shows what just ran rather than the next pending stage. */
+export function latestStage(solver: RoutedPipelineSolver): number {
+  return solver.pipelineDef.findLastIndex(definition => (solver.getSolver(definition.solverName)?.iterations ?? 0) > 0) + 1
+}
+
 /** Six static rows and serial stepping share one retained solver and one physical 3D scene. */
 export function Stages({ solver }: { solver: RoutedPipelineSolver }): React.JSX.Element {
   const [step, setStep] = useState(0)
@@ -25,7 +30,7 @@ export function Stages({ solver }: { solver: RoutedPipelineSolver }): React.JSX.
       do {
         await solver.stepAsync()
         setRevision(value => value + 1)
-        setStep(Math.min(solver.currentPipelineStageIndex + 1, 6))
+        setStep(latestStage(solver))
         await new Promise<void>(resolve => window.setTimeout(resolve, 0))
       } while (running.current && !solver.solved && !solver.failed && mode !== 'step' && (mode === 'solve' || solver.currentPipelineStageIndex <= target))
       if (solver.failed) setError(solver.error ?? 'Stage failed')
