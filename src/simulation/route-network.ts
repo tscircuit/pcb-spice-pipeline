@@ -144,7 +144,7 @@ export class RouteNetworkSolver extends BaseSolver {
     const spatialPoints = routeSpatialPoints(spatialRoutes, probeNodes)
     // Save probes first to preserve their ordering, plus bounded physical nodes and behavioural dependencies.
     const save = [...new Set([...probeNodes, ...spatialPoints.map(point => point.node)])].map(node => `v(${node})`).concat(saved).join(' ')
-    lines.push(`* Routed probe nodes: ${[...new Set(probeNodes)].join(' ')}`)
+    lines.push(`* Routed probe nodes: ${[...new Set(probeNodes)].join(' ')}`, `* Routed probe pairs: ${plan.probes.map(probe => `${probe.signalNode},${probe.referenceNode}`).join(' ')}`)
     lines.push(...routedControl(save, options.stepSeconds, options.durationSeconds))
     const ground = connectedSourceIds(bindings.circuitJson, bindings.groundSourcePortId)
     const powerReferences = geometry.slices.flatMap(slice => slice.references.filter(plane => !ground.has(plane.net)).map(plane => ({ plane, traces: slice.wires.map(wire => wire.trace), start: slice.start, end: slice.end })))

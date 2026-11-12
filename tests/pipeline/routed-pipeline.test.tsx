@@ -32,8 +32,8 @@ test('TSX two-trace deck deliberately saves bounded physical voltages and declar
   assert.equal(result.evidence.geometry_wires, 2)
   assert.equal(result.evidence.sections, 1)
   // V8 and JavaScriptCore differ in the final digits of the unchanged BEM coefficients.
-  const expected = process.versions.bun ? 'a955e649fea3f2c985f6e31d09ddd1003966b13f21d5049ccc4cdc74e5a5d9d2' : 'c0cf6c171cf3ea3af5694dcd768c9b3f0f3ca08750712d4f0f2bdba5ca460fd2'
-  assert.equal(Buffer.byteLength(result.deck), 22244)
+  const expected = process.versions.bun ? '1dbb436615083082cbf61ab54895c17cb3365293b2ca225806f75dbc9078113e' : '9b798f1cc963916b6d8db31fca4e2c0dd8c5205dc1f44f4b4fdba0f32ee746e3'
+  assert.equal(Buffer.byteLength(result.deck), 22283)
   assert.equal(sha256(result.deck), expected, 'full deck bytes, including vendor compilation and coupling, pinned per JS engine')
 })
 
@@ -118,7 +118,7 @@ test('default two-trace TSX deck retains the measured driver lead-in and capture
   solver.solveUntilStage('RouteTransientSolver')
   assert.equal(solver.stageOutput('RoutedAdmissionSolver').value[0].bindings.options.durationSeconds, 40e-9)
   const deck = solver.stageOutput('RouteNetworkSolver').value[0]
-  if (!process.versions.bun) assert.equal(sha256(deck.deck), '5fc258098627c5a88390632c333451a5faa4cd73a9a12105fa4df7e77ab136bf', 'default deck deliberately adds physical saves and the transport probe declaration')
+  if (!process.versions.bun) assert.equal(sha256(deck.deck), '1bc4e392bd9fdd883384e57d4e0f1cf5c4768f0cac08c90c80cb3b3132e9aca0', 'default deck deliberately adds physical saves and the transport probe declaration')
   const values = /^VKU0 .*PWL\((.+)\)$/m.exec(deck.deck)![1].split(/\s+/).map(Number)
   const weights = values.filter((_, i) => i % 2 === 0).map((time, i) => [time, values[2 * i + 1]])
   // The old 2.5 ns trigger plus preserved lead-in fell outside its 4 ns capture.

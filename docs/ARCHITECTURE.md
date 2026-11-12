@@ -229,22 +229,34 @@ nodes. Points retain physical route order and distinct electrical node identity.
 The deck saves at most 2,000 spatial points, sharing slots along routes while
 retaining probe nodes and route ends. `RoutedCapture.spatial` exposes `points`,
 `timeSeconds` and point-major `volts`; it retains at most 1,000 actual native
-timestamps, including both ends. Existing probe waveforms keep every adaptive
+timestamps, including both ends. Node probe waveforms keep every adaptive
 sample and their original differential/reference semantics. `net` uses a source
 net name, then the selected channel name, then source-trace identity. Multiple
 conductors in one channel append their driver port ID to keep differential legs
-distinct while sharing labels with same-net termination stubs.
+distinct while sharing labels with same-net termination stubs. The slow-edge
+two-trace and level1-differential examples each produce only six spatial points.
+The 3D view must interpolate voltage between samples along each original PCB
+route's arc length, including bends and layer transitions, and interpolate in
+time between the shared timestamps.
 
 Native batch emits ASCII raw vectors (`SPICE_ASCIIRAWFILE=1`). Diagnostics, finite
 samples, start and final simulated time are checked before publishing a capture.
-Errors leave the stage failed without partial output. The default vendor-loaded
-8 mm two-trace fixture crosses 1.65 V at its driver 23.814 ps before its receiver;
-Fields gives 52.802 ps from the per-length diagonal L/C. The decimated capture
-reports 23.809 ps (0.005 ps difference). The position/order check passes, but this
-mid-supply crossing gap does not establish agreement with unloaded flight time;
-no quantitative flight-time qualification is claimed. Spatial saves leave all
-existing probe samples numerically identical on two-trace and level1-differential.
-Native adapter instances
+Errors leave the stage failed without partial output. On the default vendor-loaded
+8 mm two-trace fixture, the 1.65 V crossing gap is 23.814 ps and the 2%-of-final-swing
+departure gap is 153.068 ps. Removing only the receiver IBIS/package instance,
+while retaining the PCB pad, reduces the departure gap to 11.176 ps. End-load
+response and the slow incident edge make these endpoint-voltage thresholds
+unsuitable as flight-time oracles.
+
+The two traces are coupled: common/differential modes use
+sqrt((L00 ± L01)(C00 ± C01)), rather than the diagonal self-term estimate
+of 52.802 ps. `route-ladder.test.ts` builds the actual two-trace TSX ladder and
+applies ideal 5 ps steps with matched modal source/load impedances. With four
+total cells (two per trace), common mode measures 46.552 ps versus 46.578 ps
+from Fields, and differential mode 45.419 ps versus 45.389 ps. Errors are
+−0.0567% and +0.0649%, within the coarse-ladder test's 5% tolerance. This is the
+physical-location check. Spatial saves leave all full-resolution Node probe
+samples numerically identical on both fixtures. Native adapter instances
 share a process queue and set OMP_NUM_THREADS=1. Large DDR3 transients remain
 unverified. Completion is candidate evidence without independent convergence
 qualification. `runPipeline` and the 3D path are unchanged.
@@ -268,20 +280,24 @@ stateDiagram-v2
   validate --> queued: accepted request
   queued --> rejected: queue full
   queued --> running: single slot available
-  running --> completed: full probes and bounded spatial ASCII files
+  running --> completed: bounded probe and spatial ASCII files
   running --> failed: native error or 120 s timeout
   completed --> [*]: release slot and clean temp directory
   failed --> [*]: release slot and clean temp directory
   rejected --> [*]
 ```
 
-The generated deck's `* Routed probe nodes:` declaration lets the backend keep
-full-resolution probe vectors in `waveform.raw` and send the voltage vectors at
-at most 1,000 timestamps in `spatial.raw`. Engine-only branch currents are
-removed after execution. `native-waveform.sha256` preserves the original native
-raw digest; capture evidence uses that digest. Direct native callers still
-receive the original complete raw file and the same bounded spatial capture.
-HTTP and direct paths parse the same native numbers without rounding probes.
+The generated deck's `* Routed probe nodes:` and `* Routed probe pairs:` declarations
+let the backend send probe envelopes in `waveform.raw` on at most 5,000 shared
+actual timestamps. Buckets retain their ends and the first/last extrema of every
+logical probe, including differential voltages; spare slots are filled evenly.
+This preserves narrow signed peaks and edge brackets without rounding voltages.
+Spatial vectors remain independent at at most 1,000 timestamps in `spatial.raw`.
+Engine-only branch currents are removed after execution. `native-waveform.sha256`
+preserves the original native raw digest; capture evidence uses that digest.
+Direct Node callers still receive the original complete raw file and all native
+probe samples. Browser probe envelopes are for display; numerical analysis uses
+the full-resolution Node capture.
 
 Version probes share the queue, and the existing native adapter enforces
 OMP_NUM_THREADS=1. The request cannot override tools or cwd. Local asset reads

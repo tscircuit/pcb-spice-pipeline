@@ -69,7 +69,7 @@ test('duplicate breakpoints keep the last sample; missing and incomplete spatial
 })
 
 
-test('HTTP transport preserves every probe sample while discarding branch currents and decimating spatial ASCII', () => {
+test('short HTTP captures preserve every probe sample while discarding branch currents and decimating spatial ASCII', () => {
   const times = Array.from({ length: 4001 }, (_, i) => i * 1e-12)
   const raw = formatSpiceVectors([
     { name: 'time', type: 'time', values: times },
@@ -88,4 +88,40 @@ test('HTTP transport preserves every probe sample while discarding branch curren
   assert.deepEqual(spatial.map(vector => vector.name), ['time', 'v(probe)', 'v(route)'])
   assert.match(files['native-waveform.sha256'], /^[a-f0-9]{64}$/)
   assert.ok(files['spatial.raw'].length < raw.length)
+})
+
+
+test('browser min/max grid retains narrow signed peaks, edge brackets and differential extrema within 5,000 samples', () => {
+  const times = Array.from({ length: 20001 }, (_, i) => i * 1e-12)
+  const step: number[] = times.map((_, i) => i < 6743 || i >= 15432 ? 0 : 3.3)
+  step[12345] = 4.5
+  step[12346] = -.7
+  const positive = times.map((_, i) => i * .001)
+  const negative = [...positive]
+  negative[13678] -= .0001 // Both legs remain monotone; only the differential probe has an interior peak.
+  const vectors = [
+    { name: 'time', type: 'time', values: times },
+    { name: 'v(step)', type: 'voltage', values: step },
+    { name: 'v(p)', type: 'voltage', values: positive },
+    { name: 'v(n)', type: 'voltage', values: negative },
+  ]
+  const original = structuredClone(vectors)
+  const raw = formatSpiceVectors(vectors)
+  const files = compactRouteVectors('* Routed probe nodes: step p n\n* Routed probe pairs: step,0 p,n p,0 n,0\n', raw)
+  const probes = [{ signalNode: 'step', referenceNode: '0' }, { signalNode: 'p', referenceNode: 'n' }]
+  const full = spiceProbeRows(raw, probes)
+  const browser = spiceProbeRows(files['waveform.raw'], probes)
+  assert.equal(browser.length, 5000)
+  assert.deepEqual(browser[0], full[0])
+  assert.deepEqual(browser.at(-1), full.at(-1))
+  assert.ok(browser.every((row, i) => !i || row[0] > browser[i - 1][0]))
+  assert.ok(browser.every(row => times.includes(row[0])))
+  for (const column of [1, 2]) {
+    assert.equal(browser.reduce((value, row) => Math.min(value, row[column]), Infinity), full.reduce((value, row) => Math.min(value, row[column]), Infinity))
+    assert.equal(browser.reduce((value, row) => Math.max(value, row[column]), -Infinity), full.reduce((value, row) => Math.max(value, row[column]), -Infinity))
+  }
+  for (const index of [6742, 6743, 12345, 12346, 13678, 15431, 15432]) assert.ok(browser.some(row => row[0] === times[index]), `edge/peak at ${index}`)
+  assert.equal(parseSpiceVectors(files['spatial.raw'])[0].values.length, 1000)
+  assert.deepEqual(vectors, original)
+  assert.equal(spiceProbeRows(raw, probes).length, times.length, 'native source remains full resolution')
 })

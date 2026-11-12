@@ -217,8 +217,8 @@ test('rejects an overfull queue and admits later work after a failed process', {
 import { formatSpiceVectors, parseSpiceVectors } from '../../src/observation'
 import { sha256 } from '../../src/kernel'
 
-test('routed HTTP response retains full probe vectors and sends bounded spatial vectors separately', async t => {
-  const times = Array.from({ length: 2501 }, (_, i) => i * 1e-12)
+test('routed HTTP response bounds probe envelopes and spatial vectors separately', async t => {
+  const times = Array.from({ length: 12501 }, (_, i) => i * 1e-12)
   const raw = formatSpiceVectors([
     { name: 'time', type: 'time', values: times },
     { name: 'v(probe)', type: 'voltage', values: times },
@@ -226,12 +226,15 @@ test('routed HTTP response retains full probe vectors and sends bounded spatial 
     { name: 'i(branch)', type: 'current', values: times },
   ])
   const url = await server(t, { runSolver: async () => ({ ...result, files: { 'waveform.raw': raw } }) })
-  const response = await post(url, { ...request, files: { 'simulation.cir': '* Routed probe nodes: probe\n.save v(probe) v(driver) i(branch)\n.tran 1e-12 2.5e-9\n.end' } })
+  const response = await post(url, { ...request, files: { 'simulation.cir': '* Routed probe nodes: probe\n.save v(probe) v(driver) i(branch)\n.tran 1e-12 1.25e-8\n.end' } })
   assert.equal(response.status, 200)
   const body = await response.json()
   const probe = parseSpiceVectors(body.files['waveform.raw'])
   assert.deepEqual(probe.map(vector => vector.name), ['time', 'v(probe)'])
-  assert.deepEqual(probe[1].values, times)
+  assert.equal(probe[1].values.length, 5000)
+  assert.ok(probe[1].values.every(value => times.includes(value)))
+  assert.equal(probe[1].values[0], times[0])
+  assert.equal(probe[1].values.at(-1), times.at(-1))
   const spatial = parseSpiceVectors(body.files['spatial.raw'])
   assert.deepEqual(spatial.map(vector => vector.name), ['time', 'v(probe)', 'v(driver)'])
   assert.equal(spatial[0].values.length, 1000)
