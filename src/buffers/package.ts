@@ -4,14 +4,15 @@ import { referenceVoltages } from './inspect'
 import { coupledPackage, coupledPackageElements, packageComparisons, packageCapacitanceWarnings } from './coupled-package'
 import { convertSwitching } from './switching'
 import { sha256 } from '../kernel'
+import type { WeightFitOptions } from './weight-fit'
 
 /** Convert die buffers, retaining every vendor pin package with ideal die rails. */
-export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition, sourceFile: string = input.definition.source.file ?? '(inline IBIS)'): PackagedComponent {
+export function convertPackaged(bytes: Uint8Array, input: ModelRunDefinition, sourceFile: string = input.definition.source.file ?? '(inline IBIS)', fit?: WeightFitOptions): PackagedComponent {
   const text = new TextDecoder().decode(bytes)
   const document = parseIbis(text)
   const component = document.components[input.definition.component]
   if (!component) throw new Error(`Missing IBIS component ${input.definition.component}`)
-  const converted = convertSwitching(bytes, input, document)
+  const converted = convertSwitching(bytes, input, document, fit)
   const physicalPins = Object.values(converted.spicePinMapping).map(port => {
     const physical = Object.keys(input.definition.pinMap).filter(pin => input.definition.pinMap[pin] === port)
     if (physical.length !== 1) throw new Error(`${port}: package pin mapping is ambiguous`)

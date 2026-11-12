@@ -2,11 +2,13 @@ import type { ConvertedGeneralIbisComponent, IbisConversionMetadata, IbisModelDe
 import type { SimulationIbisModel } from '../board'
 import type { CoupledPackageModel } from './coupled-package'
 import type { SwitchingTail } from './switching'
+import type { WeightFitOptions } from './weight-fit'
 
 /** Package and switching-tail evidence augment the upstream die-buffer metadata. */
 export type PackageConversionMetadata = IbisConversionMetadata & {
   packageData: IbisConversionMetadata['packageData'] & { matrices?: CoupledPackageModel; unusedPinPolicy?: string }
   switchingTails?: SwitchingTail[]
+  switchingWeightFit?: WeightFitOptions
 }
 export type PackagedComponent = ConvertedGeneralIbisComponent & { metadata: PackageConversionMetadata }
 

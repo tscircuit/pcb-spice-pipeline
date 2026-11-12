@@ -95,6 +95,13 @@ test('TSX 800 Mbps driver accepts a settled acquisition tail longer than its 1.2
     return values.filter((_, i) => i % 2 === 0).map((value, i) => [value, values[i * 2 + 1]])
   }
   const knots = points(converted.source, 'KU')
+  const fit = { windowSeconds: 20e-12, coefficientTolerance: .001 }
+  const fitted = convertPackaged(new TextEncoder().encode(source), input, '(research fixture)', fit)
+  assert.deepEqual(fitted.metadata.switchingWeightFit, fit)
+  assert.equal(converted.metadata.switchingWeightFit, undefined, 'production conversion stays unchanged')
+  assert.notEqual(/^\.subckt (\S+)/m.exec(fitted.source)![1], /^\.subckt (\S+)/m.exec(converted.source)![1], 'research parameters participate in electrical identity')
+  assert.equal(points(fitted.source, 'KU').at(-1)![0], 5e-9)
+  assert.deepEqual(input, saved, 'research conversion does not mutate caller input')
   assert.ok(knots.every((row, i) => i === 0 || row[0] > knots[i - 1][0]))
   assert.equal(knots.at(-1)![0], 5e-9)
   assert.ok(interpolate(knots, 1e-9) > .99)
