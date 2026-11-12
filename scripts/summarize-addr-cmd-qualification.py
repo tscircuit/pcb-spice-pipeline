@@ -36,10 +36,22 @@ def lobes(time, voltage):
 
 
 def metrics(directory, stop_ns):
-    """Keep native extrema and censored settling; truncate every comparison to one window."""
+    """Clip the recorded trace to one exact window, interpolating only its boundary."""
     data, ledger, provenance = measurement.load(directory)
-    mask = data["time_s"] <= stop_ns * 1e-9 + 1e-18
-    data = data[mask]
+    stop = stop_ns * 1e-9
+    if not numpy.isfinite(stop) or stop <= data["time_s"][0] or stop > data["time_s"][-1] + 1e-18:
+        raise ValueError("Comparison window must lie within the recorded capture")
+    stop = min(stop, data["time_s"][-1])
+    end = int(numpy.searchsorted(data["time_s"], stop, side="right"))
+    clipped = data[:end]
+    if end < len(data) and clipped["time_s"][-1] < stop:
+        left = data[end - 1]
+        right = data[end]
+        fraction = (stop - left["time_s"]) / (right["time_s"] - left["time_s"])
+        boundary = numpy.array([tuple(stop if name == "time_s" else left[name] + fraction * (right[name] - left[name])
+                                      for name in data.dtype.names)], dtype=data.dtype)
+        clipped = numpy.concatenate([clipped, boundary])
+    data = clipped
     time = data["time_s"]
     records = []
     waves = {}
@@ -70,6 +82,7 @@ def metrics(directory, stop_ns):
                         **measurement.settling(time, voltage, 1.5, measurement.changes(stimulus, time[-1]))})
         waves[name] = (time, voltage - baseline if quiet else voltage)
     return records, waves, {**provenance, "window_ns": stop_ns, "cells": ledger["cells"],
+                            "window_boundary": "linear interpolation between recorded samples when needed",
                             "native_deck_sha256": hashlib.sha256((directory / "simulation.cir").read_bytes()).hexdigest(),
                             "stimuli_sha256": hashlib.sha256(json.dumps(ledger["stimuli"], sort_keys=True).encode()).hexdigest(),
                             "declared_duration_ns": ledger["options"]["durationSeconds"] * 1e9,
