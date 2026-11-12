@@ -192,7 +192,21 @@ its bulk `extractRoutes` loop and caller-owned field cache are deleted. Segmenta
 and ladder generators retain one canonical algorithm, also drained by existing
 numerical primitive callers. Network stepping creates one route run's cells;
 its final step assembles the coupled global matrices, oblique/via terms and deck.
-One BEM solve is atomic. The 40-conductor and 1024-cell limits remain enforced.
+One BEM solve is atomic. The 40-conductor limit remains enforced. Route-arc
+energies store only nonzero entries integrated from common slices, capped at
+500,000 entries across R/L/skin/C/dielectric matrices. A non-dominant shunt
+requiring dense modal realization separately caps its allocation at 500,000
+entries. Neither guard depends on a raw 1,024-cell limit.
+
+Coupled series resistance uses a normalized reciprocal multiport. For
+`S = diag(sqrt(Rii))`, its auxiliary node voltages are `x = S I`, its
+unit-diagonal conductance matrix is `S^-1 R S^-1`, and opposite VCCS stamps
+enforce `V = R I`. This congruence preserves signed mutual resistance and
+passivity without dense inversion. Uncoupled rows use ordinary resistors.
+The former zero-volt sensors and series CCVS chains lost numerical accuracy
+at near-zero Foster voltages on large, weakly anchored neighbour networks.
+Replacing that realization deliberately changes routed deck bytes and their
+pins; field coefficients, loss poles, topology and solver tolerances stay fixed.
 
 Completed domain values are copied and frozen. Only the root folds the six stages'
 `Produced` artifacts into `ArtifactLedger`; runtime timings stay in `stats`.

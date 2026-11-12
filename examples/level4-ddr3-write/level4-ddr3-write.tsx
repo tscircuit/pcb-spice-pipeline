@@ -1,3 +1,4 @@
+import React from 'react'
 import { simulation } from "@tscircuit/core"
 import { cpuFootprint, dramFootprint } from "../ddr3-parts"
 import { routes } from "./routes"

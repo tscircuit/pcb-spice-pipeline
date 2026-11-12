@@ -167,9 +167,12 @@ test('loads only fixed local asset names and reports missing paths without expos
     /missing local asset: .*sn65hvd72.ibs/,
   )
   assert.equal((await fetch(`${url}/api/local-assets/secret.txt`)).status, 404)
+  await writeFile(join(root, 'ddr3-board.json'), 'local board')
+  assert.deepEqual(await (await fetch(`${url}/api/local-assets/ddr3-board.json`)).json(), { text: 'local board' })
+  await rm(join(root, 'ddr3-board.json'))
   assert.match(
     ((await (await fetch(`${url}/api/local-assets/ddr3-board.json`)).json()) as { error: string }).error,
-    /SI_DDR3_BOARD/,
+    /ddr3-board.json/,
   )
 })
 
@@ -211,4 +214,16 @@ test('rejects an overfull queue and admits later work after a failed process', {
   const replies = await Promise.all(pending)
   assert.deepEqual(replies.map((reply) => reply.status).sort(), [200, 200, 200, 429, 502])
   assert.equal((await post(url, request)).status, 200)
+})
+
+test('admits a routed DDR-sized deck above the old 16 MiB body limit', async (t) => {
+  const deck = `title\n*${'x'.repeat(17 * 1024 * 1024)}\n.tran 1e-11 8e-9\n.end`
+  let calls = 0
+  const url = await server(t, { runSolver: async value => {
+    calls++
+    assert.equal(value.files['simulation.cir'], deck)
+    return result
+  } })
+  assert.equal((await post(url, { ...request, files: { 'simulation.cir': deck } })).status, 200)
+  assert.equal(calls, 1)
 })

@@ -74,9 +74,10 @@ function scheduleWeights(buffer: IbisBuffer, corner: IbisCorner, schedule: Logic
       weights = weights.filter(row => row[0] <= tail.retainedDurationSeconds)
       if (!tails.some(entry => entry.physicalPin === physicalPin && entry.edge === edge)) tails.push(tail)
     }
+    // Each edge starts from the held coefficients. A femtosecond jump to the table's
+    // first row (extraction residue up to the settled tolerance) forces sub-fs steps.
     const last = samples.at(-1)!
-    const before = transition.time - Math.min(1e-15, (transition.time - last[0]) * 1e-6)
-    if (before > last[0]) samples.push([before, last[1], last[2]])
+    weights = [[0, last[1], last[2]], ...weights.slice(1)]
     for (const [time, ku, kd] of weights) {
       const absolute = transition.time + time
       if (absolute > schedule.duration) break

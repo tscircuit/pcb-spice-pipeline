@@ -48,7 +48,8 @@ It never substitutes synthetic IBIS. Vendor files remain local and ignored by gi
 
 ```sh
 pnpm install --frozen-lockfile
-# While circuit-json#983 is unpublished, build that sibling and overlay its dist locally.
+# Until the RFC dependencies ship, use the built local circuit-json/props/core overlays
+# documented in docs/native-signal-levels.md.
 IBIS_MODEL_DIR=/path/to/vendor/models node --import tsx scripts/run-signal-levels.tsx
 ```
 
@@ -76,13 +77,26 @@ The sidebar lists the two-trace TSX board, every signal level, the DDR3 addr/cmd
 scope, and a paste/upload Circuit JSON page. Each mounts `GenericSolverDebugger`
 with `RoutedPipelineSolver`. Step through admission, geometry, fields, buffers,
 network assembly, then the live local ngspice transient. Captures remain candidate
-results without independent convergence qualification.
+results without independent convergence qualification. The current DDR addr/cmd
+case compiles but still hits a native Foster-network timestep failure; see the
+[measured DDR boundary](examples/level4-ddr3-write/README.md#current-measured-boundary).
 
 Set `IBIS_MODEL_DIR` to the examples' local vendor directory (default `models`).
-Set `SI_DDR3_BOARD` to the real physical DDR3 board JSON for the addr/cmd page.
+Copy the real physical DDR3 board JSON to `models/ddr3-board.json` (gitignored),
+or set `SI_DDR3_BOARD` to its absolute path for the addr/cmd page. The supplied
+board is `../ddr3-route/source-pkg/am3352-ddr-track-a-local-dfm-wip-20261007/dist/index/circuit.json`;
+see [board provenance](docs/full-board-ddr3.md). This is a local setup step:
+never add board JSON or vendor IBIS files to git.
 Missing files show `missing local asset: <path>`. Each fixture loads models from
 local paths. Vendor assets and board JSON are never bundled or committed.
-The site requires its local backend.
+The site requires its local backend. With built sibling RFC dependencies and the supplied source package available:
+
+```sh
+mkdir -p models
+cp ../ddr3-route/source-pkg/am3352-ddr-track-a-local-dfm-wip-20261007/dist/index/circuit.json models/ddr3-board.json
+# Place sprm552c.ibs and W631GG6MB-12.ibs in models/ locally.
+IBIS_MODEL_DIR=models bun dev
+```
 
 ```mermaid
 flowchart LR
@@ -90,11 +104,11 @@ flowchart LR
   assets["Fixed local model paths / SI_DDR3_BOARD"] --> debugger
   debugger --> transient["RouteTransientSolver · stepAsync"]
   transient <-->|"POST /api/run-solver · HTTP RunSolver"| queue["Vite middleware · single slot"]
-  queue <-->|"isolated temp dir · 120 s limit · OMP_NUM_THREADS=1"| native["Local ngspice on PATH"]
+  queue <-->|"isolated temp dir · 45 min limit · OMP_NUM_THREADS=1"| native["Local ngspice on PATH"]
   transient --> capture["Actual waveform samples"]
 ```
 
-The backend accepts bounded JSON bodies (16 MiB), checks same-origin loopback
+The backend accepts bounded JSON bodies (64 MiB), checks same-origin loopback
 requests, rejects other solvers and executable/cwd options, and serializes native
 runs and version probes. `GET http://127.0.0.1:5050/api/solvers` reports ngspice
 availability and version. A missing binary shows `ngspice not found on PATH`.

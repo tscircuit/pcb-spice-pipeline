@@ -138,11 +138,11 @@ async function readRequest(request: IncomingMessage, limit: number): Promise<unk
 
 /** Same-origin local API. Native runs and version probes share one bounded queue and one CPU thread. */
 export function createSolverMiddleware({
-  runSolver = createNativeSolver({ timeoutMs: 120000 }),
+  runSolver = createNativeSolver({ timeoutMs: 45 * 60 * 1000 }),
   detectSolvers = detectLocalSolvers,
-  maxRequestBytes = 16 * 1024 * 1024,
+  maxRequestBytes = 64 * 1024 * 1024,
   modelDirectory = process.env.IBIS_MODEL_DIR ?? 'models',
-  boardFile = process.env.SI_DDR3_BOARD,
+  boardFile = process.env.SI_DDR3_BOARD ?? join(modelDirectory, 'ddr3-board.json'),
 }: SolverMiddlewareOptions = {}): Middleware {
   let tail: Promise<unknown> = Promise.resolve()
   let pending = 0
