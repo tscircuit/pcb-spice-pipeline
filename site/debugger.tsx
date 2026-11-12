@@ -4,7 +4,7 @@ import { GenericSolverDebugger } from '@tscircuit/solver-utils/react'
 import { CanvasGraphics } from 'graphics-debug/react'
 import { computeTransformFromViewbox, getBounds, type GraphicsObject } from 'graphics-debug'
 import { createHttpSolver } from '../src/adapters/browser'
-import { RoutedPipelineSolver } from '../src/pipeline'
+import { RoutedPipelineSolver, RoutedAdmissionSolver } from '../src/pipeline'
 import { routeText, routeTextSize, type CircuitJson } from '../src/board'
 import type { IbisSources } from '../src/buffers'
 
@@ -38,7 +38,8 @@ function stageDrawing(root: RoutedPipelineSolver, number: number): GraphicsObjec
   const definition = root.pipelineDef[number - 1]
   const solver = root.getSolver(definition.solverName)
   if (solver && solver.iterations > 0) return solver.visualize()
-  const drawing: GraphicsObject = number === 1 ? root.initialVisualize() : { coordinateSystem: 'cartesian', texts: [] }
+  const drawing: GraphicsObject =
+    number === 1 ? new RoutedAdmissionSolver(root.inputProblem).visualize() : { coordinateSystem: 'cartesian', texts: [] }
   if (!drawing.texts?.length) routeText(drawing, 2, 98, `${number} · ${definition.solverName}`, '#0f172a', routeTextSize.title)
   routeText(drawing, 2, 81, 'Not run yet', '#64748b')
   return drawing

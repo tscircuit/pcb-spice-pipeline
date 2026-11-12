@@ -38,8 +38,8 @@ export class RoutedStageSolver<I, O> extends BaseSolver {
     this.current ??= new this.solverClass(this.inputs[this.outputs.length])
     return this.current
   }
-  /** Record only completed domain outputs; failures never expose a partial stage result. */
-  private finish(): void {
+  /** Include the current block in stage stats even when its step throws. */
+  private recordStats(): void {
     const current = this.current!
     const stats = { ...current.stats }
     for (const [name, value] of Object.entries(current.stats)) {
@@ -47,9 +47,13 @@ export class RoutedStageSolver<I, O> extends BaseSolver {
         stats[name] = name.startsWith('maximum') ? Math.max(this.completedStats[name] ?? 0, value) : (this.completedStats[name] ?? 0) + value
     }
     this.stats = { ...stats, blocks: this.inputs.length, completedBlocks: this.outputs.length + Number(current.solved) }
+    if (current.solved) Object.assign(this.completedStats, stats)
+  }
+  /** Record only completed domain outputs; failures never expose a partial stage result. */
+  private finish(): void {
+    const current = this.current!
     if (current.failed) throw new Error(current.error ?? `${this.getSolverName()} failed`)
     if (current.solved) {
-      Object.assign(this.completedStats, stats)
       this.outputs.push(current.getOutput())
       if (this.outputs.length === this.inputs.length) this.prepare()
     }
@@ -60,7 +64,11 @@ export class RoutedStageSolver<I, O> extends BaseSolver {
     if (this.current?.solved) this.current = undefined
     const current = this.prepare()
     if (!current) return
-    current.step()
+    try {
+      current.step()
+    } finally {
+      this.recordStats()
+    }
     this.finish()
   }
   /** Await one item, so ngspice calls remain strictly sequential across blocks. */
@@ -68,7 +76,11 @@ export class RoutedStageSolver<I, O> extends BaseSolver {
     if (this.current?.solved) this.current = undefined
     const current = this.prepare()
     if (!current) return
-    await current.stepAsync()
+    try {
+      await current.stepAsync()
+    } finally {
+      this.recordStats()
+    }
     this.finish()
   }
   /** The immutable stage boundary is an array in admission order. */
