@@ -1,7 +1,7 @@
 import { BaseSolver, BasePipelineSolver, definePipelineStep } from '@tscircuit/solver-utils'
 import type { PipelineStep } from '@tscircuit/solver-utils'
 import type { GraphicsObject } from 'graphics-debug'
-import { RouteSectionsSolver, routeBoardDrawing } from '../board'
+import { RouteSectionsSolver, routeBoardDrawing, routeText } from '../board'
 import { RouteFieldsSolver } from '../extraction'
 import { RouteBindingsSolver, RouteNetworkSolver, RouteCaptureSolver, type RoutedDeck, type RoutedCapture } from '../simulation'
 import { ArtifactLedger, rootScope, snapshot, type Produced, type FileMap } from '../kernel'
@@ -49,6 +49,20 @@ export class RoutedBlockSolver extends BasePipelineSolver<RoutedBlockPlan> {
     if (!this.solved) throw new Error('Routed block is incomplete')
     return { value: snapshot({ id: this.inputProblem.id, name: this.inputProblem.name, compiled: completed(this, RouteNetworkSolver).value, capture: completed(this, RouteCaptureSolver).value }), artifacts: this.pipelineDef.flatMap(stage => this.getStageOutput<Produced<unknown>>(stage.solverName)!.artifacts) }
   }
+  /** Completed atlas uses one board view plus fields and capture, preserving foreground polygons. */
+  override visualize(): GraphicsObject {
+    if (!this.solved) return super.visualize()
+    const drawings = [RouteNetworkSolver.name, RouteFieldsSolver.name, RouteCaptureSolver.name].map(name => this.getSolver(name)!.visualize())
+    return {
+      coordinateSystem: 'cartesian',
+      lines: drawings.flatMap(drawing => drawing.lines ?? []),
+      rects: drawings.flatMap(drawing => drawing.rects ?? []),
+      circles: drawings.flatMap(drawing => drawing.circles ?? []),
+      points: drawings.flatMap(drawing => drawing.points ?? []),
+      polygons: drawings.flatMap(drawing => drawing.polygons ?? []),
+      texts: drawings.flatMap(drawing => drawing.texts ?? []),
+    }
+  }
   /** Original admitted block input. */
   override getConstructorParams(): [RoutedBlockPlan] { return [this.inputProblem] }
 }
@@ -82,8 +96,14 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
   override getConstructorParams(): [RoutedProblem] { return [this.inputProblem] }
   /** Physical board context before any work has run. */
   override initialVisualize(): GraphicsObject { return routeBoardDrawing(this.inputProblem.circuitJson, undefined, 'Routed 2.5D compiler') }
+  /** Keep the completed debugger atlas free of overlapping admission/section/binding labels. */
+  override visualize(): GraphicsObject { return this.solved ? this.finalVisualize() : super.visualize() }
   /** Compilation completion never implies native completion. */
   override finalVisualize(): GraphicsObject {
-    return { texts: [{ x: 0, y: 207, text: 'Compiled; native not run', color: '#d97706', fontSize: 3 }] }
+    const block = this.pipelineDef.map(stage => this.getSolver(stage.solverName)).findLast(solver => solver instanceof RoutedBlockSolver && solver.solved)
+    if (block) return block.visualize()
+    const drawing = routeBoardDrawing(this.inputProblem.circuitJson, undefined, 'Routed 2.5D · compilation complete')
+    routeText(drawing, 2, 87, 'Sections → fields → bindings → network; native not run', '#a16207', 1.9)
+    return drawing
   }
 }

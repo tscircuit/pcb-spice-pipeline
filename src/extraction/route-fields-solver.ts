@@ -1,6 +1,6 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
 import type { GraphicsObject } from 'graphics-debug'
-import { routeBoardDrawing, routeBoardPoint, routePosition, type SectionGeometry, type RouteSlice, type CircuitJson, type CopperScope } from '../board'
+import { routeText, routeDisplayItems, routeNetLabel, type SectionGeometry, type RouteSlice, type CircuitJson, type CopperScope } from '../board'
 import { rootScope, snapshot, type Produced } from '../kernel'
 import { routeCrossSection, type RouteMaterials, type RouteCoefficients, type ExtractedRoutes, type ExtractedRouteSlice } from './route-lines'
 import { routeCoupling, type RouteCoupling } from './route-coupling'
@@ -100,42 +100,148 @@ export class RouteFieldsSolver extends BaseSolver {
   }
   /** The cache and work queues never enter debugger downloads. */
   override getConstructorParams(): [RouteFieldsInput] { return [this.input] }
-  /** Copper, dielectric/mask slabs and actual references occupy the cross-section atlas. */
+  /** Explicit material labels and self/mutual coefficients explain the current physical slice. */
   override visualize(): GraphicsObject {
     const section = this.current
-    const drawing: GraphicsObject = { rects: [], lines: [], texts: [{ x: 120, y: 100, text: 'Fields: transverse mm / stack z', fontSize: 2.3 }] }
-    if (!section) return drawing
-    const low = Math.min(...section.conductors.map(c => c.xMm - c.widthMm / 2)) - .1
-    const high = Math.max(...section.conductors.map(c => c.xMm + c.widthMm / 2)) + .1
-    const bottom = Math.min(...section.dielectrics.map(d => d.zMm), ...section.planes.map(p => p.zMm))
-    const top = Math.max(...section.dielectrics.map(d => d.zMm + d.thicknessMm), ...section.planes.map(p => p.zMm))
-    /** Transverse millimetres into x=120..220. */
-    const x = (v: number): number => 125 + (v - low) / (high - low) * 90
-    /** Stack z into y=10..90, positive upward. */
-    const z = (v: number): number => 10 + (v - bottom) / Math.max(top - bottom, .001) * 80
-    drawing.rects = section.dielectrics.map(d => ({ center: { x: 170, y: (z(d.zMm) + z(d.zMm + d.thicknessMm)) / 2 }, width: 90, height: z(d.zMm + d.thicknessMm) - z(d.zMm), fill: d.er === this.materials.maskEr ? '#cffafe' : '#fef3c7', label: `er=${d.er}` }))
-    drawing.rects.push(...section.conductors.map(c => ({ center: { x: x(c.xMm), y: (z(c.zMm) + z(c.zMm + c.thicknessMm)) / 2 }, width: x(c.xMm + c.widthMm / 2) - x(c.xMm - c.widthMm / 2), height: z(c.zMm + c.thicknessMm) - z(c.zMm), fill: '#2563eb', label: c.id })))
-    drawing.rects.push(...section.planes.map(p => ({ center: { x: 170, y: z(p.zMm) }, width: 90, height: .25, fill: '#16a34a', stroke: '#16a34a', label: `reference z=${p.zMm} mm` })))
-    drawing.lines = section.planes.map(p => ({ points: [{ x: 125, y: z(p.zMm) }, { x: 215, y: z(p.zMm) }], strokeColor: '#16a34a', strokeWidth: .5 }))
-    const line = this.cache.get(JSON.stringify(section))
-    if (line) drawing.texts?.push({ x: 120, y: 4, text: `C=${line.C[0][0].toExponential(3)} F/m  L=${line.L[0][0].toExponential(3)} H/m  Z0=${Math.sqrt(line.L[0][0] / line.C[0][0]).toFixed(1)} ohm`, fontSize: 1.8 })
-
-    if (this.input.circuitJson) {
-      const circuit = this.input.circuitJson
-      const board = routeBoardDrawing(circuit, this.input.scope, 'Fields: current slice and solved coupling')
-      if (this.currentSlice) {
-        const slice = this.currentSlice
-        const middle = (slice.start + slice.end) / 2
-        drawing.lines.push({ points: slice.wires.map(wire => routeBoardPoint(circuit, routePosition(wire, middle))), strokeColor: '#f59e0b', strokeWidth: 1 })
-      }
-      for (const pair of this.coupling.slice(-200)) {
-        const wires = pair.wires.map(id => this.input.geometry.wires.find(wire => wire.id === id)!)
-        drawing.lines.push({ points: wires.map(wire => routeBoardPoint(circuit, routePosition(wire, (wire.start + wire.end) / 2))), strokeColor: pair.retained ? '#9333ea' : '#cbd5e1', strokeWidth: .1 + Math.max(pair.capacitive, pair.inductive) * 3 })
-      }
-      drawing.lines.push(...board.lines ?? [])
-      drawing.texts?.push(...board.texts ?? [])
+    const drawing: GraphicsObject = { coordinateSystem: 'cartesian', rects: [], lines: [], texts: [], circles: [], polygons: [] }
+    routeText(drawing, 122, 98, '2 · Fields: solve a cross-section', '#0f172a', 3)
+    routeText(drawing, 122, 92, 'Transverse x (mm) × stack z (mm); thin layers expanded', '#475569', 1.8)
+    if (!section) {
+      routeText(drawing, 122, 75, 'Waiting for the first slice; no field solve yet')
+      return drawing
     }
-    if (line) drawing.texts?.push({ x: 120, y: 1, text: `panels=${line.diagnostics.panels}; reciprocity=${line.diagnostics.reciprocityResidual.toExponential(2)}`, fontSize: 1.8 })
+    const low = Math.min(...section.conductors.map((c) => c.xMm - c.widthMm / 2)) - 0.1
+    const high = Math.max(...section.conductors.map((c) => c.xMm + c.widthMm / 2)) + 0.1
+    const levels = [
+      ...new Set([
+        ...section.dielectrics.flatMap((d) => [d.zMm, d.zMm + d.thicknessMm]),
+        ...section.conductors.flatMap((c) => [c.zMm, c.zMm + c.thicknessMm]),
+        ...section.planes.map((p) => p.zMm),
+      ]),
+    ].sort((a, b) => a - b)
+    const heights = levels.slice(1).map((v, i) => Math.max(0.04, Math.sqrt(v - levels[i])))
+    const total = heights.reduce((sum, height) => sum + height, 0)
+    /** Transverse widths use one linear physical scale. */
+    const x = (v: number): number => 126 + ((v - low) / (high - low)) * 88
+    /** Piecewise physical z scale keeps thin copper and mask visible without changing their order. */
+    const z = (v: number): number => {
+      let height = 0
+      for (let i = 1; i < levels.length; i++) height += heights[i - 1] * Math.max(0, Math.min(1, (v - levels[i - 1]) / (levels[i] - levels[i - 1])))
+      return 36 + (height / Math.max(total, 0.001)) * 42
+    }
+    for (const slab of section.dielectrics) {
+      const mask =
+        slab.er === this.materials.maskEr &&
+        slab.lossTangent === this.materials.maskLoss &&
+        section.conductors.some(
+          (c) => Math.abs(c.zMm - slab.zMm) < 1e-8 || Math.abs(c.zMm + c.thicknessMm - slab.zMm - slab.thicknessMm + this.materials.maskMm) < 1e-8,
+        )
+      const middle = (z(slab.zMm) + z(slab.zMm + slab.thicknessMm)) / 2
+      drawing.rects!.push({
+        center: { x: 170, y: middle },
+        width: 88,
+        height: z(slab.zMm + slab.thicknessMm) - z(slab.zMm),
+        fill: mask ? '#cffafe' : '#fef3c7',
+      })
+      if (z(slab.zMm + slab.thicknessMm) - z(slab.zMm) > 3 && section.planes.every((plane) => Math.abs(z(plane.zMm) - middle) > 3))
+        routeText(drawing, 127, middle, `${mask ? 'Mask' : 'Dielectric'} εr=${slab.er}`, '#0f172a', 1.6)
+    }
+    // Explicit legend remains legible even when a slab is too thin for an interior label.
+    routeText(drawing, 122, 87, `Amber: laminate · Cyan: solder mask εr=${this.materials.maskEr} · Blue: copper`, '#475569', 1.7)
+    for (const [i, c] of section.conductors.entries()) {
+      drawing.rects!.push({
+        center: { x: x(c.xMm), y: (z(c.zMm) + z(c.zMm + c.thicknessMm)) / 2 },
+        width: x(c.xMm + c.widthMm / 2) - x(c.xMm - c.widthMm / 2),
+        height: z(c.zMm + c.thicknessMm) - z(c.zMm),
+        fill: '#2563eb',
+        stroke: '#1d4ed8',
+      })
+      routeText(drawing, x(c.xMm) - 8, 82 - (i % 2) * 3, `${c.id}: ${c.widthMm.toFixed(3)} × ${c.thicknessMm.toFixed(3)} mm`, '#1d4ed8', 1.5)
+    }
+    for (const [i, plane] of section.planes.entries()) {
+      drawing.lines!.push({
+        points: [
+          { x: 126, y: z(plane.zMm) },
+          { x: 214, y: z(plane.zMm) },
+        ],
+        strokeColor: '#16a34a',
+        strokeWidth: 0.5,
+      })
+      const reference = this.currentSlice?.references[i]
+      drawing.polygons!.push({
+        points: [
+          { x: 126, y: z(plane.zMm) },
+          { x: 214, y: z(plane.zMm) },
+        ],
+        stroke: '#16a34a',
+        strokeWidth: 0.5,
+      })
+      routeText(drawing, 128, z(plane.zMm) + (i % 2 ? 2 : -2), `Reference: ${reference?.layer ?? 'plane'} · z=${plane.zMm.toFixed(3)} mm`, '#15803d', 1.8)
+    }
+    routeText(drawing, 126, 31, `x: ${low.toFixed(3)} … ${high.toFixed(3)} mm; z: ${levels[0].toFixed(3)} … ${levels.at(-1)!.toFixed(3)} mm`, '#64748b', 1.6)
+    const line = this.cache.get(JSON.stringify(section))
+    if (!line) return drawing
+    for (const [i, c] of section.conductors.slice(0, 4).entries()) {
+      const capacitance = line.C[i][i]
+      const inductance = line.L[i][i]
+      routeText(
+        drawing,
+        122,
+        26 - i * 3.5,
+        `${c.id}: C ${(capacitance * 1e12).toFixed(1)} pF/m · L ${(inductance * 1e9).toFixed(1)} nH/m · Z0 ${Math.sqrt(inductance / capacitance).toFixed(1)} Ω · delay ${(Math.sqrt(inductance * capacitance) * 1e9).toFixed(2)} ps/mm`,
+        '#0f172a',
+        1.65,
+      )
+    }
+    if (this.currentSlice) {
+      const slice = this.currentSlice
+      const names = slice.wires
+        .slice(0, 2)
+        .map((wire, i) => `${i}=${this.input.circuitJson ? routeNetLabel(this.input.circuitJson, wire.source) : wire.source} (${wire.layer})`)
+        .join(' · ')
+      routeText(drawing, 122, 12, `Slice ${slice.start.toFixed(2)}…${slice.end.toFixed(2)} mm · ${names}`, '#64748b', 1.5)
+    }
+    const pairs = section.conductors.flatMap((a, i) =>
+      section.conductors.slice(i + 1).map((b, offset) => {
+        const j = i + offset + 1
+        return {
+          a,
+          b,
+          cm: Math.abs(line.C[i][j]),
+          lm: line.L[i][j],
+          k: Math.max(Math.abs(line.C[i][j]) / Math.sqrt(line.C[i][i] * line.C[j][j]), Math.abs(line.L[i][j]) / Math.sqrt(line.L[i][i] * line.L[j][j])),
+        }
+      }),
+    )
+    for (const pair of routeDisplayItems(pairs, 60))
+      drawing.lines!.push({
+        points: [pair.a, pair.b].map((c) => ({ x: x(c.xMm), y: z(c.zMm + c.thicknessMm) + 1 })),
+        strokeColor: '#9333ea',
+        strokeWidth: 0.15 + Math.min(1, pair.k) * 3,
+        label: `k=${pair.k.toFixed(3)}`,
+      })
+    // graphics-debug draws polygons after filled rectangles; repeat line strokes in this foreground layer.
+    for (const line of drawing.lines!.filter((line) => line.strokeColor === '#9333ea'))
+      drawing.polygons!.push({ points: line.points, stroke: line.strokeColor, strokeWidth: line.strokeWidth })
+    const pair = [...pairs].sort((a, b) => b.k - a.k)[0]
+    routeText(
+      drawing,
+      122,
+      8,
+      pair
+        ? `Strongest pair ${pair.a.id}↔${pair.b.id}: Cm ${(pair.cm * 1e12).toFixed(2)} pF/m · Lm ${(pair.lm * 1e9).toFixed(2)} nH/m · k=${pair.k.toFixed(3)}`
+        : 'One conductor in this slice: no mutual coupling',
+      '#7e22ce',
+      1.7,
+    )
+    routeText(
+      drawing,
+      122,
+      4,
+      `Purple thickness = coupling · ${section.conductors.length} conductors · self values above${section.conductors.length > 4 ? ' (first 4)' : ''}`,
+      '#64748b',
+      1.7,
+    )
     return drawing
   }
 }

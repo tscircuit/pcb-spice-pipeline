@@ -31,3 +31,5 @@ export { RouteBindingsSolver } from './route-bindings'
 export { RouteNetworkSolver } from './route-network'
 export { RouteCaptureSolver, executeRoutedDeck } from './route-capture'
 export type { RoutedCompileOptions, RouteBindingsInput, RoutedBindings, RouteNetworkInput, RoutedDeck, RoutedExecution, RoutedCapture } from './routed-types'
+
+export { routeWaveformDrawing } from './waveform-visual'

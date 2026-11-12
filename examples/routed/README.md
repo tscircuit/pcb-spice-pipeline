@@ -27,3 +27,25 @@ independent convergence or electromagnetic qualification.
 The test suite skips vendor-dependent tests explicitly when local files are
 unavailable. Opt into the bounded native two-trace test with `SI_NATIVE_TESTS=1`
 and `IBIS_MODEL_DIR`; it uses a four-nanosecond deck and a ten-second process limit.
+
+To render every stage headlessly, run `bun scripts/render-routed-stages.tsx` with
+`IBIS_MODEL_DIR` pointing at local vendor files. Set `SI_STAGE_VISUALS_DIR` for the
+uncommitted SVG/PNG output directory and `SI_DDR3_BOARD` for the real DDR3 board
+JSON. Without that board the script explicitly reports DDR3 as unavailable. Add
+`--native-two-trace` for one serial, ten-second-bounded ngspice run and a second
+capture image using actual results; otherwise capture shows **native not run**.
+`manifest.json` records render paths, display object counts and exact deck hashes.
+
+Visual regression tests use the actual two-trace TSX with original synthetic IBIS
+tables for drawing only, so they need no vendor assets. SVG text snapshots include
+fills, geometry and visible labels with object labels disabled. After inspecting
+the PNGs, regenerate these snapshots with `UPDATE_ROUTED_VISUALS=1 bun test`
+followed by the stage test filenames. The pure `routeWaveformDrawing` export takes
+only a capture, duration and optional error, so the live transient solver can reuse
+it without depending on `RouteCaptureSolver` internals.
+
+If a real board reaches an existing compiler admission limit, the render script
+keeps the completed stages, renders the rejected stage with its reason, and emits
+an explicitly upstream-blocked capture drawing. That last image uses the pure
+waveform function; it does not imply that the capture solver or ngspice ran. Local
+state JSON files contain source inputs and must remain uncommitted with the PNGs.

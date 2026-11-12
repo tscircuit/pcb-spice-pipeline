@@ -5,7 +5,7 @@ import { RouteSectionsSolver } from '../../src/board'
 import { RouteBindingsSolver } from '../../src/simulation'
 import { routedProblem } from '../support/routed-fixture'
 
-test('bindings compile one buffer per step and freeze the fully allocated node map', async context => {
+test('bindings compile one buffer per step and freeze the fully allocated node map', async (context) => {
   const input = await routedProblem(context)
   if (!input) return
   const admission = new RoutedAdmissionSolver(input)
@@ -20,7 +20,25 @@ test('bindings compile one buffer per step and freeze the fully allocated node m
   solver.solve()
   const output = solver.getOutput()
   assert.equal(output.value.models.length, 4)
-  assert.ok(output.value.models.every(model => Object.values(model.spicePinMapping).every(port => output.value.nodeMap[port] !== undefined)))
+  assert.ok(output.value.models.every((model) => Object.values(model.spicePinMapping).every((port) => output.value.nodeMap[port] !== undefined)))
   assert.ok(Object.isFrozen(output.value.nodeMap))
   assert.ok(solver.visualize().circles!.length >= 4)
+})
+
+import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
+
+test('two-trace TSX route-bindings visual SVG snapshot', async () => {
+  const { block } = await routedVisualFixture()
+  assertRouteVisual(block.getSolver<RouteBindingsSolver>('RouteBindingsSolver')!.visualize(), 'simulation', 'route-bindings')
+})
+
+test('missing IBIS bytes mark physical endpoints and rejection reason red', async () => {
+  const { block } = await routedVisualFixture()
+  const params = block.getSolver<RouteBindingsSolver>('RouteBindingsSolver')!.getConstructorParams()[0]
+  const missing = new RouteBindingsSolver({ ...params, ibisSources: {} })
+  assert.throws(() => missing.solve())
+  const drawing = missing.visualize()
+  assert.ok(drawing.circles!.some((circle) => circle.stroke === '#dc2626'))
+  assert.ok(drawing.texts!.some((text) => text.color === '#dc2626' && text.text.includes('model')))
+  assertRouteVisual(drawing, 'simulation', 'route-bindings-missing')
 })

@@ -4,6 +4,7 @@ import { rootScope, snapshot, sha256, type ArtifactScope, type Produced } from '
 import { invoke, type SolverContext, type SolverRequest } from '../solver'
 import { probeWaveformRows } from '../observation'
 import { fail } from './diagnostics'
+import { routeWaveformDrawing } from './waveform-visual'
 import type { RoutedDeck, RoutedExecution, RoutedCapture } from './routed-types'
 
 export interface RouteCaptureInput {
@@ -79,16 +80,6 @@ export class RouteCaptureSolver extends BaseSolver {
   override getConstructorParams(): [RouteCaptureInput] { return [this.input] }
   /** Actual probe polylines in the waveform atlas, or a native-not-run banner. */
   override visualize(): GraphicsObject {
-    const drawing: GraphicsObject = { lines: [], texts: [{ x: 0, y: 200, text: this.failed ? this.error ?? 'Native capture failed' : this.output?.value.kind === 'completed' ? 'Native capture: candidate-unqualified' : 'native not run', color: this.failed ? '#dc2626' : '#d97706', fontSize: 2.5 }] }
-    if (this.output?.value.kind !== 'completed') return drawing
-    const capture = this.output.value
-    const min = capture.probes.reduce((bound, probe) => probe.voltageLevels.reduce((bound, value) => Math.min(bound, value), bound), -.4)
-    const max = capture.probes.reduce((bound, probe) => probe.voltageLevels.reduce((bound, value) => Math.max(bound, value), bound), 1.9)
-    /** Voltage into the y=120..195 panel, positive upward. */
-    const y = (voltage: number): number => 120 + (voltage - min) / Math.max(max - min, .1) * 75
-    for (const limit of [-.4, 1.9]) drawing.lines?.push({ points: [{ x: 0, y: y(limit) }, { x: 220, y: y(limit) }], strokeColor: '#dc2626', strokeDash: '1 1', strokeWidth: .15, label: `${limit} V` })
-    for (const [i, probe] of capture.probes.entries()) drawing.lines?.push({ points: capture.timestampsSeconds.flatMap((time, sample, all) => sample % Math.max(1, Math.ceil(all.length / 1000)) === 0 || sample === all.length - 1 ? [{ x: time / this.input.compiled.durationSeconds * 220, y: y(probe.voltageLevels[sample]) }] : []), strokeColor: /victim/i.test(probe.name) ? '#9333ea' : ['#2563eb', '#06b6d4'][i % 2], strokeWidth: .3, label: probe.name })
-    drawing.texts?.push({ x: 0, y: 117, text: `time: 0..${this.input.compiled.durationSeconds * 1e9} ns; voltage: ${min.toFixed(2)}..${max.toFixed(2)} V`, fontSize: 2 })
-    return drawing
+    return routeWaveformDrawing(this.output?.value, this.input.compiled.durationSeconds, this.failed ? (this.error ?? 'Native capture failed') : undefined)
   }
 }

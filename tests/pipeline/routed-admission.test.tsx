@@ -4,7 +4,7 @@ import { RoutedAdmissionSolver } from '../../src/pipeline'
 import { prepareBlocks, prepareBlockById } from '../../src/pipeline/signals'
 import { routedProblem } from '../support/routed-fixture'
 
-test('admission uses shared block lowering, retains warnings and rejects invalid scope', async context => {
+test('admission uses shared block lowering, retains warnings and rejects invalid scope', async (context) => {
   const input = await routedProblem(context)
   if (!input) return
   const [block] = prepareBlocks(input.circuitJson, input.ibisSources, '2d', 1)
@@ -24,4 +24,20 @@ test('empty boards admit no fake blocks', () => {
   const solver = new RoutedAdmissionSolver({ circuitJson: [], ibisSources: {} })
   solver.solve()
   assert.deepEqual(solver.getOutput().value, [])
+})
+
+import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
+
+test('two-trace TSX routed-admission visual SVG snapshot', async () => {
+  const { root } = await routedVisualFixture()
+  assertRouteVisual(root.getSolver<RoutedAdmissionSolver>('RoutedAdmissionSolver')!.visualize(), 'pipeline', 'routed-admission')
+})
+
+test('rejected admission carries a visible red reason without inventing an admitted block', async () => {
+  const { root } = await routedVisualFixture()
+  const solver = new RoutedAdmissionSolver({ ...root.inputProblem, scopeDistanceMm: 0 })
+  assert.throws(() => solver.solve(), /scope distance/)
+  const drawing = solver.visualize()
+  assert.ok(drawing.texts!.some((text) => text.color === '#dc2626' && text.text.includes('scope distance')))
+  assertRouteVisual(drawing, 'pipeline', 'routed-admission-rejected')
 })
