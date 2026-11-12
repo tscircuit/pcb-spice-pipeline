@@ -16,7 +16,7 @@ test('admission uses shared block lowering, retains warnings and rejects invalid
   solver.step()
   assert.equal(solver.solved, true)
   assert.equal(solver.getOutput().value[0].sections.scope.selectedPcbTraceIds.length, 2)
-  assert.ok(solver.visualize().points!.length >= 4)
+  assert.ok(solver.visualize().lines!.filter((line) => line.points.length === 25).length >= 4, 'every endpoint is ringed')
   assert.throws(() => new RoutedAdmissionSolver({ ...input, scopeDistanceMm: 0 }).solve(), /scope distance/)
 })
 

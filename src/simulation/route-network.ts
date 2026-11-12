@@ -1,6 +1,5 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
-import type { GraphicsObject } from 'graphics-debug'
-import { connectedSourceIds, routePosition, routeContactFrame, routeSectionDrawing, routeBoardPoint, routeText, routeDisplayItems, type RouteWire, type RouteXY } from '../board'
+import { connectedSourceIds, routePosition, routeContactFrame, routeSectionDrawing, routeDisplayItems, routeFocus, boardBounds, routeRing, routeTitle, routePoint, overlayLine, type RouteWire, type RouteXY, type StageDrawing } from '../board'
 import { rootScope, snapshot, sha256, type Produced } from '../kernel'
 import { namespaceSpice } from './netlist'
 import { branchSaves } from './branch-saves'
@@ -137,37 +136,30 @@ export class RouteNetworkSolver extends BaseSolver {
   }
   /** Input snapshots only. */
   override getConstructorParams(): [RouteNetworkInput] { return [this.input] }
-  /** Cell ticks and encounters stay on real routes; only display samples are capped. */
-  override visualize(): GraphicsObject {
+  /** Amber ticks are ladder cells on the real copper, purple bars oblique encounters, orange rings modelled vias. */
+  override visualize(): StageDrawing {
     const { geometry, bindings } = this.input
     const circuit = bindings.circuitJson
-    const drawing = routeSectionDrawing(circuit, geometry, bindings.scope, '5 · Network: build a coupled ladder')
-    drawing.texts = drawing.texts!.filter((text) => text.y !== 87)
-    routeText(
-      drawing,
-      2,
-      87,
-      `${this.ladder?.cells ?? 0} cells · max cell delay ${((this.ladder?.maximumDelaySeconds ?? 0) * 1e12).toFixed(2)} ps`,
-      '#a16207',
-    )
+    const drawing = routeSectionDrawing(circuit, geometry, bindings.scope)
     const nodes = [...(this.ladder?.wireNodes ?? [])].flatMap(([id, samples]) => samples.map((sample) => ({ id, position: sample.position })))
-    for (const sample of routeDisplayItems(nodes, 800)) {
+    const reach = Math.max(0.1, ...geometry.wires.map((wire) => wire.width)) * 1.5
+    const ticks = routeDisplayItems(nodes, 800).map((sample) => {
       const wire = geometry.wires.find((wire) => wire.id === sample.id)!
-      const point = routeBoardPoint(circuit, routePosition(wire, sample.position))
-      drawing.lines?.push({
-        points: [-1, 1].map((sign) => ({ x: point.x - sign * wire.u[1] * 0.8, y: point.y + sign * wire.u[0] * 0.8 })),
-        strokeColor: '#f59e0b',
-        strokeWidth: 0.25,
-      })
+      const point = routePoint(routePosition(wire, sample.position))
+      const tick = [-1, 1].map((sign) => ({ x: point.x - sign * wire.u[1] * reach, y: point.y + sign * wire.u[0] * reach }))
+      drawing.lines!.push(overlayLine(tick, '#f59e0b', reach * 0.25))
+      return { id: sample.id, point }
+    })
+    if (!this.output && ticks.length) {
+      const last = ticks.at(-1)!.id
+      drawing.focus = routeFocus(ticks.filter((tick) => tick.id === last).map((tick) => tick.point), boardBounds(circuit))
     }
     for (const record of routeDisplayItems(this.obliqueRecords, 120)) {
       if (!Array.isArray(record.wires)) continue
       const wires = geometry.wires.filter((wire) => (record.wires as unknown[]).includes(wire.id))
       if (wires.length !== 2) continue
       const near = closestRoutePoints(wires[0].a, wires[0].b, wires[1].a, wires[1].b)
-      const points = [near.first, near.second].map((point) => routeBoardPoint(circuit, point))
-      drawing.lines?.push({ points, strokeColor: '#9333ea', strokeWidth: 0.5, label: String(record.policy) })
-      drawing.circles?.push({ center: points[0], radius: 0.55, stroke: '#9333ea' })
+      drawing.lines!.push(overlayLine([routePoint(near.first), routePoint(near.second)], '#9333ea', reach * 0.4, String(record.policy)))
     }
     const transitions = this.output?.value.evidence.transitions
     if (Array.isArray(transitions))
@@ -176,21 +168,9 @@ export class RouteNetworkSolver extends BaseSolver {
         160,
       )) {
         const via = circuit.find((item) => item.type === 'pcb_via' && item.pcb_via_id === record.id)
-        if (via?.type === 'pcb_via') drawing.circles?.push({ center: routeBoardPoint(circuit, [via.x, via.y]), radius: 1, stroke: '#f97316' })
+        if (via?.type === 'pcb_via') drawing.lines!.push(routeRing(routePoint([via.x, via.y]), via.outer_diameter, '#f97316', reach * 0.3))
       }
-    routeText(drawing, 2, 81, 'Amber: cells · Purple: oblique encounters', '#475569')
-    routeText(drawing, 2, 76, 'Orange rings: vias', '#475569')
-    routeText(
-      drawing,
-      2,
-      71,
-      `${Math.min(nodes.length, 800)}/${nodes.length} node ticks shown · ${this.output ? this.obliqueRecords.length : 'pending'} oblique encounters · native not run`,
-      '#64748b',
-    )
-    routeText(drawing, 2, -4, `Input: ${bindings.models.length} bound IBIS models · ${bindings.plan.probes.length} probes`, '#475569')
-    if (this.failed)
-      for (const [i, reason] of (`Network rejected: ${this.error ?? 'Compilation incomplete'}`.match(/.{1,85}/g) ?? []).slice(0, 3).entries())
-        routeText(drawing, 2, 70 - i * 3, reason, '#dc2626')
-    return drawing
+    const reasons = this.failed ? (`Network rejected: ${this.error ?? 'Compilation incomplete'}`.match(/.{1,85}/g) ?? []).slice(0, 3) : []
+    return routeTitle(drawing, `5 · Network · ${this.ladder?.cells ?? 0} cells`, reasons.map((text) => ({ text, color: '#dc2626' })))
   }
 }

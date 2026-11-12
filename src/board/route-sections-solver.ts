@@ -1,11 +1,10 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
-import type { GraphicsObject } from 'graphics-debug'
 import { rootScope, snapshot, type Produced } from '../kernel'
 import { connectedSourceIds } from './connectivity'
 import { routeSectionSteps, routeContactFrame, type SectionGeometry } from './route-sections'
 import type { CircuitJson } from './schema'
 import type { CopperScope } from './geometry/scope'
-import { routeSectionDrawing, routeBoardDrawing, routeSliceDrawing, routeText } from './route-visual'
+import { routeSectionDrawing, routeBoardDrawing, routeSliceDrawing, routeTitle, type StageDrawing } from './route-visual'
 
 export interface RouteSectionsInput {
   circuitJson: CircuitJson
@@ -59,14 +58,13 @@ export class RouteSectionsSolver extends BaseSolver {
   }
   /** Original problem, independent of work state. */
   override getConstructorParams(): [RouteSectionsInput] { return [this.input] }
-  /** Physical copper, orange vias, magenta joins and the current amber slice. */
-  override visualize(): GraphicsObject {
+  /** Net-coloured wire sections, orange via contacts, magenta joins and the amber cut of the newest slice. */
+  override visualize(): StageDrawing {
     const drawing = this.geometry
-      ? routeSectionDrawing(this.input.circuitJson, this.geometry, this.scope, '2 · Sections: partition routed copper')
-      : routeBoardDrawing(this.input.circuitJson, this.scope, '2 · Sections: partition routed copper')
+      ? routeSectionDrawing(this.input.circuitJson, this.geometry, this.scope)
+      : routeBoardDrawing(this.input.circuitJson, this.scope)
     const slice = this.geometry?.slices.at(-1)
     if (slice) routeSliceDrawing(drawing, this.input.circuitJson, slice)
-    if (this.failed) routeText(drawing, 2, 83, this.error ?? 'Rejected endpoint', '#dc2626')
-    return drawing
+    return routeTitle(drawing, '2 · Sections', this.failed ? [{ text: this.error ?? 'Rejected endpoint', color: '#dc2626' }] : [])
   }
 }

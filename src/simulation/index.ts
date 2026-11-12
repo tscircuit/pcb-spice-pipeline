@@ -32,4 +32,4 @@ export { RouteNetworkSolver } from './route-network'
 export { RouteTransientSolver } from './route-transient'
 export type { RoutedCompileOptions, RouteBindingsInput, RoutedBindings, RouteNetworkInput, RoutedDeck, RoutedCapture } from './routed-types'
 
-export { routeWaveformDrawing } from './waveform-visual'
+export { routeWaveformDrawing, routeReceiverLimits, routeTickStep, routeUnitScale, type RouteLimit } from './waveform-visual'

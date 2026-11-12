@@ -75,8 +75,10 @@ API use port 5050. Both bind only to `127.0.0.1`.
 The sidebar lists the two-trace TSX board, every signal level, the DDR3 addr/cmd
 scope, and a paste/upload Circuit JSON page. Each mounts `GenericSolverDebugger`
 with `RoutedPipelineSolver`. Step through admission, geometry, fields, buffers,
-network assembly, then the live local ngspice transient. Captures remain candidate
-results without independent convergence qualification.
+network assembly, then the live local ngspice transient. Every stage draws on the
+real board in board millimetres: the whole board muted underneath, the stage's work
+bright on top, and the camera starting on the region the step works on. Captures
+remain candidate results without independent convergence qualification.
 
 Set `IBIS_MODEL_DIR` to the examples' local vendor directory (default `models`).
 Set `SI_DDR3_BOARD` to the real physical DDR3 board JSON for the addr/cmd page.
@@ -89,6 +91,7 @@ flowchart LR
   fixture["Cosmos TSX / uploaded Circuit JSON"] --> debugger["GenericSolverDebugger · routed stages 1–6"]
   assets["Fixed local model paths / SI_DDR3_BOARD"] --> debugger
   debugger --> transient["RouteTransientSolver · stepAsync"]
+  board["boardUnderlay · real board mm"] --> debugger
   transient <-->|"POST /api/run-solver · HTTP RunSolver"| queue["Vite middleware · single slot"]
   queue <-->|"isolated temp dir · 120 s limit · OMP_NUM_THREADS=1"| native["Local ngspice on PATH"]
   transient --> capture["Actual waveform samples"]

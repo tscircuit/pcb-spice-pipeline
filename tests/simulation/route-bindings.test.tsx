@@ -38,7 +38,7 @@ test('missing IBIS bytes mark physical endpoints and rejection reason red', asyn
   const missing = new RouteBindingsSolver({ ...params, ibisSources: {} })
   assert.throws(() => missing.solve())
   const drawing = missing.visualize()
-  assert.ok(drawing.circles!.some((circle) => circle.stroke === '#dc2626'))
+  assert.ok(drawing.lines!.some((line) => line.strokeColor === '#dc2626'), 'rejected endpoints ringed red')
   assert.ok(drawing.texts!.some((text) => text.color === '#dc2626' && text.text.includes('model')))
   assertRouteVisual(drawing, 'simulation', 'route-bindings-missing')
 })

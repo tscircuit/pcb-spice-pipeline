@@ -29,7 +29,10 @@ domain:
   admission: validation and derivation of one declared signal-integrity block
   network: the connected electrical cells and correction elements of routed copper
   execution: a completed invocation through the solver port
-  visualize: draw a solver's current physical work in the shared graphics atlas
+  visualize: draw a solver's current physical work on the real board in board millimetres
+  underlay: the muted drawing of the whole board that every stage draws its work on top of
+  focus: the view box the debugger camera starts on, around the region a step works on
+  tick: a short mark on an axis or along a route, such as one ladder cell
   snapshot: a copied and frozen domain value published by a completed stage
   pair: two conductors screened together for mutual coupling
   arc: distance measured along a routed polyline including its bends

@@ -1,13 +1,14 @@
 import { BaseSolver, BasePipelineSolver, definePipelineStep } from '@tscircuit/solver-utils'
 import type { PipelineStep } from '@tscircuit/solver-utils'
 import type { SolverContext } from '../solver'
-import { getBounds, type GraphicsObject } from 'graphics-debug'
-import { RouteSectionsSolver, routeBoardDrawing, routeText, type RoutedSections } from '../board'
+import { getBounds } from 'graphics-debug'
+import { RouteSectionsSolver, routeBoardDrawing, routeText, routeTextSize, routeTitle, type RoutedSections, type StageDrawing } from '../board'
 import { RouteFieldsSolver, type ExtractedRoutes } from '../extraction'
 import {
   RouteBindingsSolver,
   RouteNetworkSolver,
   RouteTransientSolver,
+  routeReceiverLimits,
   type RoutedDeck,
   type RoutedCapture,
   type RoutedBindings,
@@ -54,6 +55,11 @@ export const routedStages = [
       board: p.stageOutput('RouteSectionsSolver').value[i],
       artifactPrefix: p.stageOutput('RoutedAdmissionSolver').value[i].sections.artifactPrefix,
       context: p.context,
+      limits: routeReceiverLimits(
+        p.inputProblem.ibisSources,
+        p.stageOutput('RouteBindingsSolver').value[i].models,
+        p.stageOutput('RouteBindingsSolver').value[i].plan.states.filter((state) => state.is_output).map((state) => state.source_port_id),
+      ),
     })),
   ]),
 ] as const satisfies readonly PipelineStep<BaseSolver>[]
@@ -126,33 +132,35 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
     return [this.inputProblem, this.context]
   }
   /** Inspect retained output or the incoming stage's immutable input, without executing work. */
-  visualizeStage(number: number): GraphicsObject {
+  visualizeStage(number: number): StageDrawing {
     if (number === 0) return this.initialVisualize()
     const definition = this.pipelineDef[number - 1]
     let solver = this.getSolver(definition.solverName)
     if (!solver && number - 1 <= this.currentPipelineStageIndex) {
       solver = new definition.solverClass(...definition.getConstructorParams(this))
     }
-    const scope = this.getStageOutput<Produced<RoutedBlockPlan[]>>('RoutedAdmissionSolver')?.value[0]?.sections.scope
-    const drawing =
-      solver?.visualize() ??
-      routeBoardDrawing(this.inputProblem.circuitJson, scope, `${number} · ${definition.solverName.replace(/^Routed?|Solver$/g, '')}`)
+    const plans = this.getStageOutput<Produced<RoutedBlockPlan[]>>('RoutedAdmissionSolver')?.value
+    const title = `${number} · ${definition.solverName.replace(/^Routed?|Solver$/g, '')}`
+    if (number > 1 && plans?.length === 0)
+      return routeTitle(routeBoardDrawing(this.inputProblem.circuitJson, undefined), title, [{ text: 'No signal-integrity blocks admitted', color: '#64748b' }])
+    const drawing: StageDrawing = solver?.visualize() ?? routeTitle(routeBoardDrawing(this.inputProblem.circuitJson, plans?.[0]?.sections.scope), title)
     if (!solver || solver.iterations === 0) {
-      const { minX, minY } = getBounds(drawing)
-      routeText(drawing, minX, minY - 6, 'Not run yet', '#64748b')
+      const focus = drawing.focus ?? getBounds(drawing)
+      const size = routeTextSize(focus).body
+      routeText(drawing, focus.minX + size, focus.minY + size, 'Not run yet', '#64748b', size)
     }
     return drawing
   }
   /** Stage boundaries show the incoming input immediately, before its first step. */
-  override visualize(): GraphicsObject {
+  override visualize(): StageDrawing {
     return this.visualizeStage(this.iterations === 0 ? 0 : Math.min(this.currentPipelineStageIndex + 1, this.pipelineDef.length))
   }
   /** Show admission's initial physical board before any stage has run. */
-  override initialVisualize(): GraphicsObject {
-    return routeBoardDrawing(this.inputProblem.circuitJson, undefined, '0 · Initial board')
+  override initialVisualize(): StageDrawing {
+    return routeTitle(routeBoardDrawing(this.inputProblem.circuitJson, undefined), '0 · Board')
   }
   /** A completed pipeline follows the final transient; earlier stages keep their own drawings. */
-  override finalVisualize(): GraphicsObject {
+  override finalVisualize(): StageDrawing {
     return this.getSolver('RouteTransientSolver')?.visualize() ?? this.initialVisualize()
   }
 }

@@ -1,28 +1,75 @@
-import type { GraphicsObject, Point } from 'graphics-debug'
+import type { GraphicsObject, Line, Point, Viewbox } from 'graphics-debug'
 import type { CircuitJson } from './schema'
 import type { CopperScope } from './geometry/scope'
-import { routePosition, type RouteXY, type RouteSlice, type SectionGeometry } from './route-sections'
+import { routePosition, type RouteSlice, type RouteXY, type SectionGeometry } from './route-sections'
+import { boardBounds, boardTraceWidth, boardUnderlayCopy, overlayLine } from './board-underlay'
 
-/** World-unit typography shared by every stage, canvas and SVG export. */
-export const routeTextSize = { body: 3.6, title: 4.6 } as const
+/** A stage drawing in board mm; `focus` is where the debugger camera starts. */
+export type StageDrawing = GraphicsObject & { focus?: Viewbox }
 
-/** Visible text is independent of hover labels and the SVG export's label option. */
-export function routeText(drawing: GraphicsObject, x: number, y: number, text: string, color: string = '#334155', fontSize: number = routeTextSize.body): void {
+/** Saturated net colours, distinct from the muted underlay. */
+export const routeNetColors = ['#1d4ed8', '#db2777', '#7c3aed', '#0e7490', '#c2410c', '#047857'] as const
+
+/** Board mm pair as a graphics point: every stage draws in the board's own mm, y up. */
+export function routePoint(point: RouteXY): Point {
+  return { x: point[0], y: point[1] }
+}
+
+/** Largest side of a box. */
+function span(box: Viewbox): number {
+  return Math.max(box.maxX - box.minX, box.maxY - box.minY)
+}
+
+/** Union of boxes. */
+export function routeUnion(...boxes: Viewbox[]): Viewbox {
+  return {
+    minX: Math.min(...boxes.map((box) => box.minX)),
+    maxX: Math.max(...boxes.map((box) => box.maxX)),
+    minY: Math.min(...boxes.map((box) => box.minY)),
+    maxY: Math.max(...boxes.map((box) => box.maxY)),
+  }
+}
+
+/** Pure camera target: the points' box, padded 30%, at least half the board, else the whole board. */
+export function routeFocus(points: readonly Point[], board: Viewbox): Viewbox {
+  if (!points.length) return board
+  const box = routeUnion(...points.map((point) => ({ minX: point.x, maxX: point.x, minY: point.y, maxY: point.y })))
+  const half = Math.max(span(box) * 0.65, span(board) * 0.25)
+  const x = (box.minX + box.maxX) / 2
+  const y = (box.minY + box.maxY) / 2
+  const width = Math.max(half, (box.maxX - box.minX) * 0.65)
+  const height = Math.max(half * 0.5, (box.maxY - box.minY) * 0.65)
+  return { minX: x - width, maxX: x + width, minY: y - height, maxY: y + height }
+}
+
+/** Text size for a view box shown in a ~1400×620 px canvas, so labels read the same at every board size. */
+export function routeTextSize(box: Viewbox): { body: number; title: number } {
+  const size = Math.max(box.maxX - box.minX, (box.maxY - box.minY) * 2.2)
+  return { body: size / 85, title: size / 60 }
+}
+
+/** Visible text, independent of hover labels and the SVG export's label option. */
+export function routeText(drawing: GraphicsObject, x: number, y: number, text: string, color: string, fontSize: number): void {
   drawing.texts ??= []
   drawing.texts.push({ x, y, text, color, fontSize, anchorSide: 'center_left' })
+}
+
+/** Stage title in its own band above the focus, extra lines (errors, status) below it; the focus grows to include the band. */
+export function routeTitle(drawing: StageDrawing, title: string, lines: readonly { text: string; color: string }[] = []): StageDrawing {
+  const focus = drawing.focus ?? { minX: 0, maxX: 100, minY: 0, maxY: 40 }
+  const size = routeTextSize(focus)
+  const band = size.title * 1.6 + lines.length * size.body * 1.4
+  const x = focus.minX + size.body
+  routeText(drawing, x, focus.maxY + band - size.title * 0.8, title, '#0f172a', size.title)
+  for (const [i, line] of lines.entries()) routeText(drawing, x, focus.maxY + band - size.title * 1.6 - (i + 0.5) * size.body * 1.4, line.text, line.color, size.body)
+  drawing.focus = { ...focus, maxY: focus.maxY + band }
+  return drawing
 }
 
 /** Deterministic display-only sampling; never changes the admitted copper or solver input. */
 export function routeDisplayItems<T>(items: readonly T[], limit: number = 160): T[] {
   if (items.length <= limit) return [...items]
   return Array.from({ length: limit }, (_, i) => items[Math.round((i * (items.length - 1)) / (limit - 1))])
-}
-
-/** Board millimetres fitted into the shared x=0..120/y=0..100 atlas panel, positive y upward. */
-export function routeBoardPoint(circuit: CircuitJson, point: RouteXY): Point {
-  const board = circuit.find((record) => record.type === 'pcb_board')
-  const scale = 50 / Math.max(board?.width ?? 1, board?.height ?? 1)
-  return { x: 60 + (point[0] - (board?.center.x ?? 0)) * scale, y: 50 + (point[1] - (board?.center.y ?? 0)) * scale }
 }
 
 /** Human-readable net or endpoint names, with source identity as a last resort. */
@@ -33,122 +80,103 @@ export function routeNetLabel(circuit: CircuitJson, source: string): string {
   if (net?.type === 'source_net') return net.name
   return trace.connected_source_port_ids
     .slice(0, 2)
-    .map((id) => {
-      const port = circuit.find((record) => record.type === 'source_port' && record.source_port_id === id)
-      const component =
-        port?.type === 'source_port' && circuit.find((record) => record.type === 'source_component' && record.source_component_id === port.source_component_id)
-      return port?.type === 'source_port' ? `${component && component.type === 'source_component' ? component.name : ''}.${port.name}` : id
-    })
+    .map((id) => routePortLabel(circuit, id))
     .join(' → ')
 }
 
-/** Actual route polylines and pour outlines; object counts stay bounded on full DDR boards. */
-export function routeBoardDrawing(circuit: CircuitJson, scope: CopperScope | undefined, title: string): GraphicsObject {
-  const traces = circuit.filter((record) => record.type === 'pcb_trace')
-  const selected = traces.filter((trace) => scope?.selectedPcbTraceIds.includes(trace.pcb_trace_id))
-  const neighbours = traces.filter((trace) => !selected.includes(trace))
-  const drawing: GraphicsObject = { coordinateSystem: 'cartesian', lines: [], texts: [], points: [], circles: [], rects: [], polygons: [] }
-  const board = circuit.find((record) => record.type === 'pcb_board')
-  if (board) {
-    const scale = 50 / Math.max(board.width ?? 1, board.height ?? 1)
-    drawing.rects!.push({ center: { x: 60, y: 50 }, width: (board.width ?? 1) * scale, height: (board.height ?? 1) * scale, stroke: '#94a3b8' })
-  }
-  for (const trace of [...routeDisplayItems(neighbours, 120), ...selected]) {
-    const points = routeDisplayItems(
-      trace.route.filter((point) => 'x' in point && 'y' in point),
-      500,
-    ).map((point) => routeBoardPoint(circuit, [point.x!, point.y!]))
-    if (points.length < 2) continue
-    drawing.lines!.push({
-      points,
-      strokeColor: scope?.nonReferenceRailTraceIds.includes(trace.pcb_trace_id) ? '#16a34a' : selected.includes(trace) ? '#2563eb' : '#cbd5e1',
-      strokeWidth: selected.includes(trace) ? 0.5 : 0.1,
-    })
-  }
-  for (const pour of routeDisplayItems(
-    circuit.filter((record) => record.type === 'pcb_copper_pour'),
-    40,
-  )) {
-    if (pour.shape !== 'brep') continue
-    for (const [i, ring] of [pour.brep_shape.outer_ring, ...pour.brep_shape.inner_rings].slice(0, 8).entries()) {
-      const vertices = routeDisplayItems(ring.vertices, 300).map((point) => routeBoardPoint(circuit, [point.x, point.y]))
-      if (vertices.length)
-        drawing.lines!.push({ points: [...vertices, vertices[0]], strokeColor: '#16a34a', strokeDash: i ? '1 1' : undefined, strokeWidth: 0.2 })
+/** `U1.Y` style endpoint name. */
+export function routePortLabel(circuit: CircuitJson, sourcePortId: string): string {
+  const port = circuit.find((record) => record.type === 'source_port' && record.source_port_id === sourcePortId)
+  if (port?.type !== 'source_port') return sourcePortId
+  const component = circuit.find((record) => record.type === 'source_component' && record.source_component_id === port.source_component_id)
+  return `${component?.type === 'source_component' ? component.name : ''}.${port.name}`
+}
+
+/** A source port's pad location in board mm. */
+export function routePortPoint(circuit: CircuitJson, sourcePortId: string): Point | undefined {
+  const port = circuit.find((record) => record.type === 'pcb_port' && record.source_port_id === sourcePortId)
+  return port?.type === 'pcb_port' ? { x: port.x, y: port.y } : undefined
+}
+
+/** A ring glyph as an overlay line, so it paints above every underlay fill. */
+export function routeRing(center: Point, radius: number, color: string, width: number): Line {
+  return overlayLine(
+    Array.from({ length: 25 }, (_, i) => ({ x: center.x + radius * Math.cos((i * Math.PI) / 12), y: center.y + radius * Math.sin((i * Math.PI) / 12) })),
+    color,
+    width,
+  )
+}
+
+/** A filled dot glyph (a round-capped stub) above every underlay fill. */
+export function routeDot(center: Point, radius: number, color: string): Line {
+  return overlayLine([center, { x: center.x + radius * 1e-3, y: center.y }], color, radius * 2)
+}
+
+/** The board underlay plus selected copper drawn bright at its real width; focus is the selected copper. */
+export function routeBoardDrawing(circuit: CircuitJson, scope: CopperScope | undefined): StageDrawing {
+  const drawing: StageDrawing = boardUnderlayCopy(circuit)
+  const selected: Point[] = []
+  for (const trace of circuit) {
+    if (trace.type !== 'pcb_trace') continue
+    const rail = scope?.nonReferenceRailTraceIds.includes(trace.pcb_trace_id)
+    if (!rail && !scope?.selectedPcbTraceIds.includes(trace.pcb_trace_id)) continue
+    const wires = trace.route.filter((point) => point.route_type === 'wire')
+    for (const [i, point] of wires.slice(1).entries()) {
+      const previous = wires[i]
+      const points = [routePoint([previous.x, previous.y]), routePoint([point.x, point.y])]
+      drawing.lines!.push(overlayLine(points, rail ? '#16a34a' : routeNetColors[0], boardTraceWidth(circuit, point.width)))
+      if (!rail) selected.push(...points)
     }
   }
-  routeText(drawing, 2, 98, title, '#0f172a', routeTextSize.title)
-  routeText(drawing, 2, 91, 'Board plan · x / y in mm · y points up')
-  routeText(drawing, 2, 12, 'Blue: selected · Grey: neighbour', '#475569')
-  routeText(drawing, 2, 7, 'Green: ground / rail', '#475569')
-  routeText(
-    drawing,
-    2,
-    2,
-    `${selected.length} selected routes; ${Math.min(neighbours.length, 120)}/${neighbours.length} neighbour routes shown`,
-    '#64748b',
-  )
+  drawing.focus = routeFocus(selected, boardBounds(circuit))
   return drawing
 }
 
-/** Colour is stable per electrical source, including all segments of a bent net. */
-export function routeSectionDrawing(circuit: CircuitJson, geometry: SectionGeometry, scope: CopperScope, title: string): GraphicsObject {
-  const drawing = routeBoardDrawing(circuit, scope, title)
+/** One saturated colour per selected electrical source (source trace), in geometry order. */
+export function routeSourceColors(geometry: SectionGeometry, scope: CopperScope): Map<string, string> {
+  const sources = [...new Set(geometry.wires.filter((wire) => scope.selectedPcbTraceIds.includes(wire.trace)).map((wire) => wire.source))]
+  return new Map(sources.map((source, i) => [source, routeNetColors[i % routeNetColors.length]]))
+}
+
+/** Colour of the selected source that connects a port, so a probe matches its copper. */
+export function routePortColor(circuit: CircuitJson, colors: Map<string, string>, sourcePortId: string): string | undefined {
+  const trace = circuit.find((record) => record.type === 'source_trace' && colors.has(record.source_trace_id) && record.connected_source_port_ids.includes(sourcePortId))
+  return trace?.type === 'source_trace' ? colors.get(trace.source_trace_id) : undefined
+}
+
+/** Segmented wires in their net colour; orange via contacts and magenta joins sit on the real copper. */
+export function routeSectionDrawing(circuit: CircuitJson, geometry: SectionGeometry, scope: CopperScope): StageDrawing {
+  const drawing: StageDrawing = boardUnderlayCopy(circuit)
   const selected = geometry.wires.filter((wire) => scope.selectedPcbTraceIds.includes(wire.trace))
-  const sources = [...new Set(selected.map((wire) => wire.source))]
-  const colors = ['#2563eb', '#0891b2', '#e11d48', '#4f46e5', '#a16207', '#0d9488']
-  const wires = [
-    ...routeDisplayItems(
-      geometry.wires.filter((wire) => !scope.selectedPcbTraceIds.includes(wire.trace)),
-      160,
-    ),
-    ...routeDisplayItems(selected, 2000),
-  ]
-  drawing.lines!.push(
-    ...wires.map((wire) => ({
-      points: [routeBoardPoint(circuit, wire.a), routeBoardPoint(circuit, wire.b)],
-      strokeColor: scope.nonReferenceRailTraceIds.includes(wire.trace)
-        ? '#16a34a'
-        : sources.includes(wire.source)
-          ? colors[sources.indexOf(wire.source) % colors.length]
-          : '#cbd5e1',
-      strokeWidth: sources.includes(wire.source) ? 0.45 : 0.1,
-    })),
+  const colors = routeSourceColors(geometry, scope)
+  const size = Math.max(0.05, ...selected.map((wire) => wire.width))
+  for (const wire of geometry.wires) {
+    const rail = scope.nonReferenceRailTraceIds.includes(wire.trace)
+    if (!rail && !colors.has(wire.source)) continue
+    const color = rail ? '#16a34a' : colors.get(wire.source)!
+    drawing.lines!.push(overlayLine([routePoint(wire.a), routePoint(wire.b)], color, wire.width))
+    for (const join of wire.joins ?? []) drawing.lines!.push(routeDot(routePoint(join.from), size * 0.6, '#d946ef'))
+  }
+  for (const contact of routeDisplayItems(geometry.viaContacts, 400))
+    drawing.lines!.push(routeRing(routePoint(contact.point), size * 1.6, '#f97316', size * 0.5))
+  drawing.focus = routeFocus(
+    selected.flatMap((wire) => [routePoint(wire.a), routePoint(wire.b)]),
+    boardBounds(circuit),
   )
-  drawing.points = routeDisplayItems(
-    wires.flatMap((wire) => (wire.joins ?? []).flatMap((join) => [join.from, join.to])),
-    160,
-  ).map((point) => ({ ...routeBoardPoint(circuit, point), color: '#d946ef' }))
-  drawing.circles = routeDisplayItems(geometry.viaContacts).map((contact) => ({
-    center: routeBoardPoint(circuit, contact.point),
-    radius: 0.65,
-    stroke: '#f97316',
-  }))
-  for (const [i, source] of sources.slice(0, 6).entries())
-    routeText(drawing, 2 + (i % 2) * 60, 28 - Math.floor(i / 2) * 5, routeNetLabel(circuit, source).slice(0, 35), colors[i % colors.length])
-  // Replace the admission legend: segmented wires are coloured by net here.
-  drawing.texts = drawing.texts!.filter((text) => text.y !== 12 && text.y !== 7)
-  routeText(drawing, 2, 12, 'Net colours above · Orange: via', '#475569')
-  routeText(drawing, 2, 7, 'Magenta: join · Green: pour', '#475569')
-  routeText(drawing, 2, 87, `${geometry.wires.length} wire sections · ${geometry.slices.length} field slices · ${geometry.viaContacts.length} via contacts`)
   return drawing
 }
 
-/** A transverse amber band at the exact midpoint of the current parallel slice. */
-export function routeSliceDrawing(drawing: GraphicsObject, circuit: CircuitJson, slice: RouteSlice): void {
-  if (!slice.wires.length) return
+/** The bright cut line across the current slice at its midpoint; returns its two ends. */
+export function routeSliceDrawing(drawing: StageDrawing, circuit: CircuitJson, slice: RouteSlice): Point[] {
+  if (!slice.wires.length) return []
   const middle = (slice.start + slice.end) / 2
   const first = slice.wires[0]
-  const low = Math.min(...slice.wires.map((wire) => wire.transverse - wire.width / 2)) - 0.15
-  const high = Math.max(...slice.wires.map((wire) => wire.transverse + wire.width / 2)) + 0.15
-  const points = [
-    [middle - 0.06, low],
-    [middle + 0.06, low],
-    [middle + 0.06, high],
-    [middle - 0.06, high],
-  ].map(([position, transverse]) => routeBoardPoint(circuit, routePosition({ ...first, transverse }, position)))
-  drawing.polygons ??= []
-  drawing.polygons.push({ points, fill: '#fbbf24', stroke: '#d97706', strokeWidth: 0.2 })
-  const point = routeBoardPoint(circuit, routePosition(first, middle))
-  drawing.lines!.push({ points: [point, { x: 57, y: 36 }], strokeColor: '#d97706', strokeWidth: 0.15 })
-  routeText(drawing, 57, 34, 'Amber: current slice', '#a16207')
+  const low = Math.min(...slice.wires.map((wire) => wire.transverse - wire.width / 2))
+  const high = Math.max(...slice.wires.map((wire) => wire.transverse + wire.width / 2))
+  const reach = Math.max(high - low, 0.2) * 0.6
+  const ends = [low - reach, high + reach].map((transverse) => routePosition({ ...first, transverse }, middle))
+  const width = Math.max(0.03, (high - low) * 0.08)
+  const cut = ends.map(routePoint)
+  drawing.lines!.push({ ...overlayLine(cut, '#f59e0b', width), zIndex: 3 })
+  return cut
 }
