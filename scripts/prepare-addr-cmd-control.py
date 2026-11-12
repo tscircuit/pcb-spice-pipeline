@@ -60,6 +60,7 @@ def main():
     if ledger.get("control_numerics"):
         raise ValueError("Control experiment is already applied")
     deck, evidence = pad_corners((args.source / "simulation.cir").read_text(), args.padding_ps * 1e-12)
+    evidence["preparation_script_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     ledger["control_numerics"] = evidence
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "simulation.cir").write_text(deck)

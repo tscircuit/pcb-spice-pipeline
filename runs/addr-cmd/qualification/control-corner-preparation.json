@@ -1,0 +1,89 @@
+{
+  "status": "deck preservation experiment; no new native claims",
+  "cases": [
+    {
+      "case": "before/before",
+      "source": "runs/addr-cmd/capture-c2-r1/before",
+      "prepared": "runs/addr-cmd/qualification/control-inputs/before/before",
+      "kind": "explicit held-coefficient corner padding experiment",
+      "padding_seconds": 1e-12,
+      "changed_hold_points": 92,
+      "maximum_hold_time_shift_seconds": 9.990000000008151e-13,
+      "maximum_coefficient_jump": 0.00747816721166,
+      "original_deck_sha256": "57bf4da04732b1ca050d26d0607fe4d05059091743281d4f55e2d37d7291a1f3",
+      "prepared_deck_sha256": "123dd368800eca41197d0d09f397f8a02d0d4cde8f52786273c60ac33629ded8",
+      "measured_edge_times_and_coefficients": "unchanged",
+      "preparation_script_sha256": "da898751aa3f6f4c92515acfea299d483d81393a23b3b0653fd308ccbbb0919c"
+    },
+    {
+      "case": "before/victim-even",
+      "source": "runs/addr-cmd/capture-c2-r1/victim-even",
+      "prepared": "runs/addr-cmd/qualification/control-inputs/before/victim-even",
+      "kind": "explicit held-coefficient corner padding experiment",
+      "padding_seconds": 1e-12,
+      "changed_hold_points": 48,
+      "maximum_hold_time_shift_seconds": 9.990000000008151e-13,
+      "maximum_coefficient_jump": 0.00747816721166,
+      "original_deck_sha256": "b6f197592a8504ae294a2f513c810f479f121073665a05abcdceaf340093c005",
+      "prepared_deck_sha256": "e57cd0074340e20d5b8a08200dae999f9897444f4f1048f29fa7a24a51192162",
+      "measured_edge_times_and_coefficients": "unchanged",
+      "preparation_script_sha256": "da898751aa3f6f4c92515acfea299d483d81393a23b3b0653fd308ccbbb0919c"
+    },
+    {
+      "case": "before/victim-odd",
+      "source": "runs/addr-cmd/capture-c2-r1/victim-odd",
+      "prepared": "runs/addr-cmd/qualification/control-inputs/before/victim-odd",
+      "kind": "explicit held-coefficient corner padding experiment",
+      "padding_seconds": 1e-12,
+      "changed_hold_points": 48,
+      "maximum_hold_time_shift_seconds": 9.990000000008151e-13,
+      "maximum_coefficient_jump": 0.00747816721166,
+      "original_deck_sha256": "9599480d1c22068ea53dd288393d6d9c64e833fae47fefeb886ed0d11f9a7aed",
+      "prepared_deck_sha256": "0c585582f1085aa48583c3665fa24150630e7c142f7dadd0f516b6e5e0f4a239",
+      "measured_edge_times_and_coefficients": "unchanged",
+      "preparation_script_sha256": "da898751aa3f6f4c92515acfea299d483d81393a23b3b0653fd308ccbbb0919c"
+    },
+    {
+      "case": "vtt/before",
+      "source": "runs/addr-cmd/qualification/vtt/before",
+      "prepared": "runs/addr-cmd/qualification/control-inputs/vtt/before",
+      "kind": "explicit held-coefficient corner padding experiment",
+      "padding_seconds": 1e-12,
+      "changed_hold_points": 92,
+      "maximum_hold_time_shift_seconds": 9.990000000008151e-13,
+      "maximum_coefficient_jump": 0.00747816721166,
+      "original_deck_sha256": "a059fcc599cc49f583ef51a37f7019108164969c828ff0822e3c01a76184abf9",
+      "prepared_deck_sha256": "d8aa5f449e92426e4c17ab857e0761b8ee9686bc3e8c2af2c768a1dbdff259c7",
+      "measured_edge_times_and_coefficients": "unchanged",
+      "preparation_script_sha256": "da898751aa3f6f4c92515acfea299d483d81393a23b3b0653fd308ccbbb0919c"
+    },
+    {
+      "case": "vtt/victim-even",
+      "source": "runs/addr-cmd/qualification/vtt/victim-even",
+      "prepared": "runs/addr-cmd/qualification/control-inputs/vtt/victim-even",
+      "kind": "explicit held-coefficient corner padding experiment",
+      "padding_seconds": 1e-12,
+      "changed_hold_points": 48,
+      "maximum_hold_time_shift_seconds": 9.990000000008151e-13,
+      "maximum_coefficient_jump": 0.00747816721166,
+      "original_deck_sha256": "dd3a6c7be1ad75c6e918e4a981a9468ad7fa2cd94f30b9be697a82cf1711d6fa",
+      "prepared_deck_sha256": "66329f551c37b235406036e40c5c8a2759f81eef0859d40bc5ce85263d7536fa",
+      "measured_edge_times_and_coefficients": "unchanged",
+      "preparation_script_sha256": "da898751aa3f6f4c92515acfea299d483d81393a23b3b0653fd308ccbbb0919c"
+    },
+    {
+      "case": "vtt/victim-odd",
+      "source": "runs/addr-cmd/qualification/vtt/victim-odd",
+      "prepared": "runs/addr-cmd/qualification/control-inputs/vtt/victim-odd",
+      "kind": "explicit held-coefficient corner padding experiment",
+      "padding_seconds": 1e-12,
+      "changed_hold_points": 48,
+      "maximum_hold_time_shift_seconds": 9.990000000008151e-13,
+      "maximum_coefficient_jump": 0.00747816721166,
+      "original_deck_sha256": "91bfff42753b264f969bc61c945e4eb39c7f3afd1737818cea24315870f0ec35",
+      "prepared_deck_sha256": "aa91bc9b7e95be3f933349c74acd7588c1a494515abb9709a1ffaf5192cd13e4",
+      "measured_edge_times_and_coefficients": "unchanged",
+      "preparation_script_sha256": "da898751aa3f6f4c92515acfea299d483d81393a23b3b0653fd308ccbbb0919c"
+    }
+  ]
+}

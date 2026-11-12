@@ -409,7 +409,8 @@ control-corner experiment is prepared for after the independent sweep. The
 generated Ku/Kd controls splice their small initial measured mismatch onto
 the held state over 1 fs. The prototype moves only that preceding flat-state
 point to 1 ps before the edge, preserving every measured edge timestamp and
-coefficient. Three synthetic tests verify these invariants; they do not prove
+coefficient. Four synthetic tests verify these invariants, including a redundant
+flat PWL guard; they do not prove
 native convergence or physical accuracy. A successful VTT capture would need
 a matched before control with the same numerical preparation. VTT is not yet
 ranked as a demonstrated improvement.

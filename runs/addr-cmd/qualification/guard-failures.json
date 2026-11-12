@@ -654,6 +654,92 @@
       },
       "incomplete_waveform_sha256": "cef0391325dde3a2baf54119e333aa55bfc6ec5efc242f80b91ca65ca58e16c1",
       "last_saved_time_ns": 2.500000091152395
+    },
+    {
+      "case": "spacing/before",
+      "status": "transient-failed",
+      "error": "Native runtime exceeded 1200 s budget",
+      "cells": 444,
+      "options": {
+        "riseSeconds": 2.3e-10,
+        "refinement": 1,
+        "stepSeconds": 1e-11,
+        "durationSeconds": 8e-09,
+        "panels": 12,
+        "currentToleranceA": 1e-09,
+        "cellsPerRise": 2
+      },
+      "native": {
+        "seconds": 1258.792300708,
+        "peakRssKiB": 245024,
+        "code": null,
+        "budgetError": "Native runtime exceeded 1200 s budget",
+        "checkpoints": [
+          {
+            "wall_seconds": 8.294134166999996,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.478495666999997,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 26.660430542,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 44.00289399999998,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 314.332210167,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "incomplete_waveform_sha256": "a94cd7242fa176d5aab7d3169ff35d437790944bdc92b59512ff3f54a20225ed",
+      "last_saved_time_ns": 4.0
+    },
+    {
+      "case": "spacing/victim-even",
+      "status": "transient-failed",
+      "error": "ngspice failed (null); inspect /Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si/runs/addr-cmd/qualification/spacing/victim-even/ngspice.log",
+      "cells": 444,
+      "options": {
+        "riseSeconds": 2.3e-10,
+        "refinement": 1,
+        "stepSeconds": 1e-11,
+        "durationSeconds": 8e-09,
+        "panels": 12,
+        "currentToleranceA": 1e-09,
+        "cellsPerRise": 2
+      },
+      "native": {
+        "seconds": 143.19250241700001,
+        "peakRssKiB": 244112,
+        "code": null,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 4.181258583999937,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 9.231959834000095,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 14.279715000000083,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 23.37103708399995,
+            "simulation_seconds": 2e-09
+          }
+        ]
+      },
+      "incomplete_waveform_sha256": "c8145182bfcdba614dffa93124b026e5bf1e142ec7cd131ab53348bdbcc7e7c9",
+      "last_saved_time_ns": 2.0
     }
   ]
 }
