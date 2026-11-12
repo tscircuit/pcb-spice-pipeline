@@ -1,83 +1,11 @@
-import { causalLossPoles, causalLossResponse, referenceSeries, type Matrix, type ExtractedRoutes, type ExtractedRouteSlice, type RouteReturn } from '../extraction'
+import { causalLossPoles, causalLossResponse, referenceSeries, type ExtractedRoutes, type ExtractedRouteSlice, type RouteReturn } from '../extraction'
+import { RouteEnergy, seriesEnergy, shuntEnergy } from './route-energy'
 import { type RouteWire, type RouteXY } from '../board'
 
 export interface RouteLadder {
   lines: string[]; cells: number; maximumDelaySeconds: number
   wireNodes: Map<number, { position: number; node: string }[]>
 }
-
-/** Stable SPICE precision, bounded far beyond board tolerances. */
-const number = (value: number): string => Number(value.toPrecision(12)).toString()
-
-/** Coupled series matrix: sensor-controlled mutual R or ordinary mutually coupled inductors. */
-function seriesMatrix(lines: string[], tag: string, before: string[], after: string[], matrix: Matrix, kind: 'R' | 'L'): void {
-  for (let i = 0; i < before.length; i++) {
-    if (before[i] === after[i]) continue
-    if (kind === 'R') {
-      if (before.length === 1) {
-        lines.push(`R${tag}${i} ${before[i]} ${after[i]} ${number(matrix[i][i])}`)
-        continue
-      }
-      lines.push(`V${tag}${i} ${before[i]} ${tag}s${i} 0`, `R${tag}${i} ${tag}s${i} ${tag}r${i} ${number(matrix[i][i])}`)
-      const terms = matrix[i].flatMap((r, j) => j === i || before[j] === after[j] || Math.abs(r) < 1e-20 ? [] : [{ r, j }])
-      let current = `${tag}r${i}`
-      if (!terms.length) lines.push(`V${tag}O${i} ${current} ${after[i]} 0`)
-      for (const [k, term] of terms.entries()) {
-        const next = k === terms.length - 1 ? after[i] : `${tag}h${i}_${k}`
-        lines.push(`H${tag}${i}_${k} ${current} ${next} V${tag}${term.j} ${number(term.r)}`)
-        current = next
-      }
-    } else lines.push(`L${tag}${i} ${before[i]} ${after[i]} ${number(matrix[i][i])}`)
-  }
-  if (kind === 'L') for (let i = 0; i < before.length; i++) for (let j = i + 1; j < before.length; j++) {
-    if (before[i] !== after[i] && before[j] !== after[j] && Math.abs(matrix[i][j]) > 1e-24) lines.push(`K${tag}${i}_${j} L${tag}${i} L${tag}${j} ${number(matrix[i][j] / Math.sqrt(matrix[i][i] * matrix[j][j]))}`)
-  }
-}
-
-/** Exact sparse realization for symmetric diagonally dominant energy matrices, including positive mutual entries. */
-function sparseShunt(lines: string[], tag: string, nodes: string[], matrix: Matrix, rate?: number): void {
-  const remainder = matrix.map((row, i) => row[i] - row.reduce((total, value, j) => total + (i === j ? 0 : Math.abs(value)), 0))
-  if (remainder.some(value => value < -1e-20)) {
-    modalShunt(lines, tag, nodes, matrix, rate)
-    return
-  }
-  const terms: { a: string; b: string; c: number; sum: boolean }[] = nodes.map((node, i) => ({ a: node, b: '0', c: Math.max(0, remainder[i]), sum: false }))
-  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) if (Math.abs(matrix[i][j]) > 1e-23) terms.push({ a: nodes[i], b: nodes[j], c: Math.abs(matrix[i][j]), sum: matrix[i][j] > 0 })
-  for (const [i, term] of terms.entries()) {
-    if (term.c <= 1e-23 || (!term.sum && term.a === term.b)) continue
-    const name = `${tag}S${i}`
-    if (term.sum) {
-      lines.push(`E${name} ${name}a ${term.a} ${term.b} 0 1`, `V${name} ${name}a ${name}b 0`, `C${name} ${name}b ${rate ? `${name}c` : '0'} ${number(term.c)}`,
-        `F${name}b ${term.b} 0 V${name} 1`)
-      if (rate) lines.push(`R${name} ${name}c 0 ${number(1 / (rate * term.c))}`)
-    } else {
-      lines.push(`C${name} ${term.a} ${rate ? `${name}c` : term.b} ${number(term.c)}`)
-      if (rate) lines.push(`R${name} ${name}c ${term.b} ${number(1 / (rate * term.c))}`)
-    }
-  }
-}
-
-/** LDL energy factors realize a PSD dielectric-loss matrix even when it is not a Maxwell matrix. */
-function modalShunt(lines: string[], tag: string, nodes: string[], matrix: Matrix, rate?: number): void {
-  const residual = matrix.map(row => [...row])
-  for (let mode = 0; mode < nodes.length; mode++) {
-    const capacitance = residual[mode][mode]
-    if (capacitance < -1e-20) throw new Error(`${tag}: negative energy pivot`)
-    if (capacitance <= 1e-24) continue
-    const weights = residual.map((row, i) => i < mode ? 0 : row[mode] / capacitance)
-    const expression = weights.flatMap((weight, i) => nodes[i] === '0' || Math.abs(weight) < 1e-12 ? [] : [`${number(weight)}*v(${nodes[i]})`]).join('+')
-    if (expression) {
-      const name = `${tag}M${mode}`
-      lines.push(`E${name} ${name}a 0 value={${expression}}`, `V${name} ${name}a ${name}b 0`, `C${name} ${name}b ${rate ? `${name}c` : '0'} ${number(capacitance)}`)
-      if (rate) lines.push(`R${name} ${name}c 0 ${number(1 / (rate * capacitance))}`)
-      for (const [i, weight] of weights.entries()) if (nodes[i] !== '0' && Math.abs(weight) >= 1e-12) lines.push(`F${name}_${i} ${nodes[i]} 0 V${name} ${number(weight)}`)
-    }
-    for (let i = mode + 1; i < nodes.length; i++) for (let j = mode + 1; j < nodes.length; j++) residual[i][j] -= capacitance * weights[i] * weights[j]
-  }
-}
-
-/** Scale one per-length matrix by physical metres. */
-const matrixScale = (matrix: Matrix, value: number): Matrix => matrix.map(row => row.map(entry => entry * value))
 
 /** Deliberately conservative modal delay upper bound from matrix infinity norms. */
 function delayPerMetre(slice: ExtractedRouteSlice): number {
@@ -156,11 +84,12 @@ export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: R
     }
     yield { lines, cells: cells.length, maximumDelaySeconds: Math.max(...cells.map(cell => (cell.end - cell.start) / 1000 * maximumDelayPerMetre)), wireNodes }
   }
-  if (cells.length > 1024) throw new Error(`Route ladder requires ${cells.length} cells; exceeds modest-memory limit of 1024`)
   const nodeNames = [...new Set(cells.flatMap(cell => [cell.before, cell.after]))].filter(node => node !== '0')
   const nodeIds = new Map(nodeNames.map((node, i) => [node, i]))
-  /** Small dense energy matrix; its dimension follows electrical bandwidth, not route vertices. */
-  const zero = (size: number): Matrix => Array.from({ length: size }, () => Array(size).fill(0))
+  /** Bound actual stored coupling terms, rather than unrelated route cells. */
+  const budget = { entries: 0 }
+  /** Allocate only nonzero energy terms. */
+  const zero = (size: number): RouteEnergy => new RouteEnergy(size, budget)
   const R = zero(cells.length)
   const L = zero(cells.length)
   const skin = zero(cells.length)
@@ -195,12 +124,12 @@ export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: R
         const b = entries[j]
         if (!a || !b) continue
         const signedLength = metres * a.sign * b.sign
-        R[a.index][b.index] += slice.line.dcResistance[i][j] * signedLength
-        L[a.index][b.index] += series.L[i][j] * signedLength
-        skin[a.index][b.index] += series.skinResistance[i][j] * signedLength
+        R.add(a.index, b.index, slice.line.dcResistance[i][j] * signedLength)
+        L.add(a.index, b.index, series.L[i][j] * signedLength)
+        skin.add(a.index, b.index, series.skinResistance[i][j] * signedLength)
         for (const side of ['before', 'after'] as const) if (a[side] !== undefined && b[side] !== undefined) {
-          C[a[side]!][b[side]!] += slice.line.C[i][j] * metres / 2
-          D[a[side]!][b[side]!] += slice.line.dielectricLoss[i][j] * metres / 2
+          C.add(a[side]!, b[side]!, slice.line.C[i][j] * metres / 2)
+          D.add(a[side]!, b[side]!, slice.line.dielectricLoss[i][j] * metres / 2)
         }
       }
     }
@@ -227,28 +156,29 @@ export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: R
       const b = weights[j]
       const overlap = Math.max(0, Math.min(a.end, b.end) - Math.max(a.start, b.start)) * a.sign * b.sign
       const weight = returnPath.model === 'series' ? overlap : a.weight * b.weight
-      R[i][j] = (returnPath.model === 'series' ? 0 : R[i][j]) + weight * returnPath.R[a.index][b.index]
-      L[i][j] = (returnPath.model === 'series' ? 0 : L[i][j]) + weight * returnPath.L[a.index][b.index]
-      if (returnPath.model === 'series') skin[i][j] = 0
+      R.set(i, j, (returnPath.model === 'series' ? 0 : R.rows[i].get(j) ?? 0) + weight * returnPath.R[a.index][b.index])
+      L.set(i, j, (returnPath.model === 'series' ? 0 : L.rows[i].get(j) ?? 0) + weight * returnPath.L[a.index][b.index])
+      if (returnPath.model === 'series') skin.set(i, j, 0)
     }
   }
   const before = cells.map(cell => cell.before)
   const after = cells.map(cell => cell.after)
   let current = cells.map((_, i) => `ARCd${i}`)
-  seriesMatrix(lines, 'ARCD', before, current, R, 'R')
+  seriesEnergy(lines, 'ARCD', before, current, R, 'R')
   for (const [p, pole] of causalLossPoles().entries()) {
     if (returnPath?.model === 'series') break
     const next = cells.map((_, i) => `ARCp${p}n${i}`)
-    const resistance = matrixScale(skin, pole.skin)
-    seriesMatrix(lines, `ARCS${p}`, current, next, resistance, 'R')
-    seriesMatrix(lines, `ARCP${p}`, current, next, matrixScale(resistance, 1 / pole.rate), 'L')
+    const resistance = skin.scaled(pole.skin)
+    seriesEnergy(lines, `ARCS${p}`, current, next, resistance, 'R')
+    seriesEnergy(lines, `ARCP${p}`, current, next, resistance.scaled(1 / pole.rate), 'L')
     current = next
   }
-  seriesMatrix(lines, 'ARCL', current, after, L, 'L')
+  seriesEnergy(lines, 'ARCL', current, after, L, 'L')
   const dielectricAtReference = causalLossResponse(1e9).dielectricCapacitance
-  const capacitance = C.map((row, i) => row.map((value, j) => value - dielectricAtReference * D[i][j]))
-  sparseShunt(lines, 'ARCC', nodeNames, capacitance)
-  for (const [p, pole] of causalLossPoles().entries()) sparseShunt(lines, `ARCG${p}`, nodeNames, matrixScale(D, pole.dielectric), pole.rate)
+  const capacitance = C.scaled(1)
+  for (const [i, row] of D.rows.entries()) for (const [j, value] of row) capacitance.rows[i].set(j, (C.rows[i].get(j) ?? 0) - dielectricAtReference * value)
+  shuntEnergy(lines, 'ARCC', nodeNames, capacitance)
+  for (const [p, pole] of causalLossPoles().entries()) shuntEnergy(lines, `ARCG${p}`, nodeNames, D.scaled(pole.dielectric), pole.rate)
   return { lines, cells: cells.length, maximumDelaySeconds: Math.max(...cells.map(cell => (cell.end - cell.start) / 1000 * maximumDelayPerMetre)), wireNodes }
 }
 

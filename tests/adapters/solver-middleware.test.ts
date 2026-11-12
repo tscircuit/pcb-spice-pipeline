@@ -167,9 +167,12 @@ test('loads only fixed local asset names and reports missing paths without expos
     /missing local asset: .*sn65hvd72.ibs/,
   )
   assert.equal((await fetch(`${url}/api/local-assets/secret.txt`)).status, 404)
+  await writeFile(join(root, 'ddr3-board.json'), 'local board')
+  assert.deepEqual(await (await fetch(`${url}/api/local-assets/ddr3-board.json`)).json(), { text: 'local board' })
+  await rm(join(root, 'ddr3-board.json'))
   assert.match(
     ((await (await fetch(`${url}/api/local-assets/ddr3-board.json`)).json()) as { error: string }).error,
-    /SI_DDR3_BOARD/,
+    /ddr3-board.json/,
   )
 })
 

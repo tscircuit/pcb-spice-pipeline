@@ -79,7 +79,11 @@ network assembly, then the live local ngspice transient. Captures remain candida
 results without independent convergence qualification.
 
 Set `IBIS_MODEL_DIR` to the examples' local vendor directory (default `models`).
-Set `SI_DDR3_BOARD` to the real physical DDR3 board JSON for the addr/cmd page.
+Copy the real physical DDR3 board JSON to `models/ddr3-board.json` (gitignored),
+or set `SI_DDR3_BOARD` to its absolute path for the addr/cmd page. The supplied
+board is `../ddr3-route/source-pkg/am3352-ddr-track-a-local-dfm-wip-20261007/dist/index/circuit.json`;
+see [board provenance](docs/full-board-ddr3.md). This is a local setup step:
+never add board JSON or vendor IBIS files to git.
 Missing files show `missing local asset: <path>`. Each fixture loads models from
 local paths. Vendor assets and board JSON are never bundled or committed.
 The site requires its local backend.
@@ -90,11 +94,11 @@ flowchart LR
   assets["Fixed local model paths / SI_DDR3_BOARD"] --> debugger
   debugger --> transient["RouteTransientSolver · stepAsync"]
   transient <-->|"POST /api/run-solver · HTTP RunSolver"| queue["Vite middleware · single slot"]
-  queue <-->|"isolated temp dir · 120 s limit · OMP_NUM_THREADS=1"| native["Local ngspice on PATH"]
+  queue <-->|"isolated temp dir · 45 min limit · OMP_NUM_THREADS=1"| native["Local ngspice on PATH"]
   transient --> capture["Actual waveform samples"]
 ```
 
-The backend accepts bounded JSON bodies (16 MiB), checks same-origin loopback
+The backend accepts bounded JSON bodies (64 MiB), checks same-origin loopback
 requests, rejects other solvers and executable/cwd options, and serializes native
 runs and version probes. `GET http://127.0.0.1:5050/api/solvers` reports ngspice
 availability and version. A missing binary shows `ngspice not found on PATH`.

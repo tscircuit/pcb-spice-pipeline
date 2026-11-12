@@ -1,3 +1,4 @@
+import React from 'react'
 // Exact native pad geometry from the user's package; CAD and enclosure assets omitted.
 const cpuRows = "ABCDEFGHJKLMNPRTUV"
 const dramRows = "ABCDEFGHJKLMNPRT"
