@@ -48,7 +48,8 @@ It never substitutes synthetic IBIS. Vendor files remain local and ignored by gi
 
 ```sh
 pnpm install --frozen-lockfile
-# While circuit-json#983 is unpublished, build that sibling and overlay its dist locally.
+# Until the RFC dependencies ship, use the built local circuit-json/props/core overlays
+# documented in docs/native-signal-levels.md.
 IBIS_MODEL_DIR=/path/to/vendor/models node --import tsx scripts/run-signal-levels.tsx
 ```
 
@@ -76,7 +77,9 @@ The sidebar lists the two-trace TSX board, every signal level, the DDR3 addr/cmd
 scope, and a paste/upload Circuit JSON page. Each mounts `GenericSolverDebugger`
 with `RoutedPipelineSolver`. Step through admission, geometry, fields, buffers,
 network assembly, then the live local ngspice transient. Captures remain candidate
-results without independent convergence qualification.
+results without independent convergence qualification. The current DDR addr/cmd
+case compiles but still hits a native Foster-network timestep failure; see the
+[measured DDR boundary](examples/level4-ddr3-write/README.md#current-measured-boundary).
 
 Set `IBIS_MODEL_DIR` to the examples' local vendor directory (default `models`).
 Copy the real physical DDR3 board JSON to `models/ddr3-board.json` (gitignored),
@@ -86,7 +89,14 @@ see [board provenance](docs/full-board-ddr3.md). This is a local setup step:
 never add board JSON or vendor IBIS files to git.
 Missing files show `missing local asset: <path>`. Each fixture loads models from
 local paths. Vendor assets and board JSON are never bundled or committed.
-The site requires its local backend.
+The site requires its local backend. With built sibling RFC dependencies and the supplied source package available:
+
+```sh
+mkdir -p models
+cp ../ddr3-route/source-pkg/am3352-ddr-track-a-local-dfm-wip-20261007/dist/index/circuit.json models/ddr3-board.json
+# Place sprm552c.ibs and W631GG6MB-12.ibs in models/ locally.
+IBIS_MODEL_DIR=models bun dev
+```
 
 ```mermaid
 flowchart LR

@@ -108,16 +108,13 @@ vntol=1 uV; the earlier 1 pA setting failed at the first switching edge. These
 settings still require an independent waveform refinement check. A 1 Gohm DC
 anchor per coarse route/mapped package node fixes open-neighbour
 common-mode singularities; it does not substitute a vendor die termination.
-A cross-process lock serializes ngspice, OMP_NUM_THREADS=1 is forced, and each native
-run has hard limits of at most 1,200 seconds and 1 GiB native RSS. Electrical
-assembly is bounded to 1,024 arc cells. The runner also stops on an observed
-progress projection beyond 20 minutes. Stateful stop/resume checkpoints at
-1 ps and every 0.5 ns save partial output. Projections exclude measured startup
-and conservatively use the next unreached checkpoint. A short pilot must precede
-a long capture.
-An earlier tessellation-sized pilot was stopped when its projection exceeded that
-budget. Cross-sections have a bounded 40-conductor admission limit; the lane's
-largest retained slice has 33. No FastHenry/FasterCap runs were performed.
+Native adapter instances share one serialized queue and force OMP_NUM_THREADS=1.
+The caller supplies a hard process deadline; the site and DDR runner allow at most
+45 minutes. Assembly now bounds stored sparse matrix entries rather than imposing
+the old 1,024-cell guard. The current declarative transient writes complete raw
+vectors; the earlier diagnostic runner's stop/resume checkpoints and projections
+are historical evidence, not its execution protocol. No FastHenry/FasterCap runs
+are needed for these 2.5D cross-sections.
 
 Refinement is explicit and bounded: `SI_ROUTE_REFINEMENT=1,2,4` changes space;
 `SI_ROUTE_STEP_PS` changes time independently. Completed native output remains
@@ -177,3 +174,27 @@ the first/last series section; omitting them preserves the existing channel.
 Ordinary BGA pads do not specify a port-to-plane current path and receive no
 inferred vertical post. Real-board vias keep the transition models above, so
 the same transition is never added twice.
+
+
+## Routed DDR3 execution
+
+The addr/cmd scope reaches 1,835 route cells. The former 1,024-cell guard rejected
+it before a native deck could be assembled. Sparse energy rows now retain only
+coefficients actually integrated from shared physical slices. Emission visits
+these entries in the original dense column order, with the original absolute
+thresholds: no additional relative-coupling approximation is introduced. For a
+fixed number of conductors per slice, storage and emitted terms follow cell count
+rather than its square. Dense hybrid-return inputs still consume their actual
+coupling budget and can be rejected by the memory guard.
+
+The unmodified two-trace deck pins remain byte-identical. The small energy tests
+cover signed mutual L, Maxwell row sums and Foster terms; the TSX ladder test
+exceeds the old cell cap. Oblique electrostatic corrections use the identical
+dielectric BEM solve directly, omitting unused vacuum, magnetic and recession
+solves; one- and two-plane coefficient equality is tested exactly.
+
+Use `bun scripts/run-routed-ddr3.tsx --addr-cmd` with ignored local vendor models
+and `models/ddr3-board.json` (or `SI_DDR3_BOARD`). The same loader is used by the
+Cosmos addr/cmd page; the level-4 page renders its original lower-byte TSX.
+The local HTTP boundary accepts at most 64 MiB of JSON and serializes native
+execution with a 45-minute deadline and `OMP_NUM_THREADS=1`.

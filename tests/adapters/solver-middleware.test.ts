@@ -215,3 +215,15 @@ test('rejects an overfull queue and admits later work after a failed process', {
   assert.deepEqual(replies.map((reply) => reply.status).sort(), [200, 200, 200, 429, 502])
   assert.equal((await post(url, request)).status, 200)
 })
+
+test('admits a routed DDR-sized deck above the old 16 MiB body limit', async (t) => {
+  const deck = `title\n*${'x'.repeat(17 * 1024 * 1024)}\n.tran 1e-11 8e-9\n.end`
+  let calls = 0
+  const url = await server(t, { runSolver: async value => {
+    calls++
+    assert.equal(value.files['simulation.cir'], deck)
+    return result
+  } })
+  assert.equal((await post(url, { ...request, files: { 'simulation.cir': deck } })).status, 200)
+  assert.equal(calls, 1)
+})

@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { createSolverMiddleware } from './src/adapters/solver-middleware'
 
 export default defineConfig({
+  optimizeDeps: { exclude: ['@resvg/resvg-js'] },
   plugins: [
     react(),
     {

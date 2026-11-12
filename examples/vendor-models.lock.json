@@ -79,6 +79,47 @@
       "supplyV": 3.3,
       "licenseStatus": "Manufacturer explicitly prohibits unauthorized redistribution; fetched locally, not redistributed",
       "selectedModelEvidence": "3.3-V output has two rising and two falling resistive fixtures, R_fixture=50 Ohm, V_fixture=0/VDD. No Polarity keyword: the example drives output buffer state directly, and does not simulate inverter core logic."
+    },
+    "ddr3Cpu": {
+      "vendor": "Texas Instruments",
+      "part": "AM3352BZCZ100",
+      "file": "sprm552c.ibs",
+      "fileBytes": 64048707,
+      "sha256": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+      "component": "am335x_zcz",
+      "supplyV": 1.5,
+      "selectedModels": {
+        "lowerByteWrite": [
+          "Model_257",
+          "Model_579",
+          "Model_771"
+        ],
+        "addrCmd": [
+          "Model_352",
+          "Model_343"
+        ]
+      },
+      "licenseStatus": "Manufacturer copyright; supplied locally, not redistributed",
+      "packageModel": "am335x_zcz",
+      "selectedModelEvidence": "Original package bytes are unchanged. The documented uniform-positive, diagonally-dominant C-magnitude interpretation negates 30,450 off-diagonal entries in a copy before Maxwell sign/passivity validation."
+    },
+    "ddr3Memory": {
+      "vendor": "Winbond",
+      "part": "W631GG6MB-12",
+      "file": "W631GG6MB-12.ibs",
+      "fileBytes": 341552,
+      "sha256": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859",
+      "component": "W631GG6MB-12",
+      "supplyV": 1.5,
+      "selectedModels": {
+        "lowerByteWrite": [
+          "ODT_off"
+        ],
+        "addrCmd": [
+          "CMD"
+        ]
+      },
+      "licenseStatus": "Manufacturer copyright; supplied locally, not redistributed"
     }
   }
 }
