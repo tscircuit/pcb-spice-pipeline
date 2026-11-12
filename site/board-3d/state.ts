@@ -15,16 +15,18 @@ export interface BoardStageState {
 /** Read completed immutable outputs only, gated by the same selected Step as the atlas. */
 export function boardStageState(root: RoutedPipelineSolver, step: number): BoardStageState {
   /** A completed stage always owns its output; pending stages expose none. */
-  const read = <K extends Parameters<RoutedPipelineSolver['stageOutput']>[0]>(name: K): ReturnType<RoutedPipelineSolver['stageOutput']>['value'] =>
-    root.getSolver(name)?.solved ? root.stageOutput(name).value : []
-  const plans = step >= 1 ? read('RoutedAdmissionSolver') as ReturnType<RoutedPipelineSolver['stageOutput']>['value'] : []
+  const read = <K extends Parameters<RoutedPipelineSolver['stageOutput']>[0]>(
+    name: K,
+  ): ReturnType<RoutedPipelineSolver['stageOutput']>['value'] =>
+    root.getSolver(name)?.solved ? (root.getSolver(name)!.getOutput() as ReturnType<RoutedPipelineSolver['stageOutput']>).value : []
+  const plans = step >= 1 ? (read('RoutedAdmissionSolver') as ReturnType<RoutedPipelineSolver['stageOutput']>['value']) : []
   return {
-    scopes: (plans as { sections: { scope: CopperScope } }[]).map(plan => plan.sections.scope),
-    sections: step >= 2 ? read('RouteSectionsSolver') as RoutedSections[] : [],
-    fields: step >= 3 ? read('RouteFieldsSolver') as ExtractedRoutes[] : [],
-    bindings: step >= 4 ? read('RouteBindingsSolver') as RoutedBindings[] : [],
-    networks: step >= 5 ? read('RouteNetworkSolver') as RoutedDeck[] : [],
-    captures: step >= 6 ? read('RouteTransientSolver') as BoardStageState['captures'] : [],
+    scopes: (plans as { sections: { scope: CopperScope } }[]).map((plan) => plan.sections.scope),
+    sections: step >= 2 ? (read('RouteSectionsSolver') as RoutedSections[]) : [],
+    fields: step >= 3 ? (read('RouteFieldsSolver') as ExtractedRoutes[]) : [],
+    bindings: step >= 4 ? (read('RouteBindingsSolver') as RoutedBindings[]) : [],
+    networks: step >= 5 ? (read('RouteNetworkSolver') as RoutedDeck[]) : [],
+    captures: step >= 6 ? (read('RouteTransientSolver') as BoardStageState['captures']) : [],
   }
 }
 
@@ -34,7 +36,7 @@ export function spatialVoltage(waveform: RouteSpatialWaveform, point: number, ti
   const times = waveform.timeSeconds
   if (!values?.length || values.length !== times.length) return undefined
   if (time <= times[0]) return values[0]
-  const after = times.findIndex(value => value >= time)
+  const after = times.findIndex((value) => value >= time)
   if (after < 0) return values.at(-1)
   const before = after - 1
   const fraction = (time - times[before]) / (times[after] - times[before])

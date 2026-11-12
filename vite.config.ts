@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { createSolverMiddleware } from './src/adapters/solver-middleware'
 
 export default defineConfig({
+  resolve: { dedupe: ['react', 'react-dom', 'three', '@tscircuit/core', 'circuit-json'] },
   plugins: [
     react(),
     {

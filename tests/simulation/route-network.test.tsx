@@ -16,6 +16,9 @@ test('network owns real ladder node samples, complete probe evidence and the exe
   const output = root.stageOutput('RouteNetworkSolver').value[0]
   assert.ok(network.iterations >= 3)
   assert.ok(output.evidence.cells)
+  const ticks = output.evidence.node_ticks as { wire: number; position: number; node: string }[]
+  assert.ok(ticks.length >= Number(output.evidence.cells))
+  assert.ok(ticks.every(tick => Number.isFinite(tick.position) && tick.node.length > 0))
   assert.ok(output.evidence.maximum_cell_delay_s)
   assert.ok(output.deck.includes('RBIAS'))
   assert.equal(output.probes.length, 3, 'two receivers and the existing rail monitor')

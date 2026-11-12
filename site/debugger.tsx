@@ -8,6 +8,8 @@ import { RoutedPipelineSolver, RoutedAdmissionSolver } from '../src/pipeline'
 import { routeText, routeTextSize, type CircuitJson } from '../src/board'
 import type { IbisSources } from '../src/buffers'
 import { Board3dPanel } from './board-3d/panel'
+import { boardStageState } from './board-3d/state'
+import { routeFieldsDrawing, type CrossSection } from '../src/extraction'
 
 /** Fit the measured container and scale world-unit text exactly as in SVG exports. */
 function RoutedAtlas({ graphics }: { graphics: GraphicsObject }): React.JSX.Element {
@@ -34,8 +36,15 @@ function RoutedAtlas({ graphics }: { graphics: GraphicsObject }): React.JSX.Elem
 }
 
 /** Read retained stage state without running it or mutating completed solver inputs. */
-function stageDrawing(root: RoutedPipelineSolver, number: number): GraphicsObject {
+function stageDrawing(root: RoutedPipelineSolver, number: number, sliceIndex: number = -1): GraphicsObject {
   if (number === 0) return root.initialVisualize()
+  if (number === 3) {
+    const fields = boardStageState(root, number).fields
+    const slices = fields.flatMap(field => field.slices)
+    const slice = slices[sliceIndex < 0 ? slices.length - 1 : Math.min(sliceIndex, slices.length - 1)]
+    const field = fields.find(field => field.slices.includes(slice))
+    if (slice && field) return routeFieldsDrawing({ section: JSON.parse(slice.key) as CrossSection, slice, line: slice.line, materials: field.materials, circuitJson: root.inputProblem.circuitJson })
+  }
   const definition = root.pipelineDef[number - 1]
   const solver = root.getSolver(definition.solverName)
   if (solver && solver.iterations > 0) return solver.visualize()
@@ -47,9 +56,9 @@ function stageDrawing(root: RoutedPipelineSolver, number: number): GraphicsObjec
 }
 
 /** Fit again when selecting a different stage or completing its solve. */
-function renderStage(root: RoutedPipelineSolver, number: number): React.JSX.Element {
+function renderStage(root: RoutedPipelineSolver, number: number, sliceIndex: number): React.JSX.Element {
   const solver = root.getSolver(root.pipelineDef[number - 1]?.solverName ?? '')
-  return <RoutedAtlas key={`${number}:${solver?.solved}`} graphics={stageDrawing(root, number)} />
+  return <RoutedAtlas key={`${number}:${solver?.solved}:${sliceIndex}`} graphics={stageDrawing(root, number, sliceIndex)} />
 }
 
 export interface BoardPageProps {
@@ -91,6 +100,7 @@ async function renderBoard(tree: React.ReactElement, sources: IbisSources): Prom
 export function BoardPage({ 'board-tree': boardTree, 'load-board': loadBoard, models }: BoardPageProps): React.JSX.Element {
   const revision = useRef(0)
   const [step, setStep] = useState(0)
+  const [sliceIndex, setSliceIndex] = useState(-1)
   const [solveRevision, setSolveRevision] = useState(0)
   const debuggerElement = useRef<HTMLElement>(null)
   const [ready, setReady] = useState<{ solver: RoutedPipelineSolver; revision: number }>()
@@ -98,6 +108,7 @@ export function BoardPage({ 'board-tree': boardTree, 'load-board': loadBoard, mo
   useEffect(() => {
     if (!ready || !debuggerElement.current) return
     setStep(0)
+    setSliceIndex(-1)
     let iteration = ready.solver.iterations
     let index = ready.solver.currentPipelineStageIndex
     // solver-utils owns step actions and rerenders their progress; synchronize the input after each advance.
@@ -192,8 +203,8 @@ export function BoardPage({ 'board-tree': boardTree, 'load-board': loadBoard, mo
             key={ready.revision}
             customRenderer={{
               name: 'Routed stage',
-              render: () => <div className="routed-views"><Board3dPanel solver={ready.solver} step={step} revision={solveRevision} />{renderStage(ready.solver, step)}</div>,
-              getDownload: () => stageDrawing(ready.solver, step),
+              render: () => <div className="routed-views"><Board3dPanel solver={ready.solver} step={step} revision={solveRevision} sliceIndex={sliceIndex} onSliceChange={setSliceIndex} />{renderStage(ready.solver, step, sliceIndex)}</div>,
+              getDownload: () => stageDrawing(ready.solver, step, sliceIndex),
             }}
             solver={ready.solver as unknown as React.ComponentProps<typeof GenericSolverDebugger>['solver']}
           />

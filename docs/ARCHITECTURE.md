@@ -310,8 +310,17 @@ These assets are loaded at runtime and never part of a published static bundle.
 The Cosmos inspector keeps the complete input Circuit JSON in the 3D viewer.
 `board/viewer-geometry` maps solver stack heights to the viewer's centred,
 z-up millimetre frame and places transverse sections normal to routed copper.
+The viewer receives an owned copy: its board thickness follows the physical
+stackup and CAD mounting heights shift by the nominal-to-physical surface
+difference, preserving package dimensions and every PCB x/y coordinate.
 The 2D atlas and 3D overlay consume the same retained stage outputs and Step.
 The display does not broaden the solver's admitted electrical scope.
+The exact-pinned 3D viewer currently uses vanilla Three.js and discards React
+scene children. The adapter uses its scene-root handle after camera creation
+(and its forwarded ref in the JSCAD engine), attaching owned geometry to the
+existing camera and render loop. X-ray clones only board materials. Components
+without CAD records receive explicitly labelled wireframe bodies. Native spatial
+arrays drive voltage colours; missing arrays are reported, never synthesized.
 
 ```mermaid
 flowchart LR

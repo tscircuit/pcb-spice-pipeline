@@ -2,13 +2,22 @@ import * as THREE from 'three'
 import type { BoardPosition } from '../../src/board'
 
 /** Add a physical-width cylinder between two board positions. */
-export function segment(group: THREE.Group, a: BoardPosition, b: BoardPosition, width: number, color: string, opacity: number = 1): THREE.Mesh {
+export function segment(
+  group: THREE.Group,
+  a: BoardPosition,
+  b: BoardPosition,
+  width: number,
+  color: string,
+  opacity: number = 1,
+): THREE.Mesh {
   const start = new THREE.Vector3(...a)
   const end = new THREE.Vector3(...b)
   const delta = end.clone().sub(start)
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(width / 2, width / 2, Math.max(delta.length(), .00001), 8),
-    new THREE.MeshBasicMaterial({ color, transparent: opacity < 1, opacity, depthWrite: opacity === 1 }))
-  mesh.position.copy(start.add(end).multiplyScalar(.5))
+  const mesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(width / 2, width / 2, Math.max(delta.length(), 0.00001), 8),
+    new THREE.MeshBasicMaterial({ color, transparent: opacity < 1, opacity, depthWrite: opacity === 1 }),
+  )
+  mesh.position.copy(start.add(end).multiplyScalar(0.5))
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize())
   mesh.frustumCulled = false
   group.add(mesh)
@@ -37,7 +46,7 @@ export function label(group: THREE.Group, point: BoardPosition, text: string, si
   const texture = new THREE.CanvasTexture(canvas)
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false }))
   sprite.position.set(...point)
-  sprite.scale.set(size * canvas.width / canvas.height, size, 1)
+  sprite.scale.set((size * canvas.width) / canvas.height, size, 1)
   sprite.renderOrder = 10
   sprite.frustumCulled = false
   group.add(sprite)
@@ -46,7 +55,7 @@ export function label(group: THREE.Group, point: BoardPosition, text: string, si
 /** Release only overlay-owned geometry, materials and label textures. */
 export function dispose(group: THREE.Group): void {
   group.removeFromParent()
-  group.traverse(object => {
+  group.traverse((object) => {
     const mesh = object as THREE.Mesh
     mesh.geometry?.dispose()
     const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]

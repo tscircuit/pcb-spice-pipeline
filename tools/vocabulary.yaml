@@ -18,6 +18,8 @@
 threshold: 85
 
 domain:
+  frame: the coordinate axes and origin used to place physical geometry
+  pose: the position and orientation of a physical cross-section plane
   spatial: located at a physical board position along a routed electrical network
   middleware: the local HTTP handler installed in the Vite development server
   local: running on the user's computer through its installed native solver
