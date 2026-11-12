@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { spatialVoltage } from '../../site/board-3d/state'
+import { spatialVoltage, spatialRouteIndices } from '../../site/board-3d/state'
 import { copperRoutes, fullCopper } from '../../site/board-3d/copper'
 import { boardPosition, stackupFromCircuitJson } from '../../src/board'
 import { routedProblem, routedCopper } from './routed-fixture'
@@ -118,4 +118,31 @@ test('the spatial contract colours actual routed copper and remains gated by the
   }
   assert.equal(stageOverlay(circuitJson, stack, state, 5, 0, 0.5, 0.5e-9).children.filter((object) => object.userData.spatial).length, 0)
   assert.notEqual(voltageColor(0), voltageColor(3.3))
+})
+
+test('native channel labels map to PCB copper by node identity without mixing differential legs', async () => {
+  const { circuitJson } = await routedCopper()
+  const route = copperRoutes(circuitJson)[0]
+  const trace = circuitJson.find((record) => record.type === 'pcb_trace' && record.pcb_trace_id === route.trace)!
+  if (trace.type !== 'pcb_trace') throw new Error('Missing trace')
+  const source = circuitJson.find((record) => record.type === 'source_trace' && record.source_trace_id === trace.source_trace_id)!
+  if (source.type !== 'source_trace') throw new Error('Missing source')
+  const points = [
+    { node: 'n-p0', net: 'BUS:positive-port', layer: route.layer, x: route.a[0], y: route.a[1] },
+    { node: 'n-p1', net: 'BUS:positive-port', layer: route.layer, x: route.b[0], y: route.b[1] },
+    { node: 'n-n0', net: 'BUS:negative-port', layer: route.layer, x: route.a[0], y: route.a[1] + 0.35 },
+  ]
+  const waveform = {
+    points,
+    timeSeconds: [0, 1],
+    volts: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+    ],
+  }
+  assert.deepEqual(
+    spatialRouteIndices(circuitJson, [{ nodeMap: { [source.connected_source_port_ids[0]]: 'n-p0' } }], waveform, route.trace),
+    [0, 1],
+  )
 })

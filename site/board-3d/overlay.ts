@@ -11,7 +11,7 @@ import {
 import type { CrossSection, ExtractedRouteSlice } from '../../src/extraction'
 import { copperRoutes } from './copper'
 import { label, marker, segment } from './primitives'
-import { spatialVoltage, voltageColor, type BoardStageState } from './state'
+import { spatialVoltage, spatialRouteIndices, voltageColor, type BoardStageState } from './state'
 
 /** Use the exact solver section JSON in its true-scale transverse/vertical physical frame. */
 function sectionPlane(
@@ -154,14 +154,16 @@ export function stageOverlay(
       }
     }
   if (step >= 6)
-    for (const capture of state.captures) {
+    for (const [captureIndex, capture] of state.captures.entries()) {
       const spatial = capture.spatial
       if (spatial) {
         // Native saved nodes colour their nearest portion of actual route copper. No connection is drawn across bends or between nets.
+        const indices = new Map<string, number[]>()
         for (const route of routes) {
-          const points = spatial.points.flatMap((point, index) =>
-            point.layer === route.layer && (point.net === route.net || point.net === route.trace) ? [{ point, index }] : [],
-          )
+          if (!indices.has(route.trace)) indices.set(route.trace, spatialRouteIndices(circuit, state.bindings[captureIndex] ? [state.bindings[captureIndex]] : [], spatial, route.trace))
+          const points = indices
+            .get(route.trace)!
+            .flatMap((index) => (spatial.points[index].layer === route.layer ? [{ point: spatial.points[index], index }] : []))
           if (!points.length) continue
           const length = Math.hypot(route.b[0] - route.a[0], route.b[1] - route.a[1])
           const count = Math.max(1, Math.ceil(length / 0.25))
