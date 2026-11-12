@@ -230,7 +230,7 @@ export function generalDeclarations(circuit: CircuitJson,geometry: Pick<Geometry
  * Builds the converter input for one model in one experiment: its source, pin map, references, corner,
  * and the run's pin states and stimuli. Dictionaries have no prototype so any port name is safe as a key.
  */
-export function modelRunDefinition(model: PipelineIbisModel,plan: SimulationPlan): ModelRunDefinition {
+export function modelRunDefinition(model: PipelineIbisModel,plan: Pick<SimulationPlan, 'durationSeconds' | 'states' | 'stimuli'>): ModelRunDefinition {
   const pinMap=model.ibis_pin_name_to_source_port_id
   const selected=new Set(Object.values(pinMap))
   const pinStates: IbisRunConfig['pinStates']=Object.create(null)
@@ -243,7 +243,7 @@ export function modelRunDefinition(model: PipelineIbisModel,plan: SimulationPlan
     }
   }
   for(const stimulus of plan.stimuli) if(selected.has(stimulus.source_port_id)) stimuli[stimulus.source_port_id]={unitInterval:stimulus.bit_duration_ms,startTime:stimulus.start_time_ms,initialState:stimulus.initial_state,inverted:stimulus.inverted??false,pattern:{type:'bits',bits:stimulus.transmission_pattern.bits,repeat:stimulus.transmission_pattern.repeat}}
-  const references: Record<string,IbisReferencePorts>=Object.fromEntries(Object.entries(model.ibis_pin_name_to_reference_source_port_ids??{}).map(([pin,refs])=>[pin,{pullup:refs.pullup_reference_source_port_id,pulldown:refs.pulldown_reference_source_port_id,powerClamp:refs.power_clamp_reference_source_port_id,groundClamp:refs.ground_clamp_reference_source_port_id,...(refs.external_reference_source_port_id ? {external:refs.external_reference_source_port_id} : {})}]))
+  const references: Record<string,IbisReferencePorts>=Object.fromEntries(Object.entries(model.ibis_pin_name_to_reference_source_port_ids??{}).filter(([pin])=>pin in pinMap).map(([pin,refs])=>[pin,{pullup:refs.pullup_reference_source_port_id,pulldown:refs.pulldown_reference_source_port_id,powerClamp:refs.power_clamp_reference_source_port_id,groundClamp:refs.ground_clamp_reference_source_port_id,...(refs.external_reference_source_port_id ? {external:refs.external_reference_source_port_id} : {})}]))
   const packagePolicy: IbisModelDefinition['packagePolicy']='vendor'
-  return {definition:{source:{file:model.ibis_model_asset.project_relative_path},component:model.ibis_component_name,pinMap,modelSelections:model.ibis_pin_name_to_model_name,references,corner:'typical',packagePolicy},run:{duration:plan.durationSeconds*1000,pinStates,stimuli}}
+  return {definition:{source:{file:model.ibis_model_asset.project_relative_path},component:model.ibis_component_name,pinMap,modelSelections:model.ibis_pin_name_to_model_name ? Object.fromEntries(Object.entries(model.ibis_pin_name_to_model_name).filter(([pin])=>pin in pinMap)) : undefined,references,corner:'typical',packagePolicy},run:{duration:plan.durationSeconds*1000,pinStates,stimuli}}
 }

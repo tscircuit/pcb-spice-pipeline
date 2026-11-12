@@ -75,3 +75,55 @@ R/L use the signal-minus-return loop transform. C and G use the ground-reference
 The runtime imports the shared circuit-json schemas. Local validation must build the sibling RFC branch until circuit-json#983 is released. No absolute local dependency links are committed. TSX tests and examples use the built core directly.
 
 Core#5286 emits JLC preset plating (0.018 mm), preserving explicit imported stackup plating. The native runner uses real core. RFC pours now request ground escape routing with `unbroken`; the differential example uses manual paths and retains its original autorouter reproduction. Degree-two copper paths are joined for native extraction, with intermediate receiver pins exposed at their physical arc-length fractions in the uniform pi model. Branches and cycles remain unsupported. The native capacitance deck models each declared dielectric slab and air outside; conductor/dielectric contacts are emitted once. Numerical acceptance, including reciprocity, remains mandatory. See `native-signal-levels.md` for accepted and rejected evidence.
+
+## 2D extraction and routed candidate
+
+`extraction/cross-section.ts`, exported by `extraction/index.ts`, owns a separate
+quasi-TEM numerical interface. It consumes rectangles, infinite solid references,
+and dielectric/mask slabs and returns per-unit-length C/C0/L and frequency-dependent
+R/G. The opt-in `pipeline/routed.ts` experiment now consumes it; see
+[routed 2D candidate and execution blockers](routed-2d.md). It is not wired into
+the public stage chain above. The root API, 3D extraction,
+artifact ledger and simulation behaviour remain unchanged. See
+[method, validation and the DDR3 slice demo](2d-cross-section.md).
+
+```mermaid
+flowchart LR
+  section[Rectangular cross-section and material slabs] --> regions[Split at solid reference planes]
+  regions --> fields[Boundary-element material and vacuum solves]
+  fields --> capacitance[C and C0]
+  capacitance --> inductance[External L from inverse C0]
+  fields --> dielectric[Analytic material-energy sensitivity]
+  regions --> walls[Two vacuum wall perturbations]
+  walls --> skin[Wheeler skin-loss matrix]
+  dielectric --> result[Per-unit-length matrices and frequency sampler]
+  skin --> result
+  inductance --> result
+  result --> routed[Opt-in routed candidate: arc-cell energies and causal ladders]
+  routed --> pilot[Bounded native pilot and failure evidence]
+```
+
+## Routed coupling and optional finite-return experiments
+
+`board` admits candidate nets within 32 mm for routed 2D. `extraction/route-coupling.ts`
+solves parallel pairs before assembling final cross-sections; either normalized
+mutual C or L at least 0.5% retains the pair. The cap, 40-conductor guard and
+omissions are recorded. This does not alter the public 3D scope.
+`extraction/route-return.ts` optionally extracts two serial FastHenry R/L meshes
+from the existing two-contact 3D geometry, without native C. `simulation/route-ladder.ts`
+adds its passive shared-return closure or replaces series magnetics with full
+3D loop R/L. Both modes are explicit unqualified hybrids; they are not automatic
+fallbacks or substitutes for a multi-contact return.
+
+```mermaid
+flowchart LR
+  board[Physical routed copper] --> cap[Board candidate-net admission and reference slicing]
+  cap --> pair[Extraction solved parallel pair screen]
+  pair --> field[Extraction retained 2D cross-sections]
+  field --> ladder[Simulation route-arc energy assembly]
+  board -->|optional| magnetic[Extraction serial 3D R/L meshes and checks]
+  magnetic --> hybrid[Explicit closure or full magnetic hybrid]
+  hybrid --> ladder
+  ladder --> native[Guarded serial native transient]
+  native --> compare[Full native-union comparisons and unqualified verdict]
+```

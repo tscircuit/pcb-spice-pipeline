@@ -2,3 +2,4 @@
 export { runPipeline } from './run'
 export type { PipelineOptions, PipelineResult, PipelineBlockResult, BlockResult, ExperimentResult } from './result'
 export type { NumericalSettings } from './modeling'
+export { routedSimulation, assumedRouteMaterials } from './routed'
