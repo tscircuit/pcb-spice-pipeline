@@ -1,5 +1,6 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
 import type { GraphicsObject } from 'graphics-debug'
+import { routeText, routeTextSize } from '../board'
 import { snapshot, type Produced } from '../kernel'
 
 type ItemSolver<I, O> = BaseSolver & { getOutput(): Produced<O>; getConstructorParams(): [I] }
@@ -17,6 +18,7 @@ export class RoutedStageSolver<I, O> extends BaseSolver {
     private readonly solverClass: ItemClass<I, O>,
   ) {
     super()
+    this.current = inputs.length ? new solverClass(inputs[0]) : undefined
   }
   /** Use the domain name in debugger breadcrumbs, without creating nested pipeline rows. */
   override getSolverName(): string {
@@ -94,7 +96,11 @@ export class RoutedStageSolver<I, O> extends BaseSolver {
   }
   /** Keep the last block's physical drawing after its stage completes. */
   override visualize(): GraphicsObject {
-    return this.current?.visualize() ?? { coordinateSystem: 'cartesian' }
+    if (this.current) return this.current.visualize()
+    const drawing: GraphicsObject = { coordinateSystem: 'cartesian', texts: [] }
+    routeText(drawing, 2, 98, this.getSolverName(), '#0f172a', routeTextSize.title)
+    routeText(drawing, 2, 87, 'No admitted signal-integrity blocks', '#64748b')
+    return drawing
   }
 }
 

@@ -1,8 +1,8 @@
 import { BaseSolver, BasePipelineSolver, definePipelineStep } from '@tscircuit/solver-utils'
 import type { PipelineStep } from '@tscircuit/solver-utils'
 import type { SolverContext } from '../solver'
-import type { GraphicsObject } from 'graphics-debug'
-import { RouteSectionsSolver, routeBoardDrawing, type RoutedSections } from '../board'
+import { getBounds, type GraphicsObject } from 'graphics-debug'
+import { RouteSectionsSolver, routeBoardDrawing, routeText, type RoutedSections } from '../board'
 import { RouteFieldsSolver, type ExtractedRoutes } from '../extraction'
 import {
   RouteBindingsSolver,
@@ -51,6 +51,7 @@ export const routedStages = [
   definePipelineStep('RouteTransientSolver', routedStage(RouteTransientSolver), (p: RoutedPipelineSolver) => [
     p.stageOutput('RouteNetworkSolver').value.map((compiled, i) => ({
       compiled,
+      board: p.stageOutput('RouteSectionsSolver').value[i],
       artifactPrefix: p.stageOutput('RoutedAdmissionSolver').value[i].sections.artifactPrefix,
       context: p.context,
     })),
@@ -124,10 +125,27 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
   override getConstructorParams(): [RoutedProblem, SolverContext] {
     return [this.inputProblem, this.context]
   }
-  /** Follow the active domain stage, retaining the last completed drawing between stages. */
+  /** Inspect retained output or the incoming stage's immutable input, without executing work. */
+  visualizeStage(number: number): GraphicsObject {
+    if (number === 0) return this.initialVisualize()
+    const definition = this.pipelineDef[number - 1]
+    let solver = this.getSolver(definition.solverName)
+    if (!solver && number - 1 <= this.currentPipelineStageIndex) {
+      solver = new definition.solverClass(...definition.getConstructorParams(this))
+    }
+    const scope = this.getStageOutput<Produced<RoutedBlockPlan[]>>('RoutedAdmissionSolver')?.value[0]?.sections.scope
+    const drawing =
+      solver?.visualize() ??
+      routeBoardDrawing(this.inputProblem.circuitJson, scope, `${number} · ${definition.solverName.replace(/^Routed?|Solver$/g, '')}`)
+    if (!solver || solver.iterations === 0) {
+      const { minX, minY } = getBounds(drawing)
+      routeText(drawing, minX, minY - 6, 'Not run yet', '#64748b')
+    }
+    return drawing
+  }
+  /** Stage boundaries show the incoming input immediately, before its first step. */
   override visualize(): GraphicsObject {
-    const index = Math.min(Math.max(this.currentPipelineStageIndex - 1, 0), this.pipelineDef.length - 1)
-    return this.activeSubSolver?.visualize() ?? this.getSolver(this.pipelineDef[index].solverName)?.visualize() ?? this.initialVisualize()
+    return this.visualizeStage(this.iterations === 0 ? 0 : Math.min(this.currentPipelineStageIndex + 1, this.pipelineDef.length))
   }
   /** Show admission's initial physical board before any stage has run. */
   override initialVisualize(): GraphicsObject {

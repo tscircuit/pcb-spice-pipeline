@@ -102,12 +102,13 @@ export class RouteFieldsSolver extends BaseSolver {
   override getConstructorParams(): [RouteFieldsInput] { return [this.input] }
   /** Explicit material labels and self/mutual coefficients explain the current physical slice. */
   override visualize(): GraphicsObject {
-    const section = this.current
+    const slice = this.currentSlice ?? this.input.geometry.slices[0]
+    const section = this.current ?? (slice && routeCrossSection(this.input.geometry, slice, this.materials))
     const drawing: GraphicsObject = { coordinateSystem: 'cartesian', rects: [], lines: [], texts: [], circles: [], polygons: [] }
     routeText(drawing, 132, 98, '3 · Fields: solve a cross-section', '#0f172a', routeTextSize.title)
     routeText(drawing, 132, 91, 'Transverse x (mm) × stack z (mm); thin layers expanded', '#475569')
     if (!section) {
-      routeText(drawing, 132, 75, 'Waiting for the first slice; no field solve yet')
+      routeText(drawing, 132, 75, 'No field slices in the admitted routes')
       return drawing
     }
     const low = Math.min(...section.conductors.map((c) => c.xMm - c.widthMm / 2)) - 0.1
@@ -169,7 +170,7 @@ export class RouteFieldsSolver extends BaseSolver {
         strokeColor: '#16a34a',
         strokeWidth: 0.5,
       })
-      const reference = this.currentSlice?.references[i]
+      const reference = slice?.references[i]
       drawing.polygons!.push({
         points: [
           { x: 136, y: z(plane.zMm) },
@@ -182,7 +183,10 @@ export class RouteFieldsSolver extends BaseSolver {
     }
     routeText(drawing, 132, 33, `x: ${low.toFixed(3)} … ${high.toFixed(3)} mm; z: ${levels[0].toFixed(3)} … ${levels.at(-1)!.toFixed(3)} mm`, '#64748b')
     const line = this.cache.get(JSON.stringify(section))
-    if (!line) return drawing
+    if (!line) {
+      routeText(drawing, 132, 27, `Input slice: ${section.conductors.length} conductors · no field solve yet`, '#64748b')
+      return drawing
+    }
     for (const [i, c] of section.conductors.slice(0, 4).entries()) {
       const capacitance = line.C[i][i]
       const inductance = line.L[i][i]

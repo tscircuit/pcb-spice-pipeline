@@ -4,8 +4,8 @@ import { GenericSolverDebugger } from '@tscircuit/solver-utils/react'
 import { CanvasGraphics } from 'graphics-debug/react'
 import { computeTransformFromViewbox, getBounds, type GraphicsObject } from 'graphics-debug'
 import { createHttpSolver } from '../src/adapters/browser'
-import { RoutedPipelineSolver, RoutedAdmissionSolver } from '../src/pipeline'
-import { routeText, routeTextSize, type CircuitJson } from '../src/board'
+import { RoutedPipelineSolver } from '../src/pipeline'
+import { type CircuitJson } from '../src/board'
 import type { IbisSources } from '../src/buffers'
 
 /** Fit the measured container and scale world-unit text exactly as in SVG exports. */
@@ -32,23 +32,10 @@ function RoutedAtlas({ graphics }: { graphics: GraphicsObject }): React.JSX.Elem
   )
 }
 
-/** Read retained stage state without running it or mutating completed solver inputs. */
-function stageDrawing(root: RoutedPipelineSolver, number: number): GraphicsObject {
-  if (number === 0) return root.initialVisualize()
-  const definition = root.pipelineDef[number - 1]
-  const solver = root.getSolver(definition.solverName)
-  if (solver && solver.iterations > 0) return solver.visualize()
-  const drawing: GraphicsObject =
-    number === 1 ? new RoutedAdmissionSolver(root.inputProblem).visualize() : { coordinateSystem: 'cartesian', texts: [] }
-  if (!drawing.texts?.length) routeText(drawing, 2, 98, `${number} · ${definition.solverName}`, '#0f172a', routeTextSize.title)
-  routeText(drawing, 2, 81, 'Not run yet', '#64748b')
-  return drawing
-}
-
 /** Fit again when selecting a different stage or completing its solve. */
 function renderStage(root: RoutedPipelineSolver, number: number): React.JSX.Element {
   const solver = root.getSolver(root.pipelineDef[number - 1]?.solverName ?? '')
-  return <RoutedAtlas key={`${number}:${solver?.solved}`} graphics={stageDrawing(root, number)} />
+  return <RoutedAtlas key={`${number}:${solver?.solved}`} graphics={root.visualizeStage(number)} />
 }
 
 export interface BoardPageProps {
@@ -190,7 +177,7 @@ export function BoardPage({ 'board-tree': boardTree, 'load-board': loadBoard, mo
             customRenderer={{
               name: 'Routed stage',
               render: () => renderStage(ready.solver, step),
-              getDownload: () => stageDrawing(ready.solver, step),
+              getDownload: () => ready.solver.visualizeStage(step),
             }}
             solver={ready.solver as unknown as React.ComponentProps<typeof GenericSolverDebugger>['solver']}
           />

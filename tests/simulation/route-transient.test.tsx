@@ -123,7 +123,7 @@ test('live stage uses the shared waveform atlas for completed samples and failur
   assert.ok(stage.visualize().texts!.some(text => text.text.includes('VICTIM_1 · TX near')))
   assert.deepEqual(root.stageOutput('RouteTransientSolver').value[0].probes.map(probe => probe.name), ['DATA_0', 'VICTIM_0', 'VICTIM_1'])
   const pending = solver(response())
-  assert.ok(pending.visualize().texts!.some(text => text.text.includes('awaiting live ngspice')))
+  assert.ok(pending.visualize().texts!.some(text => text.text.includes('compiled deck')))
   assert.equal(pending.visualize().lines!.filter(line => line.strokeWidth === .3).length, 0)
   const failed = solver(response(undefined, undefined, 'fatal: rejected'))
   await assert.rejects(failed.solveAsync(), /fatal/)

@@ -14,6 +14,8 @@ import { BasePipelineSolver } from '@tscircuit/solver-utils'
 import { routedStages } from '../../src/pipeline'
 import { routedProblem } from '../support/routed-fixture'
 import { renderCoreSignals } from '../support/core-render'
+import Differential from '../../examples/level1-differential/level1-differential'
+import type { GraphicsObject } from 'graphics-debug'
 
 test('TSX two-trace routed deck deliberately changes to declarative transient vectors', { skip: !process.env.IBIS_MODEL_DIR && 'Set IBIS_MODEL_DIR to local vendor sn74lvc1g04.ibs; vendor bytes are not committed' }, async () => {
   const circuit = await renderCoreSignals(<TwoTraceBoard bit-rate="400Mbps" duration-seconds={4e-9} />)
@@ -158,7 +160,8 @@ test('actual two-block TSX advances every flat stage and invokes transients sequ
   assert.equal(root.stageOutput('RouteSectionsSolver').value.length, 2)
   assert.equal(root.stageOutput('RouteFieldsSolver').value.length, 2)
   const sections = root.getSolver('RouteSectionsSolver')!.visualize()
-  assertRouteVisual(root.visualize(), 'pipeline', 'routed-pipeline-fields')
+  assertRouteVisual(root.visualizeStage(3), 'pipeline', 'routed-pipeline-fields')
+  assert.ok(root.visualize().texts!.some(text => text.text.startsWith('4 ·')), 'stage boundaries draw the incoming bindings input')
   await root.solveAsync()
   assert.equal(calls, 2)
   assert.equal(root.getOutput().blocks.length, 2)
@@ -171,3 +174,58 @@ test('actual two-block TSX advances every flat stage and invokes transients sequ
     assert.ok(root.timeSpentOnStage[stage.solverName] >= 0)
   }
 })
+
+
+/** Every frame must carry real geometry and a finite, nondegenerate fit, including async waits. */
+function assertDrawing(drawing: GraphicsObject, state: string): void {
+  const count = ['points', 'lines', 'rects', 'circles', 'texts'].reduce(
+    (sum, key) => sum + ((drawing[key as keyof GraphicsObject] as unknown[] | undefined)?.length ?? 0),
+    0,
+  )
+  assert.ok(count > 0, `${state}: no drawable objects`)
+  assert.ok((drawing.lines?.length ?? 0) + (drawing.rects?.length ?? 0) > 0, `${state}: draw physical input or output, not only a heading`)
+  const bounds = getBounds(drawing)
+  assert.ok(Object.values(bounds).every(Number.isFinite), `${state}: nonfinite bounds ${JSON.stringify(bounds)}`)
+  assert.ok(bounds.maxX > bounds.minX && bounds.maxY > bounds.minY, `${state}: degenerate bounds`)
+}
+
+for (const name of ['two-trace', 'level1-differential'])
+  test(`${name}: every iteration, stage boundary and pending transient has a physical drawing`, async (context) => {
+    let input
+    if (name === 'two-trace') input = (await routedVisualFixture()).root.inputProblem
+    else {
+      if (!process.env.IBIS_MODEL_DIR) return context.skip('Set IBIS_MODEL_DIR for the local differential vendor model')
+      input = {
+        circuitJson: await renderCoreSignals(<Differential />),
+        ibisSources: { 'models/sn65hvd72.ibs': await readFile(`${process.env.IBIS_MODEL_DIR}/sn65hvd72.ibs`, 'utf8') },
+      }
+    }
+    let calls = 0
+    const solver = new RoutedPipelineSolver(input, {
+      progress: (): void => undefined,
+      runSolver: async (request) => {
+        calls++
+        const drawing = solver.visualize()
+        assertDrawing(drawing, `${name}: ngspice pending`)
+        assert.ok(drawing.texts!.some((text) => text.text.includes('running ngspice')))
+        await new Promise<void>((resolve) => setImmediate(resolve))
+        return synthetic.runSolver(request)
+      },
+    })
+    assertDrawing(solver.visualize(), `${name}: initial`)
+    while (!solver.solved && !solver.failed) {
+      assert.ok(solver.iterations < 200, 'bounded iteration check')
+      const pending = solver.stepAsync()
+      assertDrawing(solver.visualize(), `${name}: iteration ${solver.iterations} pending`)
+      await pending
+      assertDrawing(solver.visualize(), `${name}: iteration ${solver.iterations}`)
+      const number = Math.min(solver.currentPipelineStageIndex + 1, 6)
+      assert.ok(
+        solver.visualize().texts!.some((text) => text.text.startsWith(`${number} ·`)),
+        `${name}: incoming stage ${number} input must be drawn`,
+      )
+    }
+    assert.equal(solver.failed, false)
+    assert.equal(calls, 1)
+    for (const number of [1, 2, 3, 4, 5, 6]) assertDrawing(solver.visualizeStage(number), `${name}: retained ${number}`)
+  })

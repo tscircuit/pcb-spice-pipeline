@@ -203,8 +203,13 @@ The site's `Step` input starts at 0 for the initial board, then synchronizes to
 stages 1–6, matching table rows 01–06 and visualization titles. Entering a number
 selects that retained stage until the next pipeline advance. Each flat stage
 retains its last completed block's domain solver and final drawing; selecting
-an earlier stage never recomputes it. Unrun stages show their initial or empty
-drawing with a not-run note. Values outside 0–6 are clamped silently; clicking
+an earlier stage never recomputes it. Each domain solver draws its physical input
+before its first step. Stage wrappers construct that domain solver when admitted,
+and root transitions preview the incoming immutable input before the next step.
+Fields preview the first physical cross-section without solving coefficients.
+Pending transients retain routed board context and a deck summary, then switch
+to the waveform only after complete samples arrive. Future stages whose inputs
+are incomplete retain the known board context with a not-run note. Values outside 0–6 are clamped silently; clicking
 a table row also selects that stage. Selection lives in fixture component state.
 The page starts with this input and the debugger; local asset loading remains,
 while only blocking load, backend and solver errors appear inline.

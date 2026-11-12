@@ -187,6 +187,7 @@ export class RouteNetworkSolver extends BaseSolver {
       `${Math.min(nodes.length, 800)}/${nodes.length} node ticks shown · ${this.output ? this.obliqueRecords.length : 'pending'} oblique encounters · native not run`,
       '#64748b',
     )
+    routeText(drawing, 2, -4, `Input: ${bindings.models.length} bound IBIS models · ${bindings.plan.probes.length} probes`, '#475569')
     if (this.failed)
       for (const [i, reason] of (`Network rejected: ${this.error ?? 'Compilation incomplete'}`.match(/.{1,85}/g) ?? []).slice(0, 3).entries())
         routeText(drawing, 2, 70 - i * 3, reason, '#dc2626')
