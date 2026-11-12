@@ -24,7 +24,7 @@ summary, button { cursor: pointer; }
 .routed-debugger col:nth-child(7) { width: 24% !important; }
 .routed-debugger col:nth-child(8) { width: 8% !important; }
 
-.solver-selector { display: flex; align-items: center; gap: 12px; margin: 8px 0; font-size: 14px; }
-.solver-selector input { width: 7ch; font: inherit; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; }
-.solver-selector span { color: #52647a; }
+.step-selector { display: flex; align-items: center; gap: 12px; margin: 8px 0; font-size: 14px; }
+.step-selector input { width: 7ch; font: inherit; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; }
+.step-selector span { color: #52647a; }
 .routed-debugger tbody > tr { cursor: pointer; }

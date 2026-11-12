@@ -144,8 +144,9 @@ The browser-safe routed pipeline is inspectable with solver-utils. It is a
 candidate 2.5D path; `runPipeline` still runs the 3D workflow above in this PR.
 Construct `new RoutedPipelineSolver(problem, { runSolver, progress })` and await
 `solver.solveAsync()`. All six stage rows exist before the first step; each stage
-processes all admitted blocks in order, with no nested block pipelines. The site's `Solver` box selects a retained stage visualization by row number (1–6);
-leaving it empty follows the active stage. Unrun stages show a not-run note. Synchronous stages can still be stepped up to stage 6;
+processes all admitted blocks in order, with no nested block pipelines. The site's `Step` input starts at 0 for the initial view. Enter 1–6 to inspect a
+retained stage by table row number; the next pipeline advance updates the input
+to the active stage. Unrun stages show a not-run note. Synchronous stages can still be stepped up to stage 6;
 `RouteTransientSolver` awaits one live ngspice run and admits complete probe vectors.
 Inject the local native adapter to run stage 6 with a bounded process timeout.
 

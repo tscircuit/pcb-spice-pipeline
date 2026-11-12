@@ -2,7 +2,7 @@ import { BaseSolver, BasePipelineSolver, definePipelineStep } from '@tscircuit/s
 import type { PipelineStep } from '@tscircuit/solver-utils'
 import type { SolverContext } from '../solver'
 import type { GraphicsObject } from 'graphics-debug'
-import { RouteSectionsSolver, type RoutedSections } from '../board'
+import { RouteSectionsSolver, routeBoardDrawing, type RoutedSections } from '../board'
 import { RouteFieldsSolver, type ExtractedRoutes } from '../extraction'
 import {
   RouteBindingsSolver,
@@ -131,7 +131,7 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
   }
   /** Show admission's initial physical board before any stage has run. */
   override initialVisualize(): GraphicsObject {
-    return new RoutedAdmissionSolver(this.inputProblem).visualize()
+    return routeBoardDrawing(this.inputProblem.circuitJson, undefined, '0 · Initial board')
   }
   /** A completed pipeline follows the final transient; earlier stages keep their own drawings. */
   override finalVisualize(): GraphicsObject {

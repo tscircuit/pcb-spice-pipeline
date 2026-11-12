@@ -199,12 +199,15 @@ Completed domain values are copied and frozen. Only the root folds the six stage
 Original assumptions, coupling decisions, reference omissions, external ports,
 model provenance, node maps, via/oblique policies and deck evidence remain visible.
 
-The site's `Solver` input selects stages 1–6, matching table rows 01–06 and
-visualization titles. Empty input or Current follows the active stage. Each flat
-stage retains its last completed block's domain solver and its final drawing;
-selecting an earlier stage never recomputes it. Unrun stages show their initial
-or empty drawing with a not-run note. Values outside 1–6 are clamped, and clicking
-a table row selects that stage. Selection lives in the fixture component state.
+The site's `Step` input starts at 0 for the initial board, then synchronizes to
+stages 1–6, matching table rows 01–06 and visualization titles. Entering a number
+selects that retained stage until the next pipeline advance. Each flat stage
+retains its last completed block's domain solver and final drawing; selecting
+an earlier stage never recomputes it. Unrun stages show their initial or empty
+drawing with a not-run note. Values outside 0–6 are clamped silently; clicking
+a table row also selects that stage. Selection lives in fixture component state.
+The page starts with this input and the debugger; local asset loading remains,
+while only blocking load, backend and solver errors appear inline.
 
 Stage visuals share one world-unit `routeTextSize` scale. Board drawings use
 x=0..120/y=0..100; fields use x=130..340/y=-6..100, including material labels

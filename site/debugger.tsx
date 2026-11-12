@@ -32,14 +32,9 @@ function RoutedAtlas({ graphics }: { graphics: GraphicsObject }): React.JSX.Elem
   )
 }
 
-/** An empty selector follows the active stage; row numbers and panel titles both start at one. */
-function stageNumber(root: RoutedPipelineSolver, selected: number | undefined): number {
-  return selected ?? Math.min(root.currentPipelineStageIndex + 1, root.pipelineDef.length)
-}
-
 /** Read retained stage state without running it or mutating completed solver inputs. */
-function stageDrawing(root: RoutedPipelineSolver, selected: number | undefined): GraphicsObject {
-  const number = stageNumber(root, selected)
+function stageDrawing(root: RoutedPipelineSolver, number: number): GraphicsObject {
+  if (number === 0) return root.initialVisualize()
   const definition = root.pipelineDef[number - 1]
   const solver = root.getSolver(definition.solverName)
   if (solver && solver.iterations > 0) return solver.visualize()
@@ -50,10 +45,9 @@ function stageDrawing(root: RoutedPipelineSolver, selected: number | undefined):
 }
 
 /** Fit again when selecting a different stage or completing its solve. */
-function renderStage(root: RoutedPipelineSolver, selected: number | undefined): React.JSX.Element {
-  const number = stageNumber(root, selected)
-  const solver = root.getSolver(root.pipelineDef[number - 1].solverName)
-  return <RoutedAtlas key={`${number}:${solver?.solved}`} graphics={stageDrawing(root, selected)} />
+function renderStage(root: RoutedPipelineSolver, number: number): React.JSX.Element {
+  const solver = root.getSolver(root.pipelineDef[number - 1]?.solverName ?? '')
+  return <RoutedAtlas key={`${number}:${solver?.solved}`} graphics={stageDrawing(root, number)} />
 }
 
 export interface BoardPageProps {
@@ -94,9 +88,25 @@ async function renderBoard(tree: React.ReactElement, sources: IbisSources): Prom
 /** Show a fixture's routed stages using the local ngspice HTTP execution port. */
 export function BoardPage({ 'board-tree': boardTree, 'load-board': loadBoard, models }: BoardPageProps): React.JSX.Element {
   const revision = useRef(0)
-  const [selectedStage, setSelectedStage] = useState<number>()
+  const [step, setStep] = useState(0)
+  const debuggerElement = useRef<HTMLElement>(null)
   const [ready, setReady] = useState<{ solver: RoutedPipelineSolver; revision: number }>()
   const [error, setError] = useState<string>()
+  useEffect(() => {
+    if (!ready || !debuggerElement.current) return
+    setStep(0)
+    let iteration = ready.solver.iterations
+    let index = ready.solver.currentPipelineStageIndex
+    // solver-utils owns step actions and rerenders their progress; synchronize the input after each advance.
+    const observer = new MutationObserver(() => {
+      if (iteration === ready.solver.iterations && index === ready.solver.currentPipelineStageIndex) return
+      iteration = ready.solver.iterations
+      index = ready.solver.currentPipelineStageIndex
+      setStep(iteration === 0 ? 0 : Math.min(index + 1, 6))
+    })
+    observer.observe(debuggerElement.current, { childList: true, subtree: true, characterData: true })
+    return (): void => observer.disconnect()
+  }, [ready])
   useEffect(() => {
     let cancelled = false
     void fetch('/api/solvers')
@@ -149,43 +159,37 @@ export function BoardPage({ 'board-tree': boardTree, 'load-board': loadBoard, mo
       {ready && !error && (
         <section
           className="routed-debugger"
+          ref={debuggerElement}
           onClick={(event) => {
             const target = event.target as HTMLElement
             if (target.closest('button, summary, a, input')) return
             const row = target.closest('tbody > tr')
             if (!row) return
             const index = Array.from(row.parentElement!.children).indexOf(row)
-            if (index >= 0 && index < 6) setSelectedStage(index + 1)
+            if (index >= 0 && index < 6) setStep(index + 1)
           }}
         >
-          <div className="solver-selector">
-            <label>
-              Solver:{' '}
-              <input
-                aria-label="Solver"
-                type="number"
-                min={1}
-                max={6}
-                step={1}
-                placeholder="current"
-                value={selectedStage ?? ''}
-                onChange={(event) => {
-                  const value = event.currentTarget.valueAsNumber
-                  setSelectedStage(Number.isFinite(value) ? Math.min(6, Math.max(1, Math.trunc(value))) : undefined)
-                }}
-              />
-            </label>
-            <button type="button" onClick={() => setSelectedStage(undefined)}>
-              Current
-            </button>
-            <span>{selectedStage === undefined ? 'Following current stage' : `Viewing stage ${selectedStage}`}</span>
-          </div>
+          <label className="step-selector">
+            Step:{' '}
+            <input
+              aria-label="Step"
+              type="number"
+              min={0}
+              max={6}
+              step={1}
+              value={step}
+              onChange={(event) => {
+                const value = event.currentTarget.valueAsNumber
+                setStep(Number.isFinite(value) ? Math.min(6, Math.max(0, Math.trunc(value))) : 0)
+              }}
+            />
+          </label>
           <GenericSolverDebugger
             key={ready.revision}
             customRenderer={{
               name: 'Routed stage',
-              render: () => renderStage(ready.solver, selectedStage),
-              getDownload: () => stageDrawing(ready.solver, selectedStage),
+              render: () => renderStage(ready.solver, step),
+              getDownload: () => stageDrawing(ready.solver, step),
             }}
             solver={ready.solver as unknown as React.ComponentProps<typeof GenericSolverDebugger>['solver']}
           />
