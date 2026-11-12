@@ -26,8 +26,11 @@ export function createWasmSolver({ timeoutMs = 900_000, progress = (): void => u
     return new Promise<SolverResult>((resolve, reject) => {
       const worker = createWorker()
       const started = performance.now()
+      let settled = false
       /** Release timers, listeners and engine memory on success, failure, timeout and cancellation. */
       const finish = (error?: Error, result?: SolverResult): void => {
+        if (settled) return
+        settled = true
         clearTimeout(watchdog)
         clearInterval(heartbeat)
         signal?.removeEventListener('abort', abort)

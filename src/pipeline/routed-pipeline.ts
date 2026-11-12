@@ -95,7 +95,7 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
     this.output = snapshot({ kind: 'routed-inspection', blocks, files: ledger.seal() })
     return this.output
   }
-  /** Serializable exact source input, without solver state or native capabilities. */
+  /** Exact source input and injected execution context, without solver state. */
   override getConstructorParams(): [RoutedProblem, SolverContext] { return [this.inputProblem, this.context] }
   /** Physical board context before any work has run. */
   override initialVisualize(): GraphicsObject { return routeBoardDrawing(this.inputProblem.circuitJson, undefined, 'Routed 2.5D compiler') }

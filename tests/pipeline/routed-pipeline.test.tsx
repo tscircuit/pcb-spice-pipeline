@@ -25,7 +25,9 @@ test('TSX two-trace routed deck deliberately changes to declarative transient ve
   const result = solver.getStageOutput<{ value: import('../../src/simulation').RoutedDeck }>('RouteNetworkSolver')!.value
   assert.equal(result.evidence.geometry_wires, 2)
   assert.equal(result.evidence.sections, 1)
-  assert.equal(sha256(result.deck), 'c63a3b089f0d51c211a7792cdeed9af6700f91643b081ff78f1458ee60631cb9', 'full deck bytes, including native vendor compilation and coupling')
+  // V8 and JavaScriptCore differ in the final digits of the unchanged BEM coefficients.
+  const expected = process.versions.bun ? '4419db05deeaad89a957f518bb9334987543fb33e89ead228ef7c954e4ebbbd2' : 'c63a3b089f0d51c211a7792cdeed9af6700f91643b081ff78f1458ee60631cb9'
+  assert.equal(sha256(result.deck), expected, 'full deck bytes, including vendor compilation and coupling, pinned per JS engine')
 })
 
 

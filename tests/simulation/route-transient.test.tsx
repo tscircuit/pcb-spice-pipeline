@@ -94,7 +94,8 @@ test('real TSX two-trace: old/native deck parity and sequential native/WASM engi
   const compiler = new RoutedBlockSolver({ ...plan, context: port })
   compiler.solveUntilStage('RouteTransientSolver')
   const deck = compiler.getStageOutput<{ value: RoutedDeck }>('RouteNetworkSolver')!.value
-  assert.equal(sha256(oldControl(deck)), 'bc639ab7abfe945e62fcd6689c8ab6d63e7f4536c93ecdce12e7654f8805e6d5', 'historical deck oracle is unchanged')
+  const originalHash = process.versions.bun ? 'b2beb1b53a6c72ab24facbad9201e18cbcf14af93dcc9387230d42776fe52be4' : 'bc639ab7abfe945e62fcd6689c8ab6d63e7f4536c93ecdce12e7654f8805e6d5'
+  assert.equal(sha256(oldControl(deck)), originalHash, 'historical deck oracle is unchanged for each JS engine')
   const originalStart = performance.now()
   const original = await port.runSolver({ solver: 'ngspice', files: { 'simulation.cir': oldControl(deck) }, args: ['-n', '-b', 'simulation.cir'], outputFiles: ['waveform.dat'] })
   const originalMs = performance.now() - originalStart

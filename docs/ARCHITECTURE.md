@@ -81,7 +81,7 @@ Core#5286 emits JLC preset plating (0.018 mm), preserving explicit imported stac
 `extraction/cross-section.ts`, exported by `extraction/index.ts`, owns a separate
 quasi-TEM numerical interface. It consumes rectangles, infinite solid references,
 and dielectric/mask slabs and returns per-unit-length C/C0/L and frequency-dependent
-R/G. The synchronous `RoutedPipelineSolver` now consumes it; see
+R/G. The staged `RoutedPipelineSolver` now consumes it; see
 [routed 2D candidate and execution blockers](routed-2d.md). It is not wired into
 the public stage chain above. The root API, 3D extraction,
 artifact paths and simulation behaviour remain unchanged. The routed root owns its own single ledger fold after all block stages complete. See
