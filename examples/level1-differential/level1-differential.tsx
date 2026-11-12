@@ -1,3 +1,4 @@
+import React from "react"
 import { simulation } from "@tscircuit/core"
 
 // LEVEL 1 (differential): one P−N receiver waveform; no separate leg waveforms.
