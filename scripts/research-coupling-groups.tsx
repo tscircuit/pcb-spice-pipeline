@@ -18,7 +18,7 @@ Object.assign(globalThis, { React })
 const output = resolve(process.env.SI_GROUPS_DIR ?? '.cache/coupling-groups')
 const phase = process.argv[2]
 const selection = process.argv[3] ?? 'small'
-const thresholds = [.01, .03, .1]
+const thresholds = (process.env.SI_GROUPS_THRESHOLDS ?? '.01,.03,.1').split(',').map(Number)
 interface Case { kind: string; plan?: RoutePartition; path: string; sha: string; cells: unknown; bytes: number; duration: number; probes: RoutedDeck['probes'] }
 interface Block { name: string; blockName: string; graph: RouteGraph; cases: Case[] }
 interface NativeRun { wallSeconds: number; timedOut: boolean; samples: number; lastTimeSeconds: number | null }
@@ -27,6 +27,13 @@ interface Measurement { native: NativeRun; samples?: number[][]; error?: string;
 /** Lossless local artifacts can contain board and vendor data and must never be committed. */
 async function save(path: string, value: unknown): Promise<void> {
   await writeFile(path, JSON.stringify(value, null, 2))
+}
+
+/** Tighten only numerical research controls, preserving the original physical network and source schedules. */
+function controlledDeck(compiled: RoutedDeck): RoutedDeck {
+  if (process.env.SI_GROUPS_TIGHT_TOLERANCES !== '1') return compiled
+  const deck = compiled.deck.replace(/^\.options .+$/m, line => line.replace(/reltol=\S+/, 'reltol=1e-6').replace(/abstol=\S+/, 'abstol=1e-12').replace(/vntol=\S+/, 'vntol=1e-8'))
+  return { ...compiled, deck, requestSha256: createHash('sha256').update(JSON.stringify(routedRequest({ deck }))).digest('hex'), evidence: { ...compiled.evidence, numericalResearchControls: { reltol: 1e-6, abstol: 1e-12, vntol: 1e-8 } } }
 }
 
 /** Compile existing TSX declarations through the same five non-native stages, then project their solved inputs. */
@@ -72,6 +79,7 @@ async function compile(): Promise<void> {
           }
           seen.set(key, result)
         }
+        result = controlledDeck(result)
         const path = join(output, `${block.name}-${i}`)
         await mkdir(path, { recursive: true })
         await writeFile(join(path, 'simulation.cir'), result.deck)

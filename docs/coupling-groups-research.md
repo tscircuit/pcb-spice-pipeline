@@ -5,7 +5,7 @@ This is a research branch stacked on `fix/routed-ddr3-level4`. Native measuremen
 `simulation/route-partition.ts` builds a net graph from solved RLGC/loss matrices,
 actual source connectivity, physical contacts, emitted oblique capacitance, and
 indivisible compiled IBIS bindings. Exact components retain every nonzero edge.
-Victim windows admit direct neighbours where `max(abs(k), abs(Cm)) > threshold`,
+Victim windows admit direct neighbours where `max(abs(k), normalized C score) > threshold`,
 then close physical/passive and compiled-model dependencies. `Cm` is normalized
 local parallel C; the oblique score is the emitted encounter C divided by the
 geometric mean of the nets' integrated self C. All mutual terms between included
@@ -48,8 +48,9 @@ requires `SI_DDR3_BOARD` as documented in the root README. Local RFC builds of
 circuit-json, props and core are required. No dependency changes are committed.
 
 ```sh
-SI_GROUPS_SHORT_WINDOWS=1 SI_GROUPS_UI_COUNT=8 SI_GROUPS_STEP_DIVISOR=4 node --import tsx scripts/research-coupling-groups.tsx compile small
+SI_GROUPS_SHORT_WINDOWS=1 SI_GROUPS_UI_COUNT=8 SI_GROUPS_STEP_DIVISOR=8 SI_GROUPS_TIGHT_TOLERANCES=1 node --import tsx scripts/research-coupling-groups.tsx compile small
 node --import tsx scripts/research-coupling-groups.tsx measure small
+# Optional extra cut experiment: set SI_GROUPS_THRESHOLDS=0.6 when compiling small.
 node --import tsx scripts/research-coupling-groups.tsx compile ddr
 node --import tsx scripts/research-coupling-groups.tsx measure ddr
 ```
@@ -121,20 +122,25 @@ diagnostic, not a usable transient cost**. This window cannot reproduce the full
 though the deck is smaller. The native deadline was 600 s; the engine aborted
 before that deadline.
 
-The exact dominant component retains **all 36,814 K terms**. A 60 s pilot timed
-out without readable saved points; a separate 600 s run is pending. Each of the
-five isolated exact components completed 1 ns in less than 0.1 s. All 72 victim
+The exact dominant component retains **all 36,814 K terms** and completed in
+**500.325 s**, with 90 points and **0 mV** difference on all 24 receiver probes
+against the full quiet prefix. Each of the five isolated exact components
+completed 1 ns in less than 0.1 s. Total serial exact cost is **500.638 s** versus
+502.654 s full: a single-run difference of 0.40%, with no useful speedup. Peak RSS
+was 1.290 GB versus 1.295 GB full. A preliminary 60 s dominant-component pilot
+timed out without readable points; the completed 600 s capture supersedes it. All 72 victim
 windows and all six exact component decks have been emitted. Identical windows
 reduce to 15 distinct runs at threshold 0.01, 11 at 0.03, and 5 at 0.1 (21 across
 all thresholds). Per-partition sizes, dropped-term amplitude bounds and native
-pilot costs are in [the cost table](coupling-groups-ddr-costs.md). Pilot limits are
-60 s; all runs remain below the required 600 s hard cap. Unmeasured entries are
-explicitly pending.
+costs are in [the cost table](coupling-groups-ddr-costs.md). Preliminary limits were
+60 s; extended window measurements use the full 600 s hard cap. Their remaining
+entries are explicitly pending until measured.
 
 A purely linear extrapolation of the full quiet prefix gives **4,021 s / 67.0 min
 for 8 ns**. This assumes unchanged timestep density and cost and is **not a
 forecast of the switching interval**. It does not refute the original 8–25 h
-active-run estimate. Exact splitting should leave the dominant workload near the
+active-run estimate. The equivalent quiet-prefix extrapolation for all exact components is
+**4,005 s / 66.8 min**. Exact splitting leaves the dominant workload near the
 full deck because it retains every K term; victim-window completion cannot be
 projected from an aborted run. No DDR threshold is qualified by this spike.
 
@@ -167,10 +173,28 @@ so byte-identical decks reuse the full-deck measurement. Level2/level3 are actua
 independent emitted decks; their extracted graph has no inter-net edges. At these
 thresholds their windows equal their exact components, so these rows do not
 validate dropping a nonzero coupling. The 8.9783 mV TRAFFIC discrepancy is retained
-as failed evidence. A controlled repeat with maximum timestep divided by four,
-and longer prefixes (32 us differential and 400 ns level2/level3) to include the
-first transitions, is pending. Algebraic independence alone does not guarantee
-1 mV agreement between unconverged adaptive numerical runs.
+as failed evidence. A controlled repeat with maximum timestep divided by four, and longer prefixes
+(32 us differential and 400 ns level2/level3), still failed the TRAFFIC criterion
+at **1.8913 mV**. The final bounded repeat used timestep divided by eight and
+`reltol=1e-6`, `abstol=1e-12`, `vntol=1e-8` for both full and cut decks. It retained
+the same physical network and original driver schedules. All final captures
+completed, and every EXACT comparison meets 1 mV:
+
+| Case | EXACT maximum error, mV | Victim 0.01 | Victim 0.03 | Victim 0.1 |
+|---|---:|---:|---:|---:|
+| two-trace | 0 | 0 | 0 | 0 |
+| level1-differential | 0 | 0 | 0 | 0 |
+| level2 | 0.126532 | 0.126532 | 0.126532 | 0.126532 |
+| level3 TRAFFIC | 0.569092 | 0.569092 | 0.569092 | 0.569092 |
+| level3 XTALK_LOW | 2.862e-6 | 2.862e-6 | 2.862e-6 | 2.862e-6 |
+| level3 XTALK_HIGH | 2.881e-6 | 2.881e-6 | 2.881e-6 | 2.881e-6 |
+
+The committed runner reproduced all 64 tightened deck hashes from these captures.
+These are native waveform comparisons, not pure-function test outputs. The
+original and refined failures show that numerical controls matter even for
+algebraically independent circuits. The small-board victim rows do not establish
+DDR approximation accuracy: they do not discard a nonzero coupling. The DDR
+window that aborts provides no valid full-window error measurement.
 
 Local lint (one pre-existing mesh-length warning), module and vocabulary checks,
 and all project typecheck configurations pass with local RFC dependency builds.
