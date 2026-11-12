@@ -83,6 +83,7 @@ def metrics(directory, stop_ns):
         waves[name] = (time, voltage - baseline if quiet else voltage)
     return records, waves, {**provenance, "window_ns": stop_ns, "cells": ledger["cells"],
                             "window_boundary": "linear interpolation between recorded samples when needed",
+                            "control_numerics": ledger.get("control_numerics"),
                             "native_deck_sha256": hashlib.sha256((directory / "simulation.cir").read_bytes()).hexdigest(),
                             "stimuli_sha256": hashlib.sha256(json.dumps(ledger["stimuli"], sort_keys=True).encode()).hexdigest(),
                             "declared_duration_ns": ledger["options"]["durationSeconds"] * 1e9,
