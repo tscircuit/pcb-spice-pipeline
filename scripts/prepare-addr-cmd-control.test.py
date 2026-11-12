@@ -22,6 +22,13 @@ class ControlPadding(unittest.TestCase):
         with self.assertRaises(ValueError):
             control.pad_corners("VKU0 ku 0 PWL(0 0 2.499999e-9 .1 2.5e-9 .2)\n", 1e-12)
 
+    def test_moves_redundant_flat_guard(self) -> None:
+        """Equal-valued PWL knots can also force an unnecessary tiny solver interval."""
+        source = "VKU0 ku 0 PWL(0 0 2.499999e-9 0 2.5e-9 0 2.6e-9 .1)\n"
+        result, evidence = control.pad_corners(source, 1e-12)
+        self.assertEqual(result, source.replace("2.499999e-9", "2.499e-09"))
+        self.assertEqual(evidence["maximum_coefficient_jump"], 0)
+
     def test_rejects_invalid_padding(self) -> None:
         """An experimental caller cannot request a nonfinite or large timing change."""
         for padding in [0, -1, float("nan"), 11e-12]:
