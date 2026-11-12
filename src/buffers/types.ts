@@ -1,5 +1,14 @@
 import type { ConvertedGeneralIbisComponent, IbisConversionMetadata, IbisModelDefinition, IbisRunConfig } from '@tscircuit/ibis-to-spice'
 import type { SimulationIbisModel } from '../board'
+import type { CoupledPackageModel } from './coupled-package'
+import type { SwitchingTail } from './switching'
+
+/** Package and switching-tail evidence augment the upstream die-buffer metadata. */
+export type PackageConversionMetadata = IbisConversionMetadata & {
+  packageData: IbisConversionMetadata['packageData'] & { matrices?: CoupledPackageModel; unusedPinPolicy?: string }
+  switchingTails?: SwitchingTail[]
+}
+export type PackagedComponent = ConvertedGeneralIbisComponent & { metadata: PackageConversionMetadata }
 
 export type IbisSources = Record<string, Uint8Array | string>
 /** What loading needs from a declared model (today's `Pick<SimulationIbisModel,'ibis_model_asset'> & {pipelineId}`). */
@@ -29,7 +38,7 @@ export interface AdmittedBuffers {
 }
 
 /** Today's per-plan compiled model: the converter result plus pipeline identity and inputs. */
-export type CompiledBuffer = ConvertedGeneralIbisComponent & {
+export type CompiledBuffer = PackagedComponent & {
   name: string
   pipelineId: string
   input: ModelRunDefinition
@@ -45,6 +54,6 @@ export interface AssemblyEntry {
   sourceSha256: string | undefined
   spiceSha256: string
   sourceEvidence: SourceEvidence
-  metadata: IbisConversionMetadata
+  metadata: PackageConversionMetadata
   warnings: string[]
 }

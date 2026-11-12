@@ -213,6 +213,7 @@ export function routedCopperGeometry(circuit: CircuitJson, m: ResolvedModeling, 
     return { pcbCopperPourId: pour.pcb_copper_pour_id, layer: pour.layer, polygon, ...layer(m, pour.layer) }
   })
   if (!pours.length) fail('ground_geometry', `${net.name}: no physical ground copper pours found`)
+  if (m.copperScope && pours.length > 1) fail('ground_connectivity', 'Reference leads must reach one connected pour; inter-pour stitching extraction is not supported')
   let receiver: string
   if (m.groundReturn) receiver = selectPort(circuit, m.groundReturn).source_port_id
   else {

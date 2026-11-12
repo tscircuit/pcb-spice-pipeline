@@ -124,7 +124,7 @@ for (const [key, Board] of Object.entries(boards) as [keyof typeof boards, typeo
     await writeFile(`${root}/input.json`, JSON.stringify(circuitJson, null, 2))
     await writeFile(`${root}/summary.json`, JSON.stringify({ ...provenance, status: calls.length ? 'failed_native' : 'rejected_before_native', seconds: (Date.now() - started) / 1000, error: failure.message, code: failure.code, convergence: failure.convergence, native_requests: calls }, null, 2) + '\n')
     console.error(failure.message)
-    if (key !== 'ddr3' || failure.message !== '.CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.' || calls.length) process.exitCode = 1
+    if (key !== 'ddr3' || failure.message !== 'am335x_zcz: Maxwell capacitance has positive off-diagonal entries; vendor sign conversion is forbidden' || calls.length) process.exitCode = 1
   }
 }
 }

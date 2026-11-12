@@ -33,7 +33,11 @@ Each `result.blocks` entry owns its matrices, results, numerical settings eviden
 and limitations. `simulationResultCircuitJson` retains the input and appends only
 the RFC's waveform and RLGC result record kinds. Re-running replaces prior SI results. A board with no SI blocks returns an empty block/result collection without invoking a solver. Automatic duration stays absent in source records and is reported on each result block.
 
-The draft explicitly rejects branched routes and coupled package matrices; the RFC lists these as not implemented yet.
+Branched routes remain unsupported. Inline IBIS coupled package matrices are
+validated before extraction and lowered to a passive lumped package. Unlisted
+pins follow the IBIS [Pin]/[Package] hierarchy and merged rail bus rules;
+missing or invalid matrix definitions still fail. See the
+[package model contract and DDR3 blockers](docs/coupled-package-model.md).
 Die POWER/GND references always connect directly to perfect rails;
 vendor package R/L/C remains between every mapped pin and its die node. See the [model rationale](docs/native-signal-levels.md).
 
@@ -67,14 +71,15 @@ use these indexed parts rather than hitting the same V8 string limit.
 ```mermaid
 flowchart TD
   board[/"Your board<br/>(Circuit JSON with transient channel blocks)"/] --> s1["1. Read the board, group the blocks, derive drivers, receivers, pin states and patterns<br/><small>pipeline</small>"]
-  chips[/"Chip models<br/>(IBIS files)"/] --> s4
+  chips[/"Chip models<br/>(IBIS files; coupled package admission)"/] --> s1
+  chips --> s4
   s1 --> s2["2. Build 3D copper and layered dielectric; join series paths and retain receiver taps<br/><small>board</small>"]
   s2 --> q{"Straight parallel traces over<br/>one rectangular return<br/>with contacts at opposite ends?"}
   q -->|"yes"| s2b["2b. Extra: use straight bars for R/L<br/>(C keeps the full copper and layered dielectric)<br/><small>board</small>"]
   q -->|"no"| s3
   s2b --> s3["3. Extract R/L and layered C; check mesh convergence, reciprocity and passivity<br/><small>extraction</small>"]
   s3 <-->|"runSolver"| fs{{"FastHenry + FasterCap"}}
-  s3 --> s4["4. Build one circuit per block: wires + chip buffers + pin packages + ideal die rails<br/><small>buffers, simulation</small>"]
+  s3 --> s4["4. Build one circuit per block: wires + chip buffers + scalar/coupled pin packages + ideal die rails<br/><small>buffers, simulation</small>"]
   s4 --> s5["5. Solve undisturbed idle, then signals; independently refine sections and timestep until RMS and signed peaks converge<br/><small>simulation</small>"]
   s5 <-->|"runSolver"| ng{{"ngspice"}}
   s5 --> s6["6. Emit receiver waveforms, quiet near/far idle levels and listed-leg RLGC<br/><small>observation</small>"]
@@ -94,7 +99,7 @@ stateDiagram-v2
   simulate --> record: RMS and signed peaks converged
   record --> sealed
   validate --> failed
-  derive --> failed
+  derive --> failed: missing electrical facts or invalid package matrices
   extract --> failed
   simulate --> failed
   record --> failed

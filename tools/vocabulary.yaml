@@ -29,6 +29,7 @@ domain:
   brand: a TypeScript type tag that proves a value passed a check (for example an admitted id)
   buffer: an IBIS model of a chip's input or output circuit
   capacitance: how much charge copper stores per volt (the C in RLGC)
+  coupled: electrical behavior in one pin or conductor that depends on another
   capture: a finite recording of voltages over time
   channel: everything electrical between driver and receiver: lanes, their return paths and nearby copper
   circuit: an electrical network; also the Circuit JSON document that describes the board
@@ -37,6 +38,7 @@ domain:
   conductivity: how easily a material carries current, in siemens per metre
   conductor: one piece of copper the field solver treats as a single electrical body
   convergence: the check that a finer mesh no longer changes the answer
+  coefficient: a dimensionless multiplier on an IBIS pullup or pulldown current
   copper: the metal shapes on the board: traces, pours, pads and vias
   deck: an input file for a solver (FastHenry, FasterCap or ngspice)
   declare: the stage that plans experiments and probes before any solver runs
@@ -48,6 +50,7 @@ domain:
   experiment: one transient run with stimuli and probes
   extract: the stage that measures each wire's R, L and C with the field solvers
   extraction: measuring wire R, L and C from board geometry with field solvers (FastHenry, FasterCap)
+  fixture: a known resistive load used to capture an IBIS switching waveform
   filament: a thin straight strip of copper that FastHenry splits a conductor into
   gate: the start of the interval compared during numerical convergence
   geometry: the board's copper shapes, layers and positions, in millimetres
@@ -71,6 +74,11 @@ domain:
   permittivity: how strongly an insulator stores electric field (its dielectric constant)
   pin: a chip leg, named in the IBIS model
   pipeline: the whole run from board to report, as a fixed chain of stages
+  schedule: the actual logical transitions and their times in one stimulus
+  settle: stay within a stated tolerance for the entire remaining measured waveform
+  switching: the time-dependent activation of a buffer's pullup and pulldown currents
+  tail: the inactive end of a measured transition after settling
+  weight: a switching coefficient extracted from IBIS voltage and current data
   plane: a large copper area on one layer, usually ground or power
   plating: the copper lining inside a via hole
   polygon: a closed shape made of outline rings of points

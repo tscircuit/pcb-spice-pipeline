@@ -2,7 +2,7 @@ import { simulation } from "@tscircuit/core"
 import { cpuFootprint, dramFootprint } from "../ddr3-parts"
 import { routes } from "./routes"
 /* LEVEL 4: AM3352 -> W631GG6MB-12 DDR3 lower-byte write illustration, not JEDEC compliance.
- * Currently stops with: .CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.
+ * Raw AM335x package C has positive off-diagonal entries, violating IBIS Maxwell signs.
  * Typical corner is 1.5 V. DQS is delayed 0.5 UI to centre-align write stimulus.
  * Exact native source footprint coordinates (CPU 0.4 mm pads, DRAM 0.350012 mm pads).
  * Source byte-lane swaps are retained; pin labels still identify actual IBIS [Pin] signals.
