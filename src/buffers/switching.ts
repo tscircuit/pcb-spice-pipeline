@@ -1,6 +1,7 @@
 import { convertIbisModelToSpice, convertIbisBuffer, logicalBitSchedule, ibisTimeSeconds, cornerValue, interpolate, sourceHash, spiceNumber, IbisError } from '@tscircuit/ibis-to-spice'
 import type { IbisBuffer, IbisCorner, IbisDocument, LogicalSchedule } from '@tscircuit/ibis-to-spice'
 import type { ModelRunDefinition, PackagedComponent } from './types'
+import { fitWeights, type WeightFitOptions } from './weight-fit'
 
 type Weights = Array<[number, number, number]>
 type Edge = 'rising' | 'falling'
@@ -57,14 +58,16 @@ function settledTail(buffer: IbisBuffer, corner: IbisCorner, edge: Edge, weights
 }
 
 /** Stitch full measured coefficient edges, discarding only proven settled tails when necessary. */
-function scheduleWeights(buffer: IbisBuffer, corner: IbisCorner, schedule: LogicalSchedule, physicalPin: string, document: IbisDocument, tails: SwitchingTail[]): Weights {
+function scheduleWeights(buffer: IbisBuffer, corner: IbisCorner, schedule: LogicalSchedule, physicalPin: string, document: IbisDocument, tails: SwitchingTail[], fit?: WeightFitOptions): Weights {
   const steady = schedule.initialState ? [1, 0] : [0, 1]
   const samples: Weights = [[0, steady[0], steady[1]]]
   if (!schedule.transitions.length) return [...samples, [schedule.duration, steady[0], steady[1]]]
-  const converted = convertIbisBuffer(document, buffer.name, { corner, mode: 'output' })
+  const weightsByEdge = fit
+    ? { rising: fitWeights(buffer, corner, 'rising', fit), falling: fitWeights(buffer, corner, 'falling', fit) }
+    : convertIbisBuffer(document, buffer.name, { corner, mode: 'output' }).weights!
   for (const [i, transition] of schedule.transitions.entries()) {
     const edge = transition.state ? 'rising' : 'falling'
-    let weights = converted.weights![edge]
+    let weights = weightsByEdge[edge]
     if (weights[0][0] !== 0) throw new IbisError('unsupported_waveforms', 'Switching waveform must start at zero relative time')
     const next = schedule.transitions[i + 1]?.time
     if (next !== undefined && transition.time + weights.at(-1)![0] >= next) {
@@ -95,7 +98,7 @@ function scheduleWeights(buffer: IbisBuffer, corner: IbisCorner, schedule: Logic
 }
 
 /** Use upstream pin/reference and die-buffer conversion; the pipeline owns explicit edge scheduling. */
-export function convertSwitching(bytes: Uint8Array, input: ModelRunDefinition, document: IbisDocument): PackagedComponent {
+export function convertSwitching(bytes: Uint8Array, input: ModelRunDefinition, document: IbisDocument, fit?: WeightFitOptions): PackagedComponent {
   // Validate the ORIGINAL pattern before building the steady electrical skeleton.
   for (const stimulus of Object.values(input.run.stimuli)) logicalBitSchedule(stimulus, input.run.duration)
   const stimuli = Object.fromEntries(Object.entries(input.run.stimuli).map(([port, stimulus]) => [port,
@@ -108,7 +111,7 @@ export function convertSwitching(bytes: Uint8Array, input: ModelRunDefinition, d
     const buffer = document.getBuffer(pin.model)
     const schedule = logicalBitSchedule(stimulus, input.run.duration, buffer.polarity)
     pin.stimulusHash = schedule.sha256
-    const samples = scheduleWeights(buffer, input.definition.corner, schedule, pin.physicalPin, document, tails)
+    const samples = scheduleWeights(buffer, input.definition.corner, schedule, pin.physicalPin, document, tails, fit)
     for (const [label, column] of [['KU', 1], ['KD', 2]] as const) {
       converted.source = converted.source.replace(new RegExp(`^V${label}${i} (\\S+ \\S+) PWL\\(.*\\)$`, 'm'), (_, nodes: string) =>
         `V${label}${i} ${nodes} PWL(${samples.map(row => `${spiceNumber(row[0])} ${spiceNumber(row[column])}`).join(' ')})`)
@@ -117,6 +120,10 @@ export function convertSwitching(bytes: Uint8Array, input: ModelRunDefinition, d
   })
   // Match upstream identity for untouched schedules, including source and true stimulus hashes.
   const original = /^\.subckt (\S+)/m.exec(converted.source)![1]
+  if (fit) {
+    converted.metadata.switchingWeightFit = { ...fit }
+    converted.warnings.push('Research switching-weight fit: explicit derivative averaging and bounded coefficient PWL reduction; fixture voltage fidelity requires separate native replay')
+  }
   const name = `IBIS_${sourceHash(JSON.stringify([converted.metadata, schedules, ibisTimeSeconds(input.run.duration)])).slice(0, 20)}`
   converted.source = converted.source.replaceAll(original, name)
   if (tails.length) {
