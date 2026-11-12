@@ -190,15 +190,22 @@ export function stageOverlay(
         }
       }
       for (const probe of capture.probes) {
-        const port = circuit.find((record) => record.type === 'pcb_port' && record.source_port_id === probe.sourcePortId)
-        if (port?.type !== 'pcb_port') continue
-        const point = boardPosition(stack, port.x, port.y, port.layers[0])
-        marker(group, point, 0.23, '#dc2626')
-        label(group, [point[0], point[1], point[2] + 1.5], probe.name, 0.55)
+        const measurement = state.networks
+          .flatMap((network) => network.probes)
+          .find((entry) => entry.signalSourceId === probe.sourcePortId && entry.name === probe.name)
+        const ports = [probe.sourcePortId, ...(measurement?.referenceSourceId ? [measurement.referenceSourceId] : [])]
+        for (const [index, id] of ports.entries()) {
+          const port = circuit.find((record) => record.type === 'pcb_port' && record.source_port_id === id)
+          if (port?.type !== 'pcb_port') continue
+          const point = boardPosition(stack, port.x, port.y, port.layers[0])
+          marker(group, point, 0.23, '#dc2626')
+          label(group, [point[0], point[1], point[2] + 1.5], `${probe.name}${ports.length > 1 ? (index ? ' (−)' : ' (+)') : ''}`, 0.55)
+        }
       }
     }
+
   // Inspection marks remain visible at their exact layer depth through the x-ray board and component bodies.
-  group.traverse(object => {
+  group.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) return
     const material = object.material as THREE.MeshBasicMaterial
     material.depthTest = false
