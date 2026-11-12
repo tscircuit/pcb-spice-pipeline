@@ -19,9 +19,7 @@ export class RouteNetworkSolver extends BaseSolver {
   private ladder?: RouteLadder
   private obliqueRecords: Record<string, unknown>[] = []
   /** Completed geometry, fields and bindings are immutable input snapshots. */
-  constructor(private readonly input: RouteNetworkInput) {
-    super()
-  }
+  constructor(private readonly input: RouteNetworkInput) { super() }
   /** Build one route run; the last step assembles the coupled energies and deck. */
   override _step(): void {
     this.steps ??= this.build()
@@ -38,7 +36,7 @@ export class RouteNetworkSolver extends BaseSolver {
     const { scope, models, mappings } = bindings
     const plan = structuredClone(bindings.plan)
     const electrical = { lines: bindings.electricalLines }
-    const maskLayers = bindings.circuitJson.filter((record) => record.type === 'pcb_stackup')[0].layers.filter((layer) => layer.layer_type === 'soldermask')
+    const maskLayers = bindings.circuitJson.filter(record => record.type === 'pcb_stackup')[0].layers.filter(layer => layer.layer_type === 'soldermask')
     /** Every physical port was allocated by declarations before binding completed. */
     const node = (id: string): string => {
       const value = bindings.nodeMap[id]
@@ -48,16 +46,15 @@ export class RouteNetworkSolver extends BaseSolver {
     const aliases: string[] = []
     const known = new Map<string, string>()
     /** Coordinates join actual physical copper only; no straightening or whole-net ideal bypass. */
-    const key = (layer: string, point: RouteXY): string => `${layer}:${point.map((n) => n.toFixed(6)).join(',')}`
-    for (const port of bindings.circuitJson.filter((record) => record.type === 'pcb_port'))
-      for (const layer of port.layers) {
-        if (!routeContactFrame(geometry, scope, layer, [port.x, port.y])) continue
-        const id = key(layer, [port.x, port.y])
-        const portNode = node(port.source_port_id)
-        const previous = known.get(id)
-        if (previous && previous !== portNode) aliases.push(`RALIAS${aliases.length} ${previous} ${portNode} 1e-6`)
-        else known.set(id, portNode)
-      }
+    const key = (layer: string, point: RouteXY): string => `${layer}:${point.map(n => n.toFixed(6)).join(',')}`
+    for (const port of bindings.circuitJson.filter(record => record.type === 'pcb_port')) for (const layer of port.layers) {
+      if (!routeContactFrame(geometry, scope, layer, [port.x, port.y])) continue
+      const id = key(layer, [port.x, port.y])
+      const portNode = node(port.source_port_id)
+      const previous = known.get(id)
+      if (previous && previous !== portNode) aliases.push(`RALIAS${aliases.length} ${previous} ${portNode} 1e-6`)
+      else known.set(id, portNode)
+    }
     /** Rail wires are explicit ideal AC electrodes; all other route junctions share physical coordinates. */
     const endpoint = (wire: RouteWire, point: RouteXY): string => {
       if (scope.nonReferenceRailTraceIds.includes(wire.trace)) return '0'
@@ -69,12 +66,11 @@ export class RouteNetworkSolver extends BaseSolver {
       }
       return node
     }
-    for (const wire of geometry.wires)
-      for (const join of wire.joins ?? []) {
-        const from = endpoint(wire, join.from)
-        const to = endpoint(wire, join.to)
-        if (from !== to) aliases.push(`RJOIN${aliases.length} ${from} ${to} 1e-6`)
-      }
+    for (const wire of geometry.wires) for (const join of wire.joins ?? []) {
+      const from = endpoint(wire, join.from)
+      const to = endpoint(wire, join.to)
+      if (from !== to) aliases.push(`RJOIN${aliases.length} ${from} ${to} 1e-6`)
+    }
     const steps = routeLadderSteps(extracted, endpoint, options.riseSeconds, options.refinement, options.cellsPerRise, options.returnPath)
     let result = steps.next()
     while (!result.done) {
@@ -86,80 +82,32 @@ export class RouteNetworkSolver extends BaseSolver {
     this.ladder = ladder
     const oblique = routeOblique(geometry, extracted, ladder, scope, materials, options.panels)
     const transitions = routeTransitions(bindings.circuitJson, scope, geometry, endpoint, bindings.groundSourcePortId)
-    const title =
-      options.returnPath?.model === 'series'
-        ? 'Hybrid 3D R/L and routed 2D C'
-        : options.returnPath
-          ? 'Routed 2D with hybrid finite-return closure'
-          : 'Routed quasi-TEM coupled 2D extraction'
-    const lines = [
-      `${title}; JLC standard stackup (assumed)`,
-      `.options klu reltol=1e-4 abstol=${options.currentToleranceA ?? 1e-9} vntol=1e-6 method=gear maxord=2`,
-      ...electrical.lines,
-    ]
+    const title = options.returnPath?.model === 'series' ? 'Hybrid 3D R/L and routed 2D C' : options.returnPath ? 'Routed 2D with hybrid finite-return closure' : 'Routed quasi-TEM coupled 2D extraction'
+    const lines = [`${title}; JLC standard stackup (assumed)`, `.options klu reltol=1e-4 abstol=${options.currentToleranceA ?? 1e-9} vntol=1e-6 method=gear maxord=2`, ...electrical.lines]
     const saved: string[] = []
     for (const [i, model] of models.entries()) {
       const namespaced = namespaceSpice(model.source, `I${i}`)
-      const header = model.source.match(/^\.subckt\s+\S+\s+(.+)$/im)!
-      const nodes = header[1]
-        .trim()
-        .split(/\s+/)
-        .map((terminal) => node(model.spicePinMapping[terminal]))
+      const header = model.source.match(/^\.subckt\s+\S+\s+(.+)$/mi)!
+      const nodes = header[1].trim().split(/\s+/).map(terminal => node(model.spicePinMapping[terminal]))
       saved.push(...branchSaves(namespaced.source, `XIBIS${i}`, namespaced.wrapper))
       lines.push(namespaced.source, `XIBIS${i} ${nodes.join(' ')} ${namespaced.wrapper}`)
     }
     for (const collection of [aliases, ladder.lines, oblique.lines, transitions.lines]) for (const line of collection) lines.push(line)
-    const biasNodes = [
-      ...new Set(
-        [...ladder.wireNodes.values()]
-          .flatMap((records) => records.map((record) => record.node))
-          .concat(models.flatMap((model) => Object.values(model.spicePinMapping).map((port) => node(port)))),
-      ),
-    ].filter((node) => node !== '0')
+    const biasNodes = [...new Set([...ladder.wireNodes.values()].flatMap(records => records.map(record => record.node)).concat(models.flatMap(model => Object.values(model.spicePinMapping).map(port => node(port)))))].filter(node => node !== '0')
     for (const [i, node] of biasNodes.entries()) lines.push(`RBIAS${i} ${node} 0 1e9`)
-    for (const probe of [...plan.probes].filter((probe) => probe.referenceNode !== '0')) {
-      for (const [suffix, signalNode, signalSourceId] of [
-        ['P', probe.signalNode, probe.signalSourceId],
-        ['N', probe.referenceNode, probe.referenceSourceId],
-      ] as const)
-        plan.probes.push({
-          ...probe,
-          name: `${probe.name}_${suffix}`,
-          simulationVoltageProbeId: `${probe.simulationVoltageProbeId}_${suffix}`,
-          column: plan.probes.length + 1,
-          signalNode,
-          signalSourceId: signalSourceId!,
-          referenceNode: '0',
-          referenceSourceId: bindings.groundSourcePortId,
-        })
+    for (const probe of [...plan.probes].filter(probe => probe.referenceNode !== '0')) {
+      for (const [suffix, signalNode, signalSourceId] of [['P', probe.signalNode, probe.signalSourceId], ['N', probe.referenceNode, probe.referenceSourceId]] as const) plan.probes.push({ ...probe, name: `${probe.name}_${suffix}`, simulationVoltageProbeId: `${probe.simulationVoltageProbeId}_${suffix}`, column: plan.probes.length + 1, signalNode, signalSourceId: signalSourceId!, referenceNode: '0', referenceSourceId: bindings.groundSourcePortId })
     }
     // Only save receiver nodes and behavioural-source branch dependencies; vectors are released after wrdata.
-    const save = [...new Set(plan.probes.flatMap((probe) => [probe.signalNode, probe.referenceNode]).filter((node) => node !== '0'))]
-      .map((node) => `v(${node})`)
-      .concat(saved)
-      .join(' ')
+    const save = [...new Set(plan.probes.flatMap(probe => [probe.signalNode, probe.referenceNode]).filter(node => node !== '0'))].map(node => `v(${node})`).concat(saved).join(' ')
     lines.push(...routedControl(plan.probes, save, options.stepSeconds, options.durationSeconds))
     const ground = connectedSourceIds(bindings.circuitJson, bindings.groundSourcePortId)
-    const powerReferences = geometry.slices.flatMap((slice) =>
-      slice.references
-        .filter((plane) => !ground.has(plane.net))
-        .map((plane) => ({ plane, traces: slice.wires.map((wire) => wire.trace), start: slice.start, end: slice.end })),
-    )
-    const mapped = new Set(models.flatMap((model) => Object.values(model.spicePinMapping)))
-    const external = bindings.circuitJson
-      .filter((record) => record.type === 'pcb_port')
-      .filter((port) => !mapped.has(port.source_port_id) && port.layers.some((layer) => routeContactFrame(geometry, scope, layer, [port.x, port.y])))
+    const powerReferences = geometry.slices.flatMap(slice => slice.references.filter(plane => !ground.has(plane.net)).map(plane => ({ plane, traces: slice.wires.map(wire => wire.trace), start: slice.start, end: slice.end })))
+    const mapped = new Set(models.flatMap(model => Object.values(model.spicePinMapping)))
+    const external = bindings.circuitJson.filter(record => record.type === 'pcb_port').filter(port => !mapped.has(port.source_port_id) && port.layers.some(layer => routeContactFrame(geometry, scope, layer, [port.x, port.y])))
     const modelOptions = options
-    const warnings = [
-      ...extracted.warnings,
-      ...transitions.warnings,
-      ...models.flatMap((model) => model.warnings),
-      ...(options.returnPath
-        ? [
-            options.returnPath.definition,
-            'Hybrid cell layout uses the ideal 2D delay bound; the additional/replaced magnetic network requires independent numerical refinement and remains unqualified.',
-          ]
-        : []),
+    const warnings = [...extracted.warnings, ...transitions.warnings, ...models.flatMap(model => model.warnings),
+      ...(options.returnPath ? [options.returnPath.definition, 'Hybrid cell layout uses the ideal 2D delay bound; the additional/replaced magnetic network requires independent numerical refinement and remains unqualified.'] : []),
       `JLC standard stackup (assumed): JLC08121H-3313; mask thickness ${materials.maskMm} mm (${options.materials ? 'explicit material option' : maskLayers.length ? 'preset' : 'assumed; absent from preset'}). Mask er=${materials.maskEr}, tan(delta)=${materials.maskLoss} and laminate tan(delta)=${materials.substrateLoss}; explicit assumptions, not measured material data.`,
       'Numerical DC anchors: 1 Gohm per coarse route node; removes open-neighbour common-mode singularities without substituting a vendor load.',
       'Coplanar pours are not discretized into finite strip conductors; actual pours supply vertical references only. Their lateral shielding/coupling remains unqualified.',
@@ -167,73 +115,18 @@ export class RouteNetworkSolver extends BaseSolver {
       'Oblique corrections apply selected-net to scoped-neighbour encounters within the same/adjacent layers; neighbour-to-neighbour oblique coupling is omitted. Added pair C uses existing isolated self C, a weak-coupling approximation. Placement is at the nearest ladder node; spacing is rounded outward to 1 um.',
       'Oblique surrogate blocked by an intervening local infinite reference plane is recorded as shielded, with plane-edge/aperture fringing omitted.',
       'Power rail wires are ideal AC electrodes: their longitudinal impedance and power-plane impedance are omitted.',
-      `${external.length} external neighbour port bodies have open/ideal-logical terminations without additional vendor die models; actual endpoint IDs are recorded. This is a candidate channel experiment, not a complete board/PDN simulation.`,
-    ]
-    const evidence = {
-      endpoint_nodes: Object.fromEntries(
-        mappings.flatMap((mapping) => [
-          [mapping.from, node(mapping.from)],
-          [mapping.to, node(mapping.to)],
-        ]),
-      ),
-      probes: plan.probes,
-      label: 'JLC standard stackup (assumed)',
-      materials,
-      mask_thickness_source: options.materials ? 'explicit' : maskLayers.length ? 'preset' : 'assumed',
-      options: modelOptions,
-      scope,
-      warnings,
-      cells: ladder.cells,
-      maximum_cell_delay_s: ladder.maximumDelaySeconds,
-      return_path: options.returnPath,
-      coupling: extracted.coupling,
-      unique_cross_sections: extracted.sections.length + oblique.solves,
-      oblique_cross_sections: oblique.solves,
-      oblique_encounters: oblique.records,
-      sections: extracted.slices.length,
-      geometry_wires: geometry.wires.length,
-      wires: geometry.wires,
-      via_contacts: geometry.viaContacts,
-      power_references: powerReferences,
-      copper_overlap_patches: geometry.wires.filter((wire) => wire.joins?.length),
-      transitions: transitions.records,
-      external_open_ports: external.map((port) => port.source_port_id),
-      assembly: models.map((model) => ({ name: model.name, metadata: model.metadata, warnings: model.warnings, sourceEvidence: model.sourceEvidence })),
-      routes: mappings.map((mapping) => ({
-        ...mapping,
-        length_mm: geometry.wires.filter((wire) => wire.source === mapping.sourceTraceId).reduce((sum, wire) => sum + wire.end - wire.start, 0),
-      })),
-      cross_sections: extracted.sections.map(({ key, line }) => ({
-        geometry: JSON.parse(key),
-        C: line.C,
-        L: line.L,
-        dcResistance: line.dcResistance,
-        skinResistance: line.skinResistance,
-        dielectricLoss: line.dielectricLoss,
-        diagnostics: line.diagnostics,
-      })),
-      slices: extracted.slices.map((slice) => ({
-        start: slice.start,
-        end: slice.end,
-        point: routePosition(slice.wires[0], (slice.start + slice.end) / 2),
-        wires: slice.wires.map((wire) => wire.id),
-        references: slice.references,
-        key: slice.key,
-      })),
-    }
+      `${external.length} external neighbour port bodies have open/ideal-logical terminations without additional vendor die models; actual endpoint IDs are recorded. This is a candidate channel experiment, not a complete board/PDN simulation.`]
+    const evidence = { endpoint_nodes: Object.fromEntries(mappings.flatMap(mapping => [[mapping.from, node(mapping.from)], [mapping.to, node(mapping.to)]])), probes: plan.probes, label: 'JLC standard stackup (assumed)', materials, mask_thickness_source: options.materials ? 'explicit' : maskLayers.length ? 'preset' : 'assumed', options: modelOptions, scope, warnings, cells: ladder.cells, maximum_cell_delay_s: ladder.maximumDelaySeconds,
+        return_path: options.returnPath, coupling: extracted.coupling, unique_cross_sections: extracted.sections.length + oblique.solves, oblique_cross_sections: oblique.solves, oblique_encounters: oblique.records, sections: extracted.slices.length, geometry_wires: geometry.wires.length, wires: geometry.wires, via_contacts: geometry.viaContacts,
+        power_references: powerReferences, copper_overlap_patches: geometry.wires.filter(wire => wire.joins?.length), transitions: transitions.records, external_open_ports: external.map(port => port.source_port_id),
+        assembly: models.map(model => ({ name: model.name, metadata: model.metadata, warnings: model.warnings, sourceEvidence: model.sourceEvidence })),
+        routes: mappings.map(mapping => ({ ...mapping, length_mm: geometry.wires.filter(wire => wire.source === mapping.sourceTraceId).reduce((sum, wire) => sum + wire.end - wire.start, 0) })),
+        cross_sections: extracted.sections.map(({ key, line }) => ({ geometry: JSON.parse(key), C: line.C, L: line.L, dcResistance: line.dcResistance, skinResistance: line.skinResistance, dielectricLoss: line.dielectricLoss, diagnostics: line.diagnostics })),
+        slices: extracted.slices.map(slice => ({ start: slice.start, end: slice.end, point: routePosition(slice.wires[0], (slice.start + slice.end) / 2), wires: slice.wires.map(wire => wire.id), references: slice.references, key: slice.key })) }
     evidence.warnings.unshift(...this.input.warnings)
     this.obliqueRecords = oblique.records
     const deck = lines.join('\n') + '\n'
-    const value = snapshot({
-      blockId: this.input.blockId,
-      name: this.input.name,
-      deck,
-      requestSha256: sha256(JSON.stringify(routedRequest({ deck }))),
-      probes: plan.probes,
-      durationSeconds: options.durationSeconds,
-      stepSeconds: options.stepSeconds,
-      evidence,
-    })
+    const value = snapshot({ blockId: this.input.blockId, name: this.input.name, deck, requestSha256: sha256(JSON.stringify(routedRequest({ deck }))), probes: plan.probes, durationSeconds: options.durationSeconds, stepSeconds: options.stepSeconds, evidence })
     const artifactScope = rootScope('simulation').child(this.input.artifactPrefix)
     return { value, artifacts: [artifactScope.text('simulation.cir', deck), artifactScope.json('evidence.json', evidence)] }
   }
@@ -243,9 +136,7 @@ export class RouteNetworkSolver extends BaseSolver {
     return this.output
   }
   /** Input snapshots only. */
-  override getConstructorParams(): [RouteNetworkInput] {
-    return [this.input]
-  }
+  override getConstructorParams(): [RouteNetworkInput] { return [this.input] }
   /** Cell ticks and encounters stay on real routes; only display samples are capped. */
   override visualize(): GraphicsObject {
     const { geometry, bindings } = this.input

@@ -19,19 +19,14 @@ export class RouteBindingsSolver extends BaseSolver {
   private readonly artifacts: Artifact[] = []
   private output?: Produced<RoutedBindings>
   /** Inputs contain domain intent, never another stage's internals. */
-  constructor(private readonly input: RouteBindingsInput) {
-    super()
-  }
+  constructor(private readonly input: RouteBindingsInput) { super() }
   /** Cut physical copper out of ideal connectivity, then compile one original IBIS model. */
   override _step(): void {
     const scope = rootScope('buffers').child(this.input.artifactPrefix)
     if (!this.declarations) {
       const mappings = structuredClone(this.input.mappings)
       if (!mappings.length) throw new Error('Routed compilation requires physical signal mappings')
-      mappings[0].sourceTraceIds = this.input.circuitJson
-        .filter((record) => record.type === 'pcb_trace')
-        .filter((trace) => this.input.scope.pcbTraceIds.includes(trace.pcb_trace_id) && !this.input.scope.nonReferenceRailTraceIds.includes(trace.pcb_trace_id))
-        .map((trace) => trace.source_trace_id!)
+      mappings[0].sourceTraceIds = this.input.circuitJson.filter(record => record.type === 'pcb_trace').filter(trace => this.input.scope.pcbTraceIds.includes(trace.pcb_trace_id) && !this.input.scope.nonReferenceRailTraceIds.includes(trace.pcb_trace_id)).map(trace => trace.source_trace_id!)
       this.declarations = generalDeclarations(this.input.circuitJson, { mappings }, this.input.modeling)
       this.plan = this.declarations.plans[0]
       this.plan.durationSeconds = this.input.options.durationSeconds
@@ -44,34 +39,13 @@ export class RouteBindingsSolver extends BaseSolver {
     const model = this.declarations.models[this.models.length]
     if (model) {
       const [compiled] = compileBuffers(this.admitted!, [{ ...this.plan!, models: [model] }], modelRunDefinition)[0]
-      this.models.push({
-        name: compiled.name,
-        source: compiled.source,
-        spicePinMapping: compiled.spicePinMapping,
-        metadata: compiled.metadata,
-        warnings: compiled.warnings,
-        sourceEvidence: compiled.sourceEvidence,
-      })
+      this.models.push({ name: compiled.name, source: compiled.source, spicePinMapping: compiled.spicePinMapping, metadata: compiled.metadata, warnings: compiled.warnings, sourceEvidence: compiled.sourceEvidence })
       this.assembly.push(...ibisAssembly([compiled], scope).value)
     }
     this.stats = { models: this.models.length, probes: this.plan!.probes.length, warnings: this.models.reduce((n, model) => n + model.warnings.length, 0) }
     if (this.models.length !== this.declarations.models.length) return
-    const value = snapshot({
-      circuitJson: this.input.circuitJson,
-      scope: this.input.scope,
-      mappings: this.input.mappings,
-      plan: this.plan!,
-      nodeMap: this.declarations.nodes.mapping,
-      groundSourcePortId: this.declarations.nodes.groundSourcePortId,
-      electricalLines: this.electricalLines,
-      models: this.models,
-    })
-    this.artifacts.push(
-      scope.json('native-ibis-assembly.json', this.assembly),
-      rootScope('simulation')
-        .child(this.input.artifactPrefix)
-        .json('electrical-node-map.json', { nodes: value.nodeMap, channelReferenceSourcePortId: value.groundSourcePortId }),
-    )
+    const value = snapshot({ circuitJson: this.input.circuitJson, scope: this.input.scope, mappings: this.input.mappings, plan: this.plan!, nodeMap: this.declarations.nodes.mapping, groundSourcePortId: this.declarations.nodes.groundSourcePortId, electricalLines: this.electricalLines, models: this.models })
+    this.artifacts.push(scope.json('native-ibis-assembly.json', this.assembly), rootScope('simulation').child(this.input.artifactPrefix).json('electrical-node-map.json', { nodes: value.nodeMap, channelReferenceSourcePortId: value.groundSourcePortId }))
     this.output = { value, artifacts: this.artifacts }
     this.solved = true
   }
@@ -81,9 +55,7 @@ export class RouteBindingsSolver extends BaseSolver {
     return this.output
   }
   /** Original input without converter objects. */
-  override getConstructorParams(): [RouteBindingsInput] {
-    return [this.input]
-  }
+  override getConstructorParams(): [RouteBindingsInput] { return [this.input] }
   /** Pins keep their physical position; a small labelled key explains their vendor binding. */
   override visualize(): GraphicsObject {
     const circuit = this.input.circuitJson
