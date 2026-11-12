@@ -25,6 +25,8 @@ test('waveform SVG snapshot includes axes, explicit limits, probe key and purple
   assert.equal(victim.points.length, capture.timestampsSeconds.length)
   assert.ok(victim.points[1].x < victim.points[2].x)
   assert.ok(drawing.texts!.some((text) => /Time \(ns\)/.test(text.text)))
+  for (const voltage of ['0 V', '1 V', '2 V', '3 V']) assert.ok(drawing.texts!.some(text => text.text === voltage), `data-range tick ${voltage}`)
+  assert.ok(drawing.texts!.filter(text => ['-0.4 V', '1.9 V'].includes(text.text)).every(text => text.anchorSide === 'center_right'), 'limit labels occupy the opposite axis edge')
   for (const limit of ['1.9 V', '-0.4 V']) assert.ok(drawing.texts!.some((text) => text.text === limit))
   for (const point of drawing.lines!.flatMap((line) => line.points)) assert.ok(point.x >= 0 && point.x <= 300 && point.y >= 108 && point.y <= 181)
 })

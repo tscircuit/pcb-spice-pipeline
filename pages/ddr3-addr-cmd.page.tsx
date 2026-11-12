@@ -13,7 +13,6 @@ async function loadBoard(sources: IbisSources): Promise<CircuitJson> {
 export default function Page(): React.JSX.Element {
   return (
     <BoardPage
-      title="DDR3 · addr/cmd scope (24 nets)"
       load-board={loadBoard}
       models={['sprm552c.ibs', 'W631GG6MB-12.ibs']}
     />

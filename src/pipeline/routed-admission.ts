@@ -67,7 +67,7 @@ export class RoutedAdmissionSolver extends BaseSolver {
   /** Selected routes and endpoints blue, neighbours grey, references green, rejection red. */
   override visualize(): GraphicsObject {
     const plan = this.plans.at(-1)
-    const drawing = routeBoardDrawing(this.input.circuitJson, plan?.sections.scope, '0 · Admission: choose signal copper')
+    const drawing = routeBoardDrawing(this.input.circuitJson, plan?.sections.scope, '1 · Admission: choose signal copper')
     routeText(
       drawing,
       2,

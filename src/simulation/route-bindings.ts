@@ -59,7 +59,7 @@ export class RouteBindingsSolver extends BaseSolver {
   /** Pins keep their physical position; a small labelled key explains their vendor binding. */
   override visualize(): GraphicsObject {
     const circuit = this.input.circuitJson
-    const drawing = routeBoardDrawing(circuit, this.input.scope, '3 · Bindings: attach IBIS buffers')
+    const drawing = routeBoardDrawing(circuit, this.input.scope, '4 · Bindings: attach IBIS buffers')
     routeText(
       drawing,
       2,

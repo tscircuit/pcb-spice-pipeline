@@ -4,7 +4,7 @@ import { RouteTransientSolver, type RoutedDeck, routedControl } from '../../src/
 import { routedRequest } from '../../src/simulation/route-transient'
 import { formatSpiceVectors, probeWaveformRows, sampleVoltage } from '../../src/observation'
 import { createNativeSolver } from '../../src/adapters'
-import { RoutedAdmissionSolver, RoutedBlockSolver } from '../../src/pipeline'
+import { RoutedPipelineSolver } from '../../src/pipeline'
 import { routedProblem } from '../support/routed-fixture'
 import type { SolverContext, SolverResult } from '../../src/solver'
 
@@ -84,14 +84,10 @@ function oldControl(deck: RoutedDeck): string {
 test('real TSX two-trace: old/new native deck parity', { skip: process.env.SI_NATIVE_TESTS !== '1' && 'Set SI_NATIVE_TESTS=1 and IBIS_MODEL_DIR for bounded sequential native checks' }, async context => {
   const input = await routedProblem(context, { 'bit-rate': '50Mbps', 'duration-seconds': 40e-9 })
   if (!input) return
-  const admission = new RoutedAdmissionSolver(input)
-  admission.solve()
-  const plan = structuredClone(admission.getOutput().value[0])
-  plan.bindings.options = { riseSeconds: 1e-9, refinement: 1, stepSeconds: 1e-11, durationSeconds: 40e-9 }
   const port: SolverContext = { runSolver: createNativeSolver({ timeoutMs: 10_000 }), progress: (): void => undefined }
-  const compiler = new RoutedBlockSolver({ ...plan, context: port })
+  const compiler = new RoutedPipelineSolver(input, port)
   compiler.solveUntilStage('RouteTransientSolver')
-  const deck = compiler.getStageOutput<{ value: RoutedDeck }>('RouteNetworkSolver')!.value
+  const deck = compiler.stageOutput('RouteNetworkSolver').value[0]
   const originalStart = performance.now()
   const original = await port.runSolver({ solver: 'ngspice', files: { 'simulation.cir': oldControl(deck) }, args: ['-n', '-b', 'simulation.cir'], outputFiles: ['waveform.dat'] })
   const originalMs = performance.now() - originalStart
@@ -99,7 +95,7 @@ test('real TSX two-trace: old/new native deck parity', { skip: process.env.SI_NA
   const nativeStart = performance.now()
   await compiler.solveAsync()
   const nativeMs = performance.now() - nativeStart
-  const native = compiler.getOutput().value.capture
+  const native = compiler.getOutput().blocks[0].capture
   const nativeRows = native.timestampsSeconds.map((time, i) => [time, ...native.probes.map(probe => probe.voltageLevels[i])])
   const capture = native
   const oldNativeMaxV = maximumDifference(oldRows, nativeRows)
@@ -118,14 +114,14 @@ test('real TSX two-trace: old/new native deck parity', { skip: process.env.SI_NA
 import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
 
 test('live stage uses the shared waveform atlas for completed samples and failure diagnostics', async () => {
-  const { block } = await routedVisualFixture()
-  const stage = block.getSolver<RouteTransientSolver>('RouteTransientSolver')!
+  const { root } = await routedVisualFixture()
+  const stage = root.getSolver<RouteTransientSolver>('RouteTransientSolver')!
   assertRouteVisual(stage.visualize(), 'simulation', 'route-transient')
   assert.ok(stage.visualize().lines!.some(line => line.strokeColor === '#9333ea'))
   assert.ok(stage.visualize().texts!.some(text => text.text.includes('ngspice samples')))
   assert.ok(stage.visualize().texts!.some(text => text.text.includes('VICTIM_0 · RX far')))
   assert.ok(stage.visualize().texts!.some(text => text.text.includes('VICTIM_1 · TX near')))
-  assert.deepEqual(stage.getOutput().value.probes.map(probe => probe.name), ['DATA_0', 'VICTIM_0', 'VICTIM_1'])
+  assert.deepEqual(root.stageOutput('RouteTransientSolver').value[0].probes.map(probe => probe.name), ['DATA_0', 'VICTIM_0', 'VICTIM_1'])
   const pending = solver(response())
   assert.ok(pending.visualize().texts!.some(text => text.text.includes('awaiting live ngspice')))
   assert.equal(pending.visualize().lines!.filter(line => line.strokeWidth === .3).length, 0)

@@ -1,11 +1,11 @@
 import React from 'react'
-import { Circuit } from '@tscircuit/core'
+import { Circuit, simulation } from '@tscircuit/core'
 import { getSvgFromGraphicsObject, type GraphicsObject } from 'graphics-debug'
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import assert from 'node:assert/strict'
 import { TwoTraceBoard } from '../../examples/routed/two-trace-board'
-import { RoutedPipelineSolver, type RoutedBlockSolver } from '../../src/pipeline'
+import { RoutedPipelineSolver } from '../../src/pipeline'
 import { formatSpiceVectors } from '../../src/observation'
 import type { SolverContext } from '../../src/solver'
 import type { CircuitJson } from '../../src/board'
@@ -69,13 +69,22 @@ C_comp 1p 1p 1p
 [Voltage Range] 3.3 3.3 3.3
 [End]
 `
-let fixture: Promise<{ root: RoutedPipelineSolver; block: RoutedBlockSolver }> | undefined
+const fixtures = new Map<number, Promise<{ root: RoutedPipelineSolver }>>()
 
 /** Solve real TwoTraceBoard TSX with original drawing-only model tables, once per test file. */
-export function routedVisualFixture(): Promise<{ root: RoutedPipelineSolver; block: RoutedBlockSolver }> {
-  fixture ??= (async () => {
+export function routedVisualFixture(blocks: number = 1): Promise<{ root: RoutedPipelineSolver }> {
+  const existing = fixtures.get(blocks)
+  if (existing) return existing
+  const fixture = (async () => {
     const circuit = new Circuit({ platform: { partsEngineDisabled: true, platformFetch: async () => new Response(source) } })
-    circuit.add(<TwoTraceBoard bit-rate="400Mbps" duration-seconds={4e-9} />)
+    const board = TwoTraceBoard({ 'bit-rate': '400Mbps', 'duration-seconds': 4e-9 })
+    const tree = blocks === 1 ? board : React.cloneElement(board, {},
+      ...React.Children.toArray(board.props.children).filter(child => !React.isValidElement(child) || child.type !== simulation.pcbtransientchannelsimulation),
+      ...[0, 1].map(i => <simulation.pcbtransientchannelsimulation key={i} name={`BLOCK${i}`} bitRate="400Mbps" duration={4e-9}>
+        <simulation.pcbchannel name={`DATA${i}`} driverRef={`.TX${i} > .Y`} receiverRef={`.RX${i} > .A`} pattern="01" />
+      </simulation.pcbtransientchannelsimulation>),
+    )
+    circuit.add(tree)
     await circuit.renderUntilSettled()
     // Synthetic engine IO for drawing only; these curves are not solver evidence.
     const context: SolverContext = { progress: (): void => undefined, runSolver: async request => {
@@ -94,8 +103,9 @@ export function routedVisualFixture(): Promise<{ root: RoutedPipelineSolver; blo
       scopeDistanceMm: 1,
     }, context)
     await root.solveAsync()
-    return { root, block: root.getSolver<RoutedBlockSolver>(root.pipelineDef[1].solverName)! }
+    return { root }
   })()
+  fixtures.set(blocks, fixture)
   return fixture
 }
 

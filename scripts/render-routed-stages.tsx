@@ -5,7 +5,7 @@ import { getSvgFromGraphicsObject, type GraphicsObject } from 'graphics-debug'
 import { Resvg } from '@resvg/resvg-js'
 import { type BaseSolver } from '@tscircuit/solver-utils'
 import { Circuit } from '@tscircuit/core'
-import { RoutedAdmissionSolver, RoutedBlockSolver, RoutedPipelineSolver, routedStages, type RoutedProblem } from '../src/pipeline'
+import { RoutedPipelineSolver, routedStages, type RoutedProblem } from '../src/pipeline'
 import { RouteNetworkSolver, routeWaveformDrawing } from '../src/simulation'
 import { createNativeSolver } from '../src/adapters'
 import { sha256 } from '../src/kernel'
@@ -37,31 +37,25 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
   const context = { runSolver: createNativeSolver({ timeoutMs: 10_000 }), progress: console.log }
   const root = new RoutedPipelineSolver(input, context)
   await render(`${name}-root-initial`, root.initialVisualize())
-  const admission = new RoutedAdmissionSolver(input)
-  admission.solve()
-  await render(`${name}-0-admission`, admission.visualize())
-  const plan = structuredClone(admission.getOutput().value[0])
-  if (name === 'two-trace') plan.bindings.options = { riseSeconds: 1e-9, refinement: 1, durationSeconds: 40e-9, stepSeconds: 1e-11 }
-  const block = new RoutedBlockSolver({ ...plan, context })
   const seen = new Set<string>()
   let progress = performance.now()
-  while (!block.solved) {
-    if (block.getCurrentStageName() === 'RouteTransientSolver' && !execute) {
-      await render(`${name}-5-transient-pending`, routeWaveformDrawing(undefined, plan.bindings.options.durationSeconds))
+  while (!root.solved) {
+    if (root.getCurrentStageName() === 'RouteTransientSolver' && !execute) {
+      await render(`${name}-5-transient-pending`, routeWaveformDrawing(undefined, root.stageOutput('RoutedAdmissionSolver').value[0].bindings.options.durationSeconds))
       break
     }
     try {
-      await block.stepAsync()
+      await root.stepAsync()
     } catch (error) {
-      const stage = block.getCurrentStageName()
+      const stage = root.getCurrentStageName()
       const index = routedStages.findIndex((entry) => entry.solverName === stage)
-      const solver = block.getSolver(stage)!
+      const solver = root.getSolver(stage)!
       if (stage === 'RouteTransientSolver') {
         await render(`${name}-5-transient-failed`, solver.visualize())
         throw error
       }
       await render(`${name}-${index}-network-rejected`, solver.visualize())
-      const capture = routeWaveformDrawing(undefined, plan.bindings.options.durationSeconds)
+      const capture = routeWaveformDrawing(undefined, root.stageOutput('RoutedAdmissionSolver').value[0].bindings.options.durationSeconds)
       routeText(capture, 65, 153, 'Upstream network rejected; no deck to execute', '#dc2626', 2)
       await render(`${name}-5-capture-upstream-blocked`, capture)
       manifest[`${name}-blocked`] = { stage, reason: String(error), capture: 'pure drawing only; capture solver was not reached' }
@@ -69,8 +63,8 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
       console.log(`${name}: BLOCKED ${String(error)}`)
       return
     }
-    for (const stage of block.pipelineDef) {
-      const solver = block.getSolver<BaseSolver>(stage.solverName)
+    for (const stage of root.pipelineDef) {
+      const solver = root.getSolver<BaseSolver>(stage.solverName)
       if (stage.solverName === 'RouteFieldsSolver' && !solver?.solved && solver?.stats.sections > 0 && !seen.has('fields-coupled')) {
         const drawing = solver.visualize()
         if (drawing.lines?.some((line) => line.strokeColor === '#9333ea')) {
@@ -89,16 +83,16 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
       await render(`${name}-${index}-${['admission', 'sections', 'fields', 'bindings', 'network', 'transient'][index]}`, solver.visualize())
     }
     if (performance.now() - progress > 15_000) {
-      console.log(`${name}: stepping ${block.getCurrentStageName()} ${JSON.stringify(block.getSolver(block.getCurrentStageName())?.stats)}`)
+      console.log(`${name}: stepping ${root.getCurrentStageName()} ${JSON.stringify(root.getSolver(root.getCurrentStageName())?.stats)}`)
       progress = performance.now()
     }
   }
-  const compiled = block.getSolver<RouteNetworkSolver>('RouteNetworkSolver')!.getOutput().value
+  const compiled = root.stageOutput('RouteNetworkSolver').value[0]
   await writeFile(join(output, `${name}.evidence.json`), JSON.stringify(compiled.evidence))
   await writeFile(join(output, `${name}.cir`), compiled.deck)
   manifest[`${name}-deck`] = { bytes: Buffer.byteLength(compiled.deck), sha256: sha256(compiled.deck) }
   // Compile-only renders stop before stage 5; only a completed live run gets a final atlas.
-  if (block.solved) await render(`${name}-root-final`, block.visualize())
+  if (root.solved) await render(`${name}-root-final`, root.visualize())
 
 }
 

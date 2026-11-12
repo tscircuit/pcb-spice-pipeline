@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { RoutedAdmissionSolver, RoutedBlockSolver } from '../../src/pipeline'
-import { RouteNetworkSolver } from '../../src/simulation'
+import { RoutedPipelineSolver, RoutedStageSolver } from '../../src/pipeline'
+import { RouteNetworkSolver, type RouteNetworkInput, type RoutedDeck } from '../../src/simulation'
 import { routedProblem } from '../support/routed-fixture'
 
 test('network owns real ladder node samples, complete probe evidence and the executable deck', async (context) => {
@@ -10,12 +10,10 @@ test('network owns real ladder node samples, complete probe evidence and the exe
   const port = { progress: (): void => undefined, runSolver: async (): Promise<never> => {
     throw new Error('network test must not run ngspice')
   } }
-  const admission = new RoutedAdmissionSolver(input)
-  admission.solve()
-  const block = new RoutedBlockSolver({ ...admission.getOutput().value[0], context: port })
-  block.solveUntilStage('RouteTransientSolver')
-  const network = block.getSolver<RouteNetworkSolver>(RouteNetworkSolver.name)!
-  const output = network.getOutput().value
+  const root = new RoutedPipelineSolver(input, port)
+  root.solveUntilStage('RouteTransientSolver')
+  const network = root.getSolver(RouteNetworkSolver.name)!
+  const output = root.stageOutput('RouteNetworkSolver').value[0]
   assert.ok(network.iterations >= 3)
   assert.ok(output.evidence.cells)
   assert.ok(output.evidence.maximum_cell_delay_s)
@@ -28,13 +26,13 @@ test('network owns real ladder node samples, complete probe evidence and the exe
 import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
 
 test('two-trace TSX route-network visual SVG snapshot', async () => {
-  const { block } = await routedVisualFixture()
-  assertRouteVisual(block.getSolver<RouteNetworkSolver>('RouteNetworkSolver')!.visualize(), 'simulation', 'route-network')
+  const { root } = await routedVisualFixture()
+  assertRouteVisual(root.getSolver<RouteNetworkSolver>('RouteNetworkSolver')!.visualize(), 'simulation', 'route-network')
 })
 
 test('rejected network drawing retains physical context and shows its red reason', async () => {
-  const { block } = await routedVisualFixture()
-  const params = block.getSolver<RouteNetworkSolver>('RouteNetworkSolver')!.getConstructorParams()[0]
+  const { root } = await routedVisualFixture()
+  const params = root.getSolver<RoutedStageSolver<RouteNetworkInput, RoutedDeck>>('RouteNetworkSolver')!.getConstructorParams()[0][0]
   const rejected = new RouteNetworkSolver(params)
   // Drawing-only failure state; the real DDR render separately exercises the 1,024-cell admission gate.
   rejected.failed = true

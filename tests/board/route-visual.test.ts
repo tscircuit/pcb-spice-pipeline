@@ -17,9 +17,9 @@ import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual
 import { RouteSectionsSolver } from '../../src/board'
 
 test('two-trace TSX board and section drawing SVG snapshots', async () => {
-  const { root, block } = await routedVisualFixture()
+  const { root } = await routedVisualFixture()
   const circuit = root.inputProblem.circuitJson
-  const sections = block.getSolver<RouteSectionsSolver>('RouteSectionsSolver')!.getOutput().value
+  const sections = root.stageOutput('RouteSectionsSolver').value[0]
   assertRouteVisual(routeBoardDrawing(circuit, sections.scope, 'Board copper'), 'board', 'route-visual-board')
   const drawing = routeSectionDrawing(circuit, sections.geometry, sections.scope, 'Segmented copper')
   assertRouteVisual(drawing, 'board', 'route-visual-sections')

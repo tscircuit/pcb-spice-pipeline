@@ -9,7 +9,7 @@ export function routeWaveformDrawing(capture: RoutedCapture | undefined, duratio
     drawing,
     2,
     178,
-    error ? `Transient failed: ${error}` : capture?.kind === 'completed' ? '5 · Transient: ngspice samples · candidate-unqualified' : '5 · Transient: awaiting live ngspice',
+    error ? `Transient failed: ${error}` : capture?.kind === 'completed' ? '6 · Transient: ngspice samples · candidate-unqualified' : '6 · Transient: awaiting live ngspice',
     error ? '#dc2626' : '#a16207',
     routeTextSize.title,
   )
@@ -21,6 +21,7 @@ export function routeWaveformDrawing(capture: RoutedCapture | undefined, duratio
         min = Math.min(min, value)
         max = Math.max(max, value)
       }
+  max = Math.ceil(max)
   const margin = (max - min) * 0.08
   /** Map voltage to the fixed waveform panel with headroom above both limits. */
   const y = (voltage: number): number => 118 + ((voltage - min + margin) / (max - min + margin * 2)) * 40
@@ -35,7 +36,8 @@ export function routeWaveformDrawing(capture: RoutedCapture | undefined, duratio
     strokeColor: '#64748b',
     strokeWidth: 0.2,
   })
-  for (const voltage of [-0.4, 0, 1, 1.9]) {
+  const ticks = [...new Set([-0.4, 1.9, ...Array.from({ length: max - Math.ceil(min) + 1 }, (_, i) => Math.ceil(min) + i)])].sort((a, b) => a - b)
+  for (const voltage of ticks) {
     drawing.lines!.push({
       points: [
         { x: 14, y: y(voltage) },
@@ -46,7 +48,9 @@ export function routeWaveformDrawing(capture: RoutedCapture | undefined, duratio
       strokeWidth: 0.15,
       label: `${voltage} V`,
     })
-    routeText(drawing, 2, y(voltage), `${voltage} V`, voltage === -0.4 || voltage === 1.9 ? '#dc2626' : '#64748b')
+    const limit = voltage === -0.4 || voltage === 1.9
+    routeText(drawing, limit ? 290 : 2, y(voltage), `${voltage} V`, limit ? '#dc2626' : '#64748b')
+    if (limit) drawing.texts!.at(-1)!.anchorSide = 'center_right'
   }
   for (let i = 0; i <= 4; i++) {
     const time = (durationSeconds * i) / 4

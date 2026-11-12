@@ -141,7 +141,7 @@ export class RouteNetworkSolver extends BaseSolver {
   override visualize(): GraphicsObject {
     const { geometry, bindings } = this.input
     const circuit = bindings.circuitJson
-    const drawing = routeSectionDrawing(circuit, geometry, bindings.scope, '4 · Network: build a coupled ladder')
+    const drawing = routeSectionDrawing(circuit, geometry, bindings.scope, '5 · Network: build a coupled ladder')
     drawing.texts = drawing.texts!.filter((text) => text.y !== 87)
     routeText(
       drawing,

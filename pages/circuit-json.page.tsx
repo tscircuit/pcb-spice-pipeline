@@ -61,7 +61,7 @@ export default function CircuitJsonPage(): React.JSX.Element {
         Inspect circuit
       </button>
       {error && <p role="alert">{error}</p>}
-      {records && <BoardPage title="Uploaded circuit" load-board={loadBoard} models={models} />}
+      {records && <BoardPage load-board={loadBoard} models={models} />}
     </>
   )
 }

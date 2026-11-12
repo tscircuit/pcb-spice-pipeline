@@ -104,7 +104,7 @@ export class RouteFieldsSolver extends BaseSolver {
   override visualize(): GraphicsObject {
     const section = this.current
     const drawing: GraphicsObject = { coordinateSystem: 'cartesian', rects: [], lines: [], texts: [], circles: [], polygons: [] }
-    routeText(drawing, 132, 98, '2 · Fields: solve a cross-section', '#0f172a', routeTextSize.title)
+    routeText(drawing, 132, 98, '3 · Fields: solve a cross-section', '#0f172a', routeTextSize.title)
     routeText(drawing, 132, 91, 'Transverse x (mm) × stack z (mm); thin layers expanded', '#475569')
     if (!section) {
       routeText(drawing, 132, 75, 'Waiting for the first slice; no field solve yet')
@@ -129,7 +129,8 @@ export class RouteFieldsSolver extends BaseSolver {
       for (let i = 1; i < levels.length; i++) height += heights[i - 1] * Math.max(0, Math.min(1, (v - levels[i - 1]) / (levels[i] - levels[i - 1])))
       return 40 + (height / Math.max(total, 0.001)) * 29
     }
-    for (const slab of section.dielectrics) {
+    let labelY = 75
+    for (const slab of [...section.dielectrics].sort((a, b) => b.zMm - a.zMm)) {
       const mask =
         slab.er === this.materials.maskEr &&
         slab.lossTangent === this.materials.maskLoss &&
@@ -143,8 +144,9 @@ export class RouteFieldsSolver extends BaseSolver {
         height: z(slab.zMm + slab.thicknessMm) - z(slab.zMm),
         fill: mask ? '#cffafe' : '#fef3c7',
       })
-      if (z(slab.zMm + slab.thicknessMm) - z(slab.zMm) > 3 && section.planes.every((plane) => Math.abs(z(plane.zMm) - middle) > 3))
-        routeText(drawing, 137, middle, `${mask ? 'Mask' : 'Dielectric'} εr=${slab.er}`, '#0f172a')
+      labelY = Math.min(middle, labelY - 6)
+      drawing.lines!.push({ points: [{ x: 292, y: middle }, { x: 296, y: labelY }], strokeColor: '#64748b', strokeWidth: .15 })
+      routeText(drawing, 298, labelY, `${mask ? 'Mask' : 'Dielectric'} εr=${slab.er}`, '#0f172a')
     }
     // Explicit legend remains legible even when a slab is too thin for an interior label.
     routeText(drawing, 132, 86, `Amber: laminate · Cyan: mask εr=${this.materials.maskEr} · Blue: copper`, '#475569')
