@@ -47,6 +47,12 @@ export class RouteTransientSolver extends BaseSolver {
   override getConstructorParams(): [RouteTransientInput] { return [this.input] }
   /** Use the parent pipeline's pure atlas renderer for actual live probe samples. */
   override visualize(): GraphicsObject {
-    return routeWaveformDrawing(this.output?.value, this.input.compiled.durationSeconds, this.failed ? this.error ?? 'Transient failed' : undefined)
+    const capture = this.output?.value
+    const routes = this.input.compiled.evidence.routes as { from: string; to: string }[] | undefined
+    const labelled = capture && { ...capture, probes: capture.probes.map(probe => {
+      const end = routes?.some(route => route.from === probe.sourcePortId) ? 'TX near' : routes?.some(route => route.to === probe.sourcePortId) ? 'RX far' : undefined
+      return end ? { ...probe, name: `${probe.name} · ${end}` } : probe
+    }) }
+    return routeWaveformDrawing(labelled, this.input.compiled.durationSeconds, this.failed ? this.error ?? 'Transient failed' : undefined)
   }
 }

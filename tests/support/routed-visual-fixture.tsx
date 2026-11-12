@@ -75,7 +75,7 @@ let fixture: Promise<{ root: RoutedPipelineSolver; block: RoutedBlockSolver }> |
 export function routedVisualFixture(): Promise<{ root: RoutedPipelineSolver; block: RoutedBlockSolver }> {
   fixture ??= (async () => {
     const circuit = new Circuit({ platform: { partsEngineDisabled: true, platformFetch: async () => new Response(source) } })
-    circuit.add(<TwoTraceBoard />)
+    circuit.add(<TwoTraceBoard bit-rate="400Mbps" duration-seconds={4e-9} />)
     await circuit.renderUntilSettled()
     // Synthetic engine IO for drawing only; these curves are not solver evidence.
     const context: SolverContext = { progress: (): void => undefined, runSolver: async request => {

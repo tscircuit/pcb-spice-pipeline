@@ -1,8 +1,8 @@
 import React from 'react'
 import { simulation } from '@tscircuit/core'
 
-/** Two physical 8 mm traces; vendor bytes must be supplied locally. */
-export function TwoTraceBoard({ 'bit-rate': bitRate = '400Mbps', 'duration-seconds': durationSeconds = 4e-9, 'data-pattern': dataPattern = '01' }: { 'bit-rate'?: string; 'duration-seconds'?: number; 'data-pattern'?: string } = {}): React.JSX.Element {
+/** Two physical 8 mm traces; 40 ns includes the vendor waveform lead-in and settling. */
+export function TwoTraceBoard({ 'bit-rate': bitRate = '50Mbps', 'duration-seconds': durationSeconds = 40e-9, 'data-pattern': dataPattern = '01' }: { 'bit-rate'?: string; 'duration-seconds'?: number; 'data-pattern'?: string } = {}): React.JSX.Element {
   return <board width={16} height={12} layers={4} thickness={1.6} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled isViaInPadAllowed>
     {[0, 1].map(i => <React.Fragment key={i}>
       {[-4, 4].map(x => {

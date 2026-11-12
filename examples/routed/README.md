@@ -9,7 +9,17 @@ architecture notes until those packages are released.
 Select the two-trace TSX demo and choose your local `sn74lvc1g04.ibs` file. No vendor
 bytes are included. Inspect/step through the six stages in GenericSolverDebugger.
 Stage 5 awaits one live ngspice WASM transient, then draws actual probe waveforms.
-The demo uses 50 Mbps over 40 ns so the vendor transition can settle.
+The demo uses 50 Mbps over 40 ns so the vendor transition can settle. The old
+400 Mbps / 4 ns window ended before the vendor waveform lead-in: its logical edge
+was at 2.5 ns, but the DATA receiver first crossed 1.65 V at about 5.625 ns in a
+single-edge diagnostic. Driver power and probe mapping were correct. The scheduler
+preserves measured IBIS lead-in; it does not force the analog output to switch at
+the logical bit boundary. A longer repeated 400 Mbps pattern is rejected because
+this selected model's active transitions overlap.
+
+Quiet channels intentionally have two probes: RX far at the receiver and TX near
+at the quiet driver. The drawing labels those endpoints; these are separate
+physical nodes, not duplicate measurements.
 The main thread stays available; status reports engine startup and elapsed wall
 time. Every run has a 15 minute watchdog that terminates its worker. Changing
 inputs or unmounting the debugger cancels the old worker.

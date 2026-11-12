@@ -13,7 +13,7 @@ import { routedProblem } from '../support/routed-fixture'
 import { renderCoreSignals } from '../support/core-render'
 
 test('TSX two-trace routed deck deliberately changes to declarative transient vectors', { skip: !process.env.IBIS_MODEL_DIR && 'Set IBIS_MODEL_DIR to local vendor sn74lvc1g04.ibs; vendor bytes are not committed' }, async () => {
-  const circuit = await renderCoreSignals(<TwoTraceBoard />)
+  const circuit = await renderCoreSignals(<TwoTraceBoard bit-rate="400Mbps" duration-seconds={4e-9} />)
   const bytes = await readFile(`${process.env.IBIS_MODEL_DIR}/sn74lvc1g04.ibs`)
   assert.equal(sha256(bytes), '03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00', 'oracle uses the same vendor revision')
   const admission = new RoutedAdmissionSolver({ circuitJson: circuit, ibisSources: { 'models/sn74lvc1g04.ibs': bytes.toString('utf8') }, scopeDistanceMm: 1 })
@@ -103,4 +103,23 @@ test('completed root atlas has one board heading and retains cross-section foreg
   assert.ok(drawing.polygons!.some(polygon => polygon.stroke === '#9333ea'))
   assert.ok(drawing.texts!.some(text => text.text.includes('ngspice samples')))
   assertRouteVisual(drawing, 'pipeline', 'routed-pipeline-atlas')
+})
+
+
+test('default two-trace TSX deck retains the measured driver lead-in and captures its complete rise', async context => {
+  const input = await routedProblem(context)
+  if (!input) return
+  const admission = new RoutedAdmissionSolver(input)
+  admission.solve()
+  const plan = admission.getOutput().value[0]
+  assert.equal(plan.bindings.options.durationSeconds, 40e-9)
+  const block = new RoutedBlockSolver({ ...plan, context: synthetic })
+  block.solveUntilStage('RouteTransientSolver')
+  const deck = block.getStageOutput<{ value: import('../../src/simulation').RoutedDeck }>('RouteNetworkSolver')!.value
+  const values = /^VKU0 .*PWL\((.+)\)$/m.exec(deck.deck)![1].split(/\s+/).map(Number)
+  const weights = values.filter((_, i) => i % 2 === 0).map((time, i) => [time, values[2 * i + 1]])
+  // The old 2.5 ns trigger plus preserved lead-in fell outside its 4 ns capture.
+  assert.ok(weights.some(([time, ku]) => time > 20e-9 && time < 22e-9 && Math.abs(ku) < .01))
+  assert.ok(weights.some(([time, ku]) => time > 23e-9 && time < 26e-9 && ku > .9))
+  assert.ok(weights.at(-1)![1] > .9)
 })

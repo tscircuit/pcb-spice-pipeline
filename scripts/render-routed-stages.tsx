@@ -41,7 +41,7 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
   admission.solve()
   await render(`${name}-0-admission`, admission.visualize())
   const plan = structuredClone(admission.getOutput().value[0])
-  if (name === 'two-trace') plan.bindings.options = { riseSeconds: 1e-9, refinement: 1, durationSeconds: execute ? 40e-9 : 4e-9, stepSeconds: 1e-11 }
+  if (name === 'two-trace') plan.bindings.options = { riseSeconds: 1e-9, refinement: 1, durationSeconds: 40e-9, stepSeconds: 1e-11 }
   const block = new RoutedBlockSolver({ ...plan, context })
   const seen = new Set<string>()
   let progress = performance.now()
@@ -104,7 +104,7 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
 
 const twoSource = await readFile(join(models, 'sn74lvc1g04.ibs'), 'utf8')
 const core = new Circuit({ platform: { partsEngineDisabled: true, platformFetch: async () => new Response(twoSource) } })
-core.add(process.argv.includes('--native-two-trace') ? <TwoTraceBoard bit-rate="50Mbps" duration-seconds={40e-9} /> : <TwoTraceBoard />)
+core.add(<TwoTraceBoard />)
 await core.renderUntilSettled()
 await stages('two-trace', { circuitJson: core.getCircuitJson() as CircuitJson, ibisSources: { 'models/sn74lvc1g04.ibs': twoSource }, scopeDistanceMm: 1 })
 

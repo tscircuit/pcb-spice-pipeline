@@ -116,8 +116,10 @@ test('real TSX two-trace: old/native deck parity and sequential native/WASM engi
   assert.equal(capture.timestampsSeconds.at(-1), 40e-9)
   assert.ok(capture.timestampsSeconds.length > 20)
   const signal = capture.probes[0].voltageLevels
-  assert.ok(Math.max(...signal) - Math.min(...signal) > .5, 'comparison must exercise a real switching edge')
-  context.diagnostic(JSON.stringify({ durationSeconds: 40e-9, bitRateHz: 50e6, signalSwingV: Math.max(...signal) - Math.min(...signal), originalMs, nativeMs, wasmMs, oldNativeMaxV, nativeWasmMaxV, nativeSamples: nativeRows.length, wasmSamples: wasmRows.length }))
+  assert.ok(Math.abs(signal[0]) < .01, 'switching capture must begin low')
+  assert.ok(signal.at(-1)! > 3 && signal.at(-1)! < 3.5, 'switching capture must finish near 3.3 V')
+  assert.ok(Math.max(...signal) - Math.min(...signal) > 3, 'comparison must exercise a full voltage swing')
+  context.diagnostic(JSON.stringify({ durationSeconds: 40e-9, bitRateHz: 50e6, signalSwingV: Math.max(...signal) - Math.min(...signal), finalSignalV: signal.at(-1), originalMs, nativeMs, wasmMs, oldNativeMaxV, nativeWasmMaxV, nativeSamples: nativeRows.length, wasmSamples: wasmRows.length }))
 })
 
 
@@ -129,6 +131,9 @@ test('live stage uses the shared waveform atlas for completed samples and failur
   assertRouteVisual(stage.visualize(), 'simulation', 'route-transient')
   assert.ok(stage.visualize().lines!.some(line => line.strokeColor === '#9333ea'))
   assert.ok(stage.visualize().texts!.some(text => text.text.includes('ngspice samples')))
+  assert.ok(stage.visualize().texts!.some(text => text.text.includes('VICTIM_0 · RX far')))
+  assert.ok(stage.visualize().texts!.some(text => text.text.includes('VICTIM_1 · TX near')))
+  assert.deepEqual(stage.getOutput().value.probes.map(probe => probe.name), ['DATA_0', 'VICTIM_0', 'VICTIM_1'])
   const pending = solver(response())
   assert.ok(pending.visualize().texts!.some(text => text.text.includes('awaiting live ngspice')))
   assert.equal(pending.visualize().lines!.filter(line => line.strokeWidth === .3).length, 0)
