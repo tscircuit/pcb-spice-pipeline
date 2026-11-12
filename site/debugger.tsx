@@ -7,6 +7,7 @@ import { createHttpSolver } from '../src/adapters/browser'
 import { RoutedPipelineSolver, RoutedAdmissionSolver } from '../src/pipeline'
 import { routeText, routeTextSize, type CircuitJson } from '../src/board'
 import type { IbisSources } from '../src/buffers'
+import { Board3dPanel } from './board-3d/panel'
 
 /** Fit the measured container and scale world-unit text exactly as in SVG exports. */
 function RoutedAtlas({ graphics }: { graphics: GraphicsObject }): React.JSX.Element {
@@ -90,6 +91,7 @@ async function renderBoard(tree: React.ReactElement, sources: IbisSources): Prom
 export function BoardPage({ 'board-tree': boardTree, 'load-board': loadBoard, models }: BoardPageProps): React.JSX.Element {
   const revision = useRef(0)
   const [step, setStep] = useState(0)
+  const [solveRevision, setSolveRevision] = useState(0)
   const debuggerElement = useRef<HTMLElement>(null)
   const [ready, setReady] = useState<{ solver: RoutedPipelineSolver; revision: number }>()
   const [error, setError] = useState<string>()
@@ -103,6 +105,7 @@ export function BoardPage({ 'board-tree': boardTree, 'load-board': loadBoard, mo
       if (iteration === ready.solver.iterations && index === ready.solver.currentPipelineStageIndex) return
       iteration = ready.solver.iterations
       index = ready.solver.currentPipelineStageIndex
+      setSolveRevision(value => value + 1)
       setStep(iteration === 0 ? 0 : Math.min(index + 1, 6))
     })
     observer.observe(debuggerElement.current, { childList: true, subtree: true, characterData: true })
@@ -189,7 +192,7 @@ export function BoardPage({ 'board-tree': boardTree, 'load-board': loadBoard, mo
             key={ready.revision}
             customRenderer={{
               name: 'Routed stage',
-              render: () => renderStage(ready.solver, step),
+              render: () => <div className="routed-views"><Board3dPanel solver={ready.solver} step={step} revision={solveRevision} />{renderStage(ready.solver, step)}</div>,
               getDownload: () => stageDrawing(ready.solver, step),
             }}
             solver={ready.solver as unknown as React.ComponentProps<typeof GenericSolverDebugger>['solver']}
