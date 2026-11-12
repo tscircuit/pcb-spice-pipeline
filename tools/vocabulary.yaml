@@ -137,6 +137,7 @@ domain:
   extract: the stage that measures each wire's R, L and C with the field solvers
   extraction: measuring wire R, L and C from board geometry with field solvers (FastHenry, FasterCap)
   fixture: a known resistive load used to capture an IBIS switching waveform
+  fit: estimate switching weights from measured buffer waveforms
   filament: a thin straight strip of copper that FastHenry splits a conductor into
   gate: the start of the interval compared during numerical convergence
   geometry: the board's copper shapes, layers and positions, in millimetres
@@ -165,6 +166,7 @@ domain:
   switching: the time-dependent activation of a buffer's pullup and pulldown currents
   tail: the inactive end of a measured transition after settling
   weight: a switching coefficient extracted from IBIS voltage and current data
+  window: a stated time interval over which a waveform derivative is averaged
   plane: a large copper area on one layer, usually ground or power
   plating: the copper lining inside a via hole
   polygon: a closed shape made of outline rings of points

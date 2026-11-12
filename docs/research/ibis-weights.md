@@ -71,3 +71,33 @@ Initial Model_352 typical fixture replay: original 196/197 rising/falling knots,
 worst peak error 4.820 mV; 10 ps window and 0.001 reduction: 92/83 knots, worst
 peak error 1.364 mV. These are sampled ngspice reconstruction measurements, not
 an arbitrary-load guarantee. Further model/corner and board qualification follows.
+
+## Reproducing the experiment
+
+Use `scripts/research-ibis-weights.tsx fixtures`, `boards`, or `ddr` with
+`IBIS_MODEL_DIR`, `SI_IBIS_EVIDENCE` (a private scratch directory) and
+`SI_NGSPICE_LOCK` (the supplied machine-wide lock script). The DDR command also
+requires `SI_DDR_NETWORK_INPUT`, a private saved `RouteNetworkSolver` constructor
+input. It recompiles that geometry with freshly rebound baseline and fitted
+buffers from this branch; it does not use the older archived deck's stitch bug.
+Each invocation launches `research-ibis-native.mjs` under the shared lock. Native
+execution is capped at 60 seconds per fixture, 120 seconds per small board and
+600 seconds per DDR variant, with OMP_NUM_THREADS=1. Waiting for the shared slot
+is excluded from the recorded engine wall time.
+
+The fixture command uses every rising/falling waveform in the selected models
+(two of each), all three consistent corners, no package, and each table's own
+R_fixture and V_fixture. It keeps C_comp, clamps and current signs. The maximum
+error is calculated over the union of native samples and original V-T knots:
+this is the exact maximum difference between the two **PWL representations**.
+RMS uses the analytic integral of their squared PWL difference over time. Native
+discretization and arbitrary-load modeling error are separate limitations.
+
+The board command starts from the existing TwoTraceBoard and level1-differential
+TSX sources. Geometry, package networks, output sampling policy, tolerances and
+integration method are held fixed; only the explicit buffer fit differs.
+Measured full-grid maxima so far: two-trace DATA 5.059 mV, victim far 3.479 mV,
+victim near 1.391 mV. Differential BUS 11.782 mV, P 14.958 mV, N 14.908 mV.
+The differential run stores 278879 → 160673 native samples and takes
+49.033 → 18.812 seconds. These are candidate comparisons, without independent
+full-board convergence qualification or a promise of sub-mV baseline parity.
