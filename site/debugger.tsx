@@ -2,14 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Circuit } from '@tscircuit/core'
 import { GenericSolverDebugger } from '@tscircuit/solver-utils/react'
 import { CanvasGraphics } from 'graphics-debug/react'
-import { computeTransformFromViewbox, getBounds, type GraphicsObject } from 'graphics-debug'
+import { computeTransformFromViewbox, getBounds } from 'graphics-debug'
 import { createHttpSolver } from '../src/adapters/browser'
 import { RoutedPipelineSolver } from '../src/pipeline'
-import { type CircuitJson } from '../src/board'
+import type { CircuitJson, StageDrawing } from '../src/board'
 import type { IbisSources } from '../src/buffers'
 
-/** Fit the measured container and scale world-unit text exactly as in SVG exports. */
-function RoutedAtlas({ graphics }: { graphics: GraphicsObject }): React.JSX.Element {
+/** Start the camera on the stage's focus (the region its current step works on), else fit everything. */
+function RoutedAtlas({ graphics }: { graphics: StageDrawing }): React.JSX.Element {
   const container = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
   useEffect(() => {
@@ -17,8 +17,8 @@ function RoutedAtlas({ graphics }: { graphics: GraphicsObject }): React.JSX.Elem
     observer.observe(container.current!)
     return (): void => observer.disconnect()
   }, [])
-  const { minX, maxX, minY, maxY } = getBounds(graphics)
-  const height = Math.min(620, Math.ceil(((width - 32) * (maxY - minY)) / Math.max(maxX - minX, 1) + 32))
+  const { minX, maxX, minY, maxY } = graphics.focus ?? getBounds(graphics)
+  const height = Math.min(620, Math.max(360, Math.ceil(((width - 32) * (maxY - minY)) / Math.max(maxX - minX, 1e-9) + 32)))
   const transform = useMemo(
     () => computeTransformFromViewbox({ minX, maxX, minY, maxY }, width, height, { padding: 16, yFlip: true }),
     [minX, maxX, minY, maxY, width, height],
@@ -32,10 +32,10 @@ function RoutedAtlas({ graphics }: { graphics: GraphicsObject }): React.JSX.Elem
   )
 }
 
-/** Fit again when selecting a different stage or completing its solve. */
+/** Move the camera whenever the stage or its focus changes. */
 function renderStage(root: RoutedPipelineSolver, number: number): React.JSX.Element {
-  const solver = root.getSolver(root.pipelineDef[number - 1]?.solverName ?? '')
-  return <RoutedAtlas key={`${number}:${solver?.solved}`} graphics={root.visualizeStage(number)} />
+  const graphics = root.visualizeStage(number)
+  return <RoutedAtlas key={`${number}:${JSON.stringify(graphics.focus)}`} graphics={graphics} />
 }
 
 export interface BoardPageProps {

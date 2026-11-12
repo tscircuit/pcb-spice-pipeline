@@ -214,17 +214,42 @@ a table row also selects that stage. Selection lives in fixture component state.
 The page starts with this input and the debugger; local asset loading remains,
 while only blocking load, backend and solver errors appear inline.
 
-Stage visuals share one world-unit `routeTextSize` scale. Board drawings use
-x=0..120/y=0..100; fields use x=130..340/y=-6..100, including material labels
-outside thin slabs with leader lines. The waveform uses x=0..305/y=108..181,
-with integer voltage ticks covering the capture and both red limit annotations.
-PCB y and stack z stay positive upward. Cosmos measures its container before
-mounting `CanvasGraphics`, fits the full text bounds with 16 px padding, and
-caps height at 620 px to leave room for the selector in a laptop window. This
-avoids the DOM renderer's fixed 600 px initial camera and screen-pixel text sizes.
-Atlas coordinates are display units, so the grid stays hidden while physical
-axis labels remain explicit. Neighbour copper and waveform drawings are capped
-for display only; numerical inputs and native samples remain complete.
+Stage visuals share one frame: the board's own millimetres, y up. `boardUnderlay`
+(`src/board/board-underlay.ts`) draws the whole board once per board (outline, pours
+as translucent fills, copper by layer, pads, vias, holes, bodies, silkscreen) in
+muted colours from the stack order (`boardLayers`: the stackup's copper order, else
+`pcb_board.num_layers`); it is cached by Circuit JSON identity and copied into each
+`visualize()`. Stage overlays draw bright, at the copper's real width, with
+`zIndex` above the underlay, so they sit exactly on the copper underneath. The
+Fields cross-section sits in a panel to the right of the board, joined by a
+dashed leader to the amber cut at the slice midpoint; the Transient waveform sits
+in a panel below the board, with probe dots on the board in their curve's colour
+(the colour of the probe's net). Text is kept low: a stage title, result numbers
+(Z0, k, cell count, net and endpoint names) and axis ticks. Sizes come from
+`routeTextSize(focus)`, so labels read the same on any board size.
+
+Each stage drawing carries a `focus` view box (`StageDrawing`): `routeFocus` pads
+the selected copper (Network: the newest ladder wire; Fields: the cut and its
+panel; Transient with samples: the board and the waveform panel). The site starts
+its `CanvasGraphics` camera on that box, re-fitting when the stage or focus
+changes. Voltage and time axes pick round steps and SI prefixes; red dashed limit
+lines appear only when the bound receiver IBIS models declare `Vinl`/`Vinh`
+(`routeReceiverLimits`, display only, never in the deck). A board with zero
+admitted blocks draws the whole board with "No signal-integrity blocks admitted".
+Neighbour copper and waveform samples are capped for display only; numerical
+inputs and native samples remain complete.
+
+```mermaid
+flowchart LR
+  CJ[Circuit JSON] --> U[boardUnderlay, cached per board]
+  U --> S1[1 Admission: selected copper, ringed endpoints]
+  U --> S2[2 Sections: net-coloured wires, via rings, cut]
+  U --> S3[3 Fields: cut, leader, cross-section panel]
+  U --> S4[4 Bindings: driver dots, receiver rings]
+  U --> S5[5 Network: cell ticks, oblique bars]
+  U --> S6[6 Transient: probe dots, waveform panel]
+  S1 & S2 & S3 & S4 & S5 & S6 --> F[focus view box] --> C[site camera]
+```
 
 `RouteTransientSolver` awaits one `solver.invoke` call in `_stepAsync`. Its
 self-contained `.save` + `.tran` deck keeps KLU and Gear in native batch ngspice.

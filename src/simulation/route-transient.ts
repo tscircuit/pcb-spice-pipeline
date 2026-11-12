@@ -1,14 +1,20 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
-import type { GraphicsObject } from 'graphics-debug'
-import { routeSectionDrawing, routeText, routeTextSize, type RoutedSections } from '../board'
+import { routeDot, routeNetColors, routePortColor, routeSourceColors, boardBounds, routePortPoint, routeSectionDrawing, routeTextSize, routeTitle, routeUnion, type RoutedSections, type StageDrawing } from '../board'
 import { rootScope, snapshot, sha256, type Produced } from '../kernel'
 import { invoke, type SolverContext, type SolverRequest } from '../solver'
 import { spiceProbeRows } from '../observation'
 import { fail } from './diagnostics'
-import { routeWaveformDrawing } from './waveform-visual'
+import { routeWaveformDrawing, type RouteLimit } from './waveform-visual'
 import type { RoutedDeck, RoutedCapture } from './routed-types'
 
-export interface RouteTransientInput { compiled: RoutedDeck; artifactPrefix: string; context: SolverContext; board?: RoutedSections }
+export interface RouteTransientInput {
+  compiled: RoutedDeck
+  artifactPrefix: string
+  context: SolverContext
+  board?: RoutedSections
+  /** Display-only receiver thresholds; never enter the deck. */
+  limits?: RouteLimit[]
+}
 
 /** Native batch writes complete ASCII raw vectors for the declarative transient deck. */
 export function routedRequest(compiled: Pick<RoutedDeck, 'deck'>): SolverRequest & { outputFiles: ['waveform.raw'] } {
@@ -52,44 +58,36 @@ export class RouteTransientSolver extends BaseSolver {
   }
   /** The runtime capability must be supplied again when constructing a new solver. */
   override getConstructorParams(): [RouteTransientInput] { return [this.input] }
-  /** Use the parent pipeline's pure atlas renderer for actual live probe samples. */
-  override visualize(): GraphicsObject {
+  /** Probe dots on the board share their curve's colour in the waveform panel below; the camera moves to the panel once samples exist. */
+  override visualize(): StageDrawing {
+    const { compiled, board } = this.input
     const capture = this.output?.value
-    if (!capture) {
-      const { compiled, board } = this.input
-      const title = this.failed
-        ? `6 · Transient failed: ${this.error}`
-        : this.running
-          ? '6 · Transient: running ngspice…'
-          : '6 · Transient: compiled deck'
-      const drawing: GraphicsObject = board
-        ? routeSectionDrawing(board.circuitJson, board.geometry, board.scope, title)
-        : { coordinateSystem: 'cartesian', texts: [], lines: [], rects: [] }
-      if (!board) routeText(drawing, 2, 98, title, '#a16207', routeTextSize.title)
-      if (this.failed) drawing.texts![0].color = '#dc2626'
-
-      drawing.texts = drawing.texts!.filter((text) => text.y !== 87)
-      routeText(
-        drawing,
-        2,
-        87,
-        `${compiled.probes.length} probes · ${(compiled.durationSeconds * 1e9).toFixed(2)} ns · ${compiled.deck.length} deck bytes`,
-        '#475569',
-      )
-      routeText(
-        drawing,
-        2,
-        81,
-        this.failed ? 'No completed ngspice result' : this.running ? 'Running ngspice — no waveform data yet' : 'Deck ready — no waveform data yet',
-        this.failed ? '#dc2626' : '#a16207',
-      )
-      return drawing
-    }
-    const routes = this.input.compiled.evidence.routes as { from: string; to: string }[] | undefined
+    const routes = compiled.evidence.routes as { from: string; to: string }[] | undefined
     const labelled = capture && { ...capture, probes: capture.probes.map(probe => {
       const end = routes?.some(route => route.from === probe.sourcePortId) ? 'TX near' : routes?.some(route => route.to === probe.sourcePortId) ? 'RX far' : undefined
       return end ? { ...probe, name: `${probe.name} · ${end}` } : probe
     }) }
-    return routeWaveformDrawing(labelled, this.input.compiled.durationSeconds, this.failed ? this.error ?? 'Transient failed' : undefined)
+    const drawing: StageDrawing = board ? routeSectionDrawing(board.circuitJson, board.geometry, board.scope) : { coordinateSystem: 'cartesian', lines: [], texts: [] }
+    const extent = board ? boardBounds(board.circuitJson) : { minX: 0, maxX: 300, minY: 140, maxY: 140 }
+    const width = extent.maxX - extent.minX
+    const panel = { minX: extent.minX, maxX: extent.maxX, minY: extent.minY - width * 0.53, maxY: extent.minY - width * 0.08 }
+    const sourceColors = board ? routeSourceColors(board.geometry, board.scope) : new Map<string, string>()
+    const colors = compiled.probes.map((probe, i) => (board && routePortColor(board.circuitJson, sourceColors, probe.signalSourceId)) || routeNetColors[i % routeNetColors.length])
+    if (capture || this.failed || !board) drawing.focus = board ? routeUnion(panel, drawing.focus!) : { ...panel, maxY: panel.maxY + width * 0.06 }
+    const waveform = routeWaveformDrawing(labelled, compiled.durationSeconds, panel, {
+      error: this.failed ? (this.error ?? 'Transient failed') : undefined,
+      limits: this.input.limits,
+      colors,
+      textSize: routeTextSize(drawing.focus!).body,
+    })
+    drawing.lines!.push(...waveform.lines!)
+    drawing.texts = [...drawing.texts ?? [], ...waveform.texts!]
+    if (board) {
+      const size = routeTextSize(drawing.focus!).body
+      for (const [i, probe] of compiled.probes.entries())
+        for (const point of [routePortPoint(board.circuitJson, probe.signalSourceId)].filter((point) => point !== undefined)) drawing.lines!.push(routeDot(point, size * 0.35, colors[i]))
+    }
+    const status = this.failed ? 'failed' : capture ? 'ngspice samples · candidate-unqualified' : this.running ? 'running ngspice…' : 'deck ready'
+    return routeTitle(drawing, `6 · Transient · ${status}`, this.failed ? [{ text: this.error ?? 'Transient failed', color: '#dc2626' }] : [])
   }
 }

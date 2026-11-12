@@ -9,7 +9,7 @@ import { RoutedPipelineSolver, routedStages, type RoutedProblem } from '../src/p
 import { RouteNetworkSolver, routeWaveformDrawing } from '../src/simulation'
 import { createNativeSolver } from '../src/adapters'
 import { sha256 } from '../src/kernel'
-import { routeText, type CircuitJson } from '../src/board'
+import type { CircuitJson } from '../src/board'
 import { TwoTraceBoard } from '../examples/routed/two-trace-board'
 import { withDdr3Signals } from '../examples/routed/ddr3-signals'
 
@@ -18,6 +18,7 @@ const output = resolve(process.env.SI_STAGE_VISUALS_DIR ?? '.cache/stage-visuals
 const models = resolve(process.env.IBIS_MODEL_DIR ?? 'models')
 await mkdir(output, { recursive: true })
 const manifest: Record<string, unknown> = {}
+const waveformBox = { minX: 0, maxX: 300, minY: 0, maxY: 120 }
 
 /** Rasterize the exact SVG returned by graphics-debug, with hover labels disabled. */
 async function render(name: string, drawing: GraphicsObject): Promise<void> {
@@ -41,7 +42,7 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
   let progress = performance.now()
   while (!root.solved) {
     if (root.getCurrentStageName() === 'RouteTransientSolver' && !execute) {
-      await render(`${name}-5-transient-pending`, routeWaveformDrawing(undefined, root.stageOutput('RoutedAdmissionSolver').value[0].bindings.options.durationSeconds))
+      await render(`${name}-5-transient-pending`, routeWaveformDrawing(undefined, root.stageOutput('RoutedAdmissionSolver').value[0].bindings.options.durationSeconds, waveformBox))
       break
     }
     try {
@@ -55,8 +56,7 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
         throw error
       }
       await render(`${name}-${index}-network-rejected`, solver.visualize())
-      const capture = routeWaveformDrawing(undefined, root.stageOutput('RoutedAdmissionSolver').value[0].bindings.options.durationSeconds)
-      routeText(capture, 65, 153, 'Upstream network rejected; no deck to execute', '#dc2626', 2)
+      const capture = routeWaveformDrawing(undefined, root.stageOutput('RoutedAdmissionSolver').value[0].bindings.options.durationSeconds, waveformBox, 'upstream network rejected; no deck to execute')
       await render(`${name}-5-capture-upstream-blocked`, capture)
       manifest[`${name}-blocked`] = { stage, reason: String(error), capture: 'pure drawing only; capture solver was not reached' }
       await writeFile(join(output, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')

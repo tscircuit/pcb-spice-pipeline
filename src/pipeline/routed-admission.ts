@@ -1,6 +1,5 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
-import type { GraphicsObject } from 'graphics-debug'
-import { validateCircuitRecords, routeBoardDrawing, routeBoardPoint, routeText, routeDisplayItems, type CircuitJson, type LaneMapping } from '../board'
+import { validateCircuitRecords, routeBoardDrawing, routeDisplayItems, routeFocus, boardBounds, routePortLabel, routePortPoint, routeRing, routeText, routeTextSize, routeTitle, overlayLine, type CircuitJson, type LaneMapping, type StageDrawing } from '../board'
 import { edgeSeconds, type IbisSources } from '../buffers'
 import { rootScope, snapshot, sha256, type Produced } from '../kernel'
 import type { RouteSectionsInput } from '../board'
@@ -64,53 +63,26 @@ export class RoutedAdmissionSolver extends BaseSolver {
   }
   /** Original input only. */
   override getConstructorParams(): [RoutedProblem] { return [this.input] }
-  /** Selected routes and endpoints blue, neighbours grey, references green, rejection red. */
-  override visualize(): GraphicsObject {
+  /** Selected copper bright at its real width, endpoints ringed and named; a rejection crosses the board out. */
+  override visualize(): StageDrawing {
+    const circuit = this.input.circuitJson
     const plan = this.plans.at(-1)
-    const drawing = routeBoardDrawing(this.input.circuitJson, plan?.sections.scope, '1 · Admission: choose signal copper')
-    routeText(
-      drawing,
-      2,
-      87,
-      `${plan?.sections.requiredSourcePortIds.length ?? 0} endpoints · scope radius ${this.input.scopeDistanceMm ?? 32} mm · ${this.plans.length} admitted blocks`,
-    )
-    const labels = [0, 0]
-    for (const [i, id] of routeDisplayItems(plan?.sections.requiredSourcePortIds ?? [], 48).entries()) {
-      const port = this.input.circuitJson.find((record) => record.type === 'pcb_port' && record.source_port_id === id)
-      if (port?.type !== 'pcb_port') continue
-      const point = routeBoardPoint(this.input.circuitJson, [port.x, port.y])
-      drawing.points?.push({ ...point, color: '#2563eb', label: id })
-      drawing.circles?.push({ center: point, radius: 0.65, stroke: '#2563eb' })
-      if (i < 8) {
-        const source = this.input.circuitJson.find((record) => record.type === 'source_port' && record.source_port_id === id)
-        const component =
-          source?.type === 'source_port' &&
-          this.input.circuitJson.find((record) => record.type === 'source_component' && record.source_component_id === source.source_component_id)
-        const side = point.x < 50 ? 0 : 1
-        const x = side ? 57 : 18
-        const y = 39 - labels[side]++ * 3
-        drawing.lines?.push({ points: [point, { x, y }], strokeColor: '#2563eb', strokeWidth: 0.1 })
-        routeText(
-          drawing,
-          x,
-          y - 1.5,
-          source?.type === 'source_port' ? `${component && component.type === 'source_component' ? component.name : ''}.${source.name}` : id,
-          '#1d4ed8',
-        )
-      }
+    const drawing = routeBoardDrawing(circuit, plan?.sections.scope)
+    const ids = routeDisplayItems(plan?.sections.requiredSourcePortIds ?? [], 48)
+    const points = ids.flatMap((id) => [routePortPoint(circuit, id)].flatMap((point) => (point ? [{ id, point }] : [])))
+    if (points.length && !plan?.sections.scope.selectedPcbTraceIds.length) drawing.focus = routeFocus(points.map(({ point }) => point), boardBounds(circuit))
+    const size = routeTextSize(drawing.focus!)
+    for (const [i, { id, point }] of points.entries()) {
+      drawing.lines!.push(routeRing(point, size.body * 0.4, '#1d4ed8', size.body * 0.12))
+      if (i < 8) routeText(drawing, point.x + size.body * 0.7, point.y + size.body * 1.1, routePortLabel(circuit, id), '#1d4ed8', size.body)
     }
     if (this.failed) {
-      for (const [i, reason] of (`Rejected: ${this.error ?? 'Invalid signal scope'}`.match(/.{1,85}/g) ?? []).slice(0, 3).entries())
-        routeText(drawing, 2, 83 - i * 3, reason, '#dc2626')
-      drawing.lines?.push({
-        points: [
-          { x: 16, y: 16 },
-          { x: 84, y: 84 },
-        ],
-        strokeColor: '#dc2626',
-        strokeWidth: 0.5,
-      })
+      const { minX, maxX, minY, maxY } = drawing.focus!
+      for (const line of [[{ x: minX, y: minY }, { x: maxX, y: maxY }], [{ x: minX, y: maxY }, { x: maxX, y: minY }]])
+        drawing.lines!.push(overlayLine(line, '#dc262680', size.body * 0.3))
     }
-    return drawing
+    const reasons = this.failed ? (`Rejected: ${this.error ?? 'Invalid signal scope'}`.match(/.{1,85}/g) ?? []).slice(0, 3) : []
+    const empty = this.solved && !this.plans.length ? [{ text: 'No signal-integrity blocks admitted', color: '#64748b' }] : []
+    return routeTitle(drawing, '1 · Admission', [...reasons.map((text) => ({ text, color: '#dc2626' })), ...empty])
   }
 }

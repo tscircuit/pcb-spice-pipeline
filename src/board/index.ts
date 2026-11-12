@@ -29,5 +29,9 @@ export { isQuiet } from './signals'
 export { segmentRoutes, routePosition, routeContactFrame, routeReferences, type SectionGeometry, type RouteWire, type RouteSlice, type RouteReference, type RouteXY } from './route-sections'
 
 export { routeSectionSteps } from './route-sections'
-export { routeBoardPoint, routeBoardDrawing, routeSectionDrawing, routeSliceDrawing, routeText, routeTextSize, routeDisplayItems, routeNetLabel } from './route-visual'
+export {
+  routeNetColors, routePoint, routeUnion, routeFocus, routeTextSize, routeText, routeTitle, routeDisplayItems, routeNetLabel, routePortLabel,
+  routePortPoint, routeSourceColors, routePortColor, routeRing, routeDot, routeBoardDrawing, routeSectionDrawing, routeSliceDrawing, type StageDrawing,
+} from './route-visual'
+export { boardUnderlay, boardUnderlayCopy, boardBounds, boardTraceWidth, boardOutline, boardLayers, boardLayerColor, overlayLine } from './board-underlay'
 export { RouteSectionsSolver, type RouteSectionsInput, type RoutedSections } from './route-sections-solver'
