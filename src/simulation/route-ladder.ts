@@ -21,12 +21,13 @@ interface ArcCell { wire: RouteWire; start: number; end: number; before: string;
 interface ArcWire { offset: number; length: number; cells: number[]; sign: number }
 
 /** Integrate every local matrix energy onto delay-bounded route-arc cells, independent of curve tessellation. */
-export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn, delayBound?: number): Generator<RouteLadder, RouteLadder> {
+export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn, delayBound?: number, wireOrder?: number[]): Generator<RouteLadder, RouteLadder> {
   if (!(riseSeconds > 0) || !Number.isInteger(refinement) || refinement < 1 || refinement > 4) throw new Error('Positive rise time and bounded integer spatial refinement (1..4) required')
   if (!(cellsPerRise >= .5 && cellsPerRise <= 40)) throw new Error('Cells per rise time must be in [0.5,40]')
   const lines: string[] = []
   const wireNodes: RouteLadder['wireNodes'] = new Map()
   const wires = [...new Map(extracted.slices.flatMap(slice => slice.wires.map(wire => [wire.id, wire] as const))).values()].sort((a, b) => a.id - b.id)
+  const order = wireOrder && new Map(wireOrder.map((id, i) => [id, i]))
   const maximumDelayPerMetre = delayBound ?? routeDelayBound(extracted)
   if (!Number.isFinite(maximumDelayPerMetre) || maximumDelayPerMetre < routeDelayBound(extracted) * (1 - 1e-12)) throw new Error('Route delay bound must cover every retained slice')
   const targetMm = riseSeconds / cellsPerRise / refinement / maximumDelayPerMetre * 1000
@@ -46,6 +47,7 @@ export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: R
       const wire = wires[cursor]
       const previous = run.at(-1)!
       const junction = contacts.get(`${wire.layer}:${wire.a.map(value => value.toFixed(6)).join(',')}`) ?? 0
+      if (order && order.get(wire.id) !== order.get(previous.id)! + 1) break
       if (wire.aPort || junction > 2 || wire.trace !== seed.trace || wire.layer !== seed.layer || wire.width !== seed.width || Math.hypot(wire.a[0] - previous.b[0], wire.a[1] - previous.b[1]) > 1e-6) break
       run.push(wire)
       cursor++

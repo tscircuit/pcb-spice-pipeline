@@ -40,3 +40,65 @@ flowchart LR
   network --> native[Serial locked bounded native measurement]
   native --> report[Parity, errors and cost evidence]
 ```
+
+## Reproduce locally
+
+Set `IBIS_MODEL_DIR`, `SI_GROUPS_DIR` (an ignored or external artifact directory),
+and `SI_NGSPICE_LOCK` to the shared machine-wide lock script. DDR additionally
+requires `SI_DDR3_BOARD` as documented in the root README. Local RFC builds of
+circuit-json, props and core are required. No dependency changes are committed.
+
+```sh
+node --import tsx scripts/research-coupling-groups.tsx compile small
+node --import tsx scripts/research-coupling-groups.tsx measure small
+node --import tsx scripts/research-coupling-groups.tsx compile ddr
+node --import tsx scripts/research-coupling-groups.tsx measure ddr
+```
+
+Every measurement invokes `research-coupling-native.py`, which acquires
+`SI_NGSPICE_LOCK` before starting ngspice. Timers exclude lock waits. The default
+native limit is 90 s for small boards and 600 s for DDR; set
+`SI_GROUPS_TIMEOUT_SECONDS` to a smaller positive value for a bounded pilot. Values
+above 600 s are rejected. Each DDR deck requests 0–1 ns, retaining the original
+8 ns model schedules. Raw transients, input snapshots, vendor-generated decks,
+logs and per-case timing stay in `SI_GROUPS_DIR`. Exact duplicate deck bytes share
+one measurement; each source partition and its own emitted deck remain indexed.
+
+## Measured DDR graph
+
+This scope includes **91 routed electrical nets**, of which 24 are addr/cmd/clock
+signals. The recompiled full deck has 1,835 cells, 36,814 K terms, and 17,518,974
+bytes at this branch's local RFC builds. The graph below precedes package/binding
+closure. Thresholds use strict `>` comparisons.
+
+| Threshold | k edges | k components | Largest k component | k/Cm/oblique-score edges | Combined components | Largest combined component |
+|---:|---:|---:|---:|---:|---:|---:|
+| > 0 | 167 | 16 | 70 | 225 | 7 | 76 |
+| > 0.01 | 123 | 21 | 66 | 134 | 18 | 69 |
+| > 0.03 | 84 | 32 | 47 | 85 | 31 | 47 |
+| > 0.1 | 52 | 55 | 20 | 52 | 55 | 20 |
+
+Including all RLGC/loss, oblique and binding dependencies gives exact component
+sizes **86, 1, 1, 1, 1, 1**. The largest exact deck retains **1,765 cells** and
+**17,352,583 bytes**: only 3.8% fewer cells and 0.95% fewer bytes than the full deck.
+All 24 declared signal pins share each of the two compiled IBIS package bindings;
+they must remain together. Victim windows at the three thresholds contain 24–33
+nets. That is a conservative package-preserving result, rather than a claim that
+24 pins can be independently simulated without package reduction.
+
+| Quantity | Count | Minimum | Median | P90 | P99 | Maximum |
+|---|---:|---:|---:|---:|---:|---:|
+| All emitted abs(K), including package | 36,814 | 2.70e-16 | 0.001149 | 0.02203 | 0.08915 | 0.62255 |
+| Per-net-pair maximum route abs(k) | 167 | 2.08e-8 | 0.03070 | 0.30242 | 0.53074 | 0.56064 |
+| Per-net-pair maximum normalized C score | 225 | 1.41e-10 | 0.007859 | 0.19993 | 0.46953 | 0.53539 |
+| Integrated absolute mutual C per net pair, fF | 225 | 2.42e-8 | 4.156 | 87.61 | 583.48 | 1,299.43 |
+
+The existing extraction screen recorded 7,664 parallel pair solves, retaining
+2,518 and excluding 5,146 below its 0.5% admission rule. These pre-existing
+omissions belong to the baseline and cannot be recovered by exact partitioning.
+There are 8,559 oblique encounter records, 8,544 with positive C, totalling
+4.648 pF before aggregation. Exact means exact relative to this already extracted
+candidate network, not a qualification of the field-model omissions.
+
+[Every scoped net's neighbours at k > 0.01, 0.03 and 0.1](coupling-groups-neighbours.md)
+are listed separately to keep the summary readable.

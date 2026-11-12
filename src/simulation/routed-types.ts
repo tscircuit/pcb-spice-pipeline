@@ -15,6 +15,8 @@ export interface RoutedCompileOptions {
   returnPath?: RouteReturn
   /** Full-network mesh bound for partitioned decks, in seconds per metre. */
   delayBound?: number
+  /** Original sorted wire identities prevent a projection from merging formerly separate arc runs. */
+  wireOrder?: number[]
 }
 export interface RouteBindingsInput {
   circuitJson: CircuitJson

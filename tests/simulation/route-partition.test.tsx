@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { routeGraph, routePartitions, partitionNetworkInput, RouteNetworkSolver, type RouteGraph, type RoutePair, type RouteNetworkInput } from '../../src/simulation'
+import { RoutedStageSolver } from '../../src/pipeline'
+import type { RoutedDeck } from '../../src/simulation'
 import { routedVisualFixture } from '../support/routed-visual-fixture'
 
 /** Three routes have a strong first pair and a weak second pair; a fourth is independent. */
@@ -40,7 +42,7 @@ test('binding closure preserves non-switching aggressors and shared package/term
 
 test('TSX network projection preserves the full deck, IBIS bindings, quiet states and spatial mesh', async () => {
   const { root } = await routedVisualFixture()
-  const input = root.getSolver('RouteNetworkSolver')!.getConstructorParams()[0][0] as RouteNetworkInput
+  const input = root.getSolver<RoutedStageSolver<RouteNetworkInput, RoutedDeck>>('RouteNetworkSolver')!.getConstructorParams()[0][0] as RouteNetworkInput
   const compiled = root.stageOutput('RouteNetworkSolver').value[0]
   const before = JSON.stringify(input)
   const topology = routeGraph(input, compiled)
