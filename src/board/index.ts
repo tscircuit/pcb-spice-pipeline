@@ -31,3 +31,4 @@ export { segmentRoutes, routePosition, routeContactFrame, routeReferences, type 
 export { routeSectionSteps } from './route-sections'
 export { routeBoardPoint, routeBoardDrawing, routeSectionDrawing, routeSliceDrawing, routeText, routeTextSize, routeDisplayItems, routeNetLabel } from './route-visual'
 export { RouteSectionsSolver, type RouteSectionsInput, type RoutedSections } from './route-sections-solver'
+export { boardFrame, boardPosition, boardSlicePose, boardSlicePosition, type BoardPosition, type BoardFrame, type SlicePose } from './viewer-geometry'

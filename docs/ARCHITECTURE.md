@@ -304,3 +304,23 @@ OMP_NUM_THREADS=1. The request cannot override tools or cwd. Local asset reads
 are limited to the four known example IBIS filenames under IBIS_MODEL_DIR and
 the board file selected by SI_DDR3_BOARD; URLs cannot select filesystem paths.
 These assets are loaded at runtime and never part of a published static bundle.
+
+## Physical board inspection
+
+The Cosmos inspector keeps the complete input Circuit JSON in the 3D viewer.
+`board/viewer-geometry` maps solver stack heights to the viewer's centred,
+z-up millimetre frame and places transverse sections normal to routed copper.
+The 2D atlas and 3D overlay consume the same retained stage outputs and Step.
+The display does not broaden the solver's admitted electrical scope.
+
+```mermaid
+flowchart LR
+  circuit[Complete input Circuit JSON] --> viewer[Full board and component viewer]
+  circuit --> stages[Retained routed solver stages]
+  stages --> atlas[2D stage atlas]
+  stages --> overlay[Physical stage overlay]
+  stack[Physical stackup and slice frame] --> overlay
+  overlay --> viewer
+  capture[Native spatial voltage samples] --> time[Shared time scrubber and waveform cursor]
+  time --> overlay
+```
