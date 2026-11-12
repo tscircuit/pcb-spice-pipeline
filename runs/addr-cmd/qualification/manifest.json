@@ -149,12 +149,38 @@
     "stop_ns": 8,
     "baseline": "before",
     "overlay": "weak-overlay.png",
-    "label": "Model_345: 1.14 x RExt calibration what-if"
+    "label": "Model_345: 1.14 x RExt calibration what-if",
+    "quiet_case": "weak-even",
+    "quiet_baseline": "victim-even"
   },
   {
     "name": "weak-prefix",
     "directory": "runs/addr-cmd/qualification/weak/before",
     "stop_ns": 4.999,
     "baseline": "before-prefix"
+  },
+  {
+    "name": "weak-even",
+    "directory": "runs/addr-cmd/qualification/weak/victim-even",
+    "stop_ns": 8,
+    "baseline": "victim-even"
+  },
+  {
+    "name": "weak-even-prefix",
+    "directory": "runs/addr-cmd/qualification/weak/victim-even",
+    "stop_ns": 4.999,
+    "baseline": "victim-even-prefix"
+  },
+  {
+    "name": "weak-odd",
+    "directory": "runs/addr-cmd/qualification/weak/victim-odd",
+    "stop_ns": 8,
+    "baseline": "victim-odd"
+  },
+  {
+    "name": "weak-odd-prefix",
+    "directory": "runs/addr-cmd/qualification/weak/victim-odd",
+    "stop_ns": 4.999,
+    "baseline": "victim-odd-prefix"
   }
 ]

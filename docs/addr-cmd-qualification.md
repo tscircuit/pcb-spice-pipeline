@@ -415,8 +415,17 @@ on A9; median outer/inner overshoot is 21.013% / 24.068%. A4 peaks at
 occur in the matched first-event prefix. The
 [weaker-drive overlay](../runs/addr-cmd/qualification/summary/weak-overlay.png)
 shows the complete 8 ns main capture. The maximum remains 11.697 mV above the
-absolute upper rating. Quiet-victim results remain pending, and actual
-firmware/calibration implementation is unverified.
+absolute upper rating. Its even-victim capture also completes the full 8 ns,
+in 1,030.198 s with 238.328 MiB sampled native maximum RSS. A4 quiet noise
+falls from 429.418 to 376.330 mV, its minimum changes from -0.397358 to
+-0.358066 V, and even-pattern median noise falls from 260.057 to 229.207 mV.
+The odd-victim capture completes in 1,004.711 s with 238.172 MiB sampled native
+maximum RSS. Its worst quiet disturbance is 355.289 mV on A7. Across both
+quiet patterns, worst noise falls from 429.418 to 376.330 mV and median noise
+from 259.768 to 227.278 mV. These global noise metrics and main peaks are the
+same in the matched 4.999 ns prefixes. This candidate improves both peak and
+noise more than width correction in that event; actual firmware/calibration
+implementation remains unverified.
 
 ## Reproduction and validation
 

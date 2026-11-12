@@ -1320,6 +1320,226 @@
         "packageOff": false,
         "termination": 0
       }
+    },
+    "weak-even": {
+      "directory": "runs/addr-cmd/qualification/weak/victim-even",
+      "native": {
+        "seconds": 1030.198069,
+        "peakRssKiB": 244048,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 7.2733937079999595,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.474239624999928,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 25.633036957999924,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.981459791,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 310.25372670800004,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-even",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "e68537ccb7aaf7d1812ed31d7705362f8c06c6b48e9278047e68a4cc72fe0972",
+      "window_ns": 8,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "native_deck_sha256": "cc377ee1c953a5924a9747705cec6b495bca30aa6d1d31302e65cf8b379c6611",
+      "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_345",
+        "packageOff": false,
+        "termination": 0
+      }
+    },
+    "weak-even-prefix": {
+      "directory": "runs/addr-cmd/qualification/weak/victim-even",
+      "native": {
+        "seconds": 1030.198069,
+        "peakRssKiB": 244048,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 7.2733937079999595,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.474239624999928,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 25.633036957999924,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.981459791,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 310.25372670800004,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-even",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "e68537ccb7aaf7d1812ed31d7705362f8c06c6b48e9278047e68a4cc72fe0972",
+      "window_ns": 4.999,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "native_deck_sha256": "cc377ee1c953a5924a9747705cec6b495bca30aa6d1d31302e65cf8b379c6611",
+      "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_345",
+        "packageOff": false,
+        "termination": 0
+      }
+    },
+    "weak-odd": {
+      "directory": "runs/addr-cmd/qualification/weak/victim-odd",
+      "native": {
+        "seconds": 1004.7106494169999,
+        "peakRssKiB": 243888,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 8.290724959000014,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.474230791999958,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 25.636055625000036,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.97853154199989,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 301.0911886669998,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-odd",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "117b7a5755e9bab81e2119902b2a8db08a267ea1485e717de38fc63771f619c8",
+      "window_ns": 8,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "native_deck_sha256": "4c3302d9cb7ffac1ccf1930ed728bdcab606fce49813449f437047290710e8ab",
+      "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_345",
+        "packageOff": false,
+        "termination": 0
+      }
+    },
+    "weak-odd-prefix": {
+      "directory": "runs/addr-cmd/qualification/weak/victim-odd",
+      "native": {
+        "seconds": 1004.7106494169999,
+        "peakRssKiB": 243888,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 8.290724959000014,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.474230791999958,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 25.636055625000036,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.97853154199989,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 301.0911886669998,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-odd",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "117b7a5755e9bab81e2119902b2a8db08a267ea1485e717de38fc63771f619c8",
+      "window_ns": 4.999,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "native_deck_sha256": "4c3302d9cb7ffac1ccf1930ed728bdcab606fce49813449f437047290710e8ab",
+      "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_345",
+        "packageOff": false,
+        "termination": 0
+      }
     }
   }
 }
