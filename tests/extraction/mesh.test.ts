@@ -16,8 +16,11 @@ test('FastHenry plane refinement scales with the TSX trace footprint, retaining 
     const cell = geometryFromCircuitJson(circuit, settings).cells[0]
     const deck = fastHenryDeck(cell, { ...settings.extraction, groundMeshMm: .715, filaments: 7 })
     counts.push((deck.match(/^Eg/gm) ?? []).length)
-    const [x, y] = cell.routedCopper!.pours[0].polygon[0][0]
-    assert.ok(deck.split('\n').some(line => /^Np0_/.test(line) && line.includes(`x=${x / 1000} y=${y / 1000} `)), 'full plane corner remains in the native deck')
+    for (const [x, y] of cell.routedCopper!.pours[0].polygon[0]) {
+      const node = deck.split('\n').find(line => /^Np0_/.test(line) && line.includes(`x=${x / 1000} y=${y / 1000} `))?.split(' ')[0]
+      assert.ok(node, `scale ${planeScale}: original plane corner (${x}, ${y}) remains in the native deck`)
+      assert.ok(deck.split('\n').some(line => /^Eg0_/.test(line) && line.split(' ').slice(1, 3).includes(node)), 'corner belongs to a copper edge')
+    }
   }
   assert.ok(counts[1] < counts[0] * 3, `16x board area must not require 16x fine plane edges: ${counts}`)
 })

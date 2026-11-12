@@ -20,6 +20,8 @@ export function groundMesh(pour: Solid, meshMm: number, contacts: Array<{point:P
   const points: Point[]=[]
   const edges: Array<[number,number,number]>=[]
   const indices=new Map<string,number>()
+  // Grid deduplication must retain source corners, including sub-ulp asymmetry.
+  const vertices=new Map(pour.polygon.flat().map(p=>[`${p[0].toFixed(10)},${p[1].toFixed(10)}`,p]))
   /** Index of the mesh point at (x, y), adding it the first time it is seen so shared corners become one node. */
   const node=(x:number,y:number): number=>{
     const key=`${x.toFixed(10)},${y.toFixed(10)}`
@@ -27,7 +29,7 @@ export function groundMesh(pour: Solid, meshMm: number, contacts: Array<{point:P
     if(index===undefined) {
       index=points.length
       indices.set(key,index)
-      points.push([x,y])
+      points.push(vertices.get(key)??[x,y])
     }
     return index
   }
