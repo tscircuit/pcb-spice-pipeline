@@ -202,8 +202,8 @@ export function BoardPage({ 'board-tree': boardTree, 'load-board': loadBoard, mo
           <GenericSolverDebugger
             key={ready.revision}
             customRenderer={{
-              name: 'Routed stage',
-              render: () => <div className="routed-views"><Board3dPanel solver={ready.solver} step={step} revision={solveRevision} sliceIndex={sliceIndex} onSliceChange={setSliceIndex} />{renderStage(ready.solver, step, sliceIndex)}</div>,
+              name: 'Physical 3D stages',
+              render: () => <div className="routed-views"><Board3dPanel solver={ready.solver} step={step} revision={solveRevision} sliceIndex={sliceIndex} onSliceChange={setSliceIndex} /><details className="board-2d-details"><summary>2D diagnostic drawing</summary>{renderStage(ready.solver, step, sliceIndex)}</details></div>,
               getDownload: () => stageDrawing(ready.solver, step, sliceIndex),
             }}
             solver={ready.solver as unknown as React.ComponentProps<typeof GenericSolverDebugger>['solver']}

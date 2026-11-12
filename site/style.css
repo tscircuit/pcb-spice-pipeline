@@ -43,3 +43,9 @@ summary, button { cursor: pointer; }
 .voltage-legend span { display: inline-block; width: 180px; height: 10px; background: linear-gradient(to right, blue, cyan, lime, yellow, red); }
 .routed-views { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; width: 100%; }
 @media (max-width: 1000px) { .routed-views { grid-template-columns: minmax(0, 1fr); } }
+.routed-views { display: block; }
+.board-3d-canvas { height: clamp(440px, 63vh, 760px); pointer-events: none; user-select: none; }
+.board-2d-details { margin: 8px 0 14px; font-size: 13px; }
+.board-2d-details > summary { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 4px; }
+.board-focus-chip { padding: 3px 8px; border-radius: 12px; font-size: 12px; background: #fef3c7; color: #854d0e; }
+.board-shot { color: #475569; font-size: 12px; }

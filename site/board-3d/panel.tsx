@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CadViewer } from '@tscircuit/3d-viewer'
 import * as THREE from 'three'
-import { stackupFromCircuitJson, boardViewerCircuit } from '../../src/board'
+import { stackupFromCircuitJson, boardViewerCircuit, boardCameraShot, boardPosition, type BoardPosition } from '../../src/board'
 import type { RoutedPipelineSolver } from '../../src/pipeline'
-import { fullCopper } from './copper'
+import { fullCopper, copperRoutes } from './copper'
 import { stageOverlay } from './overlay'
 import { dispose } from './primitives'
 import { boardStageState, spatialVoltage, voltageColor } from './state'
@@ -33,7 +33,10 @@ export function Board3dPanel({
   const overlayRef = useRef<THREE.Group | null>(null)
   const [root, setRoot] = useState<THREE.Object3D | null>(null)
   const [camera, setCamera] = useState<CameraController | null>(null)
-  const [xray, setXray] = useState(true)
+  const [shotProgress, setShotProgress] = useState(1)
+  const [aspect, setAspect] = useState(2.4)
+  const [reducedMotion, setReducedMotion] = useState(false)
+  const canvasRef = useRef<HTMLDivElement>(null)
   const [fraction, setFraction] = useState(0.5)
   const [time, setTime] = useState(0)
   const [playing, setPlaying] = useState(false)
@@ -51,18 +54,63 @@ export function Board3dPanel({
       if (!controller) return
       const sceneRoot = (window as unknown as { __TSCIRCUIT_THREE_OBJECT?: THREE.Object3D }).__TSCIRCUIT_THREE_OBJECT
       if (sceneRoot?.parent?.type === 'Scene') setRoot(sceneRoot)
-      const board = circuit.find((record) => record.type === 'pcb_board')
-      const center = board?.type === 'pcb_board' ? board.center : { x: 0, y: 0 }
-      const extent = board?.type === 'pcb_board' ? Math.max(board.width ?? 20, board.height ?? 20) : 20
-      controller.animateTo({
-        position: [center.x + extent * 0.08, center.y - extent * 0.5, extent * 0.48],
-        target: [center.x, center.y, 0],
-        up: [0, 0, 1],
-        durationMs: 0,
-      })
     },
     [circuit],
   )
+  const stageReady =
+    step === 0 || [state.scopes, state.sections, state.fields, state.bindings, state.networks, state.captures][step - 1].length > 0
+  const focus = useMemo((): BoardPosition[] => {
+    if (step === 4) {
+      const mapping = state.bindings.flatMap((binding) => binding.mappings)[0]
+      const points = mapping
+        ? [mapping.from, mapping.to].flatMap((id) => {
+            const port = circuit.find((record) => record.type === 'pcb_port' && record.source_port_id === id)
+            return port?.type === 'pcb_port' ? [boardPosition(stack, port.x, port.y, port.layers[0])] : []
+          })
+        : []
+      if (points.length) return points
+    }
+    const selected = new Set(state.scopes.flatMap((scope) => scope.selectedPcbTraceIds))
+    const routes = copperRoutes(circuit)
+    const first = routes.find((route) => selected.has(route.trace)) ?? routes[0]
+    const track = routes.filter((route) => route.trace === first?.trace)
+    return track.length
+      ? [boardPosition(stack, ...track[0].a, track[0].layer), ...track.map((route) => boardPosition(stack, ...route.b, route.layer))]
+      : []
+  }, [circuit, stack, state, step])
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    /** Respect changes to the user's system motion preference. */
+    const change = (): void => setReducedMotion(media.matches)
+    change()
+    media.addEventListener('change', change)
+    const observer = new ResizeObserver(([entry]) => setAspect(entry.contentRect.width / Math.max(1, entry.contentRect.height)))
+    if (canvasRef.current) observer.observe(canvasRef.current)
+    return (): void => {
+      media.removeEventListener('change', change)
+      observer.disconnect()
+    }
+  }, [])
+  useEffect(() => {
+    setShotProgress(reducedMotion || step === 0 || step === 3 || step === 6 ? 1 : 0)
+    if (reducedMotion || !stageReady) return
+    const phases = step === 2 || step === 5 ? [0.2, 0.4, 0.6, 0.8, 1] : step === 1 || step === 4 ? [1] : []
+    const timers = phases.map((progress, index) =>
+      window.setTimeout(
+        () => {
+          setShotProgress(progress)
+          if (step === 2 && slices.length) onSliceChange(Math.round(progress * (slices.length - 1)))
+        },
+        (index + 1) * (step === 4 ? 1800 : 1000),
+      ),
+    )
+    return (): void => timers.forEach((timer) => window.clearTimeout(timer))
+  }, [step, stageReady, reducedMotion, root, slices.length, onSliceChange])
+  useEffect(() => {
+    if (!camera) return
+    const shot = boardCameraShot(circuit, stack, { stage: step, progress: shotProgress, focus, slice: slices[currentSliceIndex], aspect })
+    camera.animateTo({ ...shot, durationMs: reducedMotion ? 0 : 850 })
+  }, [camera, circuit, stack, step, shotProgress, focus, currentSliceIndex, aspect, reducedMotion])
   useEffect(() => {
     if (!root) return
     const copper = fullCopper(circuit, stack)
@@ -95,14 +143,18 @@ export function Board3dPanel({
         object.frustumCulled = false
         const mesh = object as THREE.Mesh
         let owner: THREE.Object3D | null = object
-        while (owner && owner.name !== 'board') owner = owner.parent
-        if (!owner || !mesh.material || originals.has(mesh)) return
+        while (owner && owner.name !== 'board') {
+          if (owner.name === 'signal-integrity-overlay') return
+          owner = owner.parent
+        }
+        if (!mesh.material || originals.has(mesh) || object.userData.spatial || object.parent?.name === 'signal-integrity-overlay') return
         originals.set(mesh, mesh.material)
         const copy = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).map((material) => {
           const clone = material.clone()
-          if (xray) {
+          const opacity = step === 0 || step === 1 ? 1 : owner ? (step === 3 ? 0.035 : 0.18) : step === 3 ? 0.08 : step === 4 ? 0.18 : 0.4
+          if (opacity < 1) {
             clone.transparent = true
-            clone.opacity = object.name.includes('texture') ? 0.2 : 0.15
+            clone.opacity = opacity
             clone.depthWrite = false
           }
           return clone
@@ -119,7 +171,7 @@ export function Board3dPanel({
         mesh.material = original
       }
     }
-  }, [root, xray])
+  }, [root, step])
   useEffect(() => {
     if (!playing || duration <= 0 || step !== 6) return
     let previous = performance.now()
@@ -146,14 +198,11 @@ export function Board3dPanel({
     <section className="board-3d" aria-label="Full board 3D simulation overlay">
       <header>
         <strong>3D · {stageName}</strong>
-        <label>
-          <input type="checkbox" checked={xray} onChange={(event) => setXray(event.target.checked)} />
-          X-ray board
-        </label>
-        <button onClick={() => cameraReady(camera)}>Fit full board</button>
-        <button onClick={() => camera?.animateToPreset('Top Down')}>Top</button>
+        <span className="board-shot">Automatic camera · orbit / pan / zoom locked</span>
+        {step >= 2 && <span className="board-focus-chip">Components faded · upper layers translucent</span>}
+        {step === 4 && <span className="board-focus-chip">{shotProgress < 0.5 ? 'Driver pads' : 'Receiver pads'}</span>}
       </header>
-      <div className="board-3d-canvas">
+      <div className="board-3d-canvas" ref={canvasRef} aria-label="Scripted board camera">
         <CadViewer circuitJson={viewerCircuit} autoRotateDisabled onCameraControllerReady={cameraReady} ref={setRoot} />
       </div>
       <p className="board-legend">
