@@ -177,18 +177,38 @@ async function boards(): Promise<void> {
   }
 }
 
-/** Run the same large DDR deck over 0..1 ns, with a ten-minute cap on each variant. */
+/** Translate the common quiet lead-in so a one-nanosecond window includes the first edge. */
+function edgeWindow(deck: string): { deck: string; offsetSeconds: number } {
+  const lines = [...deck.matchAll(/^VK[UD]\d+ .*PWL\((.*)\)$/gm)]
+  const times = lines.flatMap(line => line[1].split(/\s+/).map(Number).filter((value, i) => i % 2 === 0 && value > 0))
+  if (!times.length) throw new Error('DDR benchmark requires explicit switching sources')
+  const offsetSeconds = Math.max(0, Math.min(...times) - .2e-9)
+  const shifted = deck.replace(/^(VK[UD]\d+ .*PWL\()(.*)(\))$/gm, (_, first: string, values: string, last: string) => {
+    const numbers = values.split(/\s+/).map(Number)
+    return first + numbers.map((value, i) => i % 2 === 0 && value > 0 ? spiceNumber(value - offsetSeconds) : String(value)).join(' ') + last
+  })
+  const active = [...shifted.matchAll(/^VK[UD]\d+ .*PWL\((.*)\)$/gm)].some(match => {
+    const values = match[1].split(/\s+/).map(Number)
+    return values.some((value, i) => i % 2 === 0 && value <= 1e-9 && Math.abs(values[i + 1] - values[1]) > .01)
+  })
+  if (!active) throw new Error('DDR benchmark window does not exercise a switching edge')
+  return { deck: shifted.replace(/^(\.tran \S+) \S+ (.*)$/m, '$1 1e-9 $2'), offsetSeconds }
+}
+
+/** Run the same large DDR network around its first edge, capped at ten minutes per variant. */
 async function ddr(): Promise<void> {
   const path = process.env.SI_DDR_NETWORK_INPUT
   if (!path) throw new Error('SI_DDR_NETWORK_INPUT must name a saved RouteNetworkSolver input; never commit this board data')
-  const input = JSON.parse(await readFile(path, 'utf8')) as RouteNetworkInput
+  const inputText = await readFile(path, 'utf8')
+  await writeFile(join(output, 'ddr-network-input.json'), inputText)
+  const input = JSON.parse(inputText) as RouteNetworkInput
   const summaries: Record<string, unknown>[] = []
   for (const fitted of [false, true]) {
     const network = new RouteNetworkSolver(rebind(input, fitted, 10e-12))
     network.solve()
     const compiled: RoutedDeck = network.getOutput().value
-    const deck = compiled.deck.replace(/^(\.tran \S+) \S+ (.*)$/m, '$1 1e-9 $2')
-    const directory = join(output, 'ddr', fitted ? 'fitted' : 'original')
+    const { deck, offsetSeconds } = edgeWindow(compiled.deck)
+    const directory = join(output, 'ddr-edge', fitted ? 'fitted' : 'original')
     const timing = await run(deck, directory, 600000, true)
     const raw = await readFile(join(directory, 'waveform.raw'), 'utf8')
     // On timeout ngspice's ASCII raw point-count header is zero; count only
@@ -198,12 +218,13 @@ async function ddr(): Promise<void> {
     const tokens = body.slice(0, body.lastIndexOf('\n') + 1).trim().split(/\s+/)
     const steps = width > 0 ? Math.floor(tokens.length / (width + 1)) : 0
     const finalTimeSeconds = steps ? Number(tokens[(steps - 1) * (width + 1) + 1]) : 0
-    const summary = { fitted, ...timing, steps, firstTimeSeconds: steps ? Number(tokens[1]) : null, finalTimeSeconds,
-      secondsPerAcceptedStep: steps ? timing.wallSeconds / steps : null, deckSha256: sourceHash(deck), networkInputSha256: sourceHash(await readFile(path)),
+    const summary = { fitted, ...timing, steps, offsetSeconds, firstTimeSeconds: steps ? Number(tokens[1]) : null, finalTimeSeconds,
+      secondsPerStoredSample: steps ? timing.wallSeconds / steps : null, deckSha256: sourceHash(deck), networkInputSha256: sourceHash(inputText),
       pwlKnots: [...deck.matchAll(/^VK[UD]\d+ .*PWL\((.*)\)$/gm)].map(match => match[1].split(/\s+/).length / 2),
-      complete: !timing.capped && !timing.diagnostic && timing.status === 0 && finalTimeSeconds >= 1e-9 * (1 - 1e-8) }
+      complete: !timing.capped && !timing.diagnostic && timing.status === 0 && finalTimeSeconds >= 1e-9 * (1 - 1e-8),
+      countQualification: 'Fully written raw samples; a capped run can lose buffered samples and does not expose internal rejected steps. Wall/sample includes parsing, DC and output.' }
     summaries.push(summary)
-    await writeFile(join(output, 'ddr.json'), JSON.stringify(summaries, null, 2))
+    await writeFile(join(output, 'ddr-edge.json'), JSON.stringify(summaries, null, 2))
     console.log(JSON.stringify(summary))
   }
 }

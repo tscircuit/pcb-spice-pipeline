@@ -12,6 +12,17 @@ It samples the solution on a uniform half-window grid and reduces both weight
 columns together. The reduction has a continuous absolute coefficient error bound
 of `coefficientTolerance` relative to that sampled PWL. This bound does **not**
 cover the derivative averaging or imply a bound on arbitrary loaded outputs.
+For each fixture i, using the converter's into-pad current convention:
+
+`Ipu(Vi) KU + Ipd(Vi) KD = (Vfixture_i - Vi)/Ri - C_comp dVi/dt - Ipc(Vi) - Igc(Vi)`.
+
+The two same-direction loads provide the two rows of this linear system. The
+secant `(V(t+h/2)-V(t-h/2))/h` is the exact average derivative of the fixture's
+PWL voltage over that window (one-sided at the endpoints). After solving, each
+accepted reduction chord differs by at most epsilon at every original grid knot
+in both columns. The difference of two PWL functions is linear between knots,
+so the same bound holds continuously on every segment.
+
 Negative, greater-than-one and nonmonotone coefficients are retained. Near-singular
 fixtures are rejected at a dimensionless determinant threshold corresponding to a
 condition number of about one million; the spike does not invent missing fixture
@@ -101,3 +112,47 @@ victim near 1.391 mV. Differential BUS 11.782 mV, P 14.958 mV, N 14.908 mV.
 The differential run stores 278879 → 160673 native samples and takes
 49.033 → 18.812 seconds. These are candidate comparisons, without independent
 full-board convergence qualification or a promise of sub-mV baseline parity.
+
+The upstream change belongs in `@tscircuit/ibis-to-spice`'s `switchingWeights`
+coefficient extraction (`lib/convert.ts` in pinned ad1ec9e), consumed by
+`bitWeights` in `lib/general.ts`. Edge scheduling is a different issue: the
+baseline and candidate here both retain #75's held-coefficient edge starts,
+settled-tail admission and explicit logical schedules. This spike keeps the
+alternative in the pipeline usage layer and does not edit node_modules.
+
+## Corner qualification
+
+The parser and extraction use one selected voltage column throughout I-V, V-T,
+fixture voltage and C_comp. No interpolation between typ/min/max voltage columns
+was found. V-T time coordinates are shared by the three columns, however: an
+adaptive table can retain very short intervals important to a different corner.
+Some AM335x 0.1 ps clusters already exist in a single vendor fixture; the union
+of the two fixture grids adds further short intervals. Differentiating this
+piecewise-linear representation makes weights sensitive to the local slope
+changes even when the two current equations are well conditioned.
+
+There is a separate legacy C_comp semantic risk. Ordinary C_comp min/max entries
+are ordered by numerical capacitance, not guaranteed to represent the same PVT
+corners as the I-V/V-T min/max columns. [IBIS 7.2, C Comp Corner](https://ibis.org/ver7.2/ver7_2.pdf)
+provides explicitly corner-correlated values; [Intel/Mentor's discussion](https://ibis.org/email_archive/2045.html)
+explains why legacy ordering alone cannot establish the correlation. The pinned
+converter uses the same-named C_comp column. This spike deliberately retains that
+policy for a controlled comparison; its min/max replay results qualify that
+**declared selection**, not a physically proven capacitance/process association.
+There is no C_comp corner ambiguity in the typical comparisons. Upstream should
+make this policy explicit before claiming general PVT fidelity.
+
+The saved DDR address/command stimulus first changes at 2.5 ns. A preliminary
+quiet-only 0–1 ns control hit the 600 s cap after writing 88 samples through
+0.985597 ns: significant cost exists before weight noise is even exercised.
+The active comparison therefore translates **all** weight-source times by the
+same 2.3 ns (first edge at 0.2 ns), retaining the initial DC state, relative
+edge spacing and complete electrical network. It requests 0–1 ns and caps each
+variant independently at 600 s. This common time translation removes the quiet
+lead-in; it does not compress or change a measured edge. The cancelled quiet
+candidate never invoked ngspice.
+
+Capped runs are partial evidence. Their point counts are fully written raw
+samples, potentially missing the engine's buffered tail. Wall time divided by
+these points includes deck loading, DC solution and output; it is not an isolated
+matrix factorization benchmark or an internal count of rejected timesteps.
