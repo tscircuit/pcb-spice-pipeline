@@ -177,3 +177,6 @@ the first/last series section; omitting them preserves the existing channel.
 Ordinary BGA pads do not specify a port-to-plane current path and receive no
 inferred vertical post. Real-board vias keep the transition models above, so
 the same transition is never added twice.
+
+[Three bounded residual-coupling checks](coupling-residual.md) retain the
+remaining fine-reference gate failures; they do not qualify the terminal model.
