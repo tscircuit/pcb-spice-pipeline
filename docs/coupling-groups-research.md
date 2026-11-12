@@ -78,6 +78,17 @@ closure. Thresholds use strict `>` comparisons.
 | > 0.03 | 84 | 32 | 47 | 85 | 31 | 47 |
 | > 0.1 | 52 | 55 | 20 | 52 | 55 | 20 |
 
+Keeping indivisible binding edges while applying the same combined threshold
+to route edges gives this second graph. Positive thresholds delete real route
+couplings and describe an approximation; these are not EXACT partitions:
+
+| Threshold | Edges with bindings | Components | Largest component |
+|---:|---:|---:|---:|
+| > 0 | 460 | 6 | 86 |
+| > 0.01 | 385 | 15 | 75 |
+| > 0.03 | 346 | 24 | 64 |
+| > 0.1 | 321 | 42 | 29 |
+
 Including all RLGC/loss, oblique and binding dependencies gives exact component
 sizes **86, 1, 1, 1, 1, 1**. The largest exact deck retains **1,765 cells** and
 **17,352,583 bytes**: only 3.8% fewer cells and 0.95% fewer bytes than the full deck.
@@ -195,6 +206,16 @@ original and refined failures show that numerical controls matter even for
 algebraically independent circuits. The small-board victim rows do not establish
 DDR approximation accuracy: they do not discard a nonzero coupling. The DDR
 window that aborts provides no valid full-window error measurement.
+
+The committed runner also reproduces all three forced-cut deck hashes.
+A separate two-trace cut at threshold **0.6** deliberately excludes its one
+nonzero pair (`k=0.5013`, normalized C score `0.4817`). Both emitted one-net decks
+completed 40 ns with the same tighter controls. DATA maximum error is
+**226.699 mV** and VICTIM maximum error is **299.747 mV**. Each partition reports
+2.107 pJ electric and 1.392 pJ magnetic boundary cross-term bounds at the stated
+3.3 V / 20 mA assumptions. Quiet-driver bindings remain intact. This experiment
+exercises a real dropped coupling; it does not qualify that threshold for use.
+A quiet DDR prefix with tiny error cannot substitute for this switching check.
 
 Local lint (one pre-existing mesh-length warning), module and vocabulary checks,
 and all project typecheck configurations pass with local RFC dependency builds.
