@@ -25,7 +25,7 @@ def pad_corners(deck, padding):
             held = pairs[index - 1]
             edge = pairs[index]
             interval = edge[0] - held[0]
-            if 0 < interval <= 2e-15 and previous[1] == held[1] and edge[1] != held[1]:
+            if 0 < interval <= 2e-15 and previous[1] == held[1]:
                 target = edge[0] - padding
                 if not previous[0] < target < held[0]:
                     raise ValueError("Requested padding cannot fit within the preceding flat hold")
