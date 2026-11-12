@@ -2015,6 +2015,62 @@
         "packageOff": false,
         "termination": 0
       }
+    },
+    "spacing-odd-prefix": {
+      "directory": "runs/addr-cmd/qualification/spacing-prefix/victim-odd",
+      "native": {
+        "seconds": 533.5763725420001,
+        "peakRssKiB": 242928,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 6.208876458999999,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 14.286544249999999,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 22.367697625,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 38.529256292,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 280.94269545899994,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "8010c9aabb291a4643de54c8bb37e2edadc8730d41dadde2f271161c4293ba25",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-odd",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "ad6bdb0e38456149b2575ac68d0d5bcd78b9b2afcdeb46252eca720146aa5da9",
+      "window_ns": 4.999,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
+      "native_deck_sha256": "e12dd50e277d5482f844ad583714dffcac1b9aae004cd74e6935f2f76a25b95b",
+      "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
+      "declared_duration_ns": 4.999,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_352",
+        "packageOff": false,
+        "termination": 0
+      }
     }
   }
 }

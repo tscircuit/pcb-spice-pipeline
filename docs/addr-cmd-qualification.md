@@ -7,6 +7,56 @@ and [routed-model omissions](routed-2d.md). In particular, ideal die supplies,
 approximate oblique coupling, open unmodeled neighbour endpoints, finite pour
 edges and the package model's unused-pin reduction remain assumptions.
 
+## Decision from accepted captures
+
+The large before crest is reproducible inside this model: refining the reduced
+full-bus scope changes the six worst main peaks by at most 2.435 mV, and A4
+quiet noise by 0.023 mV. Doubling the coupling radius changes those main peaks
+by at most 0.522 mV and A4 quiet noise by 0.136 mV. These checks do not explain
+away a roughly 400 mV disturbance. Its physical-board magnitude remains
+unverified, particularly because it depends strongly on the package model
+and an intentionally coherent first switching event. The hypothesis that the
+inner routes would be clean while only the outer routes ring is unsupported.
+
+All rows below use the same 24 physical nets, original 8 ns control history,
+main pattern and both parity patterns, compared over exactly 4.999 ns. Quiet
+statistics combine the 22 command victims across both parity experiments.
+The minimum includes main and quiet captures; it occurs on quiet A4 here.
+
+| Candidate | Maximum main peak (V) | Median outer / inner overshoot (%) | Worst / median quiet noise (mV) | Minimum (V) |
+|---|---:|---:|---:|---:|
+| Before | 2.092877 | 27.592 / 30.916 | 429.418 / 259.768 | -0.397358 |
+| Outer width correction with legal neckdowns | 1.994739 | 21.657 / 29.271 | 427.458 / 242.167 | -0.427458 |
+| Model_345, 1.14 x RExt | 1.986697 | 21.013 / 24.068 | 376.330 / 227.278 | -0.358066 |
+| Model_273, slowest slew | 2.028645 | 24.425 / 27.526 | 361.592 / 217.492 | -0.317118 |
+| BA2 spacing +0.25 mm from A4 | 2.092926 | 27.587 / 30.945 | 429.279 / 259.686 | -0.397692 |
+
+Among these accepted rows, maximum peak ranks Model_345, width correction,
+Model_273, then spacing. Worst quiet noise ranks Model_273, Model_345, width,
+then spacing. Spacing has no meaningful benefit. Width correction leaves the
+large quiet disturbance and worsens its negative excursion beyond -0.4 V.
+The clearest joint peak/noise improvement so far is Model_345; Model_273 is
+better for quiet-noise amplitude alone. Both driver candidates have complete
+8 ns captures for all three patterns. Width and spacing are qualified only
+for the first event; later changed-board behavior remains unverified.
+VTT remains unranked while its bounded numerical check is in progress.
+
+The complete-window area and settling results also prevent calling these
+clean signals. Settling is censored at the next intended edge or capture end;
+the counts below include all command edges in the 8 ns main capture. All 22
+first edges are censored in the common 4.999 ns comparison.
+
+| Complete 8 ns main case | Largest positive lobe above 1.5 V (V ns) | Net | Settled / censored edges |
+|---|---:|---|---:|
+| Before | 0.495778 | A5 | 5 / 28 |
+| Model_345 | 0.397140 | A5 | 6 / 27 |
+| Model_273 | 0.476718 | A9 | 6 / 27 |
+
+The DDR3-800 area limit is unverified; these are waveform measurements within
+the model, not an area-compliance decision. The largest lobe and sum of lobes,
+per-net settling/censoring and all three patterns are retained in
+[metrics.csv](../runs/addr-cmd/qualification/summary/metrics.csv).
+
 ## Fixed experiment
 
 The baseline is `runs/addr-cmd/capture-c2-r1`, commit `3d547bb`: AM3352
@@ -457,8 +507,11 @@ peak is 2.092926 V, only 0.049 mV above before. Median outer/inner overshoot is
 27.587% / 30.945%. A4 worst quiet disturbance is 429.279 mV versus 429.418 mV
 before; its minimum is -0.397692 V. These changes do not demonstrate a useful
 remedy. The [spacing overlay](../runs/addr-cmd/qualification/summary/spacing-overlay.png)
-shows the matched 4.999 ns comparison. The odd-victim prefix remains pending;
-there is no combined two-pattern spacing result yet.
+shows the matched 4.999 ns comparison. The odd-victim prefix also completes,
+in 533.576 s with 237.234 MiB sampled native maximum RSS. Across both quiet
+patterns the maximum is 429.279 mV and median is 259.686 mV, versus
+429.418 / 259.768 mV before. `spacing-prefix-check.json` verifies identical
+circuit bodies and switching histories between each compilation and retry.
 
 ## Reproduction and validation
 
