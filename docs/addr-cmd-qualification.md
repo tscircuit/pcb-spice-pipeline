@@ -192,7 +192,7 @@ Package-off replaces only package series R/L with micro-ohm links and removes
 package C/mutual terms, keeping vendor die I/V, C_comp, clamp and ideal die-rail
 models. Package-off is a diagnostic, not a possible board fix.
 
-| A4 control, full 1 mm copper scope | A4 peak | Overshoot | A4 confirmed settling | Largest other quiet disturbance |
+| A4 control, full 1 mm copper scope | A4 peak | Overshoot | A4 confirmed settling | Largest other quiet command disturbance |
 |---|---:|---:|---:|---:|
 | Original full-bus activity, package on | 2.024868 V | 34.991% | See per-net CSV | No quiet command nets in this main pattern |
 | A4 alone, package on | 1.538546 V | 2.570% | 1.054 ns | 111.096 mV, A9 |
@@ -404,9 +404,15 @@ any ringing reduction; no regulator performance is simulated here.
 At the original 10 ps maximum step, all three ideal-VTT patterns abort
 numerically at their first 2.5 ns command transition. The guard rejects the
 ngspice error despite process exit code zero and later control-script progress
-echoes. These captures supply no accepted peak, area or noise result. A single
-smaller-step sanity check is planned after the independent sweep; VTT is not
-yet ranked as a demonstrated improvement.
+echoes. These captures supply no accepted peak, area or noise result. A bounded
+control-corner experiment is prepared for after the independent sweep. The
+generated Ku/Kd controls splice their small initial measured mismatch onto
+the held state over 1 fs. The prototype moves only that preceding flat-state
+point to 1 ps before the edge, preserving every measured edge timestamp and
+coefficient. Three synthetic tests verify these invariants; they do not prove
+native convergence or physical accuracy. A successful VTT capture would need
+a matched before control with the same numerical preparation. VTT is not yet
+ranked as a demonstrated improvement.
 
 The Model_345 main capture completed the original 8 ns window in 1,006.650 s,
 using 239.266 MiB sampled native maximum RSS. Its largest peak is 1.986697 V
@@ -426,6 +432,23 @@ from 259.768 to 227.278 mV. These global noise metrics and main peaks are the
 same in the matched 4.999 ns prefixes. This candidate improves both peak and
 noise more than width correction in that event; actual firmware/calibration
 implementation remains unverified.
+`driver-passive-control-check.json` verifies that both compiled driver-row
+what-ifs retain exactly the original PCB and package elements. It is a circuit
+control check, separate from waveform acceptance.
+
+The Model_273 slowest-slew main capture completes 8 ns in 946.509 s, with
+238.844 MiB sampled native maximum RSS. Its maximum is 2.028645 V on A9;
+A4 reaches 1.966262 V. Median outer/inner overshoot is 24.425% / 27.526%.
+The even- and odd-victim captures also complete 8 ns. Worst quiet disturbance
+is respectively 361.592 mV on A4 and 342.166 mV on A7. Across both patterns,
+median quiet noise is 217.492 mV and worst noise is 361.592 mV, versus
+259.768 / 429.418 mV before. These main and aggregate noise metrics also occur
+in the matched first-event prefixes. The
+[slowest-slew overlay](../runs/addr-cmd/qualification/summary/slowest-overlay.png)
+shows the full 8 ns comparison. Slower slew lowers worst quiet noise more than
+Model_345, but leaves a higher maximum driven voltage. Its A4 largest positive
+lobe is 0.431916 V ns versus 0.444789 before: lower peak height does not imply
+an equally large decrease in area. The register mapping remains unverified.
 
 ## Reproduction and validation
 
@@ -450,6 +473,28 @@ runs the independent synthetic profile tests without native tools.
 Use the source's `data/cloud-ddr-routes.json` as the route-data input.
 An optional `SI_ROUTE_FIELD_CACHE` points to a local saved geometry cache;
 vendor data and large decks/fields stay ignored under `runs/`.
+
+To reproduce the bounded width comparison without first spending time on the
+rejected full-length native captures, compile the original 8 ns histories only,
+then reuse each over the accepted window:
+
+```sh
+SI_DDR3_BOARD=runs/addr-cmd/qualification/width-board/circuit.json \
+SI_ROUTE_RUN_DIR=runs/addr-cmd/qualification/width-history8 \
+SI_ROUTE_DURATION_NS=8 SI_ROUTE_BATCH=1 SI_ROUTE_EXTRACT_ONLY=1 \
+node --import tsx scripts/run-routed-ddr3.tsx addr-cmd
+
+for pattern in prbs7 victim-even victim-odd; do
+  folder="$pattern"
+  if [ "$pattern" = prbs7 ]; then folder=before; fi
+  SI_DDR3_BOARD=runs/addr-cmd/qualification/width-board/circuit.json \
+  SI_ROUTE_REUSE_DIR="runs/addr-cmd/qualification/width-history8/$folder" \
+  SI_ROUTE_RUN_DIR="runs/addr-cmd/qualification/width-prefix/$folder" \
+  SI_ROUTE_PATTERN="$pattern" SI_ROUTE_DURATION_NS=4.999 \
+  SI_ROUTE_BATCH=0 SI_ROUTE_EXTRACT_ONLY=0 \
+  node --import tsx scripts/run-routed-ddr3.tsx addr-cmd
+done
+```
 
 The summary script takes a JSON manifest of complete case directories and
 comparison windows. It rejects incomplete native captures and writes compact

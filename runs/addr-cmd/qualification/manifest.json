@@ -182,5 +182,45 @@
     "directory": "runs/addr-cmd/qualification/weak/victim-odd",
     "stop_ns": 4.999,
     "baseline": "victim-odd-prefix"
+  },
+  {
+    "name": "slowest",
+    "directory": "runs/addr-cmd/qualification/slowest/before",
+    "stop_ns": 8,
+    "baseline": "before",
+    "overlay": "slowest-overlay.png",
+    "label": "Model_273: slowest slew, same typical I/V",
+    "quiet_case": "slowest-even",
+    "quiet_baseline": "victim-even"
+  },
+  {
+    "name": "slowest-prefix",
+    "directory": "runs/addr-cmd/qualification/slowest/before",
+    "stop_ns": 4.999,
+    "baseline": "before-prefix"
+  },
+  {
+    "name": "slowest-even",
+    "directory": "runs/addr-cmd/qualification/slowest/victim-even",
+    "stop_ns": 8,
+    "baseline": "victim-even"
+  },
+  {
+    "name": "slowest-even-prefix",
+    "directory": "runs/addr-cmd/qualification/slowest/victim-even",
+    "stop_ns": 4.999,
+    "baseline": "victim-even-prefix"
+  },
+  {
+    "name": "slowest-odd",
+    "directory": "runs/addr-cmd/qualification/slowest/victim-odd",
+    "stop_ns": 8,
+    "baseline": "victim-odd"
+  },
+  {
+    "name": "slowest-odd-prefix",
+    "directory": "runs/addr-cmd/qualification/slowest/victim-odd",
+    "stop_ns": 4.999,
+    "baseline": "victim-odd-prefix"
   }
 ]

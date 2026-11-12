@@ -1,6 +1,6 @@
 {
   "status": "native-candidate-unqualified",
-  "analysis_script_sha256": "a122406101e0f288249d63cc12e7ab88f3d231f8c0a877dac7dc2393c21e06f1",
+  "analysis_script_sha256": "d888115ba1b0e699a8658337828bd02f86f4295f275c7c18fec226f31a833d9b",
   "cases": {
     "before": {
       "directory": "runs/addr-cmd/capture-c2-r1/before",
@@ -45,6 +45,7 @@
       "window_ns": 8,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "57bf4da04732b1ca050d26d0607fe4d05059091743281d4f55e2d37d7291a1f3",
       "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
       "declared_duration_ns": 8.0,
@@ -96,6 +97,7 @@
       "window_ns": 4.999,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "57bf4da04732b1ca050d26d0607fe4d05059091743281d4f55e2d37d7291a1f3",
       "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
       "declared_duration_ns": 8.0,
@@ -147,6 +149,7 @@
       "window_ns": 8,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "b6f197592a8504ae294a2f513c810f479f121073665a05abcdceaf340093c005",
       "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
       "declared_duration_ns": 8.0,
@@ -198,6 +201,7 @@
       "window_ns": 8,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "9599480d1c22068ea53dd288393d6d9c64e833fae47fefeb886ed0d11f9a7aed",
       "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
       "declared_duration_ns": 8.0,
@@ -249,6 +253,7 @@
       "window_ns": 4.999,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "b6f197592a8504ae294a2f513c810f479f121073665a05abcdceaf340093c005",
       "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
       "declared_duration_ns": 8.0,
@@ -300,6 +305,7 @@
       "window_ns": 4.999,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "9599480d1c22068ea53dd288393d6d9c64e833fae47fefeb886ed0d11f9a7aed",
       "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
       "declared_duration_ns": 8.0,
@@ -351,6 +357,7 @@
       "window_ns": 4.999,
       "cells": 218,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "44064850467f1561fb89a17c632f2534f49a053539297c8f8c3b1bc76cfb2bf1",
       "stimuli_sha256": "ebb4b2ba840ae76e6d27bb3e6c3436045171bd1f2a92bccf1f79705fa2fdb59d",
       "declared_duration_ns": 4.999,
@@ -414,6 +421,7 @@
       "window_ns": 4.999,
       "cells": 218,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "44563d4cdbfbb972e435806d54697ad088076b07acea1405b68c7b2f62273041",
       "stimuli_sha256": "ea01f133dba89f0b641e5f55998b76bec5a14c8b6acd6e61318ae8688a2b76b1",
       "declared_duration_ns": 4.999,
@@ -477,6 +485,7 @@
       "window_ns": 4.999,
       "cells": 218,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "c1095d65cbf495af0f7babbfb69c2d544be1965e65084195e5333538bfd1a16e",
       "stimuli_sha256": "8d715e756d7ae635244b363797bd526dd84f91a730edec9b6b66f2f9b0905c17",
       "declared_duration_ns": 4.999,
@@ -540,6 +549,7 @@
       "window_ns": 4.999,
       "cells": 218,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "67dc5032e65bf3cad03add77fdf02f1159cdcd4dc788fdd107a740e0bfb075d1",
       "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
       "declared_duration_ns": 4.999,
@@ -604,6 +614,7 @@
       "window_ns": 4.999,
       "cells": 218,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "0f9368380a0390ee7c33339ee6d8ef8201878a93f976a89de1bf36baa86fe664",
       "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
       "declared_duration_ns": 4.999,
@@ -668,6 +679,7 @@
       "window_ns": 4.999,
       "cells": 304,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "f28bb5cbb74769ec0a60a9c525db8a187a914d1535f9d327c5dc972c83765f27",
       "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
       "declared_duration_ns": 4.999,
@@ -732,6 +744,7 @@
       "window_ns": 4.999,
       "cells": 304,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "6bff19d3982f43405c1e6cc8e0ea3b8200e168d313861ab2530e41438f54b057",
       "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
       "declared_duration_ns": 4.999,
@@ -796,6 +809,7 @@
       "window_ns": 4.999,
       "cells": 250,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "dcfafc4486f1e1b8d2f6d56b9b31d748ae4763e4037e727f6b6e061116208fc1",
       "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
       "declared_duration_ns": 4.999,
@@ -860,6 +874,7 @@
       "window_ns": 4.999,
       "cells": 250,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "588d4967bf240fd19866841124dbd6170299df7e243c7cb527b744b7d0e16dea",
       "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
       "declared_duration_ns": 4.999,
@@ -924,6 +939,7 @@
       "window_ns": 8,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "7300fb5c4014ab742d2d8daff6c964809f7915a46a390baade573d974f251317",
       "stimuli_sha256": "3ceff358d1d01894e5e875150289727e01dda218d85c0276c0152823e2eac183",
       "declared_duration_ns": 8.0,
@@ -979,6 +995,7 @@
       "window_ns": 8,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "57eca80243fd6efc2372c2d84ac4a4584f2ebfb08ce0e421cd96f76f9d0ccd85",
       "stimuli_sha256": "3ceff358d1d01894e5e875150289727e01dda218d85c0276c0152823e2eac183",
       "declared_duration_ns": 8.0,
@@ -1034,6 +1051,7 @@
       "window_ns": 4.999,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "9578f21bc9f265059bda9a7f891ee02b48ef42a3b5bca72396b4b9b3f1a941db",
       "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
       "declared_duration_ns": 4.999,
@@ -1089,6 +1107,7 @@
       "window_ns": 4.999,
       "cells": 455,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "e775971d0347a9c185221751a52a4a831e9ec86ffcf68613cd55f1fceb7fc2f5",
       "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
       "declared_duration_ns": 4.999,
@@ -1144,6 +1163,7 @@
       "window_ns": 4.999,
       "cells": 455,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "9bed84a63002571ba5a438467d1dd6f58f71294d507c3aedadef58461296ceb1",
       "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
       "declared_duration_ns": 4.999,
@@ -1199,6 +1219,7 @@
       "window_ns": 4.999,
       "cells": 455,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "938ea8f4a25b57b2b801c390fc5e9654dd45e2d19209b5256eb8bdac7a4bbaa4",
       "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
       "declared_duration_ns": 4.999,
@@ -1254,6 +1275,7 @@
       "window_ns": 8,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "f1337de9a05222948b4747c726ffd20adbee48c5b3efea9e1397fe387ba22539",
       "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
       "declared_duration_ns": 8.0,
@@ -1309,6 +1331,7 @@
       "window_ns": 4.999,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "f1337de9a05222948b4747c726ffd20adbee48c5b3efea9e1397fe387ba22539",
       "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
       "declared_duration_ns": 8.0,
@@ -1364,6 +1387,7 @@
       "window_ns": 8,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "cc377ee1c953a5924a9747705cec6b495bca30aa6d1d31302e65cf8b379c6611",
       "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
       "declared_duration_ns": 8.0,
@@ -1419,6 +1443,7 @@
       "window_ns": 4.999,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "cc377ee1c953a5924a9747705cec6b495bca30aa6d1d31302e65cf8b379c6611",
       "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
       "declared_duration_ns": 8.0,
@@ -1474,6 +1499,7 @@
       "window_ns": 8,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "4c3302d9cb7ffac1ccf1930ed728bdcab606fce49813449f437047290710e8ab",
       "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
       "declared_duration_ns": 8.0,
@@ -1529,6 +1555,7 @@
       "window_ns": 4.999,
       "cells": 444,
       "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
       "native_deck_sha256": "4c3302d9cb7ffac1ccf1930ed728bdcab606fce49813449f437047290710e8ab",
       "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
       "declared_duration_ns": 8.0,
@@ -1537,6 +1564,342 @@
       "radius_mm": 1,
       "changes": {
         "driverModel": "Model_345",
+        "packageOff": false,
+        "termination": 0
+      }
+    },
+    "slowest": {
+      "directory": "runs/addr-cmd/qualification/slowest/before",
+      "native": {
+        "seconds": 946.5089292089999,
+        "peakRssKiB": 244576,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 7.272734958999994,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.468901125000006,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 26.65088629200001,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.972467,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 275.553906042,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "prbs7",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "89b29d378d1c48904a3db99601feac1092514fcbc823deedece74a6d4b7ea154",
+      "window_ns": 8,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
+      "native_deck_sha256": "9eb48593adb78200965b7bf1bc0b2c7875724cf3606eced9d81c188ccaddb58a",
+      "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_273",
+        "packageOff": false,
+        "termination": 0
+      }
+    },
+    "slowest-prefix": {
+      "directory": "runs/addr-cmd/qualification/slowest/before",
+      "native": {
+        "seconds": 946.5089292089999,
+        "peakRssKiB": 244576,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 7.272734958999994,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.468901125000006,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 26.65088629200001,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.972467,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 275.553906042,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "prbs7",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "89b29d378d1c48904a3db99601feac1092514fcbc823deedece74a6d4b7ea154",
+      "window_ns": 4.999,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
+      "native_deck_sha256": "9eb48593adb78200965b7bf1bc0b2c7875724cf3606eced9d81c188ccaddb58a",
+      "stimuli_sha256": "e444d85e5dbae61d785dc57e4752adc837eb3c11a270d354364125807f295618",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_273",
+        "packageOff": false,
+        "termination": 0
+      }
+    },
+    "slowest-even": {
+      "directory": "runs/addr-cmd/qualification/slowest/victim-even",
+      "native": {
+        "seconds": 975.250634875,
+        "peakRssKiB": 243856,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 8.291851916000015,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.479703083000146,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 25.638010500000092,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.97948670800007,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 279.64561491600006,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-even",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "8eb674b774a69522145df5c5de1397a1c0480c6fe0e329493bceac38672f4505",
+      "window_ns": 8,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
+      "native_deck_sha256": "60b04ae5518ea6069127862466b0a298bbb2f1b8c33d5f57db7841cb8ac4b994",
+      "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_273",
+        "packageOff": false,
+        "termination": 0
+      }
+    },
+    "slowest-even-prefix": {
+      "directory": "runs/addr-cmd/qualification/slowest/victim-even",
+      "native": {
+        "seconds": 975.250634875,
+        "peakRssKiB": 243856,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 8.291851916000015,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.479703083000146,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 25.638010500000092,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.97948670800007,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 279.64561491600006,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-even",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "8eb674b774a69522145df5c5de1397a1c0480c6fe0e329493bceac38672f4505",
+      "window_ns": 4.999,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
+      "native_deck_sha256": "60b04ae5518ea6069127862466b0a298bbb2f1b8c33d5f57db7841cb8ac4b994",
+      "stimuli_sha256": "31233ea6f8ed57f01a279c8d010df8abf04d76f3c1723d4fe97c96fe5095041c",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_273",
+        "packageOff": false,
+        "termination": 0
+      }
+    },
+    "slowest-odd": {
+      "directory": "runs/addr-cmd/qualification/slowest/victim-odd",
+      "native": {
+        "seconds": 934.8349669999997,
+        "peakRssKiB": 243984,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 7.2739094999996015,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.477827540999744,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 25.639912540999706,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.987248915999665,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 277.615733666,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-odd",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "ea116e81d49c5e825197394d48286282addd93704fd1e77f1967b26a5044144e",
+      "window_ns": 8,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
+      "native_deck_sha256": "2308f0ea16fc81280a087dfda68361e357668a43a231f4726b7c3098e4bc2112",
+      "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_273",
+        "packageOff": false,
+        "termination": 0
+      }
+    },
+    "slowest-odd-prefix": {
+      "directory": "runs/addr-cmd/qualification/slowest/victim-odd",
+      "native": {
+        "seconds": 934.8349669999997,
+        "peakRssKiB": 243984,
+        "code": 0,
+        "budgetError": "",
+        "checkpoints": [
+          {
+            "wall_seconds": 7.2739094999996015,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 17.477827540999744,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 25.639912540999706,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 42.987248915999665,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 277.615733666,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "hashes": {
+        "board_sha256": "a42c0458378a91ac975c72af6e4e2c3c7f5d407ac8fb4fad5ac0434e2b52ecd7",
+        "block": "DDR3_ADDR_CMD",
+        "pattern": "victim-odd",
+        "sources": {
+          "models/sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+          "models/W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+        }
+      },
+      "waveform_sha256": "ea116e81d49c5e825197394d48286282addd93704fd1e77f1967b26a5044144e",
+      "window_ns": 4.999,
+      "cells": 444,
+      "window_boundary": "linear interpolation between recorded samples when needed",
+      "control_numerics": null,
+      "native_deck_sha256": "2308f0ea16fc81280a087dfda68361e357668a43a231f4726b7c3098e4bc2112",
+      "stimuli_sha256": "0c33e34dc7b5e6fb5cf5c95b26a41dfc4c9ac28f52fa6d9dc142eab723234e72",
+      "declared_duration_ns": 8.0,
+      "maximum_timestep_ps": 10.0,
+      "maximum_cell_delay_ps": 113.77856470666548,
+      "radius_mm": 1,
+      "changes": {
+        "driverModel": "Model_273",
         "packageOff": false,
         "termination": 0
       }
