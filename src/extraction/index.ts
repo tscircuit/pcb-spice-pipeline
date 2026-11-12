@@ -17,6 +17,8 @@ export { validateMatrix, loopImpedance, referenceCapacitance, referenceConductan
 export { parseFastHenry, parseFasterCap, type CapacitanceOutput } from './parse'
 export { sum, scale, transpose, multiply, symmetrize } from './linalg'
 export { solveCrossSection, type CrossSection, type CrossSectionOptions, type CrossSectionResult, type SectionConductor, type SectionPlane, type SectionDielectric } from './cross-section'
-export { extractRoutes, referenceSeries, routeCrossSection, closestRoutePoints, type ExtractedRoutes, type ExtractedRouteSlice, type RouteMaterials, type RouteFieldCache } from './route-lines'
+export { referenceSeries, routeCrossSection, closestRoutePoints, type ExtractedRoutes, type ExtractedRouteSlice, type RouteMaterials, type RouteCoefficients } from './route-lines'
 export { extractRouteReturn, type RouteReturn } from './route-return'
 export { causalLossPoles, causalLossResponse, type LossPole } from './causal-loss'
+
+export { RouteFieldsSolver, type RouteFieldsInput } from './route-fields-solver'

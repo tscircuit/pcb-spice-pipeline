@@ -26,3 +26,10 @@ export { routeOblique } from './route-oblique'
 export { branchSaves } from './branch-saves'
 
 export { routedControl } from './routed-control'
+
+export { RouteBindingsSolver } from './route-bindings'
+export { RouteNetworkSolver } from './route-network'
+export { RouteCaptureSolver, executeRoutedDeck } from './route-capture'
+export type { RoutedCompileOptions, RouteBindingsInput, RoutedBindings, RouteNetworkInput, RoutedDeck, RoutedExecution, RoutedCapture } from './routed-types'
+
+export { routeWaveformDrawing } from './waveform-visual'

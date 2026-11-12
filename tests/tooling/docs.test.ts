@@ -1,3 +1,4 @@
+import { routedStages } from '../../src/pipeline'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
@@ -53,4 +54,13 @@ test('agent rules live only in AGENTS.md', () => {
   assert.ok(existsSync(join(root, 'AGENTS.md')), 'AGENTS.md is the single rules file')
   for (const other of ['CLAUDE.md', '.cursorrules', 'GEMINI.md', '.github/copilot-instructions.md'])
     assert.ok(!existsSync(join(root, other)), `${other}: put agent rules in AGENTS.md instead`)
+})
+
+
+test('routed documentation stage order is generated from the debugger tuple', () => {
+  for (const file of ['README.md', 'docs/ARCHITECTURE.md']) {
+    const text = readFileSync(join(root, file), 'utf8').split('<!-- routed-stages:start -->')[1].split('<!-- routed-stages:end -->')[0]
+    const names = [...text.matchAll(/^\| \d+ \| (\w+) \|$/gm)].map(match => match[1])
+    assert.deepEqual(names, routedStages.map(stage => stage.solverName))
+  }
 })

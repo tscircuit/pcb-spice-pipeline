@@ -59,19 +59,29 @@ export function routedLanes(circuit: CircuitJson, scope: import('../board').Copp
 /** Validate blocks and lower test intent to the private native-solver declarations. */
 export function prepareBlocks(circuitJson: CircuitJson, sources: IbisSources, extraction: '3d' | '2d' = '3d', distanceMm: number = extraction === '2d' ? 32 : 1): PreparedBlock[] {
   if (!Number.isFinite(distanceMm) || distanceMm <= 0 || distanceMm > 32) throw new Error('Copper scope distance must be in (0,32] mm')
+  const blocks = signalBlocks(circuitJson)
+  return blocks.map(block => prepareBlockById(circuitJson, sources, block.simulation_signal_integrity_id, extraction, distanceMm))
+}
+/** Validate the shared block namespace before any independent block work. */
+export function signalBlocks(circuitJson: CircuitJson): SimulationSignalIntegrity[] {
   const blocks = circuitJson.filter(r => r.type === 'simulation_signal_integrity')
   if (blocks.length > 1 && blocks.some(block => !block.name)) throw new Error(`This board has ${blocks.length} <simulation.pcbtransientchannelsimulation> blocks; give each a name.`)
   const ids = new Set(blocks.map(b => b.simulation_signal_integrity_id))
   if (ids.size !== blocks.length) throw new Error('Duplicate simulation_signal_integrity identifier')
   for (const signal of circuitJson.filter(r => r.type === 'simulation_signal')) if (!ids.has(signal.simulation_signal_integrity_id)) throw new Error(`${signal.name}: unknown signal-integrity block`)
-  return blocks.map(block => {
-    const warnings: string[] = []
-    try {
-      return prepareBlock(circuitJson, block, sources, warnings, extraction, distanceMm)
-    } catch (error) {
-      throw Object.assign(error as Error, { warnings })
-    }
-  })
+  return blocks
+}
+/** Admit exactly one block through the same lowering used by prepareBlocks. */
+export function prepareBlockById(circuit: CircuitJson, sources: IbisSources, blockId: string, extraction: '3d' | '2d' = '3d', distanceMm: number = extraction === '2d' ? 32 : 1): PreparedBlock {
+  if (!Number.isFinite(distanceMm) || distanceMm <= 0 || distanceMm > 32) throw new Error('Copper scope distance must be in (0,32] mm')
+  const matches = signalBlocks(circuit).filter(block => block.simulation_signal_integrity_id === blockId)
+  if (matches.length !== 1) throw new Error(`Expected exactly one signal-integrity block ${blockId}`)
+  const warnings: string[] = []
+  try {
+    return prepareBlock(circuit, matches[0], sources, warnings, extraction, distanceMm)
+  } catch (error) {
+    throw Object.assign(error as Error, { warnings })
+  }
 }
 /** Independent block: model overrides, copper, pin states, references and stimuli. */
 function prepareBlock(input: CircuitJson, block: SimulationSignalIntegrity, sources: IbisSources, warnings: string[], extraction: '3d' | '2d', distanceMm: number): PreparedBlock {

@@ -1,5 +1,5 @@
 import type { RouteSlice } from '../board'
-import type { CrossSectionResult } from './cross-section-types'
+import type { RouteCoefficients } from './route-lines'
 
 export interface RouteCoupling { wires: number[]; capacitive: number; inductive: number; retained: boolean }
 
@@ -7,7 +7,7 @@ export interface RouteCoupling { wires: number[]; capacitive: number; inductive:
  * Connected components keep intervening conductors together; this is a local pair screen,
  * not a bound on aggregate waveform error or on fields beyond the geometry admission cap.
  */
-export function routeCoupling(slice: RouteSlice, solve: (slice: RouteSlice) => CrossSectionResult, records: RouteCoupling[]): RouteSlice[] {
+export function routeCoupling(slice: RouteSlice, solve: (slice: RouteSlice) => RouteCoefficients, records: RouteCoupling[]): RouteSlice[] {
   const groups = slice.wires.map((_, i) => i)
   for (let i = 0; i < slice.wires.length; i++) for (let j = i + 1; j < slice.wires.length; j++) {
     const line = solve({ ...slice, wires: [slice.wires[i], slice.wires[j]] })

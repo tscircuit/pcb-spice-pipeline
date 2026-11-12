@@ -107,6 +107,64 @@ stateDiagram-v2
   failed --> [*]
 ```
 
+The browser-safe routed compiler is also inspectable with solver-utils. It is a
+candidate 2.5D path; `runPipeline` still runs the 3D workflow above in this PR.
+`RoutedPipelineSolver({ circuitJson, ibisSources, scopeDistanceMm: 1 }).solve()`
+compiles synchronously. `executeRoutedDeck` runs the compiled block asynchronously
+through `RunSolver`, and `RouteCaptureSolver` parses that completed result.
+The debugger currently shows **native not run**. Live WASM execution and async
+stepping are follow-up work; there is no recording replay loader.
+
+<!-- routed-stages:start -->
+| # | Stage solver |
+|---|---|
+| 0 | RoutedAdmissionSolver |
+| 1 | RouteSectionsSolver |
+| 2 | RouteFieldsSolver |
+| 3 | RouteBindingsSolver |
+| 4 | RouteNetworkSolver |
+| 5 | RouteCaptureSolver |
+
+```mermaid
+flowchart LR
+  s0["RoutedAdmissionSolver"]:::root
+  s1["RouteSectionsSolver"]
+  s2["RouteFieldsSolver"]
+  s3["RouteBindingsSolver"]
+  s4["RouteNetworkSolver"]
+  s5["RouteCaptureSolver"]
+  s0 --> s1
+  s1 --> s2
+  s2 --> s3
+  s3 --> s4
+  s4 --> s5
+  s4 -. "headless caller, async RunSolver" .-> native[executeRoutedDeck]
+  native -. "completed result" .-> s5
+  classDef root fill:#dbeafe
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> RoutedAdmissionSolver
+  RoutedAdmissionSolver --> RouteSectionsSolver
+  RouteSectionsSolver --> RouteFieldsSolver
+  RouteFieldsSolver --> RouteBindingsSolver
+  RouteBindingsSolver --> RouteNetworkSolver
+  RouteNetworkSolver --> RouteCaptureSolver
+  RouteCaptureSolver --> [*]
+  RoutedAdmissionSolver --> failed
+  RouteSectionsSolver --> failed
+  RouteFieldsSolver --> failed
+  RouteBindingsSolver --> failed
+  RouteNetworkSolver --> failed
+  RouteCaptureSolver --> failed
+  failed --> [*]
+```
+<!-- routed-stages:end -->
+
+See [the routed debugger](examples/routed/README.md) for the TSX demo and local
+DDR3 file loader. Follow-up PR 2 drops 3D and connects this path to `runPipeline`.
+
 Missing electrical facts fail explicitly. Numerical settings come from selected
 IBIS edge rates, bit rates, stackup and actual routes. Matrix order follows stable
 physical pin identities, and coupling follows copper positions. The 3D routed

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { simulation } from '@tscircuit/core'
 import React from 'react'
 import test from 'node:test'
@@ -32,7 +33,7 @@ function Four(): React.JSX.Element {
   </board>
 }
 
-test('Real core renders source records and core-owned stackup for unit boards', async () => {
+test('Real core renders source records and core-owned stackup for unit boards', { skip: (!existsSync(`${process.env.IBIS_MODEL_DIR ?? 'models'}/sn74lvc1g04.ibs`) || !existsSync(`${process.env.IBIS_MODEL_DIR ?? 'models'}/sn65hvd72.ibs`)) && 'Local vendor IBIS assets are unavailable; vendor bytes are not committed' }, async () => {
   for (const Board of [Single, Differential, Four]) {
     const records = await renderSignals(<Board />)
     assert.equal(records.filter(r => r.type === 'pcb_stackup').length, 1)

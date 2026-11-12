@@ -1,7 +1,7 @@
 # Routed 2D coupled channel
 
 This is an **experimental, unqualified path**, not an accepted DDR3 simulation.
-`pipeline/routed.ts` compiles physical routed copper and the existing IBIS
+`RoutedPipelineSolver` compiles physical routed copper and the existing IBIS
 package/switching models into a candidate ngspice deck, using the
 [2D cross-section solver](2d-cross-section.md) for per-unit-length RLGC. The
 public RFC entry still uses the existing 3D stage chain. No vendor models, board

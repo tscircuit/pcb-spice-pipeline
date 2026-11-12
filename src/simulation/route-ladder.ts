@@ -3,7 +3,6 @@ import { type RouteWire, type RouteXY } from '../board'
 
 export interface RouteLadder {
   lines: string[]; cells: number; maximumDelaySeconds: number
-  nodes: (wire: RouteWire, point: RouteXY) => string
   wireNodes: Map<number, { position: number; node: string }[]>
 }
 
@@ -89,7 +88,7 @@ interface ArcCell { wire: RouteWire; start: number; end: number; before: string;
 interface ArcWire { offset: number; length: number; cells: number[]; sign: number }
 
 /** Integrate every local matrix energy onto delay-bounded route-arc cells, independent of curve tessellation. */
-export function routeLadder(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn): RouteLadder {
+export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn): Generator<RouteLadder, RouteLadder> {
   if (!(riseSeconds > 0) || !Number.isInteger(refinement) || refinement < 1 || refinement > 4) throw new Error('Positive rise time and bounded integer spatial refinement (1..4) required')
   if (!(cellsPerRise >= .5 && cellsPerRise <= 40)) throw new Error('Cells per rise time must be in [0.5,40]')
   const lines: string[] = []
@@ -155,6 +154,7 @@ export function routeLadder(extracted: ExtractedRoutes, endpoint: (wire: RouteWi
       }
       wireNodes.set(wire.id, records)
     }
+    yield { lines, cells: cells.length, maximumDelaySeconds: Math.max(...cells.map(cell => (cell.end - cell.start) / 1000 * maximumDelayPerMetre)), wireNodes }
   }
   if (cells.length > 1024) throw new Error(`Route ladder requires ${cells.length} cells; exceeds modest-memory limit of 1024`)
   const nodeNames = [...new Set(cells.flatMap(cell => [cell.before, cell.after]))].filter(node => node !== '0')
@@ -249,5 +249,13 @@ export function routeLadder(extracted: ExtractedRoutes, endpoint: (wire: RouteWi
   const capacitance = C.map((row, i) => row.map((value, j) => value - dielectricAtReference * D[i][j]))
   sparseShunt(lines, 'ARCC', nodeNames, capacitance)
   for (const [p, pole] of causalLossPoles().entries()) sparseShunt(lines, `ARCG${p}`, nodeNames, matrixScale(D, pole.dielectric), pole.rate)
-  return { lines, cells: cells.length, maximumDelaySeconds: Math.max(...cells.map(cell => (cell.end - cell.start) / 1000 * maximumDelayPerMetre)), nodes: endpoint, wireNodes }
+  return { lines, cells: cells.length, maximumDelaySeconds: Math.max(...cells.map(cell => (cell.end - cell.start) / 1000 * maximumDelayPerMetre)), wireNodes }
+}
+
+/** Drain the canonical ladder assembly when interactive stepping is unnecessary. */
+export function routeLadder(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn): RouteLadder {
+  const steps = routeLadderSteps(extracted, endpoint, riseSeconds, refinement, cellsPerRise, returnPath)
+  let result = steps.next()
+  while (!result.done) result = steps.next()
+  return result.value
 }

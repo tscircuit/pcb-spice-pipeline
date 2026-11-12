@@ -1,15 +1,14 @@
-import { closestRoutePoints, routeCrossSection, solveCrossSection, type ExtractedRoutes, type RouteMaterials, type RouteFieldCache } from '../extraction'
+import { closestRoutePoints, routeCrossSection, solveCrossSection, type ExtractedRoutes, type RouteMaterials } from '../extraction'
 import { type SectionGeometry, type CopperScope, type RouteWire, type RouteXY } from '../board'
 import type { RouteLadder } from './route-ladder'
 
 /** Bounded weak-coupling electrostatic correction for oblique encounters; no silent angular rejection. */
-export function routeOblique(geometry: SectionGeometry, extracted: ExtractedRoutes, ladder: RouteLadder, scope: CopperScope, materials: RouteMaterials, panels: number = 12, shared?: RouteFieldCache): {
+export function routeOblique(geometry: SectionGeometry, extracted: ExtractedRoutes, ladder: RouteLadder, scope: CopperScope, materials: RouteMaterials, panels: number = 12): {
   lines: string[]; records: Record<string, unknown>[]; solveMilliseconds: number; solves: number
 } {
   const lines: string[] = []
   const records: Record<string, unknown>[] = []
-  if (shared && shared.panels !== panels) throw new Error('Field cache panel resolution disagrees with extraction')
-  const cache = shared?.oblique ?? new Map<string, number>()
+  const cache = new Map<string, number>()
   let solveMilliseconds = 0
   const active = geometry.wires.filter(wire => ladder.wireNodes.has(wire.id))
   /** Nearest existing electrical ladder node; the spatial-error distance is recorded per encounter. */
@@ -31,7 +30,7 @@ export function routeOblique(geometry: SectionGeometry, extracted: ExtractedRout
     const lb = layers.findIndex(layer => layer.name === b.layer)
     if (Math.abs(la - lb) > 1) continue
     const position = near.first[0] * a.u[0] + near.first[1] * a.u[1]
-    const slice = extracted.slices.find(slice => slice.wires.includes(a) && position >= slice.start - 1e-6 && position <= slice.end + 1e-6)
+    const slice = extracted.slices.find(slice => slice.wires.some(wire => wire.id === a.id) && position >= slice.start - 1e-6 && position <= slice.end + 1e-6)
     if (!slice) continue
     if (a.layer === b.layer && near.distance < (a.width + b.width) / 2 + 1e-6) {
       records.push({ wires: [a.id, b.id], policy: 'touching endpoint/bend copper: no parallel-strip substitution', distanceMm: near.distance })
@@ -52,7 +51,7 @@ export function routeOblique(geometry: SectionGeometry, extracted: ExtractedRout
       try {
         capacitancePerM = Math.max(0, -solveCrossSection(section, { panelsPerEdge: panels }).C[0][1])
       } catch (error) {
-        throw Object.assign(error as Error, { routeSection: section, wires: [a, b], obliqueSolves: cache.size, solveMilliseconds: extracted.solveMilliseconds + solveMilliseconds })
+        throw Object.assign(error as Error, { routeSection: section, wires: [a, b], obliqueSolves: cache.size, solveMilliseconds: solveMilliseconds })
       }
       solveMilliseconds += performance.now() - start
       cache.set(key, capacitancePerM)

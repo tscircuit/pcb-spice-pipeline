@@ -1,0 +1,44 @@
+<svg width="1100" height="800" viewBox="0 0 1100 800" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="white"/><g><polyline data-points="33,50 33,50 67,50 67,50" data-type="line" data-label="" points="457.7114686040477,409.901401141671 457.7114686040477,409.901401141671 711.7851582771146,409.901401141671 711.7851582771146,409.901401141671" fill="none" stroke="#2563eb" stroke-linejoin="round" stroke-width="3.7363777893098082"/></g><g><polyline data-points="33,51.4875 33,51.4875 67,51.4875 67,51.4875" data-type="line" data-label="" points="457.7114686040477,398.7856772184743 457.7114686040477,398.7856772184743 711.7851582771146,398.7856772184743 711.7851582771146,398.7856772184743" fill="none" stroke="#2563eb" stroke-linejoin="round" stroke-width="3.7363777893098082"/></g><g><polyline data-points="78.9,60.625 21.1,60.625 21.1,70.4 78.9,70.4 78.9,60.625" data-type="line" data-label="" points="800.7109496626881,330.50337311883754 368.7856772184743,330.50337311883754 368.7856772184743,257.45718733783076 800.7109496626881,257.45718733783076 800.7109496626881,330.50337311883754" fill="none" stroke="#16a34a" stroke-linejoin="round" stroke-width="1.4945511157239233"/></g><g><polyline data-points="78.9,29.6 21.1,29.6 21.1,70.4 78.9,70.4 78.9,29.6" data-type="line" data-label="" points="800.7109496626881,562.3456149455111 368.7856772184743,562.3456149455111 368.7856772184743,257.45718733783076 800.7109496626881,257.45718733783076 800.7109496626881,562.3456149455111" fill="none" stroke="#16a34a" stroke-linejoin="round" stroke-width="1.4945511157239233"/></g><g><rect data-type="rect" data-label="" data-x="50" data-y="50" x="330.67462376751416" y="219.34613388687075" width="508.14737934613396" height="381.1105345096005" fill="none" stroke="#94a3b8" stroke-width="0.13381944444444444"/></g><circle data-type="circle" data-label="" data-x="33" data-y="50" cx="457.7114686040477" cy="409.901401141671" r="7.4727555786196165" fill="none" stroke="#dc2626" stroke-width="0.13381944444444444"/><circle data-type="circle" data-label="" data-x="67" data-y="50" cx="711.7851582771146" cy="409.901401141671" r="7.4727555786196165" fill="none" stroke="#dc2626" stroke-width="0.13381944444444444"/><circle data-type="circle" data-label="" data-x="33" data-y="51.4875" cx="457.7114686040477" cy="398.7856772184743" r="7.4727555786196165" fill="none" stroke="#dc2626" stroke-width="0.13381944444444444"/><circle data-type="circle" data-label="" data-x="67" data-y="51.4875" cx="711.7851582771146" cy="398.7856772184743" r="7.4727555786196165" fill="none" stroke="#dc2626" stroke-width="0.13381944444444444"/><text data-type="text" data-label="3 · Bindings: attach IBIS buffers" data-x="2" data-y="98" x="226.0560456668396" y="51.209133367929326" fill="#0f172a" font-size="22.41826673585885" font-family="sans-serif" text-anchor="start" dominant-baseline="central">3 · Bindings: attach IBIS buffers</text><text data-type="text" data-label="Board plan · x / y in mm · y points up" data-x="2" data-y="92" x="226.0560456668396" y="96.04566683964708" fill="#334155" font-size="14.945511157239233" font-family="sans-serif" text-anchor="start" dominant-baseline="central">Board plan · x / y in mm · y points up</text><text data-type="text" data-label="Blue: selected signal   Grey: neighbour   Green: ground / rail" data-x="2" data-y="8" x="226.0560456668396" y="723.7571354436949" fill="#475569" font-size="13.45096004151531" font-family="sans-serif" text-anchor="start" dominant-baseline="central">Blue: selected signal   Grey: neighbour   Green: ground / rail</text><text data-type="text" data-label="2 selected routes; 0/0 neighbour routes shown" data-x="2" data-y="4" x="226.0560456668396" y="753.6481577581733" fill="#64748b" font-size="12.703684483653348" font-family="sans-serif" text-anchor="start" dominant-baseline="central">2 selected routes; 0/0 neighbour routes shown</text><text data-type="text" data-label="0/4 models bound · Blue: driver · Cyan: receiver · Green: rail" data-x="2" data-y="87" x="226.0560456668396" y="133.4094447327451" fill="#475569" font-size="13.45096004151531" font-family="sans-serif" text-anchor="start" dominant-baseline="central">0/4 models bound · Blue: driver · Cyan: receiver · Green: rail</text><text data-type="text" data-label="Missing / rejected model: RouteBindingsSolver error: Diagnostic: ibis_asset_missing: " data-x="2" data-y="82" x="226.0560456668396" y="170.77322262584323" fill="#dc2626" font-size="12.703684483653348" font-family="sans-serif" text-anchor="start" dominant-baseline="central">Missing / rejected model: RouteBindingsSolver error: Diagnostic: ibis_asset_missing: </text><text data-type="text" data-label="Supply IBIS bytes for models/sn74lvc1g04.ibs in ibisSources" data-x="2" data-y="79" x="226.0560456668396" y="193.1914893617021" fill="#dc2626" font-size="12.703684483653348" font-family="sans-serif" text-anchor="start" dominant-baseline="central">Supply IBIS bytes for models/sn74lvc1g04.ibs in ibisSources</text><g id="crosshair" style="display: none"><line id="crosshair-h" y1="0" y2="800" stroke="#666" stroke-width="0.5"/><line id="crosshair-v" x1="0" x2="1100" stroke="#666" stroke-width="0.5"/><text id="coordinates" font-family="monospace" font-size="12" fill="#666"></text></g><script><![CDATA[
+              document.currentScript.parentElement.addEventListener('mousemove', (e) => {
+                const svg = e.currentTarget;
+                const rect = svg.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const crosshair = svg.getElementById('crosshair');
+                const h = svg.getElementById('crosshair-h');
+                const v = svg.getElementById('crosshair-v');
+                const coords = svg.getElementById('coordinates');
+                
+                crosshair.style.display = 'block';
+                h.setAttribute('x1', '0');
+                h.setAttribute('x2', '1100');
+                h.setAttribute('y1', y);
+                h.setAttribute('y2', y);
+                v.setAttribute('x1', x);
+                v.setAttribute('x2', x);
+                v.setAttribute('y1', '0');
+                v.setAttribute('y2', '800');
+
+                // Calculate real coordinates using inverse transformation
+                const matrix = {"a":7.4727555786196165,"c":0,"e":211.11053450960037,"b":0,"d":-7.4727555786196165,"f":783.5391800726518};
+                // Manually invert and apply the affine transform
+                // Since we only use translate and scale, we can directly compute:
+                // x' = (x - tx) / sx
+                // y' = (y - ty) / sy
+                const sx = matrix.a;
+                const sy = matrix.d;
+                const tx = matrix.e; 
+                const ty = matrix.f;
+                const realPoint = {
+                  x: (x - tx) / sx,
+                  y: (y - ty) / sy // Flip y back since we used negative scale
+                }
+                
+                coords.textContent = `(${realPoint.x.toFixed(2)}, ${realPoint.y.toFixed(2)})`;
+                coords.setAttribute('x', (x + 5).toString());
+                coords.setAttribute('y', (y - 5).toString());
+              });
+              document.currentScript.parentElement.addEventListener('mouseleave', () => {
+                document.currentScript.parentElement.getElementById('crosshair').style.display = 'none';
+              });
+            ]]></script></svg>
