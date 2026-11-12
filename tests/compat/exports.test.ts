@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 import * as root from '../../src'
 import * as node from '../../src/adapters'
 
-// Pinned against the flat src/ of 2026-11-07. The switch-over must keep these runtime names exactly.
+// Existing 3D exports plus the deliberate routed compiler/execution additions.
 // (Type-only exports are pinned by `pnpm typecheck` of the consumer tests, not here.)
-const ROOT = ['generateReport', 'runPipeline', 'stackupFromCircuitJson', 'transmittedBits']
+const ROOT = ['RouteCaptureSolver', 'RoutedPipelineSolver', 'executeRoutedDeck', 'generateReport', 'runPipeline', 'stackupFromCircuitJson', 'transmittedBits']
 const NODE = ['createNativeSolver', 'loadIbisSources', 'writePipelineOutput']
 
 test('root entry exports exactly today\'s runtime names, all functions', () => {

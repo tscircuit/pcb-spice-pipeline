@@ -3,7 +3,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { renderCoreSignals } from './core-render'
 import { channelCopperScope, connectedSourceIds, segmentRoutes, routeReferences, routeContactFrame, type CircuitJson } from '../../src/board'
-import { extractRoutes, referenceSeries } from '../../src/extraction'
+import { RouteFieldsSolver, referenceSeries } from '../../src/extraction'
 import { routeLadder, routeOblique, routeTransitions } from '../../src/simulation'
 
 /** Real TSX copper, two parallel routed wires and a reference that changes across x=0. */
@@ -47,13 +47,11 @@ test('TSX routed 2D preserves nearby conductors, changes actual reference and ca
   assert.deepEqual(new Set(geometry.slices.flatMap(slice => slice.references.map(ref => ref.layer))), new Set(['inner1', 'inner3']))
   const inner4 = { ...geometry.wires[0], layer: 'inner4' }
   assert.deepEqual(routeReferences(geometry, inner4, -2).map(plane => plane.layer), ['inner5', 'inner3'], 'inner5 power copper intervenes before inner6 GND')
-  const fieldCache = { panels: 12, sections: new Map(), oblique: new Map() }
-  const extracted = extractRoutes(geometry, { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }, 12, fieldCache)
-  const reused = extractRoutes(geometry, { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }, 12, fieldCache)
-  assert.equal(reused.solveMilliseconds, 0, 'unchanged physical fields are reused across different stimuli')
-  assert.strictEqual(reused.slices[0].line, extracted.slices[0].line)
-  assert.throws(() => extractRoutes(geometry, { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }, 16, fieldCache), /panel resolution/)
-  assert.ok(extracted.cache.size <= geometry.slices.length)
+  const extracted = ((solver: RouteFieldsSolver) => {
+    solver.solve()
+    return solver.getOutput().value
+  }) (new RouteFieldsSolver({ geometry: geometry, materials: { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }, artifactPrefix: 'test', panels: 12 }))
+  assert.ok(extracted.sections.length <= geometry.slices.length)
   const pair = extracted.slices.find(slice => slice.wires.length === 2)!.line
   const referenced = referenceSeries(pair, [1])
   assert.ok(referenced.L[0][0] < pair.L[0][0], 'shorted AC reference induces a return current instead of an open conductor')
@@ -69,12 +67,18 @@ test('TSX routed 2D preserves nearby conductors, changes actual reference and ca
   const mergedCircuit = await renderCoreSignals(<Board overlap />)
   const merged = segmentRoutes(mergedCircuit, channelCopperScope(mergedCircuit, connectedSourceIds(mergedCircuit, port.source_port_id), ground))
   assert.ok(merged.wires.some(wire => wire.joins?.length), 'same-net overlapping bend bodies become equipotential breakout patches')
-  assert.doesNotThrow(() => extractRoutes(merged, { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }))
+  assert.doesNotThrow(() => ((solver: RouteFieldsSolver) => {
+    solver.solve()
+    return solver.getOutput().value
+  }) (new RouteFieldsSolver({ geometry: merged, materials: { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }, artifactPrefix: 'test' })))
   const obliqueCircuit = await renderCoreSignals(<Board oblique />)
   const obliqueScope = channelCopperScope(obliqueCircuit, connectedSourceIds(obliqueCircuit, port.source_port_id), ground)
   const obliqueGeometry = segmentRoutes(obliqueCircuit, obliqueScope)
   const materials = { maskMm: .02, maskEr: 3.3, maskLoss: .025, substrateLoss: .02 }
-  const obliqueFields = extractRoutes(obliqueGeometry, materials)
+  const obliqueFields = ((solver: RouteFieldsSolver) => {
+    solver.solve()
+    return solver.getOutput().value
+  }) (new RouteFieldsSolver({ geometry: obliqueGeometry, materials: materials, artifactPrefix: 'test' }))
   const obliqueLadder = routeLadder(obliqueFields, (wire, point) => `n${wire.id}_${point[0]}_${point[1]}`.replace(/[-.]/g, '_'), 230e-12)
   const encounters = routeOblique(obliqueGeometry, obliqueFields, obliqueLadder, obliqueScope, materials)
   assert.ok(encounters.records.some(record => String(record.policy).includes('intervening local reference')), 'neighbour on the local plane height uses recorded shielding instead of an invalid solver rectangle')

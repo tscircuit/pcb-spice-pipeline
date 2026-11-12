@@ -81,10 +81,10 @@ Core#5286 emits JLC preset plating (0.018 mm), preserving explicit imported stac
 `extraction/cross-section.ts`, exported by `extraction/index.ts`, owns a separate
 quasi-TEM numerical interface. It consumes rectangles, infinite solid references,
 and dielectric/mask slabs and returns per-unit-length C/C0/L and frequency-dependent
-R/G. The opt-in `pipeline/routed.ts` experiment now consumes it; see
+R/G. The synchronous `RoutedPipelineSolver` now consumes it; see
 [routed 2D candidate and execution blockers](routed-2d.md). It is not wired into
 the public stage chain above. The root API, 3D extraction,
-artifact ledger and simulation behaviour remain unchanged. See
+artifact paths and simulation behaviour remain unchanged. The routed root owns its own single ledger fold after all block stages complete. See
 [method, validation and the DDR3 slice demo](2d-cross-section.md).
 
 ```mermaid
@@ -127,3 +127,85 @@ flowchart LR
   ladder --> native[Guarded serial native transient]
   native --> compare[Full native-union comparisons and unqualified verdict]
 ```
+
+## Inspectable routed compiler
+
+Stage classes live with their domain knowledge. Root admission calls
+`prepareBlockById`, also used by `prepareBlocks`, once per SI block. Each admitted
+block becomes a nested `BasePipelineSolver`; the single `routedStages` tuple
+supplies the debugger order, tests, artifact manifest and generated docs below.
+Regenerate with `pnpm exec tsx scripts/document-routed-stages.ts`.
+
+<!-- routed-stages:start -->
+| # | Stage solver |
+|---|---|
+| 0 | RoutedAdmissionSolver |
+| 1 | RouteSectionsSolver |
+| 2 | RouteFieldsSolver |
+| 3 | RouteBindingsSolver |
+| 4 | RouteNetworkSolver |
+| 5 | RouteCaptureSolver |
+
+```mermaid
+flowchart LR
+  s0["RoutedAdmissionSolver"]:::root
+  s1["RouteSectionsSolver"]
+  s2["RouteFieldsSolver"]
+  s3["RouteBindingsSolver"]
+  s4["RouteNetworkSolver"]
+  s5["RouteCaptureSolver"]
+  s0 --> s1
+  s1 --> s2
+  s2 --> s3
+  s3 --> s4
+  s4 --> s5
+  s4 -. "headless caller, async RunSolver" .-> native[executeRoutedDeck]
+  native -. "completed result" .-> s5
+  classDef root fill:#dbeafe
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> RoutedAdmissionSolver
+  RoutedAdmissionSolver --> RouteSectionsSolver
+  RouteSectionsSolver --> RouteFieldsSolver
+  RouteFieldsSolver --> RouteBindingsSolver
+  RouteBindingsSolver --> RouteNetworkSolver
+  RouteNetworkSolver --> RouteCaptureSolver
+  RouteCaptureSolver --> [*]
+  RoutedAdmissionSolver --> failed
+  RouteSectionsSolver --> failed
+  RouteFieldsSolver --> failed
+  RouteBindingsSolver --> failed
+  RouteNetworkSolver --> failed
+  RouteCaptureSolver --> failed
+  failed --> [*]
+```
+<!-- routed-stages:end -->
+
+`RouteFieldsSolver` owns its geometry-keyed BEM cache; completed snapshots contain
+numeric coefficients without Maps or frequency callbacks. `routedSimulation`,
+its bulk `extractRoutes` loop and caller-owned field cache are deleted. Segmentation
+and ladder generators retain one canonical algorithm, also drained by existing
+numerical primitive callers. Network stepping creates one route run's cells;
+its final step assembles the coupled global matrices, oblique/via terms and deck.
+One BEM solve is atomic. The 40-conductor and 1024-cell limits remain enforced.
+
+Completed domain values are copied and frozen. Only the root folds stage
+`Produced` artifacts into `ArtifactLedger`; runtime timings stay in `stats`.
+Original assumptions, coupling decisions, reference omissions, external ports,
+model provenance, node maps, via/oblique policies and deck evidence remain visible.
+
+The shared graphics atlas uses board x/y=0..100, cross-section x=120..220/y=0..100,
+and waveform x=0..220/y=120..200, with PCB y and stack z positive upward. Neighbour
+copper and waveform drawings are capped for display only; numerical inputs and
+native samples are retained in full.
+
+`executeRoutedDeck(ctx, deck, scope)` serializes requests and calls `solver.invoke`
+outside the step loop. The native adapter uses OMP_NUM_THREADS=1. Stage 5 accepts
+its completed value directly and checks diagnostics, finite samples and full
+recording coverage. Missing execution yields `not-run`, without any fabricated
+waveform. Native completion remains candidate evidence, without the RFC numerical
+acceptance claim. There is no browser recording format or replay loader. Later
+PRs add async solver-utils stepping and a WASM `RunSolver` for live browser execution.
+`runPipeline` and the 3D path are unchanged until PR 2 removes 3D.

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import Differential from '../../../examples/level1-differential/level1-differential'
@@ -8,7 +9,7 @@ import { circuitNodes } from '../../../src/simulation'
 import { readFile } from 'node:fs/promises'
 import { joinSeriesMappings } from '../../../src/board/geometry/series'
 
-test('manual real-footprint differential pair joins termination tails and retains RX taps', async () => {
+test('manual real-footprint differential pair joins termination tails and retains RX taps', { skip: (!existsSync(`${process.env.IBIS_MODEL_DIR ?? 'models'}/sn65hvd72.ibs`)) && 'Local vendor IBIS assets are unavailable; vendor bytes are not committed' }, async () => {
   const tree = Differential()
   assert.equal(tree.props.routeRemaining, false)
   const circuit = await renderCoreSignals(tree)

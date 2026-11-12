@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import React from 'react'
 import Single from '../support/unit-single-ended'
 import { renderSignals } from '../support/signal-render'
@@ -44,7 +45,7 @@ test('native adapter isolates requests, captures files and logs, and cleans up s
   await assert.rejects(solver({...request,files:{'../escape':'bad'}}),/file_path/)
   assert.throws(()=>createNativeSolver({timeoutMs:0}),/native_timeout/)
 })
-test('local IBIS loading deduplicates declarations, rejects missing files and symlink escapes',async t=>{
+test('local IBIS loading deduplicates declarations, rejects missing files and symlink escapes', { skip: (!existsSync(`${process.env.IBIS_MODEL_DIR ?? 'models'}/sn74lvc1g04.ibs`)) && 'Local vendor IBIS assets are unavailable; vendor bytes are not committed' },async t=>{
   const root=await temporary(t)
   const baseDir=join(root,'project')
   const outside=join(root,'outside.ibs')

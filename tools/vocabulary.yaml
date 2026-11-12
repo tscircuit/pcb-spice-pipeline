@@ -18,6 +18,12 @@
 threshold: 85
 
 domain:
+  admission: validation and derivation of one declared signal-integrity block
+  network: the connected electrical cells and correction elements of routed copper
+  execution: a completed invocation through the solver port
+  visualize: draw a solver's current physical work in the shared graphics atlas
+  snapshot: a copied and frozen domain value published by a completed stage
+  pair: two conductors screened together for mutual coupling
   arc: distance measured along a routed polyline including its bends
   antipad: clearance opening in a plane around a signal via
   bias: very weak DC anchor used to fix an otherwise floating common-mode voltage

@@ -6,7 +6,7 @@ import { prepareBlocks } from '../../src/pipeline/signals'
 
 const path = process.env.SI_DDR3_BOARD
 
-test('real DDR3 TSX declarations preserve copper and select the intended write and addr/cmd models', { skip: !path || !process.env.IBIS_MODEL_DIR }, async () => {
+test('real DDR3 TSX declarations preserve copper and select the intended write and addr/cmd models', { skip: (!path || !process.env.IBIS_MODEL_DIR) && 'Set SI_DDR3_BOARD and IBIS_MODEL_DIR to the local physical board and vendor files' }, async () => {
   const circuit = await fullBoardDdr3(path!)
   assert.equal(circuit.filter(record => record.type === 'simulation_signal').length, 10)
   assert.equal(circuit.filter(record => record.type === 'pcb_trace').length, 651)
@@ -47,7 +47,7 @@ test('real DDR3 TSX declarations preserve copper and select the intended write a
   assert.equal(stack.plated_hole_copper_thickness, .018)
 })
 
-test('A4 isolation and weaker/slower selectors are real TSX declarations with unchanged board copper', { skip: !path || !process.env.IBIS_MODEL_DIR }, async () => {
+test('A4 isolation and weaker/slower selectors are real TSX declarations with unchanged board copper', { skip: (!path || !process.env.IBIS_MODEL_DIR) && 'Set SI_DDR3_BOARD and IBIS_MODEL_DIR to the local physical board and vendor files' }, async () => {
   const original = JSON.parse(await readFile(path!, 'utf8'))
   for (const driverModel of ['Model_352', 'Model_345', 'Model_273'] as const) {
     const circuit = await fullBoardDdr3(path!, { block: 'DDR3_ADDR_CMD', pattern: 'isolated-a4', driverModel })

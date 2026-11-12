@@ -9,3 +9,7 @@ export { generateReport } from './report'
 export type { CircuitJson } from './board'
 export { stackupFromCircuitJson } from './board'
 export { transmittedBits } from './simulation'
+
+export { RoutedPipelineSolver } from './pipeline'
+export type { RoutedProblem, RoutedInspection } from './pipeline'
+export { executeRoutedDeck, RouteCaptureSolver } from './simulation'

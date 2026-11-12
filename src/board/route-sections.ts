@@ -88,7 +88,7 @@ function referenceCuts(wire: RouteWire, geometry: SectionGeometry): number[] {
 }
 
 /** Sweep exact parallel directions, partitioning at route ends, widths, layers and actual pour holes. */
-export function segmentRoutes(circuit: CircuitJson, scope: CopperScope): SectionGeometry {
+export function* routeSectionSteps(circuit: CircuitJson, scope: CopperScope): Generator<SectionGeometry, SectionGeometry> {
   const geometry: SectionGeometry = { viaContacts: [], stack: stackupFromCircuitJson(circuit), wires: [], slices: [], pours: [], warnings: [] }
   geometry.pours = circuit.filter(record => record.type === 'pcb_copper_pour').flatMap(pour => {
     if (pour.shape !== 'brep') throw new Error(`${pour.pcb_copper_pour_id}: 2D route extraction needs polygonal pours`)
@@ -114,6 +114,7 @@ export function segmentRoutes(circuit: CircuitJson, scope: CopperScope): Section
       geometry.wires.push({ id: geometry.wires.length, trace: trace.pcb_trace_id, source: trace.source_trace_id!, layer, width: b.width,
         a: [a.x, a.y], b: [b.x, b.y], u, start: Math.min(first, last), end: Math.max(first, last), transverse: -a.x * u[1] + a.y * u[0] })
     }
+    yield geometry
   }
   const simplified = simplifyRouteWires(geometry.wires, .001)
   geometry.warnings.push(`Curved route tessellation reduced with 0.001 mm chord tolerance: ${geometry.wires.length} to ${simplified.wires.length} wires; total length ${simplified.originalLengthMm} to ${simplified.simplifiedLengthMm} mm. Original board bytes unchanged.`)
@@ -179,4 +180,12 @@ export function segmentRoutes(circuit: CircuitJson, scope: CopperScope): Section
     'Where all vertical references are void, the nearest actual pour edge within 2 mm is replaced by a surface at hypotenuse(vertical gap, lateral edge distance); lateralGapMm marks every such approximation.',
     'Different parallel directions are separate sweeps; oblique encounters receive a bounded electrostatic lumped correction, with magnetic oblique coupling omitted explicitly.')
   return geometry
+}
+
+/** Drain the same segmentation algorithm for domain callers that do not need stepping. */
+export function segmentRoutes(circuit: CircuitJson, scope: CopperScope): SectionGeometry {
+  const steps = routeSectionSteps(circuit, scope)
+  let result = steps.next()
+  while (!result.done) result = steps.next()
+  return result.value
 }
