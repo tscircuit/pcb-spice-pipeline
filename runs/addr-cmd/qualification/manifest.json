@@ -112,5 +112,13 @@
       "A9"
     ],
     "baseline_label": "Package on"
+  },
+  {
+    "name": "package-off-prefix",
+    "directory": "runs/addr-cmd/qualification/package-off-prefix/before",
+    "stop_ns": 4.999,
+    "baseline": "before-prefix",
+    "overlay": "package-off-prefix-overlay.png",
+    "label": "Full bus: package removed, first event (diagnostic)"
   }
 ]

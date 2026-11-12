@@ -38,6 +38,8 @@ coupling. Settling uses the earlier 5% band and 0.5 ns confirmation/censoring
 rule. Pulse area integrates native piecewise-linear samples above 1.5 V or
 below 0 V, inserting exact rail crossings. Both the largest contiguous lobe
 and the complete capture's sum are retained; they are different quantities.
+Areas are observed within the stated capture window. A lobe touching its
+boundary can continue outside it, so its recorded area is not an upper bound.
 
 ## Spatial and coupling-radius checks
 
@@ -209,6 +211,31 @@ micro-ohm series links. The package model itself uses open unused leads,
 floating-charge C reduction, neglected unused die loads/circulating currents,
 one lumped pi section and ideal die rails. Those [package approximations](coupled-package-model.md)
 have no physical board-level error bound here.
+
+The supplemental full-bus package-off 8 ns main and even-victim captures reached
+the 1,200 s runtime limit (255.156 / 254.125 MiB sampled maximum RSS), with their
+last saved checkpoints at 4 ns. They supply no accepted full-window peak or
+noise metric. The supplemental odd-victim capture was skipped after these two
+runtime failures. The single 4.999 ns main retry completed in 841.865 s,
+using 254.375 MiB sampled maximum RSS. It preserves the original compiled
+switching history and all 24 physical nets. Required board-fix comparisons
+still use all three original patterns.
+
+| Full-bus first event, 0–4.999 ns | Package on | Package off diagnostic |
+|---|---:|---:|
+| Largest command peak | 2.092877 V, A9 | 1.675180 V, CASn |
+| Median outer overshoot | 27.592% | 10.540% |
+| Median inner overshoot | 30.916% | 4.838% |
+| A4 peak / overshoot | 2.024868 V / 34.991% | 1.572576 V / 4.838% |
+
+The A4 peak changes by -452.292 mV with only the package network removed.
+The [full-bus package overlay](../runs/addr-cmd/qualification/summary/package-off-prefix-overlay.png)
+shows this sensitivity. `main-package-control-check.json` verifies that the
+entire circuit body equals the package-only transformation of the original;
+only transient control duration changes separately. This strongly implicates
+package interaction in the simulated inner-net overshoot. It is not a linear
+decomposition of nonlinear driver/package/line effects, a package error bound,
+or an implementable fix. Full-bus package-off quiet noise remains unverified.
 
 An algebraic check of the emitted original and failed reduced odd-victim
 decks found no nonpositive self-inductors or duplicate mutual pairs. For

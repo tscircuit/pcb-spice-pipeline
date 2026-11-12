@@ -324,6 +324,98 @@
       },
       "incomplete_waveform_sha256": "056d39153cd556760686f559c21909a3d78f7af522ce392779ba51161c4bf663",
       "last_saved_time_ns": 2.0
+    },
+    {
+      "case": "package-off/before",
+      "status": "transient-failed",
+      "error": "Native runtime exceeded 1200 s budget",
+      "cells": 444,
+      "radius_mm": 1,
+      "options": {
+        "riseSeconds": 2.3e-10,
+        "refinement": 1,
+        "stepSeconds": 1e-11,
+        "durationSeconds": 8e-09,
+        "panels": 12,
+        "currentToleranceA": 1e-09,
+        "cellsPerRise": 2
+      },
+      "native": {
+        "seconds": 1200.03419475,
+        "peakRssKiB": 261280,
+        "code": null,
+        "budgetError": "Native runtime exceeded 1200 s budget",
+        "checkpoints": [
+          {
+            "wall_seconds": 8.294680249999999,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 30.735214083000006,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 63.38309375000001,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 83.777468167,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 475.475738083,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "incomplete_waveform_sha256": "62d58aa2112fd068fb5a539ec4eeda6dfe49bbd2b2566370dd94a074a4bcc83c",
+      "last_saved_time_ns": 4.0
+    },
+    {
+      "case": "package-off/victim-even",
+      "status": "transient-failed",
+      "error": "Native runtime exceeded 1200 s budget",
+      "cells": 444,
+      "radius_mm": 1,
+      "options": {
+        "riseSeconds": 2.3e-10,
+        "refinement": 1,
+        "stepSeconds": 1e-11,
+        "durationSeconds": 8e-09,
+        "panels": 12,
+        "currentToleranceA": 1e-09,
+        "cellsPerRise": 2
+      },
+      "native": {
+        "seconds": 1200.0358720420002,
+        "peakRssKiB": 260224,
+        "code": null,
+        "budgetError": "Native runtime exceeded 1200 s budget",
+        "checkpoints": [
+          {
+            "wall_seconds": 8.295949167,
+            "simulation_seconds": 1e-12
+          },
+          {
+            "wall_seconds": 30.742054334,
+            "simulation_seconds": 5e-10
+          },
+          {
+            "wall_seconds": 63.393105250000005,
+            "simulation_seconds": 1e-09
+          },
+          {
+            "wall_seconds": 83.79897270900001,
+            "simulation_seconds": 2e-09
+          },
+          {
+            "wall_seconds": 483.6711555,
+            "simulation_seconds": 4e-09
+          }
+        ]
+      },
+      "incomplete_waveform_sha256": "036c83265c9261ca7c5efb0e5eda2623eeb395fc724d112b8e0db3e05e0fbb43",
+      "last_saved_time_ns": 4.0
     }
   ]
 }

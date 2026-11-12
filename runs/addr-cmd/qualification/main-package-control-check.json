@@ -1,0 +1,8 @@
+{
+  "status": "actual-deck body identity; transient control duration changes separately",
+  "original_deck_sha256": "57bf4da04732b1ca050d26d0607fe4d05059091743281d4f55e2d37d7291a1f3",
+  "off_prefix_deck_sha256": "9578f21bc9f265059bda9a7f891ee02b48ef42a3b5bca72396b4b9b3f1a941db",
+  "package_only_body_identical": true,
+  "shared_transformed_body_sha256": "e10f86aec348936d8d0605ca041035301447d5f275bea618311656bc55cecd44",
+  "switching_history_unchanged": true
+}
