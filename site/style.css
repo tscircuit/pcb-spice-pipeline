@@ -1,0 +1,11 @@
+body { margin: 0; font-family: system-ui, sans-serif; color: #18263a; background: #f7f9fc; }
+main { padding: 20px; }
+h1 { margin: 0 0 8px; font-size: 24px; }
+header p { color: #52647a; }
+.controls { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; padding: 12px; background: white; border: 1px solid #d9e1ed; border-radius: 6px; }
+label { display: inline-flex; align-items: center; gap: 8px; }
+select, button, textarea { font: inherit; padding: 6px 10px; }
+textarea { display: block; box-sizing: border-box; width: 100%; min-height: 160px; margin: 12px 0; font-family: monospace; }
+[role=alert] { color: #a12825; white-space: pre-wrap; overflow-wrap: anywhere; }
+[role=status] { font-size: 13px; color: #52647a; }
+summary, button { cursor: pointer; }

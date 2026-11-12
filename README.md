@@ -66,6 +66,39 @@ Consumers should write the supplied `files` map and its index for oversized data
 CLI #5736 still needs to guard its additional aggregate `JSON.stringify` so it can
 use these indexed parts rather than hitting the same V8 string limit.
 
+### Local fixture site
+
+Run `bun install && bun dev` with **ngspice on PATH**. Cosmos opens
+[http://127.0.0.1:5000](http://127.0.0.1:5000); its Vite fixture renderer and local
+API use port 5050. Both bind only to `127.0.0.1`.
+
+The sidebar lists the two-trace TSX board, every signal level, the DDR3 addr/cmd
+scope, and a paste/upload Circuit JSON page. Each mounts `GenericSolverDebugger`
+with `RoutedPipelineSolver`. Step through admission, geometry, fields, buffers,
+network assembly, then the live local ngspice transient. Captures remain candidate
+results without independent convergence qualification.
+
+Set `IBIS_MODEL_DIR` to the examples' local vendor directory (default `models`).
+Set `SI_DDR3_BOARD` to the real physical DDR3 board JSON for the addr/cmd page.
+Missing files show `missing local asset: <path>`. Model files can also be uploaded
+in each fixture. Vendor assets and board JSON are never bundled or committed.
+The site requires its local backend.
+
+```mermaid
+flowchart LR
+  fixture["Cosmos TSX / uploaded Circuit JSON"] --> debugger["GenericSolverDebugger · routed stages 0–4"]
+  assets["Fixed local model paths / SI_DDR3_BOARD"] --> debugger
+  debugger --> transient["RouteTransientSolver · stepAsync"]
+  transient <-->|"POST /api/run-solver · HTTP RunSolver"| queue["Vite middleware · single slot"]
+  queue <-->|"isolated temp dir · 120 s limit · OMP_NUM_THREADS=1"| native["Local ngspice on PATH"]
+  transient --> capture["Actual waveform samples"]
+```
+
+The backend accepts bounded JSON bodies (16 MiB), checks same-origin loopback
+requests, rejects other solvers and executable/cwd options, and serializes native
+runs and version probes. `GET http://127.0.0.1:5050/api/solvers` reports ngspice
+availability and version. A missing binary shows `ngspice not found on PATH`.
+
 ## General workflow
 
 ```mermaid

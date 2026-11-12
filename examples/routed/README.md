@@ -1,5 +1,10 @@
 # Routed stage debugger
 
+Run `bun install && bun dev` with ngspice on PATH. Open the printed Cosmos URL
+and choose a fixture from the sidebar. Set `IBIS_MODEL_DIR` (default `models`)
+and `SI_DDR3_BOARD` for local assets, or upload IBIS files on the fixture.
+Missing files show their paths. Stage 5 always uses the local HTTP backend.
+
 The two-trace and DDR3 TSX boards are inputs to `RoutedPipelineSolver`.
 Stage 5 awaits a live local ngspice transient and draws actual probe waveforms.
 The demo uses 50 Mbps over 40 ns so the vendor transition can settle. The old

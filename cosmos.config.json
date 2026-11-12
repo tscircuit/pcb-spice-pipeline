@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json.schemastore.org/cosmos-config",
+  "plugins": [
+    "react-cosmos-plugin-vite"
+  ],
+  "fixtureFileSuffix": "page",
+  "decoratorFile": "cosmos.decorator.tsx",
+  "hostname": "127.0.0.1",
+  "port": 5000,
+  "portRetries": 0,
+  "vite": {
+    "port": 5050
+  },
+  "ignore": [
+    "**/.cache/**",
+    "**/dist/**",
+    "**/runs/**"
+  ],
+  "rendererUrl": "http://127.0.0.1:5050"
+}
