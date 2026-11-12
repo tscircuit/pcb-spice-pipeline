@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import {
   boardPosition,
+  boardRouteSegments,
   boardSlicePose,
   boardFrame,
   routePosition,
@@ -11,7 +12,8 @@ import {
 import type { CrossSection, ExtractedRouteSlice } from '../../src/extraction'
 import { copperRoutes } from './copper'
 import { label, marker, segment } from './primitives'
-import { spatialVoltage, spatialRouteIndices, voltageColor, type BoardStageState } from './state'
+import { routeVoltagePositions, routeVoltageBlend, routeVoltageAt } from '../../src/simulation'
+import { spatialRouteIndices, voltageColor, type BoardStageState } from './state'
 
 /** Use the exact solver section JSON in its true-scale transverse/vertical physical frame. */
 function sectionPlane(
@@ -37,7 +39,7 @@ function sectionPlane(
   const low = Math.min(...section.conductors.map((conductor) => conductor.xMm - conductor.widthMm / 2)) - 0.3
   const high = Math.max(...section.conductors.map((conductor) => conductor.xMm + conductor.widthMm / 2)) + 0.3
   const frame = boardFrame(stack)
-  /** Place a true-size rectangle in section coordinates, without the atlas's thin-layer expansion. */
+  /** Place a true-size rectangle in section coordinates, without expanding thin layers. */
   const band = (x: number, z: number, width: number, height: number, color: string, opacity: number): void => {
     const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(width, height),
@@ -47,20 +49,19 @@ function sectionPlane(
     mesh.frustumCulled = false
     plane.add(mesh)
   }
-  band(0, (frame.top + frame.bottom) / 2, boardWidth, frame.top - frame.bottom + 1, '#f59e0b', 0.13)
+  if (!fields) band(0, (frame.top + frame.bottom) / 2, boardWidth, frame.top - frame.bottom + 1, '#f59e0b', 0.13)
   if (!fields) return
   for (const dielectric of section.dielectrics)
     band((low + high) / 2, dielectric.zMm + dielectric.thicknessMm / 2, high - low, dielectric.thicknessMm, '#38bdf8', 0.55)
   for (const conductor of section.conductors)
     band(conductor.xMm, conductor.zMm + conductor.thicknessMm / 2, conductor.widthMm, conductor.thicknessMm, '#fbbf24', 1)
   for (const reference of section.planes) band((low + high) / 2, reference.zMm, high - low, 0.008, '#22c55e', 1)
-  const point = [...pose.origin] as [number, number, number]
-  point[2] += frame.top + 1.8
   const values = slice.line.C.map(
     (row, i) =>
       `C${i} ${(row[i] * 1e12).toFixed(1)} pF/m · L${i} ${(slice.line.L[i][i] * 1e9).toFixed(1)} nH/m · Z0 ${Math.sqrt(slice.line.L[i][i] / row[i]).toFixed(1)} Ω`,
   ).join(' | ')
-  label(group, point, values, Math.max(0.45, boardWidth / 65))
+  const point = new THREE.Vector3((low + high) / 2, frame.top + 0.28, 0).applyQuaternion(plane.quaternion).add(plane.position)
+  label(group, point.toArray(), values, 0.13)
 }
 
 /** Draw selected and neighbouring copper, physical sections, bindings and actual ladder node ticks. */
@@ -72,13 +73,14 @@ export function stageOverlay(
   sliceIndex: number,
   fraction: number,
   time: number,
+  progress: number = 1,
 ): THREE.Group {
   const group = new THREE.Group()
   group.name = 'signal-integrity-overlay'
   const selected = new Set(state.scopes.flatMap((scope) => scope.selectedPcbTraceIds))
   const neighbours = new Set(state.scopes.flatMap((scope) => scope.pcbTraceIds).filter((id) => !selected.has(id)))
   const routes = copperRoutes(circuit)
-  if (step >= 1)
+  if (step >= 1 && step !== 3 && step !== 6)
     for (const route of routes) {
       if (!selected.has(route.trace) && !neighbours.has(route.trace)) continue
       const a = boardPosition(stack, ...route.a, route.layer)
@@ -94,8 +96,8 @@ export function stageOverlay(
   const slices = state.fields.flatMap((field) => field.slices)
   const rawSlices = state.sections.flatMap((section) => section.geometry.slices)
   const active = (step >= 3 ? slices : rawSlices)[sliceIndex % Math.max(1, step >= 3 ? slices.length : rawSlices.length)]
-  if (step >= 2) {
-    for (const slice of rawSlices)
+  if (step === 2 || step === 3) {
+    for (const slice of step === 2 ? rawSlices : [])
       for (const wire of slice.wires) {
         segment(
           group,
@@ -129,7 +131,7 @@ export function stageOverlay(
       }
     }
   }
-  if (step >= 4)
+  if (step === 4)
     for (const binding of state.bindings)
       for (const model of binding.models)
         for (const pin of model.metadata.pins) {
@@ -137,57 +139,62 @@ export function stageOverlay(
           if (port?.type !== 'pcb_port') continue
           const driver = binding.plan.states.some((state) => state.source_port_id === pin.port && state.is_output)
           const point = boardPosition(stack, port.x, port.y, port.layers[0])
-          marker(group, point, 0.17, driver ? '#2563eb' : '#06b6d4')
-          label(group, [point[0], point[1], point[2] + 0.8], `${driver ? 'TX' : 'RX'} ${pin.model}`, 0.5)
+          const focused = driver === progress < 0.5
+          marker(group, point, focused ? 0.15 : 0.07, focused ? '#f59e0b' : '#06b6d4')
+          if (focused) label(group, [point[0], point[1], point[2] + 0.45], `${driver ? 'TX' : 'RX'} ${pin.model}`, 0.15)
         }
-  if (step >= 5)
+  if (step === 5)
     for (const network of state.networks) {
       const wires = network.evidence.wires as RouteWire[]
       const ticks = network.evidence.node_ticks as { wire: number; position: number; node: string }[] | undefined
-      for (const tick of ticks ?? []) {
+      for (const [index, tick] of (ticks ?? []).entries()) {
         const wire = wires.find((wire) => wire.id === tick.wire)
         if (!wire) continue
         const [x, y] = routePosition(wire, tick.position)
         const a = boardPosition(stack, x - wire.u[1] * 0.2, y + wire.u[0] * 0.2, wire.layer)
         const b = boardPosition(stack, x + wire.u[1] * 0.2, y - wire.u[0] * 0.2, wire.layer)
-        segment(group, a, b, 0.04, '#c026d3')
+        const active = index === Math.round(progress * ((ticks?.length ?? 1) - 1))
+        segment(group, a, b, active ? 0.08 : 0.04, active ? '#f59e0b' : '#c026d3')
+        if (active) {
+          marker(group, boardPosition(stack, x, y, wire.layer), 0.12, '#f59e0b')
+          label(group, [x, y, a[2] + 0.7], `Cell ${index + 1} · ${tick.node}`, 0.18)
+        }
       }
     }
   if (step >= 6)
     for (const [captureIndex, capture] of state.captures.entries()) {
       const spatial = capture.spatial
       if (spatial) {
-        // Native saved nodes colour their nearest portion of actual route copper. No connection is drawn across bends or between nets.
-        const indices = new Map<string, number[]>()
-        for (const route of routes) {
-          if (!indices.has(route.trace)) indices.set(route.trace, spatialRouteIndices(circuit, state.bindings[captureIndex] ? [state.bindings[captureIndex]] : [], spatial, route.trace))
-          const points = indices
-            .get(route.trace)!
-            .flatMap((index) => (spatial.points[index].layer === route.layer ? [{ point: spatial.points[index], index }] : []))
-          if (!points.length) continue
-          const length = Math.hypot(route.b[0] - route.a[0], route.b[1] - route.a[1])
-          const count = Math.max(1, Math.ceil(length / 0.25))
-          for (let i = 0; i < count; i++) {
-            const a = route.a.map((value, axis) => value + ((route.b[axis] - value) * i) / count) as [number, number]
-            const b = route.a.map((value, axis) => value + ((route.b[axis] - value) * (i + 1)) / count) as [number, number]
-            const near = points.reduce((best, entry) =>
-              Math.hypot(entry.point.x - (a[0] + b[0]) / 2, entry.point.y - (a[1] + b[1]) / 2) <
-              Math.hypot(best.point.x - (a[0] + b[0]) / 2, best.point.y - (a[1] + b[1]) / 2)
-                ? entry
-                : best,
+        const physical = boardRouteSegments(circuit, stack)
+        const indices = new Map<string, ReturnType<typeof routeVoltagePositions>>()
+        for (const route of physical) {
+          if (!indices.has(route.trace)) {
+            const native = spatialRouteIndices(
+              circuit,
+              state.bindings[captureIndex] ? [state.bindings[captureIndex]] : [],
+              spatial,
+              route.trace,
             )
-            const voltage = spatialVoltage(spatial, near.index, time)
-            if (voltage !== undefined) {
-              const mesh = segment(
-                group,
-                boardPosition(stack, ...a, route.layer),
-                boardPosition(stack, ...b, route.layer),
-                route.width * 1.5,
-                voltageColor(voltage),
-              )
-              mesh.userData.spatial = spatial
-              mesh.userData.pointIndex = near.index
-            }
+            indices.set(
+              route.trace,
+              routeVoltagePositions(
+                physical.filter((part) => part.trace === route.trace),
+                stack,
+                spatial,
+                native,
+              ),
+            )
+          }
+          const points = indices.get(route.trace)!
+          const count = Math.max(1, Math.ceil((route.end - route.start) / 0.15))
+          for (let i = 0; i < count; i++) {
+            const blend = routeVoltageBlend(points, route.start + ((route.end - route.start) * (i + 0.5)) / count)
+            if (!blend) continue
+            const a = route.a.map((value, axis) => value + ((route.b[axis] - value) * i) / count) as [number, number, number]
+            const b = route.a.map((value, axis) => value + ((route.b[axis] - value) * (i + 1)) / count) as [number, number, number]
+            const mesh = segment(group, a, b, route.width * 1.4, voltageColor(routeVoltageAt(spatial, blend, time)))
+            mesh.userData.spatial = spatial
+            mesh.userData.blend = blend
           }
         }
       }

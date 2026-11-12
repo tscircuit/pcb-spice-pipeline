@@ -1,19 +1,15 @@
 import React from 'react'
 import { Circuit, simulation } from '@tscircuit/core'
-import { getSvgFromGraphicsObject, type GraphicsObject } from 'graphics-debug'
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
-import { join } from 'node:path'
-import assert from 'node:assert/strict'
 import { TwoTraceBoard } from '../../examples/routed/two-trace-board'
 import { RoutedPipelineSolver } from '../../src/pipeline'
 import { formatSpiceVectors } from '../../src/observation'
 import type { SolverContext } from '../../src/solver'
 import type { CircuitJson } from '../../src/board'
 
-// Original synthetic model for drawing tests only; no vendor tables or native claims.
+// Original synthetic model for scene contract tests only; no vendor tables or native claims.
 const source = `[IBIS Ver] 4.2
 [Component] LVC1G04_DCK
-[Manufacturer] Drawing fixture
+[Manufacturer] Scene fixture
 [Package]
 R_pkg 0 0 0
 L_pkg 0 0 0
@@ -71,8 +67,8 @@ C_comp 1p 1p 1p
 `
 const fixtures = new Map<number, Promise<{ root: RoutedPipelineSolver }>>()
 
-/** Solve real TwoTraceBoard TSX with original drawing-only model tables, once per test file. */
-export function routedVisualFixture(blocks: number = 1): Promise<{ root: RoutedPipelineSolver }> {
+/** Solve real TwoTraceBoard TSX with original scene-contract model tables, once per test file. */
+export function routedSceneFixture(blocks: number = 1): Promise<{ root: RoutedPipelineSolver }> {
   const existing = fixtures.get(blocks)
   if (existing) return existing
   const fixture = (async () => {
@@ -86,7 +82,7 @@ export function routedVisualFixture(blocks: number = 1): Promise<{ root: RoutedP
     )
     circuit.add(tree)
     await circuit.renderUntilSettled()
-    // Synthetic engine IO for drawing only; these curves are not solver evidence.
+    // Synthetic engine IO for scene testing only; these curves are not solver evidence.
     const context: SolverContext = { progress: (): void => undefined, runSolver: async request => {
       const deck = request.files['simulation.cir']
       const duration = Number(/^\.tran\s+\S+\s+(\S+)/m.exec(deck)![1])
@@ -109,15 +105,3 @@ export function routedVisualFixture(blocks: number = 1): Promise<{ root: RoutedP
   return fixture
 }
 
-/** Compare actual exported SVG, including explicit text and fills; snapshots contain no vendor data. */
-export function assertRouteVisual(drawing: GraphicsObject, module: string, name: string): void {
-  const path = join(import.meta.dirname, '..', module, '__snapshots__', `${name}.svg.snap`)
-  // Ignore sub-micro-atlas-unit V8/JavaScriptCore rounding in display coordinates only.
-  const normalized: GraphicsObject = JSON.parse(JSON.stringify(drawing, (_key, value) => (typeof value === 'number' ? Number(value.toFixed(6)) : value)))
-  const svg = getSvgFromGraphicsObject(normalized, { svgWidth: 1100, svgHeight: 800, backgroundColor: 'white', includeTextLabels: false })
-  if (process.env.UPDATE_ROUTED_VISUALS === '1') {
-    mkdirSync(join(path, '..'), { recursive: true })
-    writeFileSync(path, svg)
-  }
-  assert.equal(svg, readFileSync(path, 'utf8'), `${module}/${name} SVG changed; inspect PNGs before updating snapshots`)
-}

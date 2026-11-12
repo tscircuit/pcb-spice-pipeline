@@ -1,8 +1,7 @@
 import { BaseSolver, BasePipelineSolver, definePipelineStep } from '@tscircuit/solver-utils'
 import type { PipelineStep } from '@tscircuit/solver-utils'
-import type { SolverContext } from '../solver'
-import type { GraphicsObject } from 'graphics-debug'
-import { RouteSectionsSolver, routeBoardDrawing, type RoutedSections } from '../board'
+import { emptyVisualization, type SolverContext } from '../solver'
+import { RouteSectionsSolver, type RoutedSections } from '../board'
 import { RouteFieldsSolver, type ExtractedRoutes } from '../extraction'
 import {
   RouteBindingsSolver,
@@ -124,17 +123,12 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
   override getConstructorParams(): [RoutedProblem, SolverContext] {
     return [this.inputProblem, this.context]
   }
-  /** Follow the active domain stage, retaining the last completed drawing between stages. */
-  override visualize(): GraphicsObject {
-    const index = Math.min(Math.max(this.currentPipelineStageIndex - 1, 0), this.pipelineDef.length - 1)
-    return this.activeSubSolver?.visualize() ?? this.getSolver(this.pipelineDef[index].solverName)?.visualize() ?? this.initialVisualize()
-  }
-  /** Show admission's initial physical board before any stage has run. */
-  override initialVisualize(): GraphicsObject {
-    return routeBoardDrawing(this.inputProblem.circuitJson, undefined, '0 · Initial board')
-  }
-  /** A completed pipeline follows the final transient; earlier stages keep their own drawings. */
-  override finalVisualize(): GraphicsObject {
-    return this.getSolver('RouteTransientSolver')?.visualize() ?? this.initialVisualize()
-  }
+  /** Compatibility only; the physical scene is rendered from retained domain outputs. */
+  override visualize = emptyVisualization
+
+  /** Compatibility only; the physical scene is rendered from retained domain outputs. */
+  override initialVisualize = emptyVisualization
+
+  /** Compatibility only; the physical scene is rendered from retained domain outputs. */
+  override finalVisualize = emptyVisualization
 }

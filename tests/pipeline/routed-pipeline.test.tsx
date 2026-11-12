@@ -6,8 +6,6 @@ import { TwoTraceBoard } from '../../examples/routed/two-trace-board'
 import { RoutedPipelineSolver, RoutedStageSolver } from '../../src/pipeline'
 import { formatSpiceVectors } from '../../src/observation'
 import type { SolverContext } from '../../src/solver'
-import { getBounds, computeTransformFromViewbox } from 'graphics-debug'
-import { routeTextSize } from '../../src/board'
 import { RouteBindingsSolver, RouteNetworkSolver, type RouteBindingsInput, type RouteNetworkInput, type RoutedBindings, type RoutedDeck } from '../../src/simulation'
 import { sha256 } from '../../src/kernel'
 import { BasePipelineSolver } from '@tscircuit/solver-utils'
@@ -68,7 +66,6 @@ test('six static stages walk all blocks without nested pipelines and produce det
   const repeat = new RoutedPipelineSolver(JSON.parse(JSON.stringify(solver.getConstructorParams()[0])), synthetic)
   await repeat.solveAsync()
   assert.deepEqual(repeat.getOutput(), output)
-  assert.ok(solver.visualize().lines!.length > 0)
   const renamed = structuredClone(input)
   for (const record of renamed.circuitJson) {
     if (record.type === 'simulation_signal_integrity' || record.type === 'simulation_signal') record.simulation_signal_integrity_id = 'getOutput'
@@ -85,30 +82,7 @@ test('root with no SI blocks seals only admission and the tuple manifest', () =>
   assert.deepEqual(JSON.parse(solver.getOutput().files['stages.json']), routedStages.map(stage => stage.solverName))
 })
 
-import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
-
-test('two-trace TSX root initial and final visual SVG snapshots', async () => {
-  const { root } = await routedVisualFixture()
-  const initial = new RoutedPipelineSolver(root.inputProblem, synthetic)
-  assertRouteVisual(initial.initialVisualize(), 'pipeline', 'routed-pipeline-initial')
-  assertRouteVisual(root.finalVisualize(), 'pipeline', 'routed-pipeline-final')
-})
-
-
-test('every completed stage retains its own final drawing and shared readable typography', async () => {
-  const { root } = await routedVisualFixture()
-  const drawing = root.visualize()
-  assert.deepEqual(drawing, root.getSolver('RouteTransientSolver')!.visualize())
-  for (const [index, definition] of root.pipelineDef.entries()) {
-    const stage = root.getSolver(definition.solverName)!
-    const graphics = stage.visualize()
-    assert.ok(graphics.texts!.some(text => text.text.startsWith(`${index + 1} ·`)))
-    assert.ok(graphics.texts!.every(text => text.fontSize === routeTextSize.body || text.fontSize === routeTextSize.title))
-    const bounds = getBounds(graphics)
-    const transform = computeTransformFromViewbox(bounds, 1080, 620, { padding: 16, yFlip: true })
-    assert.ok(graphics.texts!.every(text => text.fontSize! * transform.a >= 12), 'a full-size stage keeps every caption readable')
-  }
-})
+import { routedSceneFixture } from '../support/routed-scene-fixture'
 
 
 test('default two-trace TSX deck retains the measured driver lead-in and captures its complete rise', async context => {
@@ -139,7 +113,7 @@ test('all six static stage definitions exist before the first step', () => {
 
 
 test('actual two-block TSX advances every flat stage and invokes transients sequentially', async () => {
-  const { root: fixture } = await routedVisualFixture(2)
+  const { root: fixture } = await routedSceneFixture(2)
   let active = 0
   let calls = 0
   const root = new RoutedPipelineSolver(fixture.inputProblem, {
@@ -157,12 +131,9 @@ test('actual two-block TSX advances every flat stage and invokes transients sequ
   assert.equal(root.stageOutput('RoutedAdmissionSolver').value.length, 2)
   assert.equal(root.stageOutput('RouteSectionsSolver').value.length, 2)
   assert.equal(root.stageOutput('RouteFieldsSolver').value.length, 2)
-  const sections = root.getSolver('RouteSectionsSolver')!.visualize()
-  assertRouteVisual(root.visualize(), 'pipeline', 'routed-pipeline-fields')
   await root.solveAsync()
   assert.equal(calls, 2)
   assert.equal(root.getOutput().blocks.length, 2)
-  assert.deepEqual(root.getSolver('RouteSectionsSolver')!.visualize(), sections, 'later stages preserve the final Sections drawing')
   assert.equal(root.getSolver('RouteTransientSolver')!.stats.invocations, 2)
   for (const stage of root.pipelineDef.slice(1)) {
     const child = root.getSolver(stage.solverName)!

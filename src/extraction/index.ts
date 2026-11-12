@@ -21,4 +21,4 @@ export { referenceSeries, routeCrossSection, closestRoutePoints, type ExtractedR
 export { extractRouteReturn, type RouteReturn } from './route-return'
 export { causalLossPoles, causalLossResponse, type LossPole } from './causal-loss'
 
-export { RouteFieldsSolver, routeFieldsDrawing, type RouteFieldsInput } from './route-fields-solver'
+export { RouteFieldsSolver, type RouteFieldsInput } from './route-fields-solver'

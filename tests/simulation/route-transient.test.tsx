@@ -112,24 +112,6 @@ test('real TSX two-trace: old/new native deck parity', { skip: process.env.SI_NA
 })
 
 
-import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
-
-test('live stage uses the shared waveform atlas for completed samples and failure diagnostics', async () => {
-  const { root } = await routedVisualFixture()
-  const stage = root.getSolver<RouteTransientSolver>('RouteTransientSolver')!
-  assertRouteVisual(stage.visualize(), 'simulation', 'route-transient')
-  assert.ok(stage.visualize().lines!.some(line => line.strokeColor === '#9333ea'))
-  assert.ok(stage.visualize().texts!.some(text => text.text.includes('ngspice samples')))
-  assert.ok(stage.visualize().texts!.some(text => text.text.includes('VICTIM_0 · RX far')))
-  assert.ok(stage.visualize().texts!.some(text => text.text.includes('VICTIM_1 · TX near')))
-  assert.deepEqual(root.stageOutput('RouteTransientSolver').value[0].probes.map(probe => probe.name), ['DATA_0', 'VICTIM_0', 'VICTIM_1'])
-  const pending = solver(response())
-  assert.ok(pending.visualize().texts!.some(text => text.text.includes('awaiting live ngspice')))
-  assert.equal(pending.visualize().lines!.filter(line => line.strokeWidth === .3).length, 0)
-  const failed = solver(response(undefined, undefined, 'fatal: rejected'))
-  await assert.rejects(failed.solveAsync(), /fatal/)
-  assert.ok(failed.visualize().texts!.some(text => text.color === '#dc2626' && text.text.includes('fatal')))
-})
 
 import React from 'react'
 import { createServer } from 'node:http'

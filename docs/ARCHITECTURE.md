@@ -138,8 +138,7 @@ block is passed through the same six static top-level stages. The entire
 order, one domain item per step, and publishes an immutable array in admission
 order. It is a `BaseSolver`, with no nested pipeline or child debugger rows.
 The single `routedStages` tuple supplies the debugger order, tests, artifact
-manifest and generated docs below.
-Regenerate with `pnpm exec tsx scripts/document-routed-stages.ts`.
+manifest and documentation below; tests enforce the same six-row order.
 
 <!-- routed-stages:start -->
 | # | Stage solver |
@@ -313,23 +312,41 @@ z-up millimetre frame and places transverse sections normal to routed copper.
 The viewer receives an owned copy: its board thickness follows the physical
 stackup and CAD mounting heights shift by the nominal-to-physical surface
 difference, preserving package dimensions and every PCB x/y coordinate.
-The 2D atlas and 3D overlay consume the same retained stage outputs and Step.
-The display does not broaden the solver's admitted electrical scope.
-The exact-pinned 3D viewer currently uses vanilla Three.js and discards React
-scene children. The adapter uses its scene-root handle after camera creation
-(and its forwarded ref in the JSCAD engine), attaching owned geometry to the
-existing camera and render loop. X-ray clones only board materials. Components
-without CAD records receive explicitly labelled wireframe bodies. Native spatial
-arrays drive voltage colours; missing arrays are reported, never synthesized.
+The full-board 3D scene consumes retained solver outputs and the shared Step.
+`routedScene` preserves all Circuit JSON components and routes at every iteration,
+including pending and failed stages, and supplies a finite scripted camera shot.
+The small stage controller steps domain work serially, retaining status, iterations,
+time, progress, stats and input downloads. No solver produces a stage drawing;
+`emptyVisualization` provides only the required solver-utils compatibility object.
+
+The pinned viewer (`@tscircuit/3d-viewer` 0.0.650) supplies component models, scene,
+lighting and rendering. Owned meshes use that scene and camera: every dielectric
+slab, real-width/thickness trace, copper pour and annular plated via barrel is
+positioned in board millimetres with z up. `boardViewerCircuit` reconciles nominal
+thickness with the stackup without resizing models. Components without usable CAD
+models get labelled footprint placeholders. The viewer's internal scene handle is
+version-sensitive and kept behind the pinned integration.
+
+`boardCameraShot` derives deterministic overview, route tracking, axial Fields,
+pad close-up and transient shots from physical geometry. Camera targets remain
+inside board bounds. The UI animates these shots and locks pointer and keyboard
+camera controls; reduced-motion users get cuts. Focus fades are visibly labelled.
+The actual field cross-section occupies its real slice plane at true scale, with
+C/L/Z0 labels. Bindings mark physical pads; Network marks actual ladder nodes.
+Transient probes, play/scrub and the small waveform plot share native timestamps.
+Sparse spatial voltages interpolate along route arc length (including bends and
+via depth), then along the native time grid, without inventing a delay model.
 
 ```mermaid
 flowchart LR
-  circuit[Complete input Circuit JSON] --> viewer[Full board and component viewer]
-  circuit --> stages[Retained routed solver stages]
-  stages --> atlas[2D stage atlas]
-  stages --> overlay[Physical stage overlay]
-  stack[Physical stackup and slice frame] --> overlay
-  overlay --> viewer
-  capture[Native spatial voltage samples] --> time[Shared time scrubber and waveform cursor]
-  time --> overlay
+  circuit[Full Circuit JSON and physical stack] --> scene[Complete board and component meshes]
+  outputs[Retained stage outputs] --> marks[Slice, fields, pads and ladder cells]
+  step[Step and serial stage controls] --> marks
+  step --> camera[Scripted physical camera shot]
+  marks --> scene
+  camera --> scene
+  native[Native spatial voltages] --> arc[Route-distance and time interpolation]
+  arc --> scene
+  native --> waveform[Synced waveform and time scrubber]
+  waveform --> scene
 ```

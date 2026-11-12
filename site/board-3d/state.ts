@@ -1,34 +1,6 @@
-import type { RoutedPipelineSolver } from '../../src/pipeline'
-import { connectedSourceIds, type CircuitJson, type RoutedSections, type CopperScope } from '../../src/board'
-import type { ExtractedRoutes } from '../../src/extraction'
-import type { RoutedBindings, RoutedCapture, RoutedDeck, RouteSpatialWaveform } from '../../src/simulation'
-
-export interface BoardStageState {
-  scopes: CopperScope[]
-  sections: RoutedSections[]
-  fields: ExtractedRoutes[]
-  bindings: RoutedBindings[]
-  networks: RoutedDeck[]
-  captures: RoutedCapture[]
-}
-
-/** Read completed immutable outputs only, gated by the same selected Step as the atlas. */
-export function boardStageState(root: RoutedPipelineSolver, step: number): BoardStageState {
-  /** A completed stage always owns its output; pending stages expose none. */
-  const read = <K extends Parameters<RoutedPipelineSolver['stageOutput']>[0]>(
-    name: K,
-  ): ReturnType<RoutedPipelineSolver['stageOutput']>['value'] =>
-    root.getSolver(name)?.solved ? (root.getSolver(name)!.getOutput() as ReturnType<RoutedPipelineSolver['stageOutput']>).value : []
-  const plans = step >= 1 ? (read('RoutedAdmissionSolver') as ReturnType<RoutedPipelineSolver['stageOutput']>['value']) : []
-  return {
-    scopes: (plans as { sections: { scope: CopperScope } }[]).map((plan) => plan.sections.scope),
-    sections: step >= 2 ? (read('RouteSectionsSolver') as RoutedSections[]) : [],
-    fields: step >= 3 ? (read('RouteFieldsSolver') as ExtractedRoutes[]) : [],
-    bindings: step >= 4 ? (read('RouteBindingsSolver') as RoutedBindings[]) : [],
-    networks: step >= 5 ? (read('RouteNetworkSolver') as RoutedDeck[]) : [],
-    captures: step >= 6 ? (read('RouteTransientSolver') as BoardStageState['captures']) : [],
-  }
-}
+import { connectedSourceIds, type CircuitJson } from '../../src/board'
+import type { RoutedBindings, RouteSpatialWaveform } from '../../src/simulation'
+export { routedScene as boardStageState, type RoutedSceneState as BoardStageState } from '../../src/pipeline'
 
 /** Interpolate only in time between actual saved native samples. */
 export function spatialVoltage(waveform: RouteSpatialWaveform, point: number, time: number): number | undefined {

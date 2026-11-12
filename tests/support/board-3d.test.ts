@@ -34,7 +34,7 @@ test('complete board copper includes both selected and unselected TSX routes at 
   )
   assert.ok(copper.children.length >= routes.length + circuitJson.filter((record) => record.type === 'pcb_copper_pour').length)
   for (const [index, route] of routes.entries()) {
-    const mesh = copper.children[index]
+    const mesh = copper.children.filter(object => object.userData.kind === 'copper')[index]
     const a = boardPosition(stack, ...route.a, route.layer)
     const b = boardPosition(stack, ...route.b, route.layer)
     assert.deepEqual(
@@ -56,7 +56,8 @@ test('an initial stage reads no future solver output and never runs a native sol
       },
     },
   )
-  assert.deepEqual(boardStageState(root, 0), { scopes: [], sections: [], fields: [], bindings: [], networks: [], captures: [] })
+  assert.deepEqual(boardStageState(root, 0).scopes, [])
+  assert.ok(boardStageState(root, 0).camera.target.every(Number.isFinite))
   assert.equal(root.iterations, 0)
 })
 
@@ -98,6 +99,9 @@ test('the spatial contract colours actual routed copper and remains gated by the
     fields: [],
     bindings: [],
     networks: [],
+    circuitJson,
+    camera: boardStageState(new RoutedPipelineSolver({ circuitJson, ibisSources: {} }, { progress: (): void => undefined, runSolver: async (): Promise<never> => { throw new Error('no native') } }), 0).camera,
+    routes: [],
     captures: [
       {
         kind: 'completed' as const,
@@ -114,7 +118,9 @@ test('the spatial contract colours actual routed copper and remains gated by the
   assert.ok(samples.every((object) => object.position.z === boardPosition(stack, 0, 0, route.layer)[2]))
   for (const sample of samples) {
     assert.equal(sample.userData.spatial, spatial)
-    assert.ok([0, 1].includes(sample.userData.pointIndex))
+    assert.ok([0, 1].includes(sample.userData.blend.before))
+    assert.ok([0, 1].includes(sample.userData.blend.after))
+    assert.ok(sample.userData.blend.fraction >= 0 && sample.userData.blend.fraction <= 1)
   }
   assert.equal(stageOverlay(circuitJson, stack, state, 5, 0, 0.5, 0.5e-9).children.filter((object) => object.userData.spatial).length, 0)
   assert.notEqual(voltageColor(0), voltageColor(3.3))

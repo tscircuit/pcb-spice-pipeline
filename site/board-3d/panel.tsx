@@ -7,6 +7,8 @@ import { fullCopper, copperRoutes } from './copper'
 import { stageOverlay } from './overlay'
 import { dispose } from './primitives'
 import { boardStageState, spatialVoltage, voltageColor } from './state'
+import { physicalStack } from './stack'
+import { routeVoltageAt } from '../../src/simulation'
 import { Waveform } from './waveform'
 
 type CameraController = NonNullable<Parameters<NonNullable<React.ComponentProps<typeof CadViewer>['onCameraControllerReady']>>[0]>
@@ -79,6 +81,13 @@ export function Board3dPanel({
       : []
   }, [circuit, stack, state, step])
   useEffect(() => {
+    /** The stock viewer's global camera shortcuts must not override the stage script. */
+    const lockCamera = (event: KeyboardEvent): void => {
+      const target = event.target as HTMLElement
+      if (target.closest('input, textarea, select, button') || ['Tab', 'Enter', ' '].includes(event.key)) return
+      event.stopImmediatePropagation()
+    }
+    window.addEventListener('keydown', lockCamera, true)
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
     /** Respect changes to the user's system motion preference. */
     const change = (): void => setReducedMotion(media.matches)
@@ -87,6 +96,7 @@ export function Board3dPanel({
     const observer = new ResizeObserver(([entry]) => setAspect(entry.contentRect.width / Math.max(1, entry.contentRect.height)))
     if (canvasRef.current) observer.observe(canvasRef.current)
     return (): void => {
+      window.removeEventListener('keydown', lockCamera, true)
       media.removeEventListener('change', change)
       observer.disconnect()
     }
@@ -108,32 +118,47 @@ export function Board3dPanel({
   }, [step, stageReady, reducedMotion, root, slices.length, onSliceChange])
   useEffect(() => {
     if (!camera) return
-    const shot = boardCameraShot(circuit, stack, { stage: step, progress: shotProgress, focus, slice: slices[currentSliceIndex], aspect })
+    const shot = boardCameraShot(circuit, stack, {
+      stage: step,
+      progress: shotProgress,
+      focus,
+      slice: slices[currentSliceIndex]
+        ? {
+            ...slices[currentSliceIndex],
+            start: slices[currentSliceIndex].start + (slices[currentSliceIndex].end - slices[currentSliceIndex].start) * fraction,
+            end: slices[currentSliceIndex].start + (slices[currentSliceIndex].end - slices[currentSliceIndex].start) * fraction,
+          }
+        : undefined,
+      aspect,
+    })
     camera.animateTo({ ...shot, durationMs: reducedMotion ? 0 : 850 })
-  }, [camera, circuit, stack, step, shotProgress, focus, currentSliceIndex, aspect, reducedMotion])
+  }, [camera, circuit, stack, step, shotProgress, focus, currentSliceIndex, fraction, aspect, reducedMotion])
   useEffect(() => {
     if (!root) return
     const copper = fullCopper(circuit, stack)
+    copper.add(physicalStack(circuit, stack))
     root.add(copper)
     return (): void => dispose(copper)
   }, [root, circuit, stack])
   useEffect(() => {
     if (!root) return
-    const overlay = stageOverlay(circuit, stack, state, step, currentSliceIndex, fraction, 0)
+    const overlay = stageOverlay(circuit, stack, state, step, currentSliceIndex, fraction, 0, shotProgress)
     overlayRef.current = overlay
     root.add(overlay)
     return (): void => {
       overlayRef.current = null
       dispose(overlay)
     }
-  }, [root, circuit, stack, state, step, currentSliceIndex, fraction])
+  }, [root, circuit, stack, state, step, currentSliceIndex, fraction, shotProgress])
   useEffect(() => {
     overlayRef.current?.traverse((object) => {
       if (!object.userData.spatial) return
-      const voltage = spatialVoltage(object.userData.spatial, object.userData.pointIndex, time)
+      const voltage = object.userData.blend
+        ? routeVoltageAt(object.userData.spatial, object.userData.blend, time)
+        : spatialVoltage(object.userData.spatial, object.userData.pointIndex, time)
       if (voltage !== undefined) ((object as THREE.Mesh).material as THREE.MeshBasicMaterial).color.set(voltageColor(voltage))
     })
-  }, [time, root, state, step, currentSliceIndex, fraction])
+  }, [time, root, state, step, currentSliceIndex, fraction, shotProgress])
   useEffect(() => {
     if (!root) return
     const originals = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>()
@@ -148,10 +173,14 @@ export function Board3dPanel({
           owner = owner.parent
         }
         if (!mesh.material || originals.has(mesh) || object.userData.spatial || object.parent?.name === 'signal-integrity-overlay') return
+        if (owner && /board-geom|texture-plane|^via-/.test(object.name)) {
+          object.visible = false
+          return
+        }
         originals.set(mesh, mesh.material)
         const copy = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).map((material) => {
           const clone = material.clone()
-          const opacity = step === 0 || step === 1 ? 1 : owner ? (step === 3 ? 0.035 : 0.18) : step === 3 ? 0.08 : step === 4 ? 0.18 : 0.4
+          const opacity = mesh.type === 'Sprite' && step === 3 ? 0 : step === 0 || step === 1 ? 1 : owner ? (step === 3 ? 0.035 : 0.18) : step === 3 ? 0.08 : step === 4 ? 0.18 : 0.4
           if (opacity < 1) {
             clone.transparent = true
             clone.opacity = opacity
@@ -189,7 +218,7 @@ export function Board3dPanel({
   const missingCad = circuit.filter(
     (record) =>
       record.type === 'pcb_component' &&
-      !circuit.some((cad) => cad.type === 'cad_component' && cad.pcb_component_id === record.pcb_component_id),
+      !circuit.some((cad) => cad.type === 'cad_component' && cad.pcb_component_id === record.pcb_component_id && (cad.model_obj_url || cad.model_stl_url || cad.model_gltf_url || cad.model_jscad || cad.footprinter_string)),
   ).length
   const stageName = ['Full board', 'Admission', 'Sections', 'Fields', 'Bindings', 'Network', 'Transient'][step]
   const available =
@@ -209,7 +238,7 @@ export function Board3dPanel({
         All {circuit.filter((record) => record.type === 'pcb_component').length} components · {stack.copperLayers.length} copper layers ·
         blue selected · grey neighbours · green sections · amber slice · magenta ladder · red probes
       </p>
-      {missingCad > 0 && <p>{missingCad} components have no CAD record; labelled wireframe bodies show their physical footprint.</p>}
+      {missingCad > 0 && <p>{missingCad} components have no 3D model; labelled wireframe bodies show their physical footprint.</p>}
       {!root && <p role="status">Loading board scene and component models…</p>}
       {!available && <p role="status">{stageName} has no completed output yet. Advance the solver using Solve or Step.</p>}
       {step >= 2 && slices.length > 0 && (
@@ -266,7 +295,7 @@ export function Board3dPanel({
           </div>
           {spatial ? (
             <p className="voltage-legend">
-              Trace voltage: −1 V <span /> +5 V · nearest saved spatial node, linear time interpolation
+              Trace voltage: −1 V <span /> +5 V · linear interpolation along the physical route and native time grid
             </p>
           ) : (
             <p>Spatial native voltages are not available yet; trace colours remain stage highlights.</p>

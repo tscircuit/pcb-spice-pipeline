@@ -29,7 +29,7 @@ export { isQuiet } from './signals'
 export { segmentRoutes, routePosition, routeContactFrame, routeReferences, type SectionGeometry, type RouteWire, type RouteSlice, type RouteReference, type RouteXY } from './route-sections'
 
 export { routeSectionSteps } from './route-sections'
-export { routeBoardPoint, routeBoardDrawing, routeSectionDrawing, routeSliceDrawing, routeText, routeTextSize, routeDisplayItems, routeNetLabel } from './route-visual'
 export { RouteSectionsSolver, type RouteSectionsInput, type RoutedSections } from './route-sections-solver'
 export { boardFrame, boardViewerCircuit, boardPosition, boardSlicePose, boardSlicePosition, type BoardPosition, type BoardFrame, type SlicePose } from './viewer-geometry'
 export { boardCameraShot, boardPathPosition, type BoardCameraShot, type BoardCameraInput } from './viewer-camera'
+export { boardRouteSegments, type BoardRouteSegment } from './viewer-route'

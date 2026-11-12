@@ -68,3 +68,4 @@ export async function invoke<const O extends string>(
   const outputs = Object.fromEntries(request.outputFiles.map(file => [file, result.files[file]])) as Record<O, string>
   return { value: { stdout: result.stdout, stderr: result.stderr, outputs, files: merged, logPaths: logs.map(a => a.path) }, artifacts }
 }
+export { emptyVisualization } from './visualization'
