@@ -5,6 +5,8 @@ import { type RouteWire, type RouteXY } from '../board'
 export interface RouteLadder {
   lines: string[]; cells: number; maximumDelaySeconds: number
   wireNodes: Map<number, { position: number; node: string }[]>
+  model?: string
+  warnings?: string[]
 }
 
 /** Deliberately conservative modal delay upper bound from matrix infinity norms. */

@@ -209,6 +209,7 @@ abbreviations:
   args: arguments
   cap: capacitance, as in FasterCap
   config: configuration
+  cpl: coupled multiconductor transmission line, an ngspice distributed device
   csv: comma-separated values
   dc: direct current; in DDR thresholds, the level a signal must stay beyond
   ddr: double data rate memory

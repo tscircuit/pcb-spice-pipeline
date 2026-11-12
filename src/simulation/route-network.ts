@@ -19,7 +19,7 @@ export class RouteNetworkSolver extends BaseSolver {
   private ladder?: RouteLadder
   private obliqueRecords: Record<string, unknown>[] = []
   /** Completed geometry, fields and bindings are immutable input snapshots. */
-  constructor(private readonly input: RouteNetworkInput) { super() }
+  constructor(private readonly input: RouteNetworkInput, private readonly lineSteps: typeof routeLadderSteps = routeLadderSteps) { super() }
   /** Build one route run; the last step assembles the coupled energies and deck. */
   override _step(): void {
     this.steps ??= this.build()
@@ -71,7 +71,7 @@ export class RouteNetworkSolver extends BaseSolver {
       const to = endpoint(wire, join.to)
       if (from !== to) aliases.push(`RJOIN${aliases.length} ${from} ${to} 1e-6`)
     }
-    const steps = routeLadderSteps(extracted, endpoint, options.riseSeconds, options.refinement, options.cellsPerRise, options.returnPath)
+    const steps = this.lineSteps(extracted, endpoint, options.riseSeconds, options.refinement, options.cellsPerRise, options.returnPath)
     let result = steps.next()
     while (!result.done) {
       this.ladder = result.value
@@ -106,7 +106,7 @@ export class RouteNetworkSolver extends BaseSolver {
     const mapped = new Set(models.flatMap(model => Object.values(model.spicePinMapping)))
     const external = bindings.circuitJson.filter(record => record.type === 'pcb_port').filter(port => !mapped.has(port.source_port_id) && port.layers.some(layer => routeContactFrame(geometry, scope, layer, [port.x, port.y])))
     const modelOptions = options
-    const warnings = [...extracted.warnings, ...transitions.warnings, ...models.flatMap(model => model.warnings),
+    const warnings = [...extracted.warnings, ...transitions.warnings, ...models.flatMap(model => model.warnings), ...(ladder.warnings ?? []),
       ...(options.returnPath ? [options.returnPath.definition, 'Hybrid cell layout uses the ideal 2D delay bound; the additional/replaced magnetic network requires independent numerical refinement and remains unqualified.'] : []),
       `JLC standard stackup (assumed): JLC08121H-3313; mask thickness ${materials.maskMm} mm (${options.materials ? 'explicit material option' : maskLayers.length ? 'preset' : 'assumed; absent from preset'}). Mask er=${materials.maskEr}, tan(delta)=${materials.maskLoss} and laminate tan(delta)=${materials.substrateLoss}; explicit assumptions, not measured material data.`,
       'Numerical DC anchors: 1 Gohm per coarse route node; removes open-neighbour common-mode singularities without substituting a vendor load.',
@@ -123,6 +123,7 @@ export class RouteNetworkSolver extends BaseSolver {
         routes: mappings.map(mapping => ({ ...mapping, length_mm: geometry.wires.filter(wire => wire.source === mapping.sourceTraceId).reduce((sum, wire) => sum + wire.end - wire.start, 0) })),
         cross_sections: extracted.sections.map(({ key, line }) => ({ geometry: JSON.parse(key), C: line.C, L: line.L, dcResistance: line.dcResistance, skinResistance: line.skinResistance, dielectricLoss: line.dielectricLoss, diagnostics: line.diagnostics })),
         slices: extracted.slices.map(slice => ({ start: slice.start, end: slice.end, point: routePosition(slice.wires[0], (slice.start + slice.end) / 2), wires: slice.wires.map(wire => wire.id), references: slice.references, key: slice.key })) }
+    if (ladder.model) Object.assign(evidence, { line_model: ladder.model })
     evidence.warnings.unshift(...this.input.warnings)
     this.obliqueRecords = oblique.records
     const deck = lines.join('\n') + '\n'
