@@ -20,7 +20,7 @@ const phase = process.argv[2]
 const selection = process.argv[3] ?? 'small'
 const thresholds = (process.env.SI_GROUPS_THRESHOLDS ?? '.01,.03,.1').split(',').map(Number)
 interface Case { kind: string; plan?: RoutePartition; path: string; sha: string; cells: unknown; bytes: number; duration: number; probes: RoutedDeck['probes'] }
-interface Block { name: string; blockName: string; graph: RouteGraph; cases: Case[] }
+interface Block { name: string; blockName: string; windowClosure: 'direct' | 'strong-component'; graph: RouteGraph; cases: Case[] }
 interface NativeRun { wallSeconds: number; timedOut: boolean; samples: number; lastTimeSeconds: number | null }
 interface Measurement { native: NativeRun; samples?: number[][]; error?: string; path: string }
 
@@ -62,10 +62,13 @@ async function compile(): Promise<void> {
       compiled = { ...compiled, deck, durationSeconds, stepSeconds, requestSha256: createHash('sha256').update(JSON.stringify(routedRequest({ deck }))).digest('hex') }
       const graph = routeGraph(input, compiled)
       const selected = new Set(input.bindings.mappings.map(mapping => mapping.sourceTraceId))
-      const windows = thresholds.flatMap(threshold => routePartitions(graph, 'victim-window', threshold, selection === 'ddr' ? 1.5 : 3.3, .02))
+      const windows = thresholds.flatMap(threshold => {
+        const protectedGraph = process.env.SI_GROUPS_STRONG_CLOSURE === '1' ? { ...graph, pairs: graph.pairs.map(pair => ({ ...pair, hard: pair.hard || Math.max(pair.inductive, pair.capacitive) > threshold })) } : graph
+        return routePartitions(protectedGraph, 'victim-window', threshold, selection === 'ddr' ? 1.5 : 3.3, .02)
+      })
         .filter(plan => graph.nets.find(net => net.id === plan.victim)?.sources.some(source => selected.has(source)))
       const plans = routePartitions(graph, 'exact').concat(windows)
-      const block: Block = { name: `${name}-${index}`, blockName: compiled.name, graph, cases: [] }
+      const block: Block = { name: `${name}-${index}`, blockName: compiled.name, windowClosure: process.env.SI_GROUPS_STRONG_CLOSURE === '1' ? 'strong-component' : 'direct', graph, cases: [] }
       const seen = new Map<string, RoutedDeck>()
       for (const [i, plan] of [undefined, ...plans].entries()) {
         const key = plan?.nets.join(',') ?? 'full'

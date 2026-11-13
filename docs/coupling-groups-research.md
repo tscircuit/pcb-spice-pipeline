@@ -23,7 +23,7 @@ copied; nonideal shared binding nodes close components. Finite shared-return
 experiments are rejected.
 
 Dropped electric and magnetic values are absolute quadratic cross-term bounds at
-caller-supplied voltage/current limits, not measured energy or waveform-error
+caller-supplied per-node voltage/per-branch current limits, not measured energy or waveform-error
 bounds. Mutual resistance and loss coefficients are accounted separately. Removing
 an entire remote route also removes its self energy; that is not included in the
 cross-term bound. These bounds do not qualify the waveform approximation.
@@ -33,6 +33,8 @@ flowchart LR
   fields[Solved route matrices and full deck evidence] --> graph[Net graph including oblique terms and IBIS bindings]
   graph --> exact[Exact connected components]
   graph --> windows[Victim windows and binding closure]
+  graph --> strong[Optional threshold component closure]
+  strong --> windows
   exact --> projection[Principal submatrices with original mesh bound]
   windows --> projection
   projection --> network[Existing RouteNetworkSolver and deck assembly]
@@ -54,6 +56,13 @@ node --import tsx scripts/research-coupling-groups.tsx measure small
 node --import tsx scripts/research-coupling-groups.tsx compile ddr
 node --import tsx scripts/research-coupling-groups.tsx measure ddr
 ```
+
+`SI_GROUPS_STRONG_CLOSURE=1` is a separate research control: protect all
+above-threshold edges before closing the victim window. This retains every
+strong aggressor-to-aggressor interaction in the selected component, so only
+weaker boundary couplings are omitted. Default one-hop windows are unchanged.
+For DDR at 0.1 it gives the same 29-net group for all 24 declared victims. A
+single bounded native check of that control is recorded separately below.
 
 Every measurement invokes `research-coupling-native.py`, which acquires
 `SI_NGSPICE_LOCK` before starting ngspice. Timers exclude lock waits. The default
@@ -154,6 +163,17 @@ active-run estimate. The equivalent quiet-prefix extrapolation for all exact com
 **4,005 s / 66.8 min**. Exact splitting leaves the dominant workload near the
 full deck because it retains every K term; victim-window completion cannot be
 projected from an aborted run. No DDR threshold is qualified by this spike.
+
+A separate **strong-component control at threshold 0.1** protects every
+above-threshold edge before closing the window. All 24 declared victims then
+share one 29-net deck: **866 cells, 12,066,078 bytes and 27,411 K terms**. This
+retains strong aggressor-to-aggressor links that a one-hop window may cut.
+It **timed out at 600 s**, with **132 partial saved points** ending at
+**25.0055 ps**. The complete full reference needed only 90 points for 1 ns.
+Its 4.546 s/partial-point value is an incomplete-run diagnostic. Thus even this
+more conservative group does not finish the requested prefix or establish an
+8 ns forecast. Peak RSS was 0.800 GB. No numerical tuning or further grouping
+variants were attempted after this bounded negative control.
 
 There is a separate baseline limitation: **67 of the 91 scoped nets have no
 vendor endpoint binding**. The 24 declared nets retain their real IBIS models,
