@@ -11,9 +11,9 @@ import Differential from '../examples/level1-differential/level1-differential'
 import { renderCoreSignals } from '../tests/support/core-render'
 
 // Research runner for docs/research/inverse-inductance.md. Decks, raw files and logs stay in the ignored output directory.
-// Usage: bun scripts/research-inverse-inductance.tsx <two|differential|ddr> [quiet|edge]
+// Usage: bun scripts/research-inverse-inductance.tsx <two|differential|ddr> [full|quiet|edge|op]
 // Env: IBIS_MODEL_DIR, SI_DDR3_BOARD, SI_NGSPICE (command prefix, e.g. a machine lock), SI_NATIVE_SECONDS, SI_RESEARCH_DIR,
-// SI_THRESHOLDS (comma list: 'k' = coupled-inductor baseline, 'k<t>' = baseline without route K lines of |k| <= t,
+// SI_SPARSE=1, SI_THRESHOLDS (comma list: 'k' = coupled-inductor baseline, 'k<t>' = baseline without route K lines of |k| <= t,
 // '<t>' = susceptance truncated at t), SI_WINDOW_SECONDS, SI_SHIFT_SECONDS.
 const board = process.argv[2]
 const windowName = process.argv[3] ?? 'full'
@@ -86,18 +86,25 @@ function rawRows(text: string, probes: { signalNode: string; referenceNode: stri
 /** One machine-serialized ngspice process whose own runtime, not its lock wait, is bounded by SIGALRM. */
 function runNative(folder: string): Promise<{ exitCode: number | null; stdout: string; stderr: string; wallSeconds: number }> {
   return new Promise((done, reject) => {
-    const command = [...prefix, 'perl', '-MTime::HiRes=time', '-e', 'print STDERR "native-start ", time, "\n"; alarm shift; exec @ARGV', String(nativeSeconds), 'ngspice', '-n', '-b', '-r', 'waveform.raw', 'simulation.cir']
+    // perl execs ngspice, so its printed pid is the ngspice pid; the host kill timer starts only after the lock is held.
+    const command = [...prefix, 'perl', '-MTime::HiRes=time', '-e', 'print STDERR "native-start ", time, " ", $$, "\n"; alarm shift; exec @ARGV', String(nativeSeconds), 'ngspice', '-n', '-b', '-r', 'waveform.raw', 'simulation.cir']
     const child = spawn(command[0], command.slice(1), { cwd: folder, env: { ...process.env, OMP_NUM_THREADS: '1', SPICE_ASCIIRAWFILE: '1' } })
     let stdout = ''
     let stderr = ''
     child.stdout.on('data', chunk => {
       stdout += chunk
     })
+    let deadline: NodeJS.Timeout | undefined
     child.stderr.on('data', chunk => {
       stderr += chunk
+      const started = /native-start \S+ (\d+)/.exec(stderr)
+      if (started && !deadline) deadline = setTimeout(() => process.kill(Number(started[1]), 'SIGKILL'), (nativeSeconds + 5) * 1000)
     })
     child.on('error', reject)
-    child.on('close', exitCode => done({ exitCode, stdout, stderr, wallSeconds: Date.now() / 1000 - Number(/native-start (\S+)/.exec(stderr)?.[1]) }))
+    child.on('close', exitCode => {
+      clearTimeout(deadline)
+      done({ exitCode, stdout, stderr, wallSeconds: Date.now() / 1000 - Number(/native-start (\S+)/.exec(stderr)?.[1]) })
+    })
   })
 }
 
@@ -118,19 +125,32 @@ const input = await networkInput()
 const refined = board === 'ddr' ? {} : { refinement: 4, cellsPerRise: 40 }
 const results: Record<string, unknown>[] = []
 let reference: { time: number[]; values: number[][] } | undefined
+// A run without the plain 'k' variant compares against an earlier baseline raw file in the same window directory.
+const earlier = variants.includes('k') ? undefined : await readFile(join(output, 'k', 'waveform.raw'), 'utf8').catch(() => undefined)
+const decks = new Map<string, RoutedDeck>()
 for (const variant of variants) {
   const started = performance.now()
   const inductance = variant.startsWith('k')
-  const network = new RouteNetworkSolver({ ...input, options: { ...input.options, ...refined, ...(inductance ? {} : { susceptanceThreshold: Number(variant) }) } })
-  network.solve()
-  if (!network.solved) throw new Error(`${variant}: ${network.error}`)
-  const compiled: RoutedDeck = network.getOutput().value
+  // Every K-line variant filters one compiled coupled-inductor deck.
+  const key = inductance ? 'k' : variant
+  if (!decks.has(key)) {
+    const network = new RouteNetworkSolver({ ...input, options: { ...input.options, ...refined, ...(inductance ? {} : { susceptanceThreshold: Number(variant) }) } })
+    network.solve()
+    if (!network.solved) throw new Error(`${variant}: ${network.error}`)
+    decks.set(key, network.getOutput().value)
+  }
+  const compiled = decks.get(key)!
   const compileMs = performance.now() - started
   // The edge window keeps 50 ps of DC hold before the first 2.5 ns transition, then 1 ns of switching.
   const shift = Number(process.env.SI_SHIFT_SECONDS ?? (windowName === 'edge' ? 2.45e-9 : 0))
   const duration = Number(process.env.SI_WINDOW_SECONDS ?? (windowName === 'full' ? compiled.durationSeconds : windowName === 'edge' ? 1.05e-9 : 1e-9))
   const truncated = inductance && variant.length > 1 ? truncateCouplings(compiled.deck, Number(variant.slice(1))) : compiled.deck
-  const deck = windowName === 'full' ? truncated : windowDeck(truncated, duration, shift, compiled.stepSeconds)
+  // acct prints ngspice's matrix fill-in, load, factor, solve and iteration accounting; it does not change the solution.
+  // The 'op' window measures matrix size and fill-in from the operating point alone.
+  const bounded = windowName === 'full' ? truncated : windowName === 'op' ? truncated.replace(/^\.tran .*$/m, '.op') : windowDeck(truncated, duration, shift, compiled.stepSeconds)
+  // SI_SPARSE=1 swaps KLU for ngspice's Sparse 1.3 solver, to separate solver pivoting from circuit behaviour.
+  const solver = process.env.SI_SPARSE === '1' ? bounded.replace(/^\.options klu /m, '.options ') : bounded
+  const deck = solver.replace(/^\.(tran|op)\b/m, '.options acct\n.$1')
   const folder = join(output, variant)
   await mkdir(folder, { recursive: true })
   await writeFile(join(folder, 'simulation.cir'), deck)
@@ -143,18 +163,19 @@ for (const variant of variants) {
   const waveform = rawRows(await readFile(join(folder, 'waveform.raw'), 'utf8').catch(() => ''), compiled.probes)
   const analysisSeconds = Number(/Total analysis time \(seconds\) = ([\d.eE+-]+)/.exec(run.stdout)?.[1] ?? NaN)
   const completedSeconds = waveform.time.at(-1) ?? 0
-  reference ??= waveform
+  reference ??= earlier ? rawRows(earlier, compiled.probes) : waveform
   const overlap = Math.min(completedSeconds, reference.time.at(-1) ?? 0)
   const deltas = compiled.probes.map((probe, i) => {
     let maximum = 0
     for (const [j, at] of reference!.time.entries()) if (at <= overlap) maximum = Math.max(maximum, Math.abs(sample(waveform.time, waveform.values[i], at) - reference!.values[i][j]))
     return { probe: probe.name, maximumDeltaMv: maximum * 1000 }
   })
-  const result = { variant, cells: compiled.evidence.cells, census, compileMs, exitCode: run.exitCode, timedOut: run.exitCode !== 0 && !Number.isFinite(analysisSeconds),
+  const accounting = Object.fromEntries([...run.stdout.matchAll(/^(Total iterations|Transient iterations|Total analysis time|Circuit Equations|Circuit original non-zeroes|Circuit fill-in non-zeroes|Circuit total non-zeroes|Transient timepoints|Accepted timepoints|Rejected timepoints|Transient analysis time|Transient load time|Transient factor time|Transient solve time|Transient trunc time) = (\S+)/gm)].map(match => [match[1], Number(match[2])]))
+  const result = { variant, cells: compiled.evidence.cells, census, compileMs, accounting, exitCode: run.exitCode, timedOut: run.exitCode !== 0 && !Number.isFinite(analysisSeconds),
     diagnostic: (run.stdout + run.stderr).split('\n').find(line => /error|fatal|aborted|timestep too small/i.test(line)), analysisSeconds, wallSeconds: run.wallSeconds,
     points: waveform.time.length, completedSeconds, secondsPerPoint: (Number.isFinite(analysisSeconds) ? analysisSeconds : run.wallSeconds) / waveform.time.length, comparedThroughSeconds: overlap,
     maximumDeltaMv: Math.max(...deltas.map(delta => delta.maximumDeltaMv)), deltas }
   results.push(result)
   console.log(JSON.stringify({ ...result, deltas: undefined }))
-  await writeFile(join(output, 'results.json'), JSON.stringify(results, null, 2))
+  await writeFile(join(output, `results-${variants.join('_')}.json`), JSON.stringify(results, null, 2))
 }
