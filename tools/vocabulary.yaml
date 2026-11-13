@@ -205,6 +205,12 @@ domain:
   pane: an opaque panel beside the board in a stage drawing, holding a cross-section or a waveform plot
   mark: a dot or ring drawn at a pin; a dot for a driver, a ring for a receiver
   tone: a fixed drawing colour with one meaning, such as the slice cut or a failure
+  strip: a pane showing each selected net unrolled into a to-scale bar
+  eye: a waveform folded every two bit periods so all transitions overlay
+  envelope: the band between the lowest and highest of many probe curves at each moment
+  excursion: how far a curve goes beyond the band most samples stay in
+  camera: the fixed board region a problem's stage drawings show
+  halo: a dark outline behind a mark so it reads over copper
 
 abbreviations:
   http: Hypertext Transfer Protocol used by the browser solver adapter
@@ -260,10 +266,10 @@ general:
   - expect fail fall find finish flip flush generate get has invoke is link load locate match measure
   - merge normalize omit override parse produce quote raise read receive reduce refine register remove rename
   - replace reset resolve rise run select set shift skip solve sort split start supply test transmit
-  - unlink update use validate view visit write trim
+  - unlink update use validate view visit write trim crop unroll cast fold
   # states and outcomes
   - connected contained default failure found grounded killed named oriented pinned scoped seen supplied
-  - unavailable unconverged unevaluated unselected used done
+  - unavailable unconverged unevaluated unselected used done built crowded kept
   # data shapes and code structure
   - all any array attachment base binding body boolean box bucket budget byte candidate cell chain child
   - code column command comment content context count data declaration definition descriptor element
@@ -276,11 +282,11 @@ general:
   - adapter comparison conversion converter diagram directory domain engine fast faster invocation tool
   # report and user interface
   - ambiguity approximation button canvas client color description detail download drag font hint issue
-  - limitation listener overlay overview plot reason report role summary tab viewer warning drawing frame margin alpha
+  - limitation listener overlay overview plot reason report role summary tab viewer warning drawing frame margin alpha bar hue tick band casing digit glyph lightness pitch fallback
   # describing and comparing
   - absolute active analytic best canonical common compatible compatibility condition convention direct
   - empty equivalent exact expected finite fixed flat full global high horizontal inner limit low lowest
-  - max maximum middle min minimum native negative next numeric original other outer own physical
+  - max maximum middle min minimum native negative next numeric original other outer own physical half highest least longest median most near far reach leg
   - positive preceding previous primitive prior pure quiet range raw relative safe serial target threshold
   - characterization compliance
   # quantities, electricity and units
@@ -292,7 +298,7 @@ general:
   # geometry
   - alignment anchor ancestor area aspect border boundary center contact connection coordinate curve
   - depth direction distance division edge endpoint epsilon face gap height hole left length nearest
-  - outline point position profile radius right round segment side sign size sizing spacing surface
+  - outline point position profile radius right round segment side sign size sizing spacing surface circle corner closest across
   - thickness triangle width
   # axis letters and their steps or counts (x, dx = step along x, nx = count along x)
   - x y z dx dy nx ny nz

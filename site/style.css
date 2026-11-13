@@ -7,7 +7,8 @@ textarea { display: block; box-sizing: border-box; width: 100%; min-height: 160p
 [role=alert] { color: #a12825; white-space: pre-wrap; overflow-wrap: anywhere; }
 summary, button { cursor: pointer; }
 
-.routed-atlas { position: relative; width: 100%; overflow: hidden; background: #0c0f12; cursor: grab; touch-action: none; user-select: none; }
+.routed-atlas { position: relative; width: 100%; overflow: hidden; background: #0c0f12; user-select: none; }
+.routed-atlas-label { position: absolute; pointer-events: none; padding: 2px 6px; border-radius: 4px; background: #11161cee; color: #d6dde6; font-size: 12px; white-space: nowrap; }
 .routed-atlas-layers, .routed-atlas-layers > div { position: absolute; inset: 0; transform-origin: 0 0; }
 .routed-atlas svg { display: block; }
 

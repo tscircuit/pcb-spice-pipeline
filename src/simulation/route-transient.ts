@@ -5,10 +5,10 @@ import { rootScope, snapshot, sha256, type Produced } from '../kernel'
 import { invoke, type SolverContext, type SolverRequest } from '../solver'
 import { spiceProbeRows } from '../observation'
 import { fail } from './diagnostics'
-import { routeWaveformDrawing } from './waveform-visual'
+import { routeWaveformDrawing, type ReceiverThreshold } from './waveform-visual'
 import type { RoutedDeck, RoutedCapture } from './routed-types'
 
-export interface RouteTransientInput { compiled: RoutedDeck; artifactPrefix: string; context: SolverContext; board?: RoutedSections }
+export interface RouteTransientInput { compiled: RoutedDeck; artifactPrefix: string; context: SolverContext; board?: RoutedSections; threshold?: ReceiverThreshold }
 
 /** Native batch writes complete ASCII raw vectors for the declarative transient deck. */
 export function routedRequest(compiled: Pick<RoutedDeck, 'deck'>): SolverRequest & { outputFiles: ['waveform.raw'] } {
@@ -57,6 +57,6 @@ export class RouteTransientSolver extends BaseSolver {
     const { compiled, board } = this.input
     const routes = compiled.evidence.routes as { from: string; to: string }[] | undefined
     const probes = compiled.probes.map(probe => ({ name: probe.name, sourcePortId: probe.signalSourceId, near: Boolean(routes?.some(route => route.from === probe.signalSourceId)) }))
-    return routeWaveformDrawing(board, probes, this.output?.value, compiled.durationSeconds, this.failed ? this.error ?? 'Transient failed' : undefined)
+    return routeWaveformDrawing({ board, probes, capture: this.output?.value, durationSeconds: compiled.durationSeconds, threshold: this.input.threshold, running: this.running, error: this.failed ? (this.error ?? 'Transient failed') : undefined })
   }
 }

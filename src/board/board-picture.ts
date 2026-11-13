@@ -1,9 +1,7 @@
 import { convertCircuitJsonToPcbSvg, type PcbColorOverrides } from 'circuit-to-svg'
 import { getBounds, getSvgFromGraphicsObject, type GraphicsObject, type Viewbox } from 'graphics-debug'
 import type { CircuitJson } from './schema'
-
-/** graphics-debug's fixed SVG margin in pixels; the camera reproduces its projection exactly. */
-const overlayMargin = 40
+import { routeBoardBox, routeBounds } from './route-visual'
 
 /** Dark, desaturated board colours so bright stage overlays stand out on a realistic top view. */
 export const boardColors = {
@@ -11,7 +9,7 @@ export const boardColors = {
   overrides: {
     copper: { top: '#8c7a4e', bottom: '#8c7a4e' },
     drill: '#07090a',
-    silkscreen: { top: '#8d968f', bottom: '#8d968f' },
+    silkscreen: { top: '#5d665f', bottom: '#5d665f' },
     boardOutline: '#58665e',
     soldermask: { top: '#0f2a1e', bottom: '#0f2a1e' },
     soldermaskOverCopper: { top: '#1d4532', bottom: '#1d4532' },
@@ -20,69 +18,102 @@ export const boardColors = {
 }
 
 export interface BoardPicture {
-  /** The real board, from circuit-to-svg, cropped to the camera. */
+  /** The real board from circuit-to-svg, cropped to the camera and letterboxed. */
   board: string
   /** The stage drawing with a transparent background, pixel-aligned with the board. */
   overlay: string
 }
 
-/** Region worth showing: the drawing's bounds with a small margin, else the whole board outline. */
+/** The camera: the drawing's `camera` frame, else its bounds with a margin, else the whole board. */
 export function boardPictureView(circuit: CircuitJson, drawing: GraphicsObject): Viewbox {
-  const empty = !['lines', 'rects', 'circles', 'polygons', 'points', 'texts'].some((key) => (drawing[key as keyof GraphicsObject] as unknown[] | undefined)?.length)
-  const board = circuit.find((record) => record.type === 'pcb_board')
-  const outline = board?.outline?.length
-    ? board.outline
-    : board
-      ? [-1, 1].map((sign) => ({ x: board.center.x + (sign * (board.width ?? 0)) / 2, y: board.center.y + (sign * (board.height ?? 0)) / 2 }))
-      : [{ x: -1, y: -1 }, { x: 1, y: 1 }]
-  const bounds = empty
-    ? { minX: Math.min(...outline.map((p) => p.x)), maxX: Math.max(...outline.map((p) => p.x)), minY: Math.min(...outline.map((p) => p.y)), maxY: Math.max(...outline.map((p) => p.y)) }
-    : getBounds(drawing)
-  const margin = Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY, 1e-3) * 0.04
-  return { minX: bounds.minX - margin, maxX: bounds.maxX + margin, minY: bounds.minY - margin, maxY: bounds.maxY + margin }
+  const frame = drawing.rects?.find((rect) => rect.label === 'camera')
+  if (frame) return { minX: frame.center.x - frame.width / 2, maxX: frame.center.x + frame.width / 2, minY: frame.center.y - frame.height / 2, maxY: frame.center.y + frame.height / 2 }
+  const empty = !(['lines', 'rects', 'circles', 'polygons', 'points', 'texts'] as const).some((key) => drawing[key]?.length)
+  const box = empty ? routeBoardBox(circuit) : getBounds(drawing)
+  const margin = Math.max(box.maxX - box.minX, box.maxY - box.minY, 1e-3) * 0.04
+  return { minX: box.minX - margin, maxX: box.maxX + margin, minY: box.minY - margin, maxY: box.maxY + margin }
 }
 
-/** The copper side to look at: the one carrying more of the drawing's layered lines. */
-function boardSide(drawing: GraphicsObject): 'top' | 'bottom' {
-  /** Lines drawn on one copper layer. */
-  const count = (layer: string): number => (drawing.lines ?? []).filter((line) => line.layer === layer).length
-  return count('bottom') > count('top') ? 'bottom' : 'top'
+/** Every coordinate a record carries, whatever its shape. */
+function recordPoints(record: object): { x: number; y: number }[] {
+  const value = record as Record<string, unknown>
+  /** Whether a value is a point with numeric x and y. */
+  const point = (item: unknown): item is { x: number; y: number } => typeof item === 'object' && item !== null && typeof (item as { x?: unknown }).x === 'number' && typeof (item as { y?: unknown }).y === 'number'
+  return [value, value.center, value.anchor_position, ...[value.route, value.points, value.outline].flatMap((list) => (Array.isArray(list) ? list : []))].filter(point)
+}
+
+const crops = new WeakMap<CircuitJson, Map<string, CircuitJson>>()
+
+/** Only records near the camera reach circuit-to-svg, and silkscreen text never does, so the board layer stays small and wordless. */
+function cropCircuit(circuit: CircuitJson, view: Viewbox): CircuitJson {
+  const key = JSON.stringify(view)
+  const cache = crops.get(circuit) ?? new Map<string, CircuitJson>()
+  crops.set(circuit, cache)
+  const margin = Math.max(view.maxX - view.minX, view.maxY - view.minY) * 0.1
+  const cropped =
+    cache.get(key) ??
+    circuit.filter((record) => {
+      if (record.type === 'pcb_silkscreen_text' || record.type.startsWith('pcb_fabrication_note')) return false
+      if (!record.type.startsWith('pcb_') || record.type === 'pcb_board' || record.type === 'pcb_copper_pour') return true
+      const box = routeBounds(recordPoints(record))
+      return !box || (box.maxX >= view.minX - margin && box.minX <= view.maxX + margin && box.maxY >= view.minY - margin && box.minY <= view.maxY + margin)
+    })
+  cache.set(key, cropped)
+  if (cache.size > 6) cache.delete(cache.keys().next().value!)
+  return cropped
 }
 
 const boards = new WeakMap<CircuitJson, Map<string, string>>()
 
 /** circuit-to-svg is the slow part on large boards, so keep the last few cameras per board. */
-function boardSvg(circuit: CircuitJson, view: Viewbox, width: number, height: number, side: 'top' | 'bottom'): string {
+function boardSvg(circuit: CircuitJson, view: Viewbox, width: number, height: number): string {
   const cache = boards.get(circuit) ?? new Map<string, string>()
   boards.set(circuit, cache)
-  const key = JSON.stringify([view, width, height, side])
-  const cached = cache.get(key)
-  if (cached) return cached
-  const svg = convertCircuitJsonToPcbSvg(circuit as Parameters<typeof convertCircuitJsonToPcbSvg>[0], {
-    width,
-    height,
-    viewport: view,
-    layer: side,
-    showSolderMask: true,
-    backgroundColor: boardColors.background,
-    colorOverrides: boardColors.overrides,
-  })
+  const key = JSON.stringify([view, width, height])
+  const svg =
+    cache.get(key) ??
+    convertCircuitJsonToPcbSvg(cropCircuit(circuit, view) as Parameters<typeof convertCircuitJsonToPcbSvg>[0], {
+      width,
+      height,
+      viewport: view,
+      layer: 'top',
+      showSolderMask: true,
+      showFabricationNotes: false,
+      backgroundColor: boardColors.background,
+      colorOverrides: boardColors.overrides,
+    })
   cache.set(key, svg)
   if (cache.size > 6) cache.delete(cache.keys().next().value!)
   return svg
 }
 
-/** The real board under a stage drawing: one camera in board mm (y up) for both layers. */
-export function boardPicture(circuit: CircuitJson, drawing: GraphicsObject, width: number, height: number): BoardPicture {
-  const content = boardPictureView(circuit, drawing)
-  const scale = Math.min((width - 2 * overlayMargin) / (content.maxX - content.minX), (height - 2 * overlayMargin) / (content.maxY - content.minY))
-  const center = { x: (content.minX + content.maxX) / 2, y: (content.minY + content.maxY) / 2 }
-  // graphics-debug fits its bounds inside a fixed pixel margin; an invisible frame makes those bounds the camera.
-  const frame = { center, width: (width - 2 * overlayMargin) / scale, height: (height - 2 * overlayMargin) / scale, fill: 'none', stroke: 'none' }
-  const view = { minX: center.x - width / 2 / scale, maxX: center.x + width / 2 / scale, minY: center.y - height / 2 / scale, maxY: center.y + height / 2 / scale }
+/**
+ * The real board under a stage drawing, both cropped to one camera and letterboxed in width × height.
+ * `region` zooms into part of the camera; labels keep their on-screen size.
+ */
+export function boardPicture(circuit: CircuitJson, drawing: GraphicsObject, width: number, height: number, region?: Viewbox): BoardPicture {
+  const camera = boardPictureView(circuit, drawing)
+  const view = region ?? camera
+  const scale = Math.min(width / (view.maxX - view.minX), height / (view.maxY - view.minY))
+  const pictureWidth = (view.maxX - view.minX) * scale
+  const pictureHeight = (view.maxY - view.minY) * scale
+  const left = (width - pictureWidth) / 2
+  const top = (height - pictureHeight) / 2
+  const zoom = (view.maxX - view.minX) / (camera.maxX - camera.minX)
+  const frame = { center: { x: (view.minX + view.maxX) / 2, y: (view.minY + view.maxY) / 2 }, width: view.maxX - view.minX, height: view.maxY - view.minY, fill: 'none', stroke: 'none', label: 'camera' }
+  const raw = getSvgFromGraphicsObject(
+    { ...drawing, rects: [...(drawing.rects ?? []).filter((rect) => rect.label !== 'camera'), frame], texts: drawing.texts?.map((text) => ({ ...text, fontSize: (text.fontSize ?? 1) * zoom })) },
+    { svgWidth: pictureWidth, svgHeight: pictureHeight, backgroundColor: null },
+  )
+  // Wherever graphics-debug placed the frame, crop the overlay to it: objects outside the camera never move it.
+  const rect = /<rect[^>]*data-label="camera"[^>]*>/.exec(raw)![0]
+  const [x, y, w, h] = ['x', 'y', 'width', 'height'].map((name) => Number(new RegExp(` ${name}="([^"]+)"`).exec(rect)![1]))
+  const unit = w / pictureWidth
+  const overlay = raw.replace(/^<svg[^>]*>/, `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${x - left * unit} ${y - top * unit} ${width * unit} ${height * unit}">`)
+  const board = boardSvg(circuit, view, pictureWidth, pictureHeight).replace(/^<svg /, `<svg x="${left}" y="${top}" `)
   return {
-    board: boardSvg(circuit, view, width, height, boardSide(drawing)),
-    overlay: getSvgFromGraphicsObject({ ...drawing, rects: [...(drawing.rects ?? []), frame] }, { svgWidth: width, svgHeight: height, backgroundColor: null }),
+    board: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="${width}" height="${height}" fill="${boardColors.background}"/>${board}</svg>`,
+    overlay,
   }
 }
 

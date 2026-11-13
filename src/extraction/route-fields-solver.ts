@@ -1,15 +1,12 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
 import type { GraphicsObject } from 'graphics-debug'
-import type { Viewbox } from 'graphics-debug'
-import {
-  routeBounds, routeDisplayItems, routePane, routePaneBox, routeSectionDrawing, routeSliceDrawing, routeSourceColor, routeSources, routeText, routeTones, routeUnit,
-  type SectionGeometry, type RouteSlice, type CircuitJson, type CopperScope,
-} from '../board'
+import type { SectionGeometry, RouteSlice, CircuitJson, CopperScope } from '../board'
 import { rootScope, snapshot, type Produced } from '../kernel'
 import { routeCrossSection, type RouteMaterials, type RouteCoefficients, type ExtractedRoutes, type ExtractedRouteSlice } from './route-lines'
 import { routeCoupling, type RouteCoupling } from './route-coupling'
 import { solveCrossSection } from './cross-section'
 import type { CrossSection } from './cross-section-types'
+import { fieldsDrawing } from './fields-visual'
 
 export interface RouteFieldsInput {
   geometry: SectionGeometry
@@ -104,75 +101,16 @@ export class RouteFieldsSolver extends BaseSolver {
   }
   /** The cache and work queues never enter debugger downloads. */
   override getConstructorParams(): [RouteFieldsInput] { return [this.input] }
-  /** The board with an amber cut at the current slice, and that slice's cross-section in a pane beside it. */
+  /** Solved copper coloured by Z0 with the slice on screen cut in amber; once finished, the slice with the most selected conductors. */
   override visualize(): GraphicsObject {
     const { geometry, circuitJson, scope } = this.input
-    const slice = this.currentSlice ?? geometry.slices[0]
-    const drawing: GraphicsObject = circuitJson && scope
-      ? routeSectionDrawing(circuitJson, geometry, scope)
-      : { coordinateSystem: 'cartesian', lines: geometry.wires.map(wire => ({ points: [wire.a, wire.b].map(([x, y]) => ({ x, y })), strokeColor: routeTones.neighbour, strokeWidth: wire.width })), rects: [], polygons: [], circles: [], texts: [] }
-    const sources = circuitJson && scope ? routeSources(circuitJson, scope) : [...new Set(geometry.wires.map(wire => wire.source))]
-    const focus = routeBounds(drawing.lines!.flatMap(line => line.points))
-    if (!slice || !focus) return drawing
-    const cut = routeBounds(routeSliceDrawing(drawing, slice, routeUnit(focus)))!
-    const section = this.current ?? routeCrossSection(geometry, slice, this.materials)
-    const pane = routePaneBox(focus, 2)
-    routePane(drawing, pane)
-    const from = { x: (cut.minX + cut.maxX) / 2, y: (cut.minY + cut.maxY) / 2 }
-    const right = pane.minX > focus.maxX
-    drawing.lines!.push({ points: [from, right ? { x: pane.minX, y: (pane.minY + pane.maxY) / 2 } : { x: (pane.minX + pane.maxX) / 2, y: pane.maxY }], strokeColor: routeTones.slice, strokeWidth: routeUnit(focus) * 0.25, strokeDash: '6 4' })
-    sectionPane(drawing, pane, section, slice.wires.map(wire => routeSourceColor(sources, wire.source)), this.cache.get(JSON.stringify(section)), this.materials)
-    return drawing
+    const selected = new Set(scope?.selectedPcbTraceIds ?? geometry.wires.map(wire => wire.trace))
+    /** How much of the selected copper a slice shows: its selected conductors, then its length. */
+    const score = (slice: RouteSlice): number => slice.wires.filter(wire => selected.has(wire.trace)).length * 1e6 + slice.end - slice.start
+    const best = this.solved ? [...this.slices].sort((a, b) => score(b) - score(a))[0] : undefined
+    const slice = best ?? this.currentSlice ?? geometry.slices[0]
+    const section = best ? routeCrossSection(geometry, best, this.materials) : (this.current ?? (slice && routeCrossSection(geometry, slice, this.materials)))
+    const line = best?.line ?? (section && this.cache.get(JSON.stringify(section)))
+    return fieldsDrawing({ geometry, circuitJson, scope, materials: this.materials, solved: this.slices, slice, section, line, error: this.failed ? (this.error ?? 'Field solve failed') : undefined })
   }
-}
-
-/** A to-scale stack: laminate tan, mask green, reference planes copper, conductors in net colours, coupling bands sized by k, and Z0 below. */
-function sectionPane(drawing: GraphicsObject, pane: Viewbox, section: CrossSection, colors: string[], line: RouteCoefficients | undefined, materials: RouteMaterials): void {
-  const unit = routeUnit(pane)
-  const inner = { minX: pane.minX + unit * 6, maxX: pane.maxX - unit * 6, minY: pane.minY + unit * 13, maxY: pane.maxY - unit * 13 }
-  const low = Math.min(...section.conductors.map((c) => c.xMm - c.widthMm / 2))
-  const high = Math.max(...section.conductors.map((c) => c.xMm + c.widthMm / 2))
-  const span = Math.max(high - low, 1e-3)
-  const levels = [...new Set([
-    ...section.dielectrics.flatMap((d) => [d.zMm, d.zMm + d.thicknessMm]),
-    ...section.conductors.flatMap((c) => [c.zMm, c.zMm + c.thicknessMm]),
-    ...section.planes.map((p) => p.zMm),
-  ])].sort((a, b) => a - b)
-  const heights = levels.slice(1).map((v, i) => Math.max(0.04, Math.sqrt(v - levels[i])))
-  const total = heights.reduce((sum, height) => sum + height, 0)
-  /** One linear transverse scale with a margin of a third of the span on each side. */
-  const x = (v: number): number => inner.minX + ((v - low + span / 3) / (span * 5 / 3)) * (inner.maxX - inner.minX)
-  /** Piecewise square-root z keeps thin copper and mask visible without changing their order. */
-  const z = (v: number): number => {
-    let height = 0
-    for (let i = 1; i < levels.length; i++) height += heights[i - 1] * Math.max(0, Math.min(1, (v - levels[i - 1]) / (levels[i] - levels[i - 1])))
-    return inner.minY + (height / Math.max(total, 1e-3)) * (inner.maxY - inner.minY)
-  }
-  const middle = (inner.minX + inner.maxX) / 2
-  const width = inner.maxX - inner.minX
-  for (const [i, slab] of [...section.dielectrics].sort((a, b) => a.zMm - b.zMm).entries()) {
-    const mask = slab.er === materials.maskEr && slab.lossTangent === materials.maskLoss
-    drawing.rects!.push({ center: { x: middle, y: (z(slab.zMm) + z(slab.zMm + slab.thicknessMm)) / 2 }, width, height: z(slab.zMm + slab.thicknessMm) - z(slab.zMm), fill: mask ? '#24573f' : i % 2 ? '#5e4d36' : '#53442f' })
-  }
-  for (const plane of section.planes) drawing.rects!.push({ center: { x: middle, y: z(plane.zMm) }, width, height: unit * 1.2, fill: '#b08d57' })
-  for (const [i, c] of section.conductors.entries())
-    drawing.rects!.push({ center: { x: x(c.xMm), y: (z(c.zMm) + z(c.zMm + c.thicknessMm)) / 2 }, width: x(c.xMm + c.widthMm / 2) - x(c.xMm - c.widthMm / 2), height: Math.max(z(c.zMm + c.thicknessMm) - z(c.zMm), unit * 0.8), fill: colors[i], stroke: colors[i] })
-  if (!line) return
-  const top = z(levels.at(-1)!)
-  const pairs = section.conductors.flatMap((a, i) => section.conductors.slice(i + 1).map((b, offset) => {
-    const j = i + offset + 1
-    return { a, b, k: Math.max(Math.abs(line.C[i][j]) / Math.sqrt(line.C[i][i] * line.C[j][j]), Math.abs(line.L[i][j]) / Math.sqrt(line.L[i][i] * line.L[j][j])) }
-  })).filter(pair => pair.k >= 0.005).sort((p, q) => q.k - p.k)
-  // Coupling bands arc above the stack; their thickness grows with k.
-  for (const pair of routeDisplayItems(pairs, 60)) {
-    const [from, to] = [x(pair.a.xMm), x(pair.b.xMm)].sort((p, q) => p - q)
-    const rise = Math.min(unit * 7, (to - from) * 0.35) + unit
-    const thickness = unit * (0.3 + 3 * Math.sqrt(Math.min(pair.k, 1)))
-    /** One edge of the band, offset from its centre arc. */
-    const arc = (offset: number): { x: number; y: number }[] => Array.from({ length: 17 }, (_, t) => ({ x: from + ((to - from) * t) / 16, y: top + unit + (rise + offset) * Math.sin((Math.PI * t) / 16) }))
-    drawing.polygons!.push({ points: [...arc(thickness / 2), ...arc(-thickness / 2).reverse()], fill: routeTones.coupling, stroke: 'none' })
-  }
-  if (section.conductors.length > 10) return
-  for (const [i, c] of section.conductors.entries())
-    routeText(drawing, x(c.xMm), inner.minY - unit * (i % 2 && section.conductors.length > 4 ? 9 : 4.5), `${Math.sqrt(line.L[i][i] / line.C[i][i]).toFixed(0)} Ω`, colors[i], unit * 3)
 }

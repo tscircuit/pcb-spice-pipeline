@@ -201,7 +201,7 @@ for (const name of ['two-trace', 'level1-differential'])
         calls++
         const drawing: GraphicsObject = solver.visualize()
         assertDrawing(circuit, drawing, `${name}: ngspice pending`)
-        assert.equal(drawing.lines!.filter((line) => line.label).length, 0, 'no curves while ngspice runs')
+        assert.equal(drawing.lines!.filter((line) => line.layer === 'waveform').length, 0, 'no curves while ngspice runs')
         await new Promise<void>((resolve) => setImmediate(resolve))
         return synthetic.runSolver(request)
       },

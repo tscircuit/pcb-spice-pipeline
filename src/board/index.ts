@@ -30,8 +30,7 @@ export { segmentRoutes, routePosition, routeContactFrame, routeReferences, type 
 
 export { routeSectionSteps } from './route-sections'
 export {
-  routeTones, routeColor, routeSources, routeSourceColor, routeDisplayItems, routeBounds, routeUnit, routeCopper, routeRing, routeText, routePaneBox, routePane, routeFailure,
-  routeDrawingUnit, routeMarks, routePortPoint, routeEndpoints, routeFocus, routeInside, routeClip,
-  routeBoardDrawing, routeSectionDrawing, routeSliceDrawing,
+  routeTones, routeHue, routeBounds, routeDisplayItems, routeFrame, routeView, routeCanvas, routeStroke, routeNets, routeMarks, routeVia,
+  routePortPoint, routeText, routePane, routeFailure, routeBoardBox, routeBoardDrawing, routePinDirection, routeBuffers, routeOutline, routeStrip, routeLengths, routeUnrolled, type RouteStripRow, type RouteNet, type RouteFrame, type RouteView,
 } from './route-visual'
 export { RouteSectionsSolver, type RouteSectionsInput, type RoutedSections } from './route-sections-solver'

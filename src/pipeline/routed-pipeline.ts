@@ -2,12 +2,13 @@ import { BaseSolver, BasePipelineSolver, definePipelineStep } from '@tscircuit/s
 import type { PipelineStep } from '@tscircuit/solver-utils'
 import type { SolverContext } from '../solver'
 import type { GraphicsObject } from 'graphics-debug'
-import { RouteSectionsSolver, routeBoardDrawing, type RoutedSections } from '../board'
+import { RouteSectionsSolver, routeBoardBox, routeBoardDrawing, routeText, routeTones, type RoutedSections } from '../board'
 import { RouteFieldsSolver, type ExtractedRoutes } from '../extraction'
 import {
   RouteBindingsSolver,
   RouteNetworkSolver,
   RouteTransientSolver,
+  receiverThreshold,
   type RoutedDeck,
   type RoutedCapture,
   type RoutedBindings,
@@ -54,6 +55,7 @@ export const routedStages = [
       board: p.stageOutput('RouteSectionsSolver').value[i],
       artifactPrefix: p.stageOutput('RoutedAdmissionSolver').value[i].sections.artifactPrefix,
       context: p.context,
+      threshold: receiverThreshold(p.inputProblem.ibisSources, p.stageOutput('RouteBindingsSolver').value[i].models, new Set(p.stageOutput('RouteBindingsSolver').value[i].mappings.map(mapping => mapping.to))),
     })),
   ]),
 ] as const satisfies readonly PipelineStep<BaseSolver>[]
@@ -133,9 +135,17 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
     if (!solver && number - 1 <= this.currentPipelineStageIndex) {
       solver = new definition.solverClass(...definition.getConstructorParams(this))
     }
-    const scope = this.getStageOutput<Produced<RoutedBlockPlan[]>>('RoutedAdmissionSolver')?.value[0]?.sections.scope
-    // A stage that cannot be built yet shows the selected copper faintly.
-    return solver?.visualize() ?? routeBoardDrawing(this.inputProblem.circuitJson, scope, 0.3)
+    const plans = this.getStageOutput<Produced<RoutedBlockPlan[]>>('RoutedAdmissionSolver')?.value
+    const circuit = this.inputProblem.circuitJson
+    if (plans && !plans.length) {
+      // Nothing was admitted: the whole board with one quiet line, the same in every stage.
+      const drawing = routeBoardDrawing(circuit, undefined)
+      const board = routeBoardBox(circuit)
+      routeText(drawing, (board.minX + board.maxX) / 2, (board.minY + board.maxY) / 2, 'No signal-integrity blocks admitted', routeTones.quiet, (board.maxX - board.minX) / 40)
+      return drawing
+    }
+    // A stage that cannot be built yet shows the selected copper in neutral grey.
+    return solver?.visualize() ?? routeBoardDrawing(circuit, plans?.[0]?.sections.scope, () => routeTones.copper)
   }
   /** Stage boundaries show the incoming input immediately, before its first step. */
   override visualize(): GraphicsObject {

@@ -1,6 +1,6 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
 import type { GraphicsObject } from 'graphics-debug'
-import { validateCircuitRecords, routeBoardDrawing, routeEndpoints, routeFailure, type CircuitJson, type LaneMapping } from '../board'
+import { validateCircuitRecords, routeBoardBox, routeBoardDrawing, routeFailure, routeLengths, routeMarks, routePortPoint, routeStrip, routeView, type CircuitJson, type LaneMapping } from '../board'
 import { edgeSeconds, type IbisSources } from '../buffers'
 import { rootScope, snapshot, sha256, type Produced } from '../kernel'
 import type { RouteSectionsInput } from '../board'
@@ -64,12 +64,20 @@ export class RoutedAdmissionSolver extends BaseSolver {
   }
   /** Original input only. */
   override getConstructorParams(): [RoutedProblem] { return [this.input] }
-  /** Selected copper in net colours with drivers as dots and receivers as rings; a rejection adds one red line. */
+  /** Selected copper in net colours with drivers as dots and receivers as rings, and each net's routed length unrolled in the pane; a rejection writes one red reason. */
   override visualize(): GraphicsObject {
     const plan = this.plans.at(-1)
-    const drawing = routeBoardDrawing(this.input.circuitJson, plan?.sections.scope)
-    if (plan) routeEndpoints(drawing, this.input.circuitJson, plan.sections.scope, plan.bindings.mappings)
-    if (this.failed) routeFailure(drawing, this.input.circuitJson, this.error ?? 'Invalid signal scope')
+    const circuit = this.input.circuitJson
+    const drawing = routeBoardDrawing(circuit, plan?.sections.scope)
+    const view = plan && routeView(circuit, plan.sections.scope)
+    if (view) routeStrip(drawing, view.pane, routeLengths(circuit, view))
+    if (view)
+      routeMarks(drawing, plan.bindings.mappings.flatMap(mapping => ([[mapping.from, true], [mapping.to, false]] as const).flatMap(([id, driver]) => {
+        const point = routePortPoint(circuit, id)
+        const net = view.ports.get(id)
+        return point ? [{ point, color: net?.color ?? '#ffffff', driver, label: net?.label }] : []
+      })), view.unit)
+    if (this.failed) routeFailure(drawing, view?.pane ?? routeBoardBox(circuit), this.error ?? 'Invalid signal scope')
     return drawing
   }
 }
