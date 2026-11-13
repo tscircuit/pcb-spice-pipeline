@@ -1,6 +1,6 @@
 # Coupling-group research spike
 
-This is a research branch stacked on `fix/routed-ddr3-level4`. Native measurements are recorded below; the DDR victim-window pilot is a negative result. It does not change the pipeline's default deck.
+This is a research branch stacked on `fix/routed-ddr3-level4`. Native measurements are recorded below; the completed DDR victim-window study is a negative result. It does not change the pipeline's default deck.
 
 `simulation/route-partition.ts` builds a net graph from solved RLGC/loss matrices,
 actual source connectivity, physical contacts, emitted oblique capacitance, and
@@ -147,14 +147,29 @@ The exact dominant component retains **all 36,814 K terms** and completed in
 against the full quiet prefix. Each of the five isolated exact components
 completed 1 ns in less than 0.1 s. Total serial exact cost is **500.638 s** versus
 502.654 s full: a single-run difference of 0.40%, with no useful speedup. Peak RSS
-was 1.290 GB versus 1.295 GB full. A preliminary 60 s dominant-component pilot
-timed out without readable points; the completed 600 s capture supersedes it. All 72 victim
-windows and all six exact component decks have been emitted. Identical windows
-reduce to 15 distinct runs at threshold 0.01, 11 at 0.03, and 5 at 0.1 (21 across
-all thresholds). Per-partition sizes, dropped-term amplitude bounds and native
-costs are in [the cost table](coupling-groups-ddr-costs.md). Preliminary limits were
-60 s; extended window measurements use the full 600 s hard cap. Their remaining
-entries are explicitly pending until measured.
+was 1.290 GB versus 1.295 GB full.
+
+All **21 distinct one-hop victim windows** now have terminal native results.
+All six exact and all 72 requested victim partition rows have separately indexed
+decks. Duplicate included-net sets reuse measurements. The three thresholds
+need 15, 11 and 5 distinct runs respectively; common sets are reused between
+thresholds. Every window had a 600 s native deadline. Preliminary 60 s pilots
+remain in the private evidence and are superseded by these extended runs.
+
+| Threshold | Unique runs | Completed 1 ns | Aborted | Timeout | Victims with complete window / 24 | Maximum quiet victim error, mV |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0.01 | 15 | 3 | 11 | 1 | 3 | 1.47178e-07 |
+| 0.03 | 11 | 2 | 8 | 1 | 3 | 1.2609e-08 |
+| 0.1 | 5 | 0 | 4 | 1 | 0 | unavailable |
+
+Successful individual windows cost **131.266–183.148 s** for
+1 ns, with 90 saved points each (**1.459–2.035 s/point**,
+setup included). These are quiet-prefix measurements. Failed and timed-out
+captures provide no complete-window error. Every threshold includes the aborted
+24-net base window, so no complete victim ensemble is qualified.
+
+Per-partition sizes, K counts, dropped cross-term amplitude bounds and terminal
+native costs are in [the complete cost table](coupling-groups-ddr-costs.md).
 
 A purely linear extrapolation of the full quiet prefix gives **4,021 s / 67.0 min
 for 8 ns**. This assumes unchanged timestep density and cost and is **not a

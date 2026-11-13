@@ -2,7 +2,7 @@
 
 All 24 declared victims at each threshold emit a deck. Identical included-net sets reuse the same emitted deck and native measurement. All included IBIS/package bindings and quiet states remain intact. The full reference has 1,835 cells, 17,518,974 bytes, and 36,814 K terms. `E_C` and `E_L` below are total boundary cross-term amplitude bounds at assumed |V| <= 1.5 V and |I| <= 20 mA. They are not measured omitted energy or waveform error. The JSON evidence also records resistive, skin and dielectric bounds.
 
-Timers exclude machine-lock waits. The full reference completed 1 ns in 502.654 s, with 90 saved points (5.585 s/point). All six exact components completed; their total serial cost was 500.638 s. Window runs use a 600 s deadline. An aborted run's s/point is only a diagnostic and cannot forecast a completed transient. Unmeasured extended cases remain explicitly pending; prior 60 s censored pilots are retained in the private evidence.
+Timers exclude machine-lock waits. The full reference completed 1 ns in 502.654 s, with 90 saved points (5.585 s/point). All six exact components completed; their total serial cost was 500.638 s. Window runs use a 600 s deadline. An aborted run's s/point is only a diagnostic and cannot forecast a completed transient. All 21 extended cases have terminal results; prior 60 s censored pilots are retained in the private evidence.
 
 | Mode | Victim | Threshold | Nets | Cells | Bytes | K terms | E_C, pJ | E_L, pJ | Status | Wall, s | Limit, s | Points | Last t, ns | s/point |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|---:|
@@ -56,10 +56,10 @@ Timers exclude machine-lock waits. The full reference completed 1 ns in 502.654 
 | victim-window | A5 | 0.03 | 24 | 721 | 10,869,484 | 25,131 | 7.51074 | 1.04888 | aborted | 265.686 | 600 | 9 | 1.25555e-05 | 29.5207 |
 | victim-window | A2 | 0.03 | 24 | 721 | 10,869,484 | 25,131 | 7.51074 | 1.04888 | aborted | 265.686 | 600 | 9 | 1.25555e-05 | 29.5207 |
 | victim-window | A4 | 0.03 | 24 | 721 | 10,869,484 | 25,131 | 7.51074 | 1.04888 | aborted | 265.686 | 600 | 9 | 1.25555e-05 | 29.5207 |
-| victim-window | RASn | 0.03 | 25 | 743 | 10,963,091 | 25,191 | 7.49225 | 1.05099 | pending | — | 600 | — | — | — |
-| victim-window | A7 | 0.03 | 25 | 725 | 10,889,551 | 25,131 | 7.1928 | 1.04888 | pending | — | 600 | — | — | — |
+| victim-window | RASn | 0.03 | 25 | 743 | 10,963,091 | 25,191 | 7.49225 | 1.05099 | timeout | 600.021 | 600 | 191 | 0.00656171 | 3.14147 |
+| victim-window | A7 | 0.03 | 25 | 725 | 10,889,551 | 25,131 | 7.1928 | 1.04888 | aborted | 263.236 | 600 | 9 | 1.25581e-05 | 29.2485 |
 | victim-window | A9 | 0.03 | 26 | 811 | 11,822,711 | 27,101 | 7.11655 | 0.846545 | complete | 183.148 | 600 | 90 | 1 | 2.03498 |
-| victim-window | CKE | 0.03 | 26 | 769 | 11,009,984 | 25,271 | 8.68939 | 1.72977 | pending | — | 600 | — | — | — |
+| victim-window | CKE | 0.03 | 26 | 769 | 11,009,984 | 25,271 | 8.68939 | 1.72977 | aborted | 289.429 | 600 | 9 | 1.2557e-05 | 32.1588 |
 | victim-window | CK | 0.1 | 25 | 750 | 11,019,804 | 25,321 | 5.23325 | 0.654633 | aborted | 142.560 | 600 | 10 | 1.25558e-05 | 14.256 |
 | victim-window | CKn | 0.1 | 24 | 721 | 10,869,484 | 25,131 | 7.51074 | 1.04888 | aborted | 265.686 | 600 | 9 | 1.25555e-05 | 29.5207 |
 | victim-window | WEn | 0.1 | 24 | 721 | 10,869,484 | 25,131 | 7.51074 | 1.04888 | aborted | 265.686 | 600 | 9 | 1.25555e-05 | 29.5207 |
@@ -80,7 +80,7 @@ Timers exclude machine-lock waits. The full reference completed 1 ns in 502.654 
 | victim-window | A5 | 0.1 | 24 | 721 | 10,869,484 | 25,131 | 7.51074 | 1.04888 | aborted | 265.686 | 600 | 9 | 1.25555e-05 | 29.5207 |
 | victim-window | A2 | 0.1 | 24 | 721 | 10,869,484 | 25,131 | 7.51074 | 1.04888 | aborted | 265.686 | 600 | 9 | 1.25555e-05 | 29.5207 |
 | victim-window | A4 | 0.1 | 24 | 721 | 10,869,484 | 25,131 | 7.51074 | 1.04888 | aborted | 265.686 | 600 | 9 | 1.25555e-05 | 29.5207 |
-| victim-window | RASn | 0.1 | 25 | 743 | 10,963,091 | 25,191 | 7.49225 | 1.05099 | pending | — | 600 | — | — | — |
+| victim-window | RASn | 0.1 | 25 | 743 | 10,963,091 | 25,191 | 7.49225 | 1.05099 | timeout | 600.021 | 600 | 191 | 0.00656171 | 3.14147 |
 | victim-window | A7 | 0.1 | 24 | 721 | 10,869,484 | 25,131 | 7.51074 | 1.04888 | aborted | 265.686 | 600 | 9 | 1.25555e-05 | 29.5207 |
 | victim-window | A9 | 0.1 | 25 | 765 | 11,275,610 | 25,861 | 7.92861 | 1.58532 | aborted | 183.568 | 600 | 10 | 1.25555e-05 | 18.3568 |
 | victim-window | CKE | 0.1 | 24 | 721 | 10,869,484 | 25,131 | 7.51074 | 1.04888 | aborted | 265.686 | 600 | 9 | 1.25555e-05 | 29.5207 |
