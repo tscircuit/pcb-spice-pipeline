@@ -155,7 +155,16 @@ export function routeView(circuit: CircuitJson, scope: CopperScope): RouteView {
       for (const id of net.sources) sources.set(id, style)
       for (const id of net.ids) ports.set(id, style)
     }
-  const box = routeBounds(points) ?? { minX: 0, maxX: 1, minY: 0, maxY: 1 }
+  const parts = routeBounds(points) ?? { minX: 0, maxX: 1, minY: 0, maxY: 1 }
+  // A board edge just beyond the problem is framed too, so the camera never cuts a board a few millimetres short.
+  const board = routeBoardBox(circuit)
+  const [reachX, reachY] = [(parts.maxX - parts.minX) * 0.25, (parts.maxY - parts.minY) * 0.25]
+  const box = {
+    minX: parts.minX - board.minX <= reachX ? Math.min(board.minX, parts.minX) : parts.minX,
+    maxX: board.maxX - parts.maxX <= reachX ? Math.max(board.maxX, parts.maxX) : parts.maxX,
+    minY: parts.minY - board.minY <= reachY ? Math.min(board.minY, parts.minY) : parts.minY,
+    maxY: board.maxY - parts.maxY <= reachY ? Math.max(board.maxY, parts.maxY) : parts.maxY,
+  }
   const view = { ...routeFrame(box), traces, sources, ports }
   const byCircuit = views.get(scope) ?? new WeakMap<CircuitJson, RouteView>()
   byCircuit.set(circuit, view)

@@ -2,7 +2,7 @@ import { BaseSolver, BasePipelineSolver, definePipelineStep } from '@tscircuit/s
 import type { PipelineStep } from '@tscircuit/solver-utils'
 import type { SolverContext } from '../solver'
 import type { GraphicsObject } from 'graphics-debug'
-import { RouteSectionsSolver, routeBoardBox, routeBoardDrawing, routeText, routeTones, type RoutedSections } from '../board'
+import { RouteSectionsSolver, routeBoardBox, routeBoardDrawing, routeLengths, routeStrip, routeText, routeTones, routeView, type RoutedSections } from '../board'
 import { RouteFieldsSolver, type ExtractedRoutes } from '../extraction'
 import {
   RouteBindingsSolver,
@@ -144,8 +144,15 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
       routeText(drawing, (board.minX + board.maxX) / 2, (board.minY + board.maxY) / 2, 'No signal-integrity blocks admitted', routeTones.quiet, (board.maxX - board.minX) / 40)
       return drawing
     }
-    // A stage that cannot be built yet shows the selected copper in neutral grey.
-    return solver?.visualize() ?? routeBoardDrawing(circuit, plans?.[0]?.sections.scope, () => routeTones.copper)
+    if (solver) return solver.visualize()
+    // A stage that cannot be built yet shows the selected copper and its unrolled lengths in neutral grey.
+    const scope = plans?.[0]?.sections.scope
+    const drawing = routeBoardDrawing(circuit, scope, () => routeTones.copper)
+    if (scope) {
+      const view = routeView(circuit, scope)
+      routeStrip(drawing, view.pane, routeLengths(circuit, view).map(row => ({ ...row, parts: [{ from: 0, to: row.length, color: routeTones.copper }] })))
+    }
+    return drawing
   }
   /** Stage boundaries show the incoming input immediately, before its first step. */
   override visualize(): GraphicsObject {
