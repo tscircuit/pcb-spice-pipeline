@@ -144,7 +144,8 @@ export function routeWaveformDrawing(state: WaveformState): GraphicsObject {
   const start = eye || active < 0 ? 0 : Math.max(0, times[active] - (durationSeconds - times[active]) * 0.08)
   const from = Math.max(0, times.findIndex((time) => time >= start))
   const shown = series.flatMap(({ entry }) => entry.voltageLevels.slice(from))
-  const bounds = [...shown, ...(threshold ? [threshold.low, threshold.high] : [])]
+  // Before samples exist, the axes span ground to well above any threshold so the band reads as a band.
+  const bounds = [...shown, ...(threshold ? [threshold.low, threshold.high] : []), ...(shown.length ? [] : [0, Math.max(1, (threshold?.high ?? 0) * 1.8)])]
   const [lowest, highest] = bounds.length ? extent(bounds) : [0, 1]
   const levels = roundTicks(lowest, highest, 5)
   const bottom = Math.min(levels[0].value, lowest)
@@ -187,7 +188,7 @@ export function routeWaveformDrawing(state: WaveformState): GraphicsObject {
     const origin = (crossing > 0 ? times[crossing] : 0) - period / 2
     const runs: Point[][] = [[]]
     let last = -1
-    for (const j of reduce(times, curveLevels, 0, 8000)) {
+    for (const j of reduce(times, curveLevels, 0, 2500)) {
       const phase = ((((times[j] - origin) / period) % 2) + 2) % 2
       if (phase < last) runs.push([])
       runs.at(-1)!.push({ x: x(phase), y: y(curveLevels[j]) })
