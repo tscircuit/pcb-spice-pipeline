@@ -24,6 +24,7 @@ export { routeLadder, type RouteLadder } from './route-ladder'
 export { routeTransitions, terminalInductance, barrelInductance, barrelCapacitance, type RouteTransitions } from './route-transitions'
 export { routeOblique } from './route-oblique'
 export { branchSaves } from './branch-saves'
+export { routeScopeNets, boundScopeInput, type BoundScopeRule, type ScopeNet } from './route-scope'
 
 export { routedControl } from './routed-control'
 
