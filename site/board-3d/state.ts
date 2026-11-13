@@ -1,5 +1,5 @@
 import { connectedSourceIds, type CircuitJson } from '../../src/board'
-import type { RoutedBindings, RouteSpatialWaveform } from '../../src/simulation'
+import type { RoutedBindings, RouteSpatialWaveform, RouteVoltageRange } from '../../src/simulation'
 export { routedScene as boardStageState, type RoutedSceneState as BoardStageState } from '../../src/pipeline'
 
 /** Interpolate only in time between actual saved native samples. */
@@ -15,9 +15,9 @@ export function spatialVoltage(waveform: RouteSpatialWaveform, point: number, ti
   return values[before] + (values[after] - values[before]) * fraction
 }
 
-/** Fixed volts legend makes colours comparable between nets and times. */
-export function voltageColor(voltage: number): string {
-  const fraction = Math.min(1, Math.max(0, (voltage + 1) / 6))
+/** One colour scale fitted to the captured probe range, shared by every net and time. */
+export function voltageColor(voltage: number, range: RouteVoltageRange): string {
+  const fraction = Math.min(1, Math.max(0, (voltage - range.low) / (range.high - range.low)))
   return `hsl(${240 * (1 - fraction)}, 90%, 50%)`
 }
 

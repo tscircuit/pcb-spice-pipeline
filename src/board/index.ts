@@ -31,5 +31,5 @@ export { segmentRoutes, routePosition, routeContactFrame, routeReferences, type 
 export { routeSectionSteps } from './route-sections'
 export { RouteSectionsSolver, type RouteSectionsInput, type RoutedSections } from './route-sections-solver'
 export { boardFrame, boardViewerCircuit, boardPosition, boardSlicePose, boardSlicePosition, type BoardPosition, type BoardFrame, type SlicePose } from './viewer-geometry'
-export { boardCameraShot, boardPathPosition, type BoardCameraShot, type BoardCameraInput } from './viewer-camera'
+export { boardCameraShot, boardPathPosition, boardSectionView, boardSectionZ, type BoardCameraShot, type BoardCameraInput, type BoardSectionView } from './viewer-camera'
 export { boardRouteSegments, type BoardRouteSegment } from './viewer-route'

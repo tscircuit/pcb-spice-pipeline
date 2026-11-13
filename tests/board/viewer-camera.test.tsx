@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { routedCopper } from '../support/routed-fixture'
-import { boardCameraShot, boardPathPosition, segmentRoutes, type BoardPosition } from '../../src/board'
+import { boardCameraShot, boardPathPosition, boardSectionView, boardSectionZ, segmentRoutes, type BoardPosition } from '../../src/board'
 
 test('every scripted stage targets the TSX board bounds; Fields looks along the physical trace axis', async () => {
   const { circuitJson, scope } = await routedCopper()
@@ -43,4 +43,25 @@ test('camera tracking follows physical bends and vertical segments rather than a
   assert.deepEqual(boardPathPosition(points, 0.9), [4, 4, 1])
   assert.deepEqual(boardPathPosition(points, -1), points[0])
   assert.deepEqual(boardPathPosition(points, 2), points.at(-1))
+})
+
+test('Fields framing keeps traces a useful share of the width with a monotonic, labelled z mapping', async () => {
+  const { circuitJson, scope } = await routedCopper()
+  const geometry = segmentRoutes(circuitJson, scope)
+  for (const slice of geometry.slices) {
+    const view = boardSectionView(geometry.stack, slice)
+    const first = slice.wires[0].transverse
+    const edges = slice.wires.flatMap(wire => [wire.transverse - first - wire.width / 2, wire.transverse - first + wire.width / 2])
+    assert.ok(view.left < Math.min(...edges) && view.right > Math.max(...edges))
+    assert.ok((Math.max(...edges) - Math.min(...edges)) / (view.right - view.left) >= 0.2)
+    assert.ok(Number.isInteger(view.exaggeration) && view.exaggeration >= 1)
+    assert.ok(view.gap.scale > 0 && view.gap.scale <= 1)
+    assert.equal(boardSectionZ(view, view.pivot), view.pivot)
+    const samples = [view.bottom, view.gap.from, (view.gap.from + view.gap.to) / 2, view.gap.to, view.pivot, view.top]
+      .sort((a, b) => a - b)
+      .map(z => boardSectionZ(view, z))
+    for (let i = 1; i < samples.length; i++) assert.ok(samples[i] >= samples[i - 1])
+    // The displayed window is never taller than about half the visible width.
+    assert.ok(boardSectionZ(view, view.top) - boardSectionZ(view, view.bottom) <= (0.5 * (view.right - view.left)) / 2.4 + 1e-9)
+  }
 })

@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CadViewer } from '@tscircuit/3d-viewer'
 import * as THREE from 'three'
-import { stackupFromCircuitJson, boardViewerCircuit, boardCameraShot, boardPosition, type BoardPosition } from '../../src/board'
+import { formatSiUnit } from 'format-si-unit'
+import { stackupFromCircuitJson, boardViewerCircuit, boardCameraShot, boardPosition, boardSectionView, type BoardPosition } from '../../src/board'
 import type { RoutedPipelineSolver } from '../../src/pipeline'
 import { fullCopper, copperRoutes } from './copper'
 import { stageOverlay } from './overlay'
 import { dispose } from './primitives'
 import { boardStageState, spatialVoltage, voltageColor } from './state'
 import { physicalStack } from './stack'
-import { routeVoltageAt } from '../../src/simulation'
+import { routeVoltageAt, routeFirstEdge, routeVoltageRange } from '../../src/simulation'
 import { Waveform } from './waveform'
 
 type CameraController = NonNullable<Parameters<NonNullable<React.ComponentProps<typeof CadViewer>['onCameraControllerReady']>>[0]>
@@ -51,6 +52,8 @@ export function Board3dPanel({
     ...state.captures.map((capture) => capture.spatial?.timeSeconds.at(-1) ?? capture.timestampsSeconds.at(-1) ?? 0),
   )
   const spatial = state.captures.some((capture) => capture.spatial?.points.length)
+  const range = useMemo(() => routeVoltageRange(state.captures), [state.captures])
+  const section = step === 3 && slices[currentSliceIndex] ? boardSectionView(stack, slices[currentSliceIndex], aspect) : undefined
   /** Manifold 0.0.650 exposes its root through this pinned scene handle; JSCAD also forwards ref. */
   const cameraReady = useCallback(
     (controller: CameraController | null): void => {
@@ -137,7 +140,7 @@ export function Board3dPanel({
         : undefined,
       aspect,
     })
-    camera.animateTo({ ...shot, durationMs: reducedMotion ? 0 : 850 })
+    camera.animateTo({ ...shot, durationMs: reducedMotion ? 0 : step === 1 ? 2200 : 850 })
   }, [camera, circuit, stack, step, shotProgress, focus, currentSliceIndex, fraction, aspect, reducedMotion])
   useEffect(() => {
     if (!root) return
@@ -148,23 +151,43 @@ export function Board3dPanel({
   }, [root, circuit, stack])
   useEffect(() => {
     if (!root) return
-    const overlay = stageOverlay(circuit, stack, state, step, currentSliceIndex, fraction, 0, shotProgress)
+    const overlay = stageOverlay(circuit, stack, state, step, currentSliceIndex, fraction, 0, shotProgress, aspect)
     overlayRef.current = overlay
     root.add(overlay)
     return (): void => {
       overlayRef.current = null
       dispose(overlay)
     }
-  }, [root, circuit, stack, state, step, currentSliceIndex, fraction, shotProgress])
+  }, [root, circuit, stack, state, step, currentSliceIndex, fraction, shotProgress, aspect])
   useEffect(() => {
     overlayRef.current?.traverse((object) => {
       if (!object.userData.spatial) return
       const voltage = object.userData.blend
         ? routeVoltageAt(object.userData.spatial, object.userData.blend, time)
         : spatialVoltage(object.userData.spatial, object.userData.pointIndex, time)
-      if (voltage !== undefined) ((object as THREE.Mesh).material as THREE.MeshBasicMaterial).color.set(voltageColor(voltage))
+      if (voltage !== undefined) ((object as THREE.Mesh).material as THREE.MeshBasicMaterial).color.set(voltageColor(voltage, range))
     })
-  }, [time, root, state, step, currentSliceIndex, fraction, shotProgress])
+  }, [time, range, root, state, step, currentSliceIndex, fraction, shotProgress, aspect])
+  useEffect(() => {
+    // Open Transient where something happens: the first probe crossing the middle of its swing.
+    if (step === 6) setTime(routeFirstEdge(state.captures))
+  }, [step, state.captures])
+  useEffect(() => {
+    if (step !== 1 || reducedMotion || !root) return
+    const start = performance.now()
+    let frame: number
+    /** Pulse the selected-net halo three times, then hold it lit. */
+    const pulse = (now: number): void => {
+      const elapsed = (now - start) / 1000
+      const lit = elapsed > 3.6 ? 0.45 : 0.15 + 0.55 * (0.5 - 0.5 * Math.cos((elapsed * 2 * Math.PI) / 1.2))
+      overlayRef.current?.traverse((object) => {
+        if (object.userData.pulse) ((object as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = lit
+      })
+      if (elapsed <= 3.6) frame = requestAnimationFrame(pulse)
+    }
+    frame = requestAnimationFrame(pulse)
+    return (): void => cancelAnimationFrame(frame)
+  }, [step, reducedMotion, root, state])
   useEffect(() => {
     // Placeholder names explain the full-board shots; focus shots hide them behind the visible fade chip.
     root?.traverse((object) => {
@@ -180,10 +203,8 @@ export function Board3dPanel({
         object.frustumCulled = false
         const mesh = object as THREE.Mesh
         let owner: THREE.Object3D | null = object
-        let physical = false
         while (owner && owner.name !== 'board') {
           if (owner.name === 'signal-integrity-overlay') return
-          physical ||= owner.name === 'physical-board-stack'
           owner = owner.parent
         }
         if (!mesh.material || originals.has(mesh) || object.userData.spatial || object.parent?.name === 'signal-integrity-overlay') return
@@ -195,8 +216,8 @@ export function Board3dPanel({
         const copy = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).map((material) => {
           const clone = material.clone()
           const opacity = mesh.type === 'Sprite' && step === 3 ? 0 : step === 0 || step === 1 ? 1 : owner ? (step === 3 ? 0.035 : 0.18) : step === 3 ? 0.08 : step === 4 ? 0.18 : 0.4
-          // The axial Fields shot sits inside the board; only the dielectric slabs and the true-scale section remain.
-          clone.visible = step !== 3 || physical
+          // The axial Fields shot sits inside the board; only the framed section remains.
+          clone.visible = step !== 3
           if (opacity < 1) {
             clone.transparent = true
             clone.opacity = opacity
@@ -231,35 +252,31 @@ export function Board3dPanel({
     frame = requestAnimationFrame(advance)
     return (): void => cancelAnimationFrame(frame)
   }, [playing, duration, step])
-  const missingCad = circuit.filter(
-    (record) =>
-      record.type === 'pcb_component' &&
-      !circuit.some((cad) => cad.type === 'cad_component' && cad.pcb_component_id === record.pcb_component_id && (cad.model_obj_url || cad.model_stl_url || cad.model_gltf_url || cad.model_jscad || cad.footprinter_string)),
-  ).length
   const stageName = ['Full board', 'Admission', 'Sections', 'Fields', 'Bindings', 'Network', 'Transient'][step]
   const available =
     step === 0 || [state.scopes, state.sections, state.fields, state.bindings, state.networks, state.captures][step - 1].length > 0
+  const chips = [
+    !root && 'Loading',
+    !available && 'Pending',
+    step === 3 ? 'Components hidden' : step >= 2 && 'Components faded',
+    section && section.exaggeration > 1 && `z exaggerated ×${section.exaggeration}`,
+    section && section.gap.scale < 1 && 'Core compressed',
+    step === 4 && (shotProgress < 0.5 ? 'Driver pads' : 'Receiver pads'),
+  ].filter((chip): chip is string => Boolean(chip))
   return (
     <section className="board-3d" aria-label="Full board 3D simulation overlay">
       <header>
-        <strong>3D · {stageName}</strong>
-        <span className="board-shot">Automatic camera · orbit / pan / zoom locked</span>
-        {step >= 2 && (
-          <span className="board-focus-chip">{step === 3 ? 'Components hidden · stack translucent' : 'Components faded · upper layers translucent'}</span>
-        )}
-        {step === 4 && <span className="board-focus-chip">{shotProgress < 0.5 ? 'Driver pads' : 'Receiver pads'}</span>}
+        <strong>{stageName}</strong>
+        {chips.map((chip) => (
+          <span key={chip} className="board-focus-chip">
+            {chip}
+          </span>
+        ))}
       </header>
       <div className="board-3d-canvas" ref={canvasRef} aria-label="Scripted board camera">
         <CadViewer circuitJson={viewerCircuit} autoRotateDisabled onCameraControllerReady={cameraReady} ref={setRoot} />
       </div>
-      <p className="board-legend">
-        All {circuit.filter((record) => record.type === 'pcb_component').length} components · {stack.copperLayers.length} copper layers ·
-        blue selected · grey neighbours · green sections · amber slice · magenta ladder · red probes
-      </p>
-      {missingCad > 0 && <p>{missingCad} components have no 3D model; labelled wireframe bodies show their physical footprint.</p>}
-      {!root && <p role="status">Loading board scene and component models…</p>}
-      {!available && <p role="status">{stageName} has no completed output yet. Advance the solver using Solve or Step.</p>}
-      {step >= 2 && slices.length > 0 && (
+      {(step === 2 || step === 3) && slices.length > 0 && (
         <div className="board-controls">
           <label>
             Slice{' '}
@@ -285,7 +302,6 @@ export function Board3dPanel({
               onChange={(event) => setFraction(event.target.valueAsNumber)}
             />
           </label>
-          <span>Cross-section at true scale (mm)</span>
         </div>
       )}
       {step === 6 && (
@@ -309,16 +325,14 @@ export function Board3dPanel({
                 }}
               />
             </label>
-            <output>{(time * 1e9).toPrecision(5)} ns</output>
+            <output>{formatSiUnit(Number(time.toPrecision(4)))}s</output>
+            {spatial && (
+              <span className="voltage-legend" aria-label="Trace voltage colour scale">
+                {formatSiUnit(Number(range.low.toPrecision(3)))}V <span /> {formatSiUnit(Number(range.high.toPrecision(3)))}V
+              </span>
+            )}
           </div>
-          {spatial ? (
-            <p className="voltage-legend">
-              Trace voltage: −1 V <span /> +5 V · linear interpolation along the physical route and native time grid
-            </p>
-          ) : (
-            <p>Spatial native voltages are not available yet; trace colours remain stage highlights.</p>
-          )}
-          <Waveform captures={state.captures} time={time} />
+          <Waveform captures={state.captures} time={time} range={range} />
         </>
       )}
     </section>

@@ -123,7 +123,7 @@ test('the spatial contract colours actual routed copper and remains gated by the
     assert.ok(sample.userData.blend.fraction >= 0 && sample.userData.blend.fraction <= 1)
   }
   assert.equal(stageOverlay(circuitJson, stack, state, 5, 0, 0.5, 0.5e-9).children.filter((object) => object.userData.spatial).length, 0)
-  assert.notEqual(voltageColor(0), voltageColor(3.3))
+  assert.notEqual(voltageColor(0, { low: 0, high: 3.3 }), voltageColor(3.3, { low: 0, high: 3.3 }))
 })
 
 test('native channel labels map to PCB copper by node identity without mixing differential legs', async () => {

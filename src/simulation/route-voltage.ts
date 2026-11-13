@@ -1,5 +1,6 @@
 import { boardPosition, type BoardRouteSegment, type BoardStackup, type BoardPosition } from '../board'
 import type { RouteSpatialWaveform } from './route-spatial'
+import type { RoutedCapture } from './routed-types'
 
 export interface RouteVoltageBlend {
   before: number
@@ -64,4 +65,35 @@ export function routeVoltageAt(waveform: RouteSpatialWaveform, blend: RouteVolta
   /** Preserve the saved node's actual adaptive/decimated time grid. */
   const sample = (index: number): number => waveform.volts[index][low] * (1 - fraction) + waveform.volts[index][high] * fraction
   return sample(blend.before) * (1 - blend.fraction) + sample(blend.after) * blend.fraction
+}
+
+export interface RouteVoltageRange {
+  low: number
+  high: number
+}
+type ProbeCapture = Pick<RoutedCapture, 'probes' | 'timestampsSeconds'>
+
+/** Fit the colour scale to the actual captured probe swing instead of a fixed supply guess. */
+export function routeVoltageRange(captures: ProbeCapture[]): RouteVoltageRange {
+  const samples = captures.flatMap((capture) => capture.probes.flatMap((probe) => probe.voltageLevels))
+  if (!samples.length) return { low: 0, high: 1 }
+  const low = samples.reduce((value, sample) => Math.min(value, sample), Infinity)
+  const high = samples.reduce((value, sample) => Math.max(value, sample), -Infinity)
+  return high - low < 1e-6 ? { low: low - 0.5, high: high + 0.5 } : { low, high }
+}
+
+/** The first time any probe crosses the middle of its own swing; 0 when nothing switches. */
+export function routeFirstEdge(captures: ProbeCapture[]): number {
+  let first = Infinity
+  for (const capture of captures)
+    for (const probe of capture.probes) {
+      const values = probe.voltageLevels
+      const low = Math.min(...values)
+      const high = Math.max(...values)
+      if (high - low < 1e-3) continue
+      const middle = (low + high) / 2
+      const index = values.findIndex((value, i) => i > 0 && (values[i - 1] - middle) * (value - middle) <= 0 && values[i - 1] !== value)
+      if (index > 0) first = Math.min(first, capture.timestampsSeconds[index])
+    }
+  return Number.isFinite(first) ? first : 0
 }

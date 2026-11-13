@@ -32,26 +32,57 @@ export function marker(group: THREE.Group, point: BoardPosition, radius: number,
   group.add(mesh)
 }
 
-/** Keep labels at a constant screen size (stacked by row above their anchor) and legible through the board while their anchors stay in the physical scene. */
-export function label(group: THREE.Group, point: BoardPosition, text: string, row: number = 0): THREE.Sprite {
+export interface LabelStyle {
+  /** Stack upward by whole label heights above the anchor. */
+  row?: number
+  tone?: 'plain' | 'callout' | 'coupling' | 'subtle'
+}
+
+const tones = {
+  plain: { background: '#ffffffee', text: '#0f172a', size: 0.05 },
+  callout: { background: '#0f172a', text: '#f8fafc', size: 0.05 },
+  coupling: { background: '#4c1d95', text: '#f5f3ff', size: 0.05 },
+  subtle: { background: '#ffffff00', text: '#64748b', size: 0.04 },
+} as const
+
+/** Constant-screen-size label, legible through the board, anchored at its bottom centre in the physical scene. */
+export function label(group: THREE.Group, point: BoardPosition, text: string, style: LabelStyle = {}): THREE.Sprite {
+  const tone = tones[style.tone ?? 'plain']
+  const lines = text.split('\n')
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')!
-  canvas.width = Math.max(128, text.length * 17 + 16)
-  canvas.height = 48
-  context.fillStyle = '#ffffffee'
+  const font = '600 28px system-ui, sans-serif'
+  context.font = font
+  canvas.width = Math.ceil(Math.max(...lines.map((line) => context.measureText(line).width))) + 24
+  canvas.height = lines.length * 34 + 14
+  context.fillStyle = tone.background
   context.fillRect(0, 0, canvas.width, canvas.height)
-  context.fillStyle = '#0f172a'
-  context.font = '28px sans-serif'
-  context.fillText(text, 8, 34)
+  context.fillStyle = tone.text
+  context.font = font
+  for (const [i, line] of lines.entries()) context.fillText(line, 12, 34 + i * 34)
   const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, sizeAttenuation: false }))
   sprite.position.set(...point)
-  sprite.scale.set((0.055 * canvas.width) / canvas.height, 0.055, 1)
-  sprite.center.set(0.5, -1.15 * row)
+  const height = (tone.size * canvas.height) / 48
+  sprite.scale.set((height * canvas.width) / canvas.height, height, 1)
+  sprite.center.set(0.5, -1.1 * (style.row ?? 0))
   sprite.renderOrder = 10
   sprite.frustumCulled = false
   group.add(sprite)
   return sprite
+}
+
+/** A thin straight or polyline mark (leaders, break marks) drawn over the scene. */
+export function line(group: THREE.Group, points: BoardPosition[], color: string): THREE.Line {
+  const mesh = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(points.map((point) => new THREE.Vector3(...point))),
+    new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true }),
+  )
+  mesh.renderOrder = 9
+  mesh.frustumCulled = false
+  group.add(mesh)
+  return mesh
 }
 
 /** Release only overlay-owned geometry, materials and label textures. */

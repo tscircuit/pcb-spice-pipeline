@@ -124,6 +124,11 @@ export function fullCopper(circuit: CircuitJson, stack: BoardStackup): THREE.Gro
   const frame = boardFrame(stack)
   for (const component of circuit.filter((record) => record.type === 'pcb_component')) {
     if (circuit.some((record) => record.type === 'cad_component' && record.pcb_component_id === component.pcb_component_id && (record.model_obj_url || record.model_stl_url || record.model_gltf_url || record.model_jscad || record.footprinter_string))) continue
+    // Placed vias also own pcb_component records; they are already drawn as plated barrels.
+    const source = circuit.find(
+      (record) => record.type === 'source_component' && record.source_component_id === component.source_component_id,
+    )
+    if (source?.type !== 'source_component') continue
     const height = 0.8
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(Math.max(component.width, 0.4), Math.max(component.height, 0.4), height),
@@ -137,14 +142,7 @@ export function fullCopper(circuit: CircuitJson, stack: BoardStackup): THREE.Gro
     mesh.rotation.z = (component.rotation * Math.PI) / 180
     mesh.frustumCulled = false
     group.add(mesh)
-    const source = circuit.find(
-      (record) => record.type === 'source_component' && record.source_component_id === component.source_component_id,
-    )
-    label(
-      group,
-      [mesh.position.x, mesh.position.y, mesh.position.z + height],
-      `${source && source.type === 'source_component' ? source.name : component.pcb_component_id} · no model`,
-    ).userData.placeholder = true
+    label(group, [mesh.position.x, mesh.position.y, mesh.position.z + height], `${source.name} · no 3D`, { tone: 'subtle' }).userData.placeholder = true
   }
   return group
 }

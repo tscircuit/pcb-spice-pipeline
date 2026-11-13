@@ -2,29 +2,35 @@ import * as THREE from 'three'
 import {
   boardPosition,
   boardRouteSegments,
+  boardSectionView,
+  boardSectionZ,
   boardSlicePose,
   boardFrame,
   routePosition,
+  type BoardPosition,
   type BoardStackup,
   type CircuitJson,
   type RouteWire,
 } from '../../src/board'
-import type { CrossSection, ExtractedRouteSlice } from '../../src/extraction'
+import type { CrossSection, ExtractedRouteSlice, RouteMaterials } from '../../src/extraction'
 import { copperRoutes } from './copper'
-import { label, marker, segment } from './primitives'
-import { routeVoltagePositions, routeVoltageBlend, routeVoltageAt } from '../../src/simulation'
+import { label, line, marker, segment } from './primitives'
+import { routeVoltagePositions, routeVoltageBlend, routeVoltageAt, routeVoltageRange } from '../../src/simulation'
 import { spatialRouteIndices, voltageColor, type BoardStageState } from './state'
 
-/** Use the exact solver section JSON in its true-scale transverse/vertical physical frame. */
+const slabColors = ['#bfdbfe', '#c7d2fe', '#a5f3fc', '#ddd6fe']
+
+/** Draw the exact solver section in its slice plane: copper and nearest plane framed, z mapped by boardSectionZ. */
 function sectionPlane(
   group: THREE.Group,
   stack: BoardStackup,
   slice: ExtractedRouteSlice,
   fraction: number,
-  fields: boolean,
-  boardWidth: number,
+  materials: RouteMaterials,
+  aspect: number,
 ): void {
   const pose = boardSlicePose(stack, slice, fraction)
+  const view = boardSectionView(stack, slice, aspect)
   const plane = new THREE.Group()
   plane.position.set(...pose.origin)
   plane.quaternion.setFromRotationMatrix(
@@ -35,34 +41,92 @@ function sectionPlane(
     ),
   )
   group.add(plane)
-  const section = JSON.parse(slice.key) as CrossSection
-  const low = Math.min(...section.conductors.map((conductor) => conductor.xMm - conductor.widthMm / 2)) - 0.3
-  const high = Math.max(...section.conductors.map((conductor) => conductor.xMm + conductor.widthMm / 2)) + 0.3
-  const frame = boardFrame(stack)
-  /** Place a true-size rectangle in section coordinates, without expanding thin layers. */
-  const band = (x: number, z: number, width: number, height: number, color: string, opacity: number): void => {
-    const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(width, height),
-      new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false }),
-    )
-    mesh.position.set(x, z, 0.002)
+  /** Map section coordinates (x transverse, z stack) to a world point in this slice plane. */
+  const world = (x: number, z: number): BoardPosition =>
+    new THREE.Vector3(x, boardSectionZ(view, z), 0).applyQuaternion(plane.quaternion).add(plane.position).toArray()
+  /** Fill a section rectangle clipped to the framed window. */
+  const band = (x0: number, x1: number, z0: number, z1: number, color: string, order: number): void => {
+    const left = Math.max(view.left, x0)
+    const right = Math.min(view.right, x1)
+    const low = boardSectionZ(view, Math.max(view.bottom, z0))
+    const high = boardSectionZ(view, Math.min(view.top, z1))
+    if (right <= left || high <= low) return
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(right - left, high - low), new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }))
+    mesh.position.set((left + right) / 2, (low + high) / 2, 0)
+    // Coplanar bands draw in a fixed order: dielectric, then plane, then copper.
+    mesh.renderOrder = order
     mesh.frustumCulled = false
     plane.add(mesh)
   }
-  if (!fields) band(0, (frame.top + frame.bottom) / 2, boardWidth, frame.top - frame.bottom + 1, '#f59e0b', 0.13)
-  if (!fields) return
-  for (const [index, dielectric] of section.dielectrics.entries())
-    band((low + high) / 2, dielectric.zMm + dielectric.thicknessMm / 2, high - low, dielectric.thicknessMm, index % 2 ? '#7dd3fc' : '#38bdf8', 0.55)
+  const section = JSON.parse(slice.key) as CrossSection
+  /** The opposite face of the copper layer that a reference surface lies on. */
+  const face = (z: number): number => {
+    const layer = stack.copperLayers.find((entry) => Math.abs(entry.zMinMm - z) < 1e-6 || Math.abs(entry.zMaxMm - z) < 1e-6)
+    return !layer ? z : Math.abs(layer.zMinMm - z) < 1e-6 ? layer.zMaxMm : layer.zMinMm
+  }
+  for (const [index, dielectric] of section.dielectrics.entries()) {
+    const copper = section.conductors[0]?.thicknessMm ?? 0
+    const mask = dielectric.er === materials.maskEr && Math.abs(dielectric.thicknessMm - copper - materials.maskMm) < 1e-6
+    const top = dielectric.zMm + dielectric.thicknessMm
+    band(view.left, view.right, dielectric.zMm, top, mask ? '#4ade80' : slabColors[index % slabColors.length], 5)
+    const middle = (Math.max(view.bottom, dielectric.zMm) + Math.min(view.top, top)) / 2
+    if (middle > view.bottom && middle < view.top && !(middle > view.gap.from && middle < view.gap.to))
+      label(group, world(view.right, middle), `${mask ? 'mask ' : ''}εr ${dielectric.er}`, { tone: 'subtle' })
+  }
+  for (const reference of section.planes) {
+    const other = face(reference.zMm)
+    band(view.left, view.right, Math.min(reference.zMm, other), Math.max(reference.zMm, other), '#b45309', 6)
+    const net = slice.references.find((entry) => Math.abs(entry.z - reference.zMm) < 1e-6)?.net
+    if (reference.zMm >= view.bottom && reference.zMm <= view.top) label(group, world(view.left, reference.zMm), net ?? 'reference', { tone: 'subtle' })
+  }
   for (const conductor of section.conductors)
-    band(conductor.xMm, conductor.zMm + conductor.thicknessMm / 2, conductor.widthMm, conductor.thicknessMm, '#fbbf24', 1)
-  for (const reference of section.planes) band((low + high) / 2, reference.zMm, high - low, 0.008, '#22c55e', 1)
-  // One per-unit-length label above each conductor, anchored in the slice plane.
-  for (const [i, conductor] of section.conductors.entries()) {
-    const c = slice.line.C[i]?.[i]
-    const l = slice.line.L[i]?.[i]
+    band(conductor.xMm - conductor.widthMm / 2, conductor.xMm + conductor.widthMm / 2, conductor.zMm, conductor.zMm + conductor.thicknessMm, '#d97706', 7)
+  if (view.gap.scale < 1) {
+    // Break marks show where the bulk dielectric is drawn compressed.
+    const middle = (view.gap.from + view.gap.to) / 2
+    const steps = 12
+    const amplitude = (boardSectionZ(view, view.top) - boardSectionZ(view, view.bottom)) * 0.025
+    for (const offset of [-1, 1])
+      line(
+        group,
+        Array.from({ length: steps + 1 }, (_, i) => {
+          const x = view.left + ((view.right - view.left) * i) / steps
+          const point = new THREE.Vector3(x, boardSectionZ(view, middle) + offset * amplitude * 1.6 + (i % 2 ? amplitude : -amplitude), 0)
+          return point.applyQuaternion(plane.quaternion).add(plane.position).toArray()
+        }),
+        '#334155',
+      )
+  }
+  // Callouts in one row above the window, ordered by conductor position, coupling between adjacent pairs.
+  const order = section.conductors.map((conductor, index) => ({ conductor, index })).sort((a, b) => a.conductor.xMm - b.conductor.xMm)
+  const items: { text: string; tone: 'callout' | 'coupling'; targets: number[] }[] = []
+  for (const [k, { index }] of order.entries()) {
+    const c = slice.line.C[index]?.[index]
+    const l = slice.line.L[index]?.[index]
     if (c === undefined || l === undefined) continue
-    const point = new THREE.Vector3(conductor.xMm, conductor.zMm + conductor.thicknessMm * 3, 0).applyQuaternion(plane.quaternion).add(plane.position)
-    label(group, point.toArray(), `C ${(c * 1e12).toFixed(1)} pF/m · L ${(l * 1e9).toFixed(0)} nH/m · Z0 ${Math.sqrt(l / c).toFixed(1)} Ω`, i)
+    if (k > 0) {
+      const previous = order[k - 1].index
+      const mutual = slice.line.L[index][previous]
+      const coupling = mutual / Math.sqrt(l * slice.line.L[previous][previous])
+      if (coupling > 0.005)
+        items.push({
+          text: `k ${coupling.toFixed(2)}\nCm ${(-slice.line.C[index][previous] * 1e12).toFixed(1)} pF/m\nLm ${(mutual * 1e9).toFixed(0)} nH/m`,
+          tone: 'coupling',
+          targets: [previous, index],
+        })
+    }
+    items.push({ text: `Z0 ${Math.sqrt(l / c).toFixed(1)} Ω\nC ${(c * 1e12).toFixed(1)} pF/m\nL ${(l * 1e9).toFixed(0)} nH/m`, tone: 'callout', targets: [index] })
+  }
+  const top = boardSectionZ(view, view.top)
+  const rise = (top - boardSectionZ(view, view.bottom)) * 0.25 + (view.right - view.left) * 0.04
+  for (const [i, item] of items.entries()) {
+    const x = view.left + ((i + 0.5) * (view.right - view.left)) / items.length
+    const anchor = new THREE.Vector3(x, top + rise, 0).applyQuaternion(plane.quaternion).add(plane.position).toArray()
+    label(group, anchor, item.text, { tone: item.tone })
+    for (const target of item.targets) {
+      const conductor = section.conductors[target]
+      line(group, [anchor, world(conductor.xMm, conductor.zMm + conductor.thicknessMm)], item.tone === 'coupling' ? '#7c3aed' : '#0f172a')
+    }
   }
 }
 
@@ -76,6 +140,7 @@ export function stageOverlay(
   fraction: number,
   time: number,
   progress: number = 1,
+  aspect: number = 2.4,
 ): THREE.Group {
   const group = new THREE.Group()
   group.name = 'signal-integrity-overlay'
@@ -88,7 +153,8 @@ export function stageOverlay(
       const a = boardPosition(stack, ...route.a, route.layer)
       const b = boardPosition(stack, ...route.b, route.layer)
       if (selected.has(route.trace)) {
-        segment(group, a, b, route.width * 2.8, '#38bdf8', 0.2)
+        // Admission pulses this halo (see the panel) rather than pushing the camera in.
+        segment(group, a, b, route.width * 2.8, '#38bdf8', 0.2).userData.pulse = step === 1
         segment(group, a, b, route.width * 1.15, '#0284c7')
       } else {
         segment(group, a, b, route.width * 1.7, '#475569', 0.45)
@@ -112,7 +178,8 @@ export function stageOverlay(
     if (active) {
       const board = circuit.find((record) => record.type === 'pcb_board')
       const span = board?.type === 'pcb_board' ? Math.hypot(board.width ?? 20, board.height ?? 20) : 20
-      if ('key' in active) sectionPlane(group, stack, active as ExtractedRouteSlice, fraction, step >= 3, span)
+      const field = state.fields.find((entry) => entry.slices.includes(active as ExtractedRouteSlice))
+      if ('key' in active && field) sectionPlane(group, stack, active as ExtractedRouteSlice, fraction, field.materials, aspect)
       else {
         const pose = boardSlicePose(stack, active, fraction)
         const frame = boardFrame(stack)
@@ -163,6 +230,7 @@ export function stageOverlay(
         }
       }
     }
+  const range = routeVoltageRange(state.captures)
   if (step >= 6)
     for (const [captureIndex, capture] of state.captures.entries()) {
       const spatial = capture.spatial
@@ -194,7 +262,7 @@ export function stageOverlay(
             if (!blend) continue
             const a = route.a.map((value, axis) => value + ((route.b[axis] - value) * i) / count) as [number, number, number]
             const b = route.a.map((value, axis) => value + ((route.b[axis] - value) * (i + 1)) / count) as [number, number, number]
-            const mesh = segment(group, a, b, route.width * 1.4, voltageColor(routeVoltageAt(spatial, blend, time)))
+            const mesh = segment(group, a, b, route.width * 1.4, voltageColor(routeVoltageAt(spatial, blend, time), range))
             mesh.userData.spatial = spatial
             mesh.userData.blend = blend
           }
@@ -223,7 +291,7 @@ export function stageOverlay(
     material.depthWrite = false
     // Translucent board layers render in the transparent pass; joining it after them keeps marks unwashed.
     material.transparent = true
-    object.renderOrder = 8
+    if (!object.renderOrder) object.renderOrder = 8
   })
   return group
 }

@@ -35,4 +35,7 @@ export type { RoutedCompileOptions, RouteBindingsInput, RoutedBindings, RouteNet
 export type { RouteSpatialPoint, RouteSpatialWaveform } from './route-spatial'
 
 export { compactRouteVectors } from './route-spatial'
-export { routeVoltagePositions, routeVoltageBlend, routeVoltageAt, type RouteVoltageBlend, type RouteVoltagePosition } from './route-voltage'
+export {
+  routeVoltagePositions, routeVoltageBlend, routeVoltageAt, routeVoltageRange, routeFirstEdge,
+  type RouteVoltageBlend, type RouteVoltagePosition, type RouteVoltageRange,
+} from './route-voltage'
