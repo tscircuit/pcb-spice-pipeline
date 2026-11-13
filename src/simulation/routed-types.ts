@@ -11,6 +11,8 @@ export interface RoutedCompileOptions {
   panels?: number
   currentToleranceA?: number
   cellsPerRise?: number
+  /** Research opt-in: realize series inductance by L⁻¹ truncated at this relative magnitude, instead of K lines. */
+  susceptanceThreshold?: number
   materials?: RouteMaterials
   returnPath?: RouteReturn
 }

@@ -41,6 +41,7 @@ domain:
   chord: straight approximation to a densely tessellated curve
   delay: time needed for a signal edge to propagate through a line
   inductance: magnetic flux linkage per unit current, measured in henries
+  susceptance: inverse inductance; the matrix that turns integrated cell voltages (flux) into cell currents
   inductive: coupling between conductors through their magnetic field
   ladder: distributed line approximated by connected lumped electrical cells
   lateral: distance transverse to a routed line in the board plane
