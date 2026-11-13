@@ -2,13 +2,13 @@ import React from 'react'
 import { Circuit } from '@tscircuit/core'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
-import { getSvgFromGraphicsObject, type GraphicsObject } from 'graphics-debug'
+import type { GraphicsObject } from 'graphics-debug'
 import { Resvg } from '@resvg/resvg-js'
 import { RoutedPipelineSolver } from '../src/pipeline'
 import { createNativeSolver } from '../src/adapters'
-import { routeWaveformDrawing } from '../src/simulation'
 import { sha256 } from '../src/kernel'
 import type { CircuitJson } from '../src/board'
+import { boardPictureSvg } from '../src/board/board-picture'
 import Board from '../examples/level4-ddr3-write/level4-ddr3-write'
 import { withDdr3Signals } from '../examples/routed/ddr3-signals'
 
@@ -17,9 +17,9 @@ const output = resolve(process.env.SI_STAGE_VISUALS_DIR ?? '.cache/ddr-level4')
 const directory = process.env.IBIS_MODEL_DIR ?? 'models'
 const ibisSources = Object.fromEntries(await Promise.all(['sprm552c.ibs', 'W631GG6MB-12.ibs'].map(async file => [`models/${file}`, await readFile(join(directory, file), 'utf8')])))
 await mkdir(output, { recursive: true })
-/** Save the stage's actual drawing, including an explicit failed state when no capture exists. */
+/** Save the stage's actual drawing over the real board, including an explicit failed state when no capture exists. */
 async function render(name: string, drawing: GraphicsObject): Promise<void> {
-  const svg = getSvgFromGraphicsObject(drawing, { svgWidth: 1800, svgHeight: 1400, includeTextLabels: false, backgroundColor: 'white' })
+  const svg = boardPictureSvg(circuitJson, drawing, 1800, 1400)
   await writeFile(join(output, `${name}.svg`), svg)
   await writeFile(join(output, `${name}.png`), new Resvg(svg, { font: { defaultFontFamily: 'Arial' } }).render().asPng())
 }
@@ -89,7 +89,7 @@ try {
 } catch (error) {
   const stage = root.getSolver('RouteTransientSolver')
   const reason = String(error).split(/\r?\n/).find(line => /timestep too small|fatal|aborted/i.test(line)) ?? String(error).split(/\r?\n/, 1)[0].slice(0, 240)
-  if (stage) await render('stage-6-failed', routeWaveformDrawing(undefined, root.stageOutput('RouteNetworkSolver').value[0].durationSeconds, reason))
+  if (stage) await render('stage-6-failed', stage.visualize())
   await writeFile(join(output, 'failure.log'), String(error))
   await writeFile(join(output, 'failure.json'), JSON.stringify({ stage: root.getCurrentStageName(), error: reason, capture: 'No completed waveform' }, null, 2))
   throw error

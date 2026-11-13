@@ -1,13 +1,14 @@
 import { BaseSolver, BasePipelineSolver, definePipelineStep } from '@tscircuit/solver-utils'
 import type { PipelineStep } from '@tscircuit/solver-utils'
 import type { SolverContext } from '../solver'
-import { getBounds, type GraphicsObject } from 'graphics-debug'
-import { RouteSectionsSolver, routeBoardDrawing, routeText, type RoutedSections } from '../board'
+import type { GraphicsObject } from 'graphics-debug'
+import { RouteSectionsSolver, routeBoardBox, routeBoardDrawing, routeLengths, routeStrip, routeText, routeTones, routeView, type RoutedSections } from '../board'
 import { RouteFieldsSolver, type ExtractedRoutes } from '../extraction'
 import {
   RouteBindingsSolver,
   RouteNetworkSolver,
   RouteTransientSolver,
+  receiverThreshold,
   type RoutedDeck,
   type RoutedCapture,
   type RoutedBindings,
@@ -54,6 +55,7 @@ export const routedStages = [
       board: p.stageOutput('RouteSectionsSolver').value[i],
       artifactPrefix: p.stageOutput('RoutedAdmissionSolver').value[i].sections.artifactPrefix,
       context: p.context,
+      threshold: receiverThreshold(p.inputProblem.ibisSources, p.stageOutput('RouteBindingsSolver').value[i].models, new Set(p.stageOutput('RouteBindingsSolver').value[i].mappings.map(mapping => mapping.to))),
     })),
   ]),
 ] as const satisfies readonly PipelineStep<BaseSolver>[]
@@ -133,13 +135,22 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
     if (!solver && number - 1 <= this.currentPipelineStageIndex) {
       solver = new definition.solverClass(...definition.getConstructorParams(this))
     }
-    const scope = this.getStageOutput<Produced<RoutedBlockPlan[]>>('RoutedAdmissionSolver')?.value[0]?.sections.scope
-    const drawing =
-      solver?.visualize() ??
-      routeBoardDrawing(this.inputProblem.circuitJson, scope, `${number} · ${definition.solverName.replace(/^Routed?|Solver$/g, '')}`)
-    if (!solver || solver.iterations === 0) {
-      const { minX, minY } = getBounds(drawing)
-      routeText(drawing, minX, minY - 6, 'Not run yet', '#64748b')
+    const plans = this.getStageOutput<Produced<RoutedBlockPlan[]>>('RoutedAdmissionSolver')?.value
+    const circuit = this.inputProblem.circuitJson
+    if (plans && !plans.length) {
+      // Nothing was admitted: the whole board with one quiet line, the same in every stage.
+      const drawing = routeBoardDrawing(circuit, undefined)
+      const board = routeBoardBox(circuit)
+      routeText(drawing, (board.minX + board.maxX) / 2, (board.minY + board.maxY) / 2, 'No signal-integrity blocks admitted', routeTones.quiet, (board.maxX - board.minX) / 40)
+      return drawing
+    }
+    if (solver) return solver.visualize()
+    // A stage that cannot be built yet shows the selected copper and its unrolled lengths in neutral grey.
+    const scope = plans?.[0]?.sections.scope
+    const drawing = routeBoardDrawing(circuit, scope, () => routeTones.copper)
+    if (scope) {
+      const view = routeView(circuit, scope)
+      routeStrip(drawing, view.pane, routeLengths(circuit, view).map(row => ({ ...row, parts: [{ from: 0, to: row.length, color: routeTones.copper }] })))
     }
     return drawing
   }
@@ -147,9 +158,9 @@ export class RoutedPipelineSolver extends BasePipelineSolver<RoutedProblem> {
   override visualize(): GraphicsObject {
     return this.visualizeStage(this.iterations === 0 ? 0 : Math.min(this.currentPipelineStageIndex + 1, this.pipelineDef.length))
   }
-  /** Show admission's initial physical board before any stage has run. */
+  /** Before any stage has run there is nothing to overlay, so the whole board shows. */
   override initialVisualize(): GraphicsObject {
-    return routeBoardDrawing(this.inputProblem.circuitJson, undefined, '0 · Initial board')
+    return routeBoardDrawing(this.inputProblem.circuitJson, undefined)
   }
   /** A completed pipeline follows the final transient; earlier stages keep their own drawings. */
   override finalVisualize(): GraphicsObject {

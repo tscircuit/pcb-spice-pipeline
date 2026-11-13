@@ -1,41 +1,114 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Circuit } from '@tscircuit/core'
 import { GenericSolverDebugger } from '@tscircuit/solver-utils/react'
-import { CanvasGraphics } from 'graphics-debug/react'
-import { computeTransformFromViewbox, getBounds, type GraphicsObject } from 'graphics-debug'
+import type { GraphicsObject, Viewbox } from 'graphics-debug'
 import { createHttpSolver } from '../src/adapters/browser'
 import { RoutedPipelineSolver } from '../src/pipeline'
-import { type CircuitJson } from '../src/board'
+import type { CircuitJson } from '../src/board'
+// Imported directly: circuit-to-svg is a development dependency and never enters the library bundle.
+import { boardPicture, boardPictureView } from '../src/board/board-picture'
 import type { IbisSources } from '../src/buffers'
 
-/** Fit the measured container and scale world-unit text exactly as in SVG exports. */
-function RoutedAtlas({ graphics }: { graphics: GraphicsObject }): React.JSX.Element {
+/**
+ * The real board under the stage drawing at the container's width.
+ * Ctrl/⌘ + wheel zooms (1–20×) and dragging pans; after a pause the zoomed region is re-rendered crisply.
+ * Hovering a net, curve or mark dims everything else that is labelled and names it.
+ */
+function RoutedAtlas({ circuit, graphics }: { circuit: CircuitJson; graphics: GraphicsObject }): React.JSX.Element {
   const container = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
+  const [region, setRegion] = useState<Viewbox>()
+  const [move, setMove] = useState({ x: 0, y: 0, zoom: 1 })
+  const [hover, setHover] = useState<{ label: string; x: number; y: number }>()
+  const camera = boardPictureView(circuit, graphics)
+  const view = region ?? camera
+  const height = Math.round(Math.min(720, Math.max(360, (width * (camera.maxY - camera.minY)) / Math.max(camera.maxX - camera.minX, 1e-9))))
+  // Zoom of the rendered region relative to the full camera; CSS zoom on top of it stays within 1–20× overall.
+  const base = useRef(1)
+  base.current = (camera.maxX - camera.minX) / (view.maxX - view.minX)
   useEffect(() => {
+    const element = container.current!
     const observer = new ResizeObserver(([entry]) => setWidth(Math.floor(entry.contentRect.width)))
-    observer.observe(container.current!)
-    return (): void => observer.disconnect()
+    observer.observe(element)
+    /** Zoom about the cursor only with ctrl/⌘, so the page still scrolls normally. */
+    const zoom = (event: WheelEvent): void => {
+      if (!event.ctrlKey && !event.metaKey) return
+      event.preventDefault()
+      const box = element.getBoundingClientRect()
+      setMove(({ x, y, zoom }) => {
+        const next = Math.min(20 / base.current, Math.max(1 / base.current, zoom * Math.exp(-event.deltaY * 0.002)))
+        const factor = next / zoom
+        return { zoom: next, x: event.clientX - box.left - (event.clientX - box.left - x) * factor, y: event.clientY - box.top - (event.clientY - box.top - y) * factor }
+      })
+    }
+    element.addEventListener('wheel', zoom, { passive: false })
+    return (): void => {
+      observer.disconnect()
+      element.removeEventListener('wheel', zoom)
+    }
   }, [])
-  const { minX, maxX, minY, maxY } = getBounds(graphics)
-  const height = Math.min(620, Math.ceil(((width - 32) * (maxY - minY)) / Math.max(maxX - minX, 1) + 32))
-  const transform = useMemo(
-    () => computeTransformFromViewbox({ minX, maxX, minY, maxY }, width, height, { padding: 16, yFlip: true }),
-    [minX, maxX, minY, maxY, width, height],
-  )
+  useEffect(() => {
+    if (move.zoom === 1 && move.x === 0 && move.y === 0) return
+    // Once interaction pauses, the visible part becomes the rendered region: sharp copper, same-size labels.
+    const timer = setTimeout(() => {
+      const scale = Math.min(width / (view.maxX - view.minX), height / (view.maxY - view.minY))
+      const left = (width - (view.maxX - view.minX) * scale) / 2
+      const top = (height - (view.maxY - view.minY) * scale) / 2
+      /** The world point under a container pixel. */
+      const world = (px: number, py: number): { x: number; y: number } => ({ x: view.minX + ((px - move.x) / move.zoom - left) / scale, y: view.maxY - ((py - move.y) / move.zoom - top) / scale })
+      const [low, high] = [world(0, height), world(width, 0)]
+      setRegion(high.x - low.x >= (camera.maxX - camera.minX) * 0.999 ? undefined : { minX: low.x, maxX: high.x, minY: low.y, maxY: high.y })
+      setMove({ x: 0, y: 0, zoom: 1 })
+    }, 250)
+    return (): void => clearTimeout(timer)
+  }, [move])
+  const picture = useMemo(() => (width > 0 ? boardPicture(circuit, graphics, width, height, region) : undefined), [circuit, graphics, width, height, region])
   return (
-    <div ref={container} className="routed-atlas" aria-label="Routed pipeline atlas">
-      {width > 0 && (
-        <CanvasGraphics key={`${width}:${height}`} graphics={graphics} width={width} height={height} initialTransform={transform} withGrid={false} />
+    <div
+      ref={container}
+      className="routed-atlas"
+      aria-label="Routed pipeline atlas"
+      style={{ height }}
+      onDoubleClick={() => {
+        setRegion(undefined)
+        setMove({ x: 0, y: 0, zoom: 1 })
+      }}
+      onPointerMove={(event) => {
+        if (event.buttons === 1 && base.current * move.zoom > 1) setMove((move) => ({ ...move, x: move.x + event.movementX, y: move.y + event.movementY }))
+        const label = (event.target as Element).closest?.('[data-label]')?.getAttribute('data-label')
+        const box = container.current!.getBoundingClientRect()
+        setHover(label && label !== 'camera' ? { label, x: event.clientX - box.left, y: event.clientY - box.top } : undefined)
+      }}
+      onPointerLeave={() => setHover(undefined)}
+    >
+      {picture && (
+        <div className="routed-atlas-layers" style={{ transform: `translate(${move.x}px, ${move.y}px) scale(${move.zoom})` }}>
+          <div dangerouslySetInnerHTML={{ __html: picture.board }} />
+          <div dangerouslySetInnerHTML={{ __html: picture.overlay }} />
+        </div>
+      )}
+      {hover && (
+        <>
+          <style>{`.routed-atlas-layers [data-label]:not([data-label=""]):not([data-label="camera"]):not([data-label=${JSON.stringify(hover.label)}]) { opacity: 0.2 }`}</style>
+          <span className="routed-atlas-label" style={{ left: hover.x + 12, top: hover.y + 12 }}>
+            {hover.label}
+          </span>
+        </>
       )}
     </div>
   )
 }
 
-/** Fit again when selecting a different stage or completing its solve. */
+const drawings = new WeakMap<RoutedPipelineSolver, { key: string; graphics: GraphicsObject }>()
+
+/** Draw a stage once per solver state, not on every debugger re-render; the camera resets when the stage changes. */
 function renderStage(root: RoutedPipelineSolver, number: number): React.JSX.Element {
   const solver = root.getSolver(root.pipelineDef[number - 1]?.solverName ?? '')
-  return <RoutedAtlas key={`${number}:${solver?.solved}`} graphics={root.visualizeStage(number)} />
+  const key = `${number}:${root.iterations}:${solver?.iterations}:${solver?.solved}:${solver?.failed}`
+  const cached = drawings.get(root)
+  const graphics = cached?.key === key ? cached.graphics : root.visualizeStage(number)
+  drawings.set(root, { key, graphics })
+  return <RoutedAtlas key={number} circuit={root.inputProblem.circuitJson} graphics={graphics} />
 }
 
 export interface BoardPageProps {

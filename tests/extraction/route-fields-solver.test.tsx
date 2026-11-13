@@ -31,28 +31,21 @@ test('field steps reuse canonical pair geometry, preserve coefficients and publi
 })
 
 import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
+import { routeTones } from '../../src/board'
 
 test('two-trace TSX route-fields-solver visual SVG snapshot', async () => {
   const { root } = await routedVisualFixture()
   assertRouteVisual(root.getSolver<RouteFieldsSolver>('RouteFieldsSolver')!.visualize(), 'extraction', 'route-fields-solver')
 })
 
-test('field drawing explains physical materials and self/mutual units without hover labels', async () => {
+test('field drawing cuts the board at the slice and shows its stack in a pane, writing only Z0', async () => {
   const { root } = await routedVisualFixture()
   const drawing = root.getSolver<RouteFieldsSolver>('RouteFieldsSolver')!.visualize()
-  const labels = drawing.texts!.filter(text => /^(Mask|Dielectric) εr=/.test(text.text)).sort((a, b) => b.y - a.y)
-  assert.ok(labels.every(text => text.x > 292), 'layer labels sit outside thin slabs')
-  assert.ok(labels.slice(1).every((text, i) => labels[i].y - text.y >= 6), 'layer labels cannot collide')
-  assert.ok(drawing.rects!.some((rect) => rect.fill === '#fef3c7'))
-  assert.ok(drawing.rects!.some((rect) => rect.fill === '#cffafe'))
-  assert.ok(drawing.rects!.filter((rect) => rect.fill === '#2563eb').every((rect) => rect.height > 1))
-  for (const label of ['εr=', 'pF/m', 'nH/m', 'Z0', 'Ω', 'delay', 'Reference:', 'Cm', 'Lm', 'k='])
-    assert.ok(
-      drawing.texts!.some((text) => text.text.includes(label)),
-      label,
-    )
-  assert.ok(
-    drawing.polygons!.some((line) => line.stroke === '#9333ea'),
-    'coupling is in front of material fills in SVG and canvas',
-  )
+  assert.ok(drawing.polygons!.some((polygon) => polygon.fill === routeTones.slice), 'amber cut on the board')
+  assert.ok(drawing.lines!.some((line) => line.zIndex === -1 && line.strokeColor === routeTones.pane), 'the pane is opaque over the board')
+  const mapped = drawing.lines!.filter((line) => /^\d+ Ω$/.test(line.label ?? ''))
+  assert.ok(mapped.length >= 2 && mapped.every((line) => line.strokeColor!.startsWith('rgb(')), 'solved copper is coloured by its Z0')
+  assert.equal(drawing.rects!.filter((rect) => rect.fill?.startsWith('rgb(') && rect.width < 1).length >= 2, true, 'conductors share the Z0 scale')
+  assert.ok(drawing.polygons!.some((polygon) => polygon.fill === routeTones.coupling), 'coupling band paints in front of the stack')
+  assert.ok(drawing.texts!.every((text) => /^\d+ Ω$/.test(text.text)), 'only impedances are written')
 })

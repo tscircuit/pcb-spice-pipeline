@@ -5,7 +5,7 @@ import { connectedSourceIds } from './connectivity'
 import { routeSectionSteps, routeContactFrame, type SectionGeometry } from './route-sections'
 import type { CircuitJson } from './schema'
 import type { CopperScope } from './geometry/scope'
-import { routeSectionDrawing, routeBoardDrawing, routeSliceDrawing, routeText } from './route-visual'
+import { routeCanvas, routeFailure, routeHue, routeLengths, routeNets, routeStrip, routeStroke, routeTones, routeUnrolled, routeVia, routeView, type RouteStripRow } from './route-visual'
 
 export interface RouteSectionsInput {
   circuitJson: CircuitJson
@@ -59,14 +59,45 @@ export class RouteSectionsSolver extends BaseSolver {
   }
   /** Original problem, independent of work state. */
   override getConstructorParams(): [RouteSectionsInput] { return [this.input] }
-  /** Physical copper, orange vias, magenta joins and the current amber slice. */
+  /** Sections alternate two tones of their net's hue, the route cut this step wears a white casing, and copper not yet cut stays neutral grey. */
   override visualize(): GraphicsObject {
-    const drawing = this.geometry
-      ? routeSectionDrawing(this.input.circuitJson, this.geometry, this.scope, '2 · Sections: partition routed copper')
-      : routeBoardDrawing(this.input.circuitJson, this.scope, '2 · Sections: partition routed copper')
-    const slice = this.geometry?.slices.at(-1)
-    if (slice) routeSliceDrawing(drawing, this.input.circuitJson, slice)
-    if (this.failed) routeText(drawing, 2, 83, this.error ?? 'Rejected endpoint', '#dc2626')
+    const circuit = this.input.circuitJson
+    const view = routeView(circuit, this.scope)
+    const drawing = routeCanvas(view)
+    const wires = (this.geometry?.wires ?? []).filter(wire => view.traces.has(wire.trace))
+    const done = new Set(wires.map(wire => wire.trace))
+    routeNets(drawing, circuit, view, new Set([...view.traces].filter(id => !done.has(id))), () => routeTones.copper)
+    const active = this.solved ? undefined : wires.at(-1)?.trace
+    const tone = new Map<string, number>()
+    for (const wire of wires) {
+      const net = view.sources.get(wire.source)
+      const index = (tone.get(wire.trace) ?? -1) + 1
+      tone.set(wire.trace, index)
+      const points = [wire.a, wire.b].map(([x, y]) => ({ x, y }))
+      if (wire.trace === active) drawing.lines!.push({ points, strokeColor: routeTones.via, strokeWidth: wire.width * 2.2 })
+      drawing.lines!.push(...routeStroke(points, net ? routeHue(net.hue, Math.min(86, net.lightness + (index % 2 ? 16 : -6))) : routeTones.copper, wire.width, wire.layer, net?.label))
+    }
+    // The pane unrolls each net: its sections in the same two tones, uncut copper grey.
+    const unrolled = routeUnrolled(view, wires)
+    const rows = new Map<string, RouteStripRow>(routeLengths(circuit, view).map(row => [row.net.label, { ...row, parts: [] }]))
+    tone.clear()
+    for (const wire of wires) {
+      const at = unrolled.along(wire.id, wire.start)
+      const row = at && rows.get(at.net.label)
+      if (!row || !at) continue
+      const index = (tone.get(at.net.label) ?? -1) + 1
+      tone.set(at.net.label, index)
+      row.parts!.push({ from: at.distance, to: at.distance + wire.end - wire.start, color: routeHue(at.net.hue, Math.min(86, at.net.lightness + (index % 2 ? 16 : -6))), casing: wire.trace === active })
+    }
+    for (const row of rows.values()) {
+      const cut = (row.parts!.at(-1)?.to ?? 0)
+      row.length = Math.max(row.length, cut)
+      if (cut < row.length) row.parts!.push({ from: cut, to: row.length, color: routeTones.copper })
+    }
+    routeStrip(drawing, view.pane, [...rows.values()])
+    const width = wires.length ? wires.reduce((sum, wire) => sum + wire.width, 0) / wires.length : view.unit
+    for (const contact of this.geometry?.viaContacts ?? []) if (view.traces.has(contact.trace)) routeVia(drawing, { x: contact.point[0], y: contact.point[1] }, width * 1.4)
+    if (this.failed) routeFailure(drawing, view.pane, this.error ?? 'Rejected endpoint')
     return drawing
   }
 }

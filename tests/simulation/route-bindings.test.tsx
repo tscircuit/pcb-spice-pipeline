@@ -22,10 +22,13 @@ test('bindings compile one buffer per step and freeze the fully allocated node m
   assert.equal(output.value.models.length, 4)
   assert.ok(output.value.models.every((model) => Object.values(model.spicePinMapping).every((port) => output.value.nodeMap[port] !== undefined)))
   assert.ok(Object.isFrozen(output.value.nodeMap))
-  assert.ok(solver.visualize().circles!.length >= 4)
+  const glyphs = solver.visualize().polygons!.filter((polygon) => polygon.points.length === 3)
+  assert.equal(glyphs.length, 8, 'a glyph at each lane end on the board and in the strip')
+  assert.equal(glyphs.filter((glyph) => glyph.fill !== routeTones.halo).length, 4, 'drivers are filled')
 })
 
 import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
+import { routeTones } from '../../src/board'
 
 test('two-trace TSX route-bindings visual SVG snapshot', async () => {
   const { root } = await routedVisualFixture()
@@ -38,7 +41,7 @@ test('missing IBIS bytes mark physical endpoints and rejection reason red', asyn
   const missing = new RouteBindingsSolver({ ...params, ibisSources: {} })
   assert.throws(() => missing.solve())
   const drawing = missing.visualize()
-  assert.ok(drawing.circles!.some((circle) => circle.stroke === '#dc2626'))
-  assert.ok(drawing.texts!.some((text) => text.color === '#dc2626' && text.text.includes('model')))
+  assert.ok(drawing.polygons!.some((outline) => outline.stroke === routeTones.failure), 'unbound parts are outlined red')
+  assert.ok(drawing.texts!.some((text) => text.color === routeTones.failure && text.text.includes('model')))
   assertRouteVisual(drawing, 'simulation', 'route-bindings-missing')
 })

@@ -1,6 +1,5 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
 import type { GraphicsObject } from 'graphics-debug'
-import { routeText, routeTextSize } from '../board'
 import { snapshot, type Produced } from '../kernel'
 
 type ItemSolver<I, O> = BaseSolver & { getOutput(): Produced<O>; getConstructorParams(): [I] }
@@ -94,13 +93,9 @@ export class RoutedStageSolver<I, O> extends BaseSolver {
   override getConstructorParams(): [I[]] {
     return [this.inputs]
   }
-  /** Keep the last block's physical drawing after its stage completes. */
+  /** Keep the last block's physical drawing after its stage completes; with no admitted blocks there is nothing to overlay. */
   override visualize(): GraphicsObject {
-    if (this.current) return this.current.visualize()
-    const drawing: GraphicsObject = { coordinateSystem: 'cartesian', texts: [] }
-    routeText(drawing, 2, 98, this.getSolverName(), '#0f172a', routeTextSize.title)
-    routeText(drawing, 2, 87, 'No admitted signal-integrity blocks', '#64748b')
-    return drawing
+    return this.current?.visualize() ?? { coordinateSystem: 'cartesian' }
   }
 }
 

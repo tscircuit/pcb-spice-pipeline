@@ -112,20 +112,20 @@ test('real TSX two-trace: old/new native deck parity', { skip: process.env.SI_NA
 
 
 import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
+import { routeTones } from '../../src/board'
 
 test('live stage uses the shared waveform atlas for completed samples and failure diagnostics', async () => {
   const { root } = await routedVisualFixture()
   const stage = root.getSolver<RouteTransientSolver>('RouteTransientSolver')!
   assertRouteVisual(stage.visualize(), 'simulation', 'route-transient')
-  assert.ok(stage.visualize().lines!.some(line => line.strokeColor === '#9333ea'))
-  assert.ok(stage.visualize().texts!.some(text => text.text.includes('ngspice samples')))
-  assert.ok(stage.visualize().texts!.some(text => text.text.includes('VICTIM_0 · RX far')))
-  assert.ok(stage.visualize().texts!.some(text => text.text.includes('VICTIM_1 · TX near')))
+  const curves = stage.visualize().lines!.filter(line => line.layer === 'waveform')
+  assert.deepEqual(curves.map(line => [line.label, Boolean(line.strokeDash)]), [['VICTIM', true], ['DATA', false], ['VICTIM', false]], 'near-end probes are dashed and drawn underneath')
+  assert.equal(new Set(curves.map(line => line.strokeColor)).size, 2, 'curves take their net colour')
+  assert.ok(stage.visualize().texts!.every(text => / (V|ns)$/.test(text.text)), 'only axis ticks are written')
   assert.deepEqual(root.stageOutput('RouteTransientSolver').value[0].probes.map(probe => probe.name), ['DATA_0', 'VICTIM_0', 'VICTIM_1'])
   const pending = solver(response())
-  assert.ok(pending.visualize().texts!.some(text => text.text.includes('compiled deck')))
-  assert.equal(pending.visualize().lines!.filter(line => line.strokeWidth === .3).length, 0)
+  assert.equal(pending.visualize().lines!.filter(line => line.layer === 'waveform').length, 0, 'no curves before ngspice returns')
   const failed = solver(response(undefined, undefined, 'fatal: rejected'))
   await assert.rejects(failed.solveAsync(), /fatal/)
-  assert.ok(failed.visualize().texts!.some(text => text.color === '#dc2626' && text.text.includes('fatal')))
+  assert.ok(failed.visualize().polygons!.some(edge => edge.stroke === routeTones.failure), 'the plot pane is outlined red')
 })
