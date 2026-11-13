@@ -1,5 +1,6 @@
 import { causalLossPoles, causalLossResponse, referenceSeries, type ExtractedRoutes, type ExtractedRouteSlice, type RouteReturn } from '../extraction'
 import { RouteEnergy, seriesEnergy, shuntEnergy } from './route-energy'
+import { susceptanceEnergy } from './route-susceptance'
 import { type RouteWire, type RouteXY } from '../board'
 
 export interface RouteLadder {
@@ -16,7 +17,7 @@ interface ArcCell { wire: RouteWire; start: number; end: number; before: string;
 interface ArcWire { offset: number; length: number; cells: number[]; sign: number }
 
 /** Integrate every local matrix energy onto delay-bounded route-arc cells, independent of curve tessellation. */
-export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn): Generator<RouteLadder, RouteLadder> {
+export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn, susceptanceThreshold?: number): Generator<RouteLadder, RouteLadder> {
   if (!(riseSeconds > 0) || !Number.isInteger(refinement) || refinement < 1 || refinement > 4) throw new Error('Positive rise time and bounded integer spatial refinement (1..4) required')
   if (!(cellsPerRise >= .5 && cellsPerRise <= 40)) throw new Error('Cells per rise time must be in [0.5,40]')
   const lines: string[] = []
@@ -164,16 +165,21 @@ export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: R
   const before = cells.map(cell => cell.before)
   const after = cells.map(cell => cell.after)
   let current = cells.map((_, i) => `ARCd${i}`)
+  /** Opt-in truncated inverse-inductance realization; the default keeps coupled inductors and K lines. */
+  const inductance = (tag: string, from: string[], to: string[], matrix: RouteEnergy): void => {
+    if (susceptanceThreshold === undefined) seriesEnergy(lines, tag, from, to, matrix, 'L')
+    else susceptanceEnergy(lines, tag, from, to, matrix, susceptanceThreshold)
+  }
   seriesEnergy(lines, 'ARCD', before, current, R, 'R')
   for (const [p, pole] of causalLossPoles().entries()) {
     if (returnPath?.model === 'series') break
     const next = cells.map((_, i) => `ARCp${p}n${i}`)
     const resistance = skin.scaled(pole.skin)
     seriesEnergy(lines, `ARCS${p}`, current, next, resistance, 'R')
-    seriesEnergy(lines, `ARCP${p}`, current, next, resistance.scaled(1 / pole.rate), 'L')
+    inductance(`ARCP${p}`, current, next, resistance.scaled(1 / pole.rate))
     current = next
   }
-  seriesEnergy(lines, 'ARCL', current, after, L, 'L')
+  inductance('ARCL', current, after, L)
   const dielectricAtReference = causalLossResponse(1e9).dielectricCapacitance
   const capacitance = C.scaled(1)
   for (const [i, row] of D.rows.entries()) for (const [j, value] of row) capacitance.rows[i].set(j, (C.rows[i].get(j) ?? 0) - dielectricAtReference * value)
@@ -183,8 +189,8 @@ export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: R
 }
 
 /** Drain the canonical ladder assembly when interactive stepping is unnecessary. */
-export function routeLadder(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn): RouteLadder {
-  const steps = routeLadderSteps(extracted, endpoint, riseSeconds, refinement, cellsPerRise, returnPath)
+export function routeLadder(extracted: ExtractedRoutes, endpoint: (wire: RouteWire, point: RouteXY) => string, riseSeconds: number, refinement: number = 1, cellsPerRise: number = 10, returnPath?: RouteReturn, susceptanceThreshold?: number): RouteLadder {
+  const steps = routeLadderSteps(extracted, endpoint, riseSeconds, refinement, cellsPerRise, returnPath, susceptanceThreshold)
   let result = steps.next()
   while (!result.done) result = steps.next()
   return result.value
