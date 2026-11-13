@@ -11,7 +11,7 @@ import type { SolverContext } from '../../src/solver'
 import type { CircuitJson } from '../../src/board'
 
 // Original synthetic model for drawing tests only; no vendor tables or native claims.
-const source = `[IBIS Ver] 4.2
+export const drawingIbis = `[IBIS Ver] 4.2
 [Component] LVC1G04_DCK
 [Manufacturer] Drawing fixture
 [Package]
@@ -76,7 +76,7 @@ export function routedVisualFixture(blocks: number = 1): Promise<{ root: RoutedP
   const existing = fixtures.get(blocks)
   if (existing) return existing
   const fixture = (async () => {
-    const circuit = new Circuit({ platform: { partsEngineDisabled: true, platformFetch: async () => new Response(source) } })
+    const circuit = new Circuit({ platform: { partsEngineDisabled: true, platformFetch: async () => new Response(drawingIbis) } })
     const board = TwoTraceBoard({ 'bit-rate': '400Mbps', 'duration-seconds': 4e-9 })
     const tree = blocks === 1 ? board : React.cloneElement(board, {},
       ...React.Children.toArray(board.props.children).filter(child => !React.isValidElement(child) || child.type !== simulation.pcbtransientchannelsimulation),
@@ -99,7 +99,7 @@ export function routedVisualFixture(blocks: number = 1): Promise<{ root: RoutedP
     } }
     const root = new RoutedPipelineSolver({
       circuitJson: circuit.getCircuitJson() as CircuitJson,
-      ibisSources: { 'models/sn74lvc1g04.ibs': source },
+      ibisSources: { 'models/sn74lvc1g04.ibs': drawingIbis },
       scopeDistanceMm: 1,
     }, context)
     await root.solveAsync()

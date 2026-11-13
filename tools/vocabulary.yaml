@@ -28,6 +28,7 @@ domain:
   watchdog: a host timer that terminates an engine exceeding its runtime limit
   admission: validation and derivation of one declared signal-integrity block
   network: the connected electrical cells and correction elements of routed copper
+  rule: an opt-in choice of which scoped routed nets a network keeps and how removed ones load the rest
   execution: a completed invocation through the solver port
   visualize: draw a solver's current physical work in the shared graphics atlas
   snapshot: a copied and frozen domain value published by a completed stage
