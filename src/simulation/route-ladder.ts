@@ -1,5 +1,5 @@
 import { causalLossPoles, causalLossResponse, referenceSeries, type ExtractedRoutes, type ExtractedRouteSlice, type RouteReturn } from '../extraction'
-import { RouteEnergy, seriesEnergy, shuntEnergy } from './route-energy'
+import { RouteEnergy, seriesEnergy, shuntEnergy, skinEnergy } from './route-energy'
 import { type RouteWire, type RouteXY } from '../board'
 
 export interface RouteLadder {
@@ -165,13 +165,10 @@ export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: R
   const after = cells.map(cell => cell.after)
   let current = cells.map((_, i) => `ARCd${i}`)
   seriesEnergy(lines, 'ARCD', before, current, R, 'R')
-  for (const [p, pole] of causalLossPoles().entries()) {
-    if (returnPath?.model === 'series') break
-    const next = cells.map((_, i) => `ARCp${p}n${i}`)
-    const resistance = skin.scaled(pole.skin)
-    seriesEnergy(lines, `ARCS${p}`, current, next, resistance, 'R')
-    seriesEnergy(lines, `ARCP${p}`, current, next, resistance.scaled(1 / pole.rate), 'L')
-    current = next
+  if (returnPath?.model !== 'series') {
+    const stages = causalLossPoles().map((_, p) => cells.map((_, i) => `ARCp${p}n${i}`))
+    skinEnergy(lines, 'ARC', current, stages, skin, causalLossPoles())
+    current = stages.at(-1)!
   }
   seriesEnergy(lines, 'ARCL', current, after, L, 'L')
   const dielectricAtReference = causalLossResponse(1e9).dielectricCapacitance

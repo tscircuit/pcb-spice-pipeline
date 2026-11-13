@@ -83,7 +83,7 @@ export class RouteNetworkSolver extends BaseSolver {
     const oblique = routeOblique(geometry, extracted, ladder, scope, materials, options.panels)
     const transitions = routeTransitions(bindings.circuitJson, scope, geometry, endpoint, bindings.groundSourcePortId)
     const title = options.returnPath?.model === 'series' ? 'Hybrid 3D R/L and routed 2D C' : options.returnPath ? 'Routed 2D with hybrid finite-return closure' : 'Routed quasi-TEM coupled 2D extraction'
-    const lines = [`${title}; JLC standard stackup (assumed)`, `.options klu reltol=1e-4 abstol=${options.currentToleranceA ?? 1e-9} vntol=1e-6 method=gear maxord=2`, ...electrical.lines]
+    const lines = [`${title}; JLC standard stackup (assumed)`, `.options klu reltol=1e-4 abstol=${options.currentToleranceA ?? 1e-9} vntol=1e-6 method=gear maxord=2 pivrel=0.1`, ...electrical.lines]
     const saved: string[] = []
     for (const [i, model] of models.entries()) {
       const namespaced = namespaceSpice(model.source, `I${i}`)

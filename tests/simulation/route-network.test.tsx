@@ -18,6 +18,8 @@ test('network owns real ladder node samples, complete probe evidence and the exe
   assert.ok(output.evidence.cells)
   assert.ok(output.evidence.maximum_cell_delay_s)
   assert.ok(output.deck.includes('RBIAS'))
+  // klu_refactor reuses the first transient pivots; the zero-diagonal skin multiport rows need KLU tol 0.1.
+  assert.match(output.deck, /^\.options klu .* pivrel=0\.1$/m)
   assert.equal(output.probes.length, 3, 'two receivers and the existing rail monitor')
   assert.ok(network.visualize().lines!.some((line) => line.strokeColor === '#f59e0b'))
   assert.ok((output.evidence.warnings as string[]).some((warning) => warning.includes('candidate channel experiment')))

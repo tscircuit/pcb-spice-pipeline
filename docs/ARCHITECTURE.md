@@ -208,6 +208,17 @@ at near-zero Foster voltages on large, weakly anchored neighbour networks.
 Replacing that realization deliberately changes routed deck bytes and their
 pins; field coefficients, loss poles, topology and solver tolerances stay fixed.
 
+Causal skin loss is one coupled layer, not nine. Every Foster pole scales the
+same matrix, so `Z(s) = z(s) S`. Rows without mutual terms keep scalar R || L pole
+stages. Coupled rows share one normalized multiport: a series VCCS carries
+`I = x / sqrt(Sii)`, the auxiliary KCL is `sum_j Sn_ij u_j = V / sqrt(Sii)`, and a
+grounded unit Foster stage sequence gives `u = z(s) x`. The former per-pole multiports
+and `K` layers stacked nine copies of the coupling graph, which caused 8.9M LU fill
+on the DDR3 deck. Those auxiliary rows have no diagonal, so routed decks set
+`pivrel=0.1`. `klu_refactor` reuses the pivots chosen on the first transient
+iteration, and the default `1e-3` lets the first time point fail. Measurements are in
+`docs/research/ngspice-step-profile.md`.
+
 Completed domain values are copied and frozen. Only the root folds the six stages'
 `Produced` artifacts into `ArtifactLedger`; runtime timings stay in `stats`.
 Original assumptions, coupling decisions, reference omissions, external ports,
