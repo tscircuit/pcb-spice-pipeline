@@ -61,8 +61,8 @@ try {
   while (!root.solved) {
     const name = root.getCurrentStageName()
     await root.stepAsync()
-    const solver = root.getSolver(name)!
-    if (solver.solved) {
+    const solver = root.getSolver(name)
+    if (solver?.solved) {
       timings[name] = performance.now() - stageStart
       stats[name] = solver.stats
       stageStart = performance.now()
@@ -74,7 +74,7 @@ try {
       }
     }
     if (performance.now() - last > 15000) {
-      console.log('Progress', name, solver.stats, { rssBytes: process.memoryUsage().rss })
+      console.log('Progress', name, solver?.stats, { rssBytes: process.memoryUsage().rss })
       last = performance.now()
     }
   }
