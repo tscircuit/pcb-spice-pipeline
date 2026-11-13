@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { RouteEnergy, seriesEnergy, shuntEnergy } from '../../src/simulation/route-energy'
+import { RouteEnergy, seriesEnergy, shuntEnergy, skinEnergy } from '../../src/simulation/route-energy'
+import { causalLossPoles } from '../../src/extraction'
 
 /** Assemble in reverse order to verify dense-compatible column ordering. */
 function energy(values: number[][]): RouteEnergy {
@@ -43,6 +44,48 @@ test('normalized reciprocal resistance obeys V = R I down to tiny Foster voltage
   const diagonal: string[] = []
   seriesEnergy(diagonal, 'D', ['a', 'b'], ['c', 'd'], energy([[1e-4, 0], [0, 2e-4]]), 'R')
   assert.deepEqual(diagonal, ['RD0 a c 0.0001', 'RD1 b d 0.0002'])
+})
+
+test('one coupled skin multiport obeys V = z(jw) S I at every pole and keeps uncoupled rows scalar', () => {
+  const matrix = [[4e-6, 1e-6, 0], [1e-6, 9e-6, -3e-6], [0, -3e-6, 16e-6]]
+  const currents = [2e-3, -1e-3, 3e-3]
+  const poles = causalLossPoles()
+  const lines: string[] = []
+  skinEnergy(lines, 'T', ['a', 'b', 'c'], poles.map((_, p) => ['a', 'b', 'c'].map(node => `${node}${p}`)), energy(matrix), poles)
+  assert.equal(lines.filter(line => line.startsWith('K')).length, 0, 'no per-pole mutual inductance layers')
+  for (const frequency of [1e6, 1e9, 2e10]) {
+    const omega = 2 * Math.PI * frequency
+    // Complex numbers as [real, imaginary]; z_p = skin jw / (jw + rate).
+    const stage = poles.map(pole => [pole.skin * omega ** 2 / (pole.rate ** 2 + omega ** 2), pole.skin * omega * pole.rate / (pole.rate ** 2 + omega ** 2)])
+    const z = stage.reduce(([re, im], [a, b]) => [re + a, im + b], [0, 0])
+    const nodes = new Map<string, number[]>([['0', [0, 0]]])
+    for (const [i, node] of ['a', 'b', 'c'].entries()) {
+      const voltage = matrix[i].reduce((sum, s, j) => sum + s * currents[j], 0)
+      const x = Math.sqrt(matrix[i][i]) * currents[i]
+      nodes.set(node, [z[0] * voltage, z[1] * voltage]).set(`${node}8`, [0, 0]).set(`TSx${i}`, [x, 0]).set(`TSu${i}`, [z[0] * x, z[1] * x])
+      let drop = [0, 0]
+      for (let p = 0; p < 8; p++) {
+        drop = [drop[0] + stage[p][0] * x, drop[1] + stage[p][1] * x]
+        nodes.set(`TF${p}_${i}`, [z[0] * x - drop[0], z[1] * x - drop[1]])
+      }
+    }
+    const residual = new Map<string, number[]>()
+    for (const line of lines) {
+      const [name, a, b, c, d, gain] = line.split(' ')
+      const [vr, vi] = [nodes.get(a)![0] - nodes.get(b)![0], nodes.get(a)![1] - nodes.get(b)![1]]
+      const current = name.startsWith('R') ? [vr / Number(c), vi / Number(c)] : name.startsWith('L') ? [vi / (omega * Number(c)), -vr / (omega * Number(c))]
+        : [Number(gain) * (nodes.get(c)![0] - nodes.get(d)![0]), Number(gain) * (nodes.get(c)![1] - nodes.get(d)![1])]
+      for (const [node, sign] of [[a, 1], [b, -1]] as const) residual.set(node, (residual.get(node) ?? [0, 0]).map((value, k) => value + sign * current[k]))
+    }
+    for (const [node, value] of residual) {
+      const expected = /^[abc]$/.test(node) ? currents['abc'.indexOf(node)] : /^[abc]8$/.test(node) ? -currents['abc'.indexOf(node[0])] : 0
+      if (node !== '0') assert.ok(Math.hypot(value[0] - expected, value[1]) < 1e-12, `${frequency} Hz KCL at ${node}`)
+    }
+  }
+  const diagonal: string[] = []
+  skinEnergy(diagonal, 'D', ['a', 'b'], [['c', 'd'], ['e', 'f']], energy([[1e-4, 0], [0, 2e-4]]), [{ rate: 10, skin: 2, dielectric: 0 }, { rate: 100, skin: 3, dielectric: 0 }])
+  assert.deepEqual(diagonal, ['RDS00 a c 0.0002', 'RDS01 b d 0.0004', 'LDP00 a c 0.00002', 'LDP01 b d 0.00004',
+    'RDS10 c e 0.0003', 'RDS11 d f 0.0006', 'LDP10 c e 0.000003', 'LDP11 d f 0.000006'])
 })
 
 test('sparse Maxwell shunts preserve dense row sums, pair ordering and Foster loss', () => {

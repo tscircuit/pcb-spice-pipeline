@@ -1,3 +1,5 @@
+import type { LossPole } from '../extraction'
+
 /** Sparse energy rows retain only terms integrated from a common physical slice. */
 export class RouteEnergy {
   readonly rows: Map<number, number>[]
@@ -58,6 +60,41 @@ export function seriesEnergy(lines: string[], tag: string, before: string[], aft
   if (kind === 'L') for (let i = 0; i < before.length; i++) for (const [j, mutual] of matrix.entries(i)) {
     if (j <= i) continue
     if (before[i] !== after[i] && before[j] !== after[j] && Math.abs(mutual) > 1e-24) lines.push(`K${tag}${i}_${j} L${tag}${i} L${tag}${j} ${number(mutual / Math.sqrt((matrix.rows[i].get(i) ?? 0) * (matrix.rows[j].get(j) ?? 0)))}`)
+  }
+}
+
+/**
+ * Causal skin loss. Every pole scales one matrix S, so Z(s) = z(s) S with the unit Foster impedance
+ * z(s) = sum(skin s / (s + rate)). Uncoupled rows keep scalar R || L pole stages. Coupled rows share one
+ * normalized multiport instead of one per pole: a series VCCS carries I = x / sqrt(Sii), the auxiliary KCL is
+ * sum_j Sn_ij u_j = V / sqrt(Sii), and a grounded unit Foster stage sequence gives u = z(s) x.
+ */
+export function skinEnergy(lines: string[], tag: string, before: string[], stages: string[][], matrix: RouteEnergy, poles: LossPole[]): void {
+  const after = stages.at(-1)!
+  const top = Math.max(...poles.map(pole => pole.skin))
+  const terms = before.map((_, i) => matrix.entries(i).filter(([j, value]) => j !== i && Math.abs(value) * top >= 1e-20))
+  for (const [p, pole] of poles.entries()) {
+    const resistance = matrix.scaled(pole.skin)
+    const inductance = resistance.scaled(1 / pole.rate)
+    const start = p ? stages[p - 1] : before
+    for (const [kind, values] of [['RS', resistance], ['LP', inductance]] as const) for (let i = 0; i < before.length; i++) {
+      if (!terms[i].length) lines.push(`${kind[0]}${tag}${kind[1]}${p}${i} ${start[i]} ${stages[p][i]} ${number(values.rows[i].get(i) ?? 0)}`)
+    }
+  }
+  for (let i = 0; i < before.length; i++) {
+    if (!terms[i].length) continue
+    const self = matrix.rows[i].get(i) ?? 0
+    if (!(self > 0)) throw new Error('Coupled skin loss requires a positive self term')
+    const scale = 1 / Math.sqrt(self)
+    const x = `${tag}Sx${i}`
+    lines.push(`G${tag}SI${i} ${before[i]} ${after[i]} ${x} 0 ${number(scale)}`, `G${tag}SV${i} ${x} 0 ${before[i]} ${after[i]} ${number(-scale)}`,
+      `G${tag}SF${i} 0 ${tag}Su${i} ${x} 0 1`, `G${tag}S${i}_${i} ${x} 0 ${tag}Su${i} 0 1`)
+    for (const [j, mutual] of terms[i]) lines.push(`G${tag}S${i}_${j} ${x} 0 ${tag}Su${j} 0 ${number(mutual / Math.sqrt(self * matrix.rows[j].get(j)!))}`)
+    for (const [p, pole] of poles.entries()) {
+      const node = p ? `${tag}F${p - 1}_${i}` : `${tag}Su${i}`
+      const next = p === poles.length - 1 ? '0' : `${tag}F${p}_${i}`
+      lines.push(`R${tag}F${p}_${i} ${node} ${next} ${number(pole.skin)}`, `L${tag}F${p}_${i} ${node} ${next} ${number(pole.skin / pole.rate)}`)
+    }
   }
 }
 
