@@ -23,8 +23,9 @@ function RoutedAtlas({ circuit, graphics }: { circuit: CircuitJson; graphics: Gr
   const camera = boardPictureView(circuit, graphics)
   const view = region ?? camera
   const height = Math.round(Math.min(720, Math.max(360, (width * (camera.maxY - camera.minY)) / Math.max(camera.maxX - camera.minX, 1e-9))))
-  const total = useRef(1)
-  total.current = ((camera.maxX - camera.minX) / (view.maxX - view.minX)) * move.zoom
+  // Zoom of the rendered region relative to the full camera; CSS zoom on top of it stays within 1–20× overall.
+  const base = useRef(1)
+  base.current = (camera.maxX - camera.minX) / (view.maxX - view.minX)
   useEffect(() => {
     const element = container.current!
     const observer = new ResizeObserver(([entry]) => setWidth(Math.floor(entry.contentRect.width)))
@@ -34,8 +35,11 @@ function RoutedAtlas({ circuit, graphics }: { circuit: CircuitJson; graphics: Gr
       if (!event.ctrlKey && !event.metaKey) return
       event.preventDefault()
       const box = element.getBoundingClientRect()
-      const factor = Math.min(20 / total.current, Math.max(1 / total.current, Math.exp(-event.deltaY * 0.002)))
-      setMove(({ x, y, zoom }) => ({ zoom: zoom * factor, x: event.clientX - box.left - (event.clientX - box.left - x) * factor, y: event.clientY - box.top - (event.clientY - box.top - y) * factor }))
+      setMove(({ x, y, zoom }) => {
+        const next = Math.min(20 / base.current, Math.max(1 / base.current, zoom * Math.exp(-event.deltaY * 0.002)))
+        const factor = next / zoom
+        return { zoom: next, x: event.clientX - box.left - (event.clientX - box.left - x) * factor, y: event.clientY - box.top - (event.clientY - box.top - y) * factor }
+      })
     }
     element.addEventListener('wheel', zoom, { passive: false })
     return (): void => {
@@ -70,7 +74,7 @@ function RoutedAtlas({ circuit, graphics }: { circuit: CircuitJson; graphics: Gr
         setMove({ x: 0, y: 0, zoom: 1 })
       }}
       onPointerMove={(event) => {
-        if (event.buttons === 1 && total.current > 1) setMove((move) => ({ ...move, x: move.x + event.movementX, y: move.y + event.movementY }))
+        if (event.buttons === 1 && base.current * move.zoom > 1) setMove((move) => ({ ...move, x: move.x + event.movementX, y: move.y + event.movementY }))
         const label = (event.target as Element).closest?.('[data-label]')?.getAttribute('data-label')
         const box = container.current!.getBoundingClientRect()
         setHover(label && label !== 'camera' ? { label, x: event.clientX - box.left, y: event.clientY - box.top } : undefined)
