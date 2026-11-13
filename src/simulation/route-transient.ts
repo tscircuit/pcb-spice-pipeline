@@ -1,11 +1,9 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
-import type { GraphicsObject } from 'graphics-debug'
 import { rootScope, snapshot, sha256, type Produced } from '../kernel'
-import { invoke, type SolverContext, type SolverRequest } from '../solver'
+import { emptyVisualization, invoke, type SolverContext, type SolverRequest } from '../solver'
 import { parseSpiceVectors, spiceProbeRows } from '../observation'
 import { routeSpatialWaveform } from './route-spatial'
 import { fail } from './diagnostics'
-import { routeWaveformDrawing } from './waveform-visual'
 import type { RoutedDeck, RoutedCapture } from './routed-types'
 
 export interface RouteTransientInput { compiled: RoutedDeck; artifactPrefix: string; context: SolverContext }
@@ -47,14 +45,6 @@ export class RouteTransientSolver extends BaseSolver {
   }
   /** The runtime capability must be supplied again when constructing a new solver. */
   override getConstructorParams(): [RouteTransientInput] { return [this.input] }
-  /** Use the parent pipeline's pure atlas renderer for actual live probe samples. */
-  override visualize(): GraphicsObject {
-    const capture = this.output?.value
-    const routes = this.input.compiled.evidence.routes as { from: string; to: string }[] | undefined
-    const labelled = capture && { ...capture, probes: capture.probes.map(probe => {
-      const end = routes?.some(route => route.from === probe.sourcePortId) ? 'TX near' : routes?.some(route => route.to === probe.sourcePortId) ? 'RX far' : undefined
-      return end ? { ...probe, name: `${probe.name} · ${end}` } : probe
-    }) }
-    return routeWaveformDrawing(labelled, this.input.compiled.durationSeconds, this.failed ? this.error ?? 'Transient failed' : undefined)
-  }
+  /** Compatibility only; the physical scene is rendered from retained domain outputs. */
+  override visualize = emptyVisualization
 }

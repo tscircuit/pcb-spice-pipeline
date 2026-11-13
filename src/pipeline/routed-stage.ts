@@ -1,5 +1,5 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
-import type { GraphicsObject } from 'graphics-debug'
+import { emptyVisualization } from '../solver'
 import { snapshot, type Produced } from '../kernel'
 
 type ItemSolver<I, O> = BaseSolver & { getOutput(): Produced<O>; getConstructorParams(): [I] }
@@ -92,10 +92,8 @@ export class RoutedStageSolver<I, O> extends BaseSolver {
   override getConstructorParams(): [I[]] {
     return [this.inputs]
   }
-  /** Keep the last block's physical drawing after its stage completes. */
-  override visualize(): GraphicsObject {
-    return this.current?.visualize() ?? { coordinateSystem: 'cartesian' }
-  }
+  /** Compatibility only; the physical scene is rendered from retained domain outputs. */
+  override visualize = emptyVisualization
 }
 
 /** Bind a domain algorithm once in the static stage tuple, with no runtime stage creation. */

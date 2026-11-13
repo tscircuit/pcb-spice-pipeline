@@ -73,8 +73,10 @@ Run `bun install && bun dev` with **ngspice on PATH**. Cosmos opens
 API use port 5050. Both bind only to `127.0.0.1`.
 
 The sidebar lists the two-trace TSX board, every signal level, the DDR3 addr/cmd
-scope, and a paste/upload Circuit JSON page. Each mounts `GenericSolverDebugger`
-with `RoutedPipelineSolver`. Step through admission, geometry, fields, buffers,
+scope, and a paste/upload Circuit JSON page. Each mounts a full-board 3D scene driven by `RoutedPipelineSolver`. The Step number,
+Step / Next Stage controls and six-row table share the same retained state.
+Scripted cameras explain every stage; orbit, pan and zoom are locked. Components
+and upper layers fade during focus shots, with a visible indicator. Step through admission, geometry, fields, buffers,
 network assembly, then the live local ngspice transient. Captures remain candidate
 results without independent convergence qualification.
 
@@ -86,7 +88,7 @@ The site requires its local backend.
 
 ```mermaid
 flowchart LR
-  fixture["Cosmos TSX / uploaded Circuit JSON"] --> debugger["GenericSolverDebugger · routed stages 1–6"]
+  fixture["Cosmos TSX / uploaded Circuit JSON"] --> debugger["Full-board 3D scene · routed stages 1–6"]
   assets["Fixed local model paths / SI_DDR3_BOARD"] --> debugger
   debugger --> transient["RouteTransientSolver · stepAsync"]
   transient <-->|"POST /api/run-solver · HTTP RunSolver"| queue["Vite middleware · single slot"]

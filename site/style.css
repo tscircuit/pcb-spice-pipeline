@@ -2,28 +2,34 @@ body { margin: 0; font-family: system-ui, sans-serif; color: #18263a; background
 main { padding: 12px; }
 h1 { margin: 0 0 8px; font-size: 24px; }
 label { display: inline-flex; align-items: center; gap: 8px; }
-select, button, textarea { font: inherit; padding: 6px 10px; }
-textarea { display: block; box-sizing: border-box; width: 100%; min-height: 160px; margin: 12px 0; font-family: monospace; }
-[role=alert] { color: #a12825; white-space: pre-wrap; overflow-wrap: anywhere; }
-summary, button { cursor: pointer; }
-
-.routed-atlas { background: white; width: 100%; }
-/* CanvasGraphics' dimension overlay needs a height for its absolute canvas. */
-.routed-atlas [tabindex='0'] { height: 100%; }
-
-/* The complete stats already live in the summary; keep that text visible without a disclosure. */
-.routed-debugger td summary { white-space: normal; overflow: visible; max-width: none; list-style: none; pointer-events: none; cursor: default; }
-.routed-debugger td summary::-webkit-details-marker { display: none; }
-/* Keep solver names, statuses and untruncated stats in separate readable columns. */
-.routed-debugger col:nth-child(1) { width: 31% !important; }
-.routed-debugger col:nth-child(2) { width: 10% !important; }
-.routed-debugger col:nth-child(3) { width: 4% !important; }
-.routed-debugger col:nth-child(4) { width: 7% !important; }
-.routed-debugger col:nth-child(5) { width: 9% !important; }
-.routed-debugger col:nth-child(6) { width: 7% !important; }
-.routed-debugger col:nth-child(7) { width: 24% !important; }
-.routed-debugger col:nth-child(8) { width: 8% !important; }
-
-.step-selector { display: flex; align-items: center; gap: 12px; margin: 8px 0; font-size: 14px; }
-.step-selector input { width: 7ch; font: inherit; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; }
-.routed-debugger tbody > tr { cursor: pointer; }
+select, button, textarea, input { font: inherit; padding: 6px 10px; }
+button { cursor: pointer; border: 1px solid #cbd5e1; border-radius: 4px; background: white; color: #18263a; }
+button:disabled { cursor: default; opacity: .4; }
+textarea { width: 98%; min-height: 180px; }
+p[role=alert] { color: #b91c1c; }
+.stage-controls, .board-3d header, .board-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 12px; }
+.stage-controls { padding: 8px 0; }
+.stage-controls input { width: 5ch; }
+.board-3d { min-width: 0; border: 1px solid #cbd5e1; border-radius: 5px; background: white; overflow: hidden; }
+.board-3d header { border-bottom: 1px solid #e2e8f0; }
+.board-3d-canvas { position: relative; height: clamp(420px, 56vh, 650px); width: 100%; pointer-events: none; user-select: none; }
+.board-3d-canvas > div { height: 100% !important; width: 100%; }
+.board-3d p { margin: 6px 12px; font-size: 12px; color: #475569; }
+.board-controls input[type=number] { width: 5ch; }
+.board-controls input[type=range] { width: 240px; }
+.board-waveform { padding: 0 12px 8px; }
+.board-waveform svg { display: block; width: 100%; height: 150px; }
+.board-waveform details { font-size: 12px; }
+.voltage-legend { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: #475569; }
+.voltage-legend span { display: inline-block; width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(to right, hsl(240 90% 50%), hsl(180 90% 50%), hsl(120 90% 50%), hsl(60 90% 50%), hsl(0 90% 50%)); }
+/* Every shot is scripted, so the viewer's orientation cube would only mislabel the framing. */
+.board-3d-canvas div[style*="z-index: 95"] { display: none !important; }
+.board-focus-chip { padding: 3px 8px; border-radius: 12px; font-size: 12px; background: #fef3c7; color: #854d0e; }
+.pipeline-stages { margin-top: 14px; border: 1px solid #e2e8f0; border-radius: 6px; background: white; overflow-x: auto; }
+.pipeline-stages h3 { margin: 12px; font-size: 14px; }
+.pipeline-stages table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pipeline-stages th, .pipeline-stages td { padding: 9px 12px; text-align: left; border-top: 1px solid #e2e8f0; }
+.pipeline-stages td:first-child { white-space: nowrap; }
+.pipeline-stages th { background: #f8fafc; color: #475569; }
+.pipeline-stages tr[aria-selected=true] { background: #eff6ff; }
+.pipeline-stages tbody tr { cursor: pointer; }

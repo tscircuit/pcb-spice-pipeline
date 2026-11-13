@@ -32,8 +32,10 @@ export { RouteNetworkSolver } from './route-network'
 export { RouteTransientSolver } from './route-transient'
 export type { RoutedCompileOptions, RouteBindingsInput, RoutedBindings, RouteNetworkInput, RoutedDeck, RoutedCapture } from './routed-types'
 
-export { routeWaveformDrawing } from './waveform-visual'
-
 export type { RouteSpatialPoint, RouteSpatialWaveform } from './route-spatial'
 
 export { compactRouteVectors } from './route-spatial'
+export {
+  routeVoltagePositions, routeVoltageBlend, routeVoltageAt, routeVoltageRange, routeFirstEdge,
+  type RouteVoltageBlend, type RouteVoltagePosition, type RouteVoltageRange,
+} from './route-voltage'

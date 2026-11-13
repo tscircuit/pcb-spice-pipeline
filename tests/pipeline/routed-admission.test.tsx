@@ -16,7 +16,6 @@ test('admission uses shared block lowering, retains warnings and rejects invalid
   solver.step()
   assert.equal(solver.solved, true)
   assert.equal(solver.getOutput().value[0].sections.scope.selectedPcbTraceIds.length, 2)
-  assert.ok(solver.visualize().points!.length >= 4)
   assert.throws(() => new RoutedAdmissionSolver({ ...input, scopeDistanceMm: 0 }).solve(), /scope distance/)
 })
 
@@ -26,18 +25,12 @@ test('empty boards admit no fake blocks', () => {
   assert.deepEqual(solver.getOutput().value, [])
 })
 
-import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
+import { routedSceneFixture } from '../support/routed-scene-fixture'
 
-test('two-trace TSX routed-admission visual SVG snapshot', async () => {
-  const { root } = await routedVisualFixture()
-  assertRouteVisual(root.getSolver<RoutedAdmissionSolver>('RoutedAdmissionSolver')!.visualize(), 'pipeline', 'routed-admission')
-})
-
-test('rejected admission carries a visible red reason without inventing an admitted block', async () => {
-  const { root } = await routedVisualFixture()
+test('rejected admission keeps its reason without inventing an admitted block', async () => {
+  const { root } = await routedSceneFixture()
   const solver = new RoutedAdmissionSolver({ ...root.inputProblem, scopeDistanceMm: 0 })
   assert.throws(() => solver.solve(), /scope distance/)
-  const drawing = solver.visualize()
-  assert.ok(drawing.texts!.some((text) => text.color === '#dc2626' && text.text.includes('scope distance')))
-  assertRouteVisual(drawing, 'pipeline', 'routed-admission-rejected')
+  assert.equal(solver.failed, true)
+  assert.match(solver.error ?? '', /scope distance/)
 })
