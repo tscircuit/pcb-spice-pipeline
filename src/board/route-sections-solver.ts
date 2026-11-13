@@ -5,7 +5,7 @@ import { connectedSourceIds } from './connectivity'
 import { routeSectionSteps, routeContactFrame, type SectionGeometry } from './route-sections'
 import type { CircuitJson } from './schema'
 import type { CopperScope } from './geometry/scope'
-import { routeSectionDrawing, routeBoardDrawing, routeSliceDrawing, routeText } from './route-visual'
+import { routeSectionDrawing, routeBoardDrawing, routeFailure } from './route-visual'
 
 export interface RouteSectionsInput {
   circuitJson: CircuitJson
@@ -59,14 +59,10 @@ export class RouteSectionsSolver extends BaseSolver {
   }
   /** Original problem, independent of work state. */
   override getConstructorParams(): [RouteSectionsInput] { return [this.input] }
-  /** Physical copper, orange vias, magenta joins and the current amber slice. */
+  /** Sectioned copper in net colours with a gap at every partition; unsectioned selected copper stays faint. */
   override visualize(): GraphicsObject {
-    const drawing = this.geometry
-      ? routeSectionDrawing(this.input.circuitJson, this.geometry, this.scope, '2 · Sections: partition routed copper')
-      : routeBoardDrawing(this.input.circuitJson, this.scope, '2 · Sections: partition routed copper')
-    const slice = this.geometry?.slices.at(-1)
-    if (slice) routeSliceDrawing(drawing, this.input.circuitJson, slice)
-    if (this.failed) routeText(drawing, 2, 83, this.error ?? 'Rejected endpoint', '#dc2626')
+    const drawing = this.geometry ? routeSectionDrawing(this.input.circuitJson, this.geometry, this.scope, true) : routeBoardDrawing(this.input.circuitJson, this.scope, 0.3)
+    if (this.failed) routeFailure(drawing, this.input.circuitJson, this.error ?? 'Rejected endpoint')
     return drawing
   }
 }

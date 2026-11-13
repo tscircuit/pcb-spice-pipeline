@@ -225,31 +225,42 @@ Original assumptions, coupling decisions, reference omissions, external ports,
 model provenance, node maps, via/oblique policies and deck evidence remain visible.
 
 The site's `Step` input starts at 0 for the initial board, then synchronizes to
-stages 1–6, matching table rows 01–06 and visualization titles. Entering a number
+stages 1–6, matching table rows 01–06. Entering a number
 selects that retained stage until the next pipeline advance. Each flat stage
 retains its last completed block's domain solver and final drawing; selecting
 an earlier stage never recomputes it. Each domain solver draws its physical input
 before its first step. Stage wrappers construct that domain solver when admitted,
 and root transitions preview the incoming immutable input before the next step.
 Fields preview the first physical cross-section without solving coefficients.
-Pending transients retain routed board context and a deck summary, then switch
-to the waveform only after complete samples arrive. Future stages whose inputs
-are incomplete retain the known board context with a not-run note. Values outside 0–6 are clamped silently; clicking
+Pending transients show the board with probe marks and empty plot axes; curves
+appear only after complete samples arrive. Future stages whose inputs are
+incomplete draw the selected copper faintly. Values outside 0–6 are clamped silently; clicking
 a table row also selects that stage. Selection lives in fixture component state.
 The page starts with this input and the debugger; local asset loading remains,
 while only blocking load, backend and solver errors appear inline.
 
-Stage visuals share one world-unit `routeTextSize` scale. Board drawings use
-x=0..120/y=0..100; fields use x=130..340/y=-6..100, including material labels
-outside thin slabs with leader lines. The waveform uses x=0..305/y=108..181,
-with integer voltage ticks covering the capture and both red limit annotations.
-PCB y and stack z stay positive upward. Cosmos measures its container before
-mounting `CanvasGraphics`, fits the full text bounds with 16 px padding, and
-caps height at 620 px to leave room for the selector in a laptop window. This
-avoids the DOM renderer's fixed 600 px initial camera and screen-pixel text sizes.
-Atlas coordinates are display units, so the grid stays hidden while physical
-axis labels remain explicit. Neighbour copper and waveform drawings are capped
-for display only; numerical inputs and native samples remain complete.
+Every stage draws in board millimetres, y up, and draws only what it computes:
+selected copper at real width in one bright hue per net, endpoint and probe marks
+(dots at drivers, rings at receivers), rail and neighbour copper cut to the
+selected-copper focus, section gaps, the amber slice cut, ladder-cell ticks,
+violet oblique links and orange via transitions. Fields and transient add an
+opaque pane beside the focus (right of a tall focus, below a wide one) for the
+to-scale cross-section and the waveform plot. There are no titles, legends or
+footers; only Z0 values, axis ticks and a one-line failure reason are written.
+Nothing depends on a particular board: camera, colours, sizes and layer side
+come from the drawing and the circuit.
+
+`src/board/board-picture.ts` puts the real board under that drawing.
+`circuit-to-svg` renders a dimmed top view (soldermask, pads, silkscreen)
+through a `viewport` equal to the camera; graphics-debug's SVG export fits the
+same camera through an invisible frame, so both layers align to the pixel. The
+camera is the drawing's bounds, or the whole board when the drawing is empty,
+and each board's last few renders are cached. The site stacks the two SVG layers
+and pans or zooms them together; scripts write the combined SVG and PNG. Only
+the site, scripts and tests import the module, so `circuit-to-svg` stays a
+development dependency outside the library bundle. Neighbour copper and waveform
+drawings are capped for display only; numerical inputs and native samples remain
+complete.
 
 `RouteTransientSolver` awaits one `solver.invoke` call in `_stepAsync`. Its
 self-contained `.save` + `.tran` deck keeps KLU and Gear in native batch ngspice.

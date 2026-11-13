@@ -1,41 +1,63 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Circuit } from '@tscircuit/core'
 import { GenericSolverDebugger } from '@tscircuit/solver-utils/react'
-import { CanvasGraphics } from 'graphics-debug/react'
-import { computeTransformFromViewbox, getBounds, type GraphicsObject } from 'graphics-debug'
+import type { GraphicsObject } from 'graphics-debug'
 import { createHttpSolver } from '../src/adapters/browser'
 import { RoutedPipelineSolver } from '../src/pipeline'
-import { type CircuitJson } from '../src/board'
+import type { CircuitJson } from '../src/board'
+// Imported directly: circuit-to-svg is a development dependency and never enters the library bundle.
+import { boardPicture, boardPictureView } from '../src/board/board-picture'
 import type { IbisSources } from '../src/buffers'
 
-/** Fit the measured container and scale world-unit text exactly as in SVG exports. */
-function RoutedAtlas({ graphics }: { graphics: GraphicsObject }): React.JSX.Element {
+/** The real board under the stage drawing at the container's width; wheel zooms and dragging pans both layers together. */
+function RoutedAtlas({ circuit, graphics }: { circuit: CircuitJson; graphics: GraphicsObject }): React.JSX.Element {
   const container = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
+  const [view, setView] = useState({ x: 0, y: 0, zoom: 1 })
   useEffect(() => {
+    const element = container.current!
     const observer = new ResizeObserver(([entry]) => setWidth(Math.floor(entry.contentRect.width)))
-    observer.observe(container.current!)
-    return (): void => observer.disconnect()
+    observer.observe(element)
+    /** Zoom about the cursor; a native listener, because React's wheel listener cannot prevent page scrolling. */
+    const zoom = (event: WheelEvent): void => {
+      event.preventDefault()
+      const box = element.getBoundingClientRect()
+      const factor = Math.exp(-event.deltaY * 0.0015)
+      setView(({ x, y, zoom }) => ({ zoom: zoom * factor, x: event.clientX - box.left - (event.clientX - box.left - x) * factor, y: event.clientY - box.top - (event.clientY - box.top - y) * factor }))
+    }
+    element.addEventListener('wheel', zoom, { passive: false })
+    return (): void => {
+      observer.disconnect()
+      element.removeEventListener('wheel', zoom)
+    }
   }, [])
-  const { minX, maxX, minY, maxY } = getBounds(graphics)
-  const height = Math.min(620, Math.ceil(((width - 32) * (maxY - minY)) / Math.max(maxX - minX, 1) + 32))
-  const transform = useMemo(
-    () => computeTransformFromViewbox({ minX, maxX, minY, maxY }, width, height, { padding: 16, yFlip: true }),
-    [minX, maxX, minY, maxY, width, height],
-  )
+  const { minX, maxX, minY, maxY } = boardPictureView(circuit, graphics)
+  const height = Math.round(Math.min(720, Math.max(360, ((width - 80) * (maxY - minY)) / Math.max(maxX - minX, 1e-9) + 80)))
+  const picture = useMemo(() => (width > 0 ? boardPicture(circuit, graphics, width, height) : undefined), [circuit, graphics, width, height])
   return (
-    <div ref={container} className="routed-atlas" aria-label="Routed pipeline atlas">
-      {width > 0 && (
-        <CanvasGraphics key={`${width}:${height}`} graphics={graphics} width={width} height={height} initialTransform={transform} withGrid={false} />
+    <div
+      ref={container}
+      className="routed-atlas"
+      aria-label="Routed pipeline atlas"
+      style={{ height }}
+      onDoubleClick={() => setView({ x: 0, y: 0, zoom: 1 })}
+      onPointerMove={(event) => {
+        if (event.buttons === 1) setView((view) => ({ ...view, x: view.x + event.movementX, y: view.y + event.movementY }))
+      }}
+    >
+      {picture && (
+        <div className="routed-atlas-layers" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }}>
+          <div dangerouslySetInnerHTML={{ __html: picture.board }} />
+          <div dangerouslySetInnerHTML={{ __html: picture.overlay }} />
+        </div>
       )}
     </div>
   )
 }
 
-/** Fit again when selecting a different stage or completing its solve. */
+/** A fresh camera for every stage; the drawing itself is recomputed from solver state on each render. */
 function renderStage(root: RoutedPipelineSolver, number: number): React.JSX.Element {
-  const solver = root.getSolver(root.pipelineDef[number - 1]?.solverName ?? '')
-  return <RoutedAtlas key={`${number}:${solver?.solved}`} graphics={root.visualizeStage(number)} />
+  return <RoutedAtlas key={number} circuit={root.inputProblem.circuitJson} graphics={root.visualizeStage(number)} />
 }
 
 export interface BoardPageProps {

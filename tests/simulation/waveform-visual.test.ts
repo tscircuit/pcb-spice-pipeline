@@ -1,10 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { routeWaveformDrawing } from '../../src/simulation'
+import { routeWaveformDrawing, roundStep } from '../../src/simulation'
 import type { RoutedCapture } from '../../src/simulation'
+import { routeTones } from '../../src/board'
 import { assertRouteVisual } from '../support/routed-visual-fixture'
 
-// Synthetic drawing data only: exercises irregular sampling and both limit crossings.
+// Synthetic drawing data only: exercises irregular sampling and a negative undershoot.
 const capture: Extract<RoutedCapture, { kind: 'completed' }> = {
   kind: 'completed',
   qualification: 'candidate-unqualified',
@@ -14,41 +15,47 @@ const capture: Extract<RoutedCapture, { kind: 'completed' }> = {
     { name: 'VICTIM', sourcePortId: 'victim', voltageLevels: [0, 0.1, -0.5, 0.05, 0] },
   ],
 }
+const probes = [
+  { name: 'DATA', sourcePortId: 'data', near: false },
+  { name: 'VICTIM', sourcePortId: 'victim', near: true },
+]
 
-test('waveform SVG snapshot includes axes, explicit limits, probe key and purple victim', () => {
+test('waveform pane: one colour per probe, dashed near ends, round data-range ticks and no fixed limit lines', () => {
   const original = structuredClone(capture)
-  const drawing = routeWaveformDrawing(capture, 1e-9)
+  const drawing = routeWaveformDrawing(undefined, probes, capture, 1e-9)
   assertRouteVisual(drawing, 'simulation', 'waveform-visual')
   assert.deepEqual(capture, original, 'pure drawing never mutates results')
-  const victim = drawing.lines!.find((line) => line.label === 'VICTIM')!
-  assert.equal(victim.strokeColor, '#9333ea')
+  const [data, victim] = ['DATA', 'VICTIM'].map((name) => drawing.lines!.find((line) => line.label === name)!)
+  assert.notEqual(data.strokeColor, victim.strokeColor)
+  assert.ok(victim.strokeDash && !data.strokeDash)
   assert.equal(victim.points.length, capture.timestampsSeconds.length)
   assert.ok(victim.points[1].x < victim.points[2].x)
-  assert.ok(drawing.texts!.some((text) => /Time \(ns\)/.test(text.text)))
-  for (const voltage of ['0 V', '1 V', '2 V', '3 V']) assert.ok(drawing.texts!.some(text => text.text === voltage), `data-range tick ${voltage}`)
-  assert.ok(drawing.texts!.filter(text => ['-0.4 V', '1.9 V'].includes(text.text)).every(text => text.anchorSide === 'center_right'), 'limit labels occupy the opposite axis edge')
-  for (const limit of ['1.9 V', '-0.4 V']) assert.ok(drawing.texts!.some((text) => text.text === limit))
-  for (const point of drawing.lines!.flatMap((line) => line.points)) assert.ok(point.x >= 0 && point.x <= 300 && point.y >= 108 && point.y <= 181)
+  assert.deepEqual(drawing.texts!.filter((text) => text.text.endsWith(' V')).map((text) => text.text), ['-1 V', '0 V', '1 V', '2 V', '3 V'])
+  assert.ok(drawing.texts!.some((text) => text.text === '1 ns'))
+  assert.ok(drawing.texts!.every((text) => !['1.9 V', '-0.4 V'].includes(text.text)), 'no board-specific limits')
 })
 
-test('pending and failed results are honest banners with no invented probe traces', () => {
-  assertRouteVisual(routeWaveformDrawing(undefined, 1e-9), 'simulation', 'waveform-visual-pending')
-  const failed = routeWaveformDrawing(undefined, 1e-9, 'native timeout')
+test('pending and failed results draw empty axes with no invented probe traces', () => {
+  assertRouteVisual(routeWaveformDrawing(undefined, probes, undefined, 1e-9), 'simulation', 'waveform-visual-pending')
+  const failed = routeWaveformDrawing(undefined, probes, undefined, 1e-9, 'native timeout')
   assertRouteVisual(failed, 'simulation', 'waveform-visual-failed')
-  assert.ok(failed.texts!.some((text) => text.color === '#dc2626' && text.text.includes('native timeout')))
-  assert.equal(failed.lines!.filter((line) => line.strokeWidth === 0.3).length, 0)
+  assert.ok(failed.texts!.some((text) => text.color === routeTones.failure && text.text.includes('native timeout')))
+  assert.equal(failed.lines!.filter((line) => line.label).length, 0)
 })
 
-test('display reduction keeps a one-sample overshoot and last sample in a long recording', () => {
+test('display reduction keeps a one-sample overshoot and the last sample in a long recording', () => {
   const levels = Array(10001).fill(0)
   levels[3456] = 2.5
   levels[3457] = -0.6
   const long = { ...capture, timestampsSeconds: levels.map((_, i) => i * 1e-12), probes: [{ ...capture.probes[0], voltageLevels: levels }] }
-  const drawing = routeWaveformDrawing(long, 1e-8)
+  const drawing = routeWaveformDrawing(undefined, probes, long, 1e-8)
   const line = drawing.lines!.find((line) => line.label === 'DATA')!
-  assert.ok(line.points.length <= 1600)
-  assert.equal(line.points.at(-1)!.x, 292)
+  assert.ok(line.points.length <= 2400)
+  assert.equal(line.points.at(-1)!.x, drawing.texts!.find((text) => text.text === '10 ns')!.x)
   const top = Math.max(...line.points.map((point) => point.y))
-  const limit = drawing.lines!.find((line) => line.label === '1.9 V')!.points[0].y
-  assert.ok(top > limit, 'narrow overshoot survives downsampling')
+  assert.ok(top > drawing.texts!.find((text) => text.text === '2 V')!.y, 'narrow overshoot survives downsampling')
+})
+
+test('axis steps are 1, 2 or 5 times a power of ten', () => {
+  assert.deepEqual([roundStep(3.1, 4), roundStep(8e-9, 5), roundStep(0.07, 4)].map((step) => Number(step.toPrecision(3))), [1, 2e-9, 0.02])
 })

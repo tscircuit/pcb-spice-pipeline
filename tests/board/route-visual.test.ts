@@ -1,36 +1,46 @@
 import test from 'node:test'
+import type { GraphicsObject } from 'graphics-debug'
 import assert from 'node:assert/strict'
-import { routeBoardDrawing, routeBoardPoint, routeSectionDrawing, routeDisplayItems } from '../../src/board'
+import { routeBoardDrawing, routeClip, routeDisplayItems, routeMarks, routeSectionDrawing } from '../../src/board'
 import { routedCopper } from '../support/routed-fixture'
 
-test('board atlas fits physical mm and keeps y upward; selected routes retain their colour', async () => {
+test('board drawing keeps physical mm, real copper widths and one colour per selected net', async () => {
   const { circuitJson, scope } = await routedCopper()
-  const origin = routeBoardPoint(circuitJson, [0, 0])
-  assert.equal(origin.x, 60)
-  assert.ok(routeBoardPoint(circuitJson, [0, 1]).y > origin.y)
-  const drawing = routeBoardDrawing(circuitJson, scope, 'Admission')
-  assert.ok(drawing.lines!.some((line) => line.strokeColor === '#2563eb'))
-  assert.ok(drawing.lines!.every((line) => line.points.every((point) => point.x >= 0 && point.x <= 120 && point.y >= 0 && point.y <= 100)))
+  const drawing = routeBoardDrawing(circuitJson, scope)
+  const selected = circuitJson.flatMap((record) => (record.type === 'pcb_trace' && scope.selectedPcbTraceIds.includes(record.pcb_trace_id) ? [record] : []))
+  const copper = new Set(selected.flatMap((trace) => trace.route.flatMap((point) => (point.route_type === 'wire' ? [`${point.x},${point.y}`] : []))))
+  assert.ok(drawing.lines!.every((line) => line.points.every((point) => copper.has(`${point.x},${point.y}`))), 'no atlas transform')
+  assert.ok(drawing.lines!.every((line) => line.strokeWidth === 0.1), 'real trace width')
+  assert.equal(new Set(drawing.lines!.map((line) => line.strokeColor)).size, selected.length)
+  assert.equal(drawing.texts!.length, 0, 'no captions or legends')
+  assert.deepEqual(routeBoardDrawing(circuitJson, undefined).lines, [], 'without a scope nothing is overlaid, so the whole board shows')
 })
 
 import { routedVisualFixture, assertRouteVisual } from '../support/routed-visual-fixture'
-import { RouteSectionsSolver } from '../../src/board'
 
 test('two-trace TSX board and section drawing SVG snapshots', async () => {
   const { root } = await routedVisualFixture()
   const circuit = root.inputProblem.circuitJson
   const sections = root.stageOutput('RouteSectionsSolver').value[0]
-  assertRouteVisual(routeBoardDrawing(circuit, sections.scope, 'Board copper'), 'board', 'route-visual-board')
-  const drawing = routeSectionDrawing(circuit, sections.geometry, sections.scope, 'Segmented copper')
+  assertRouteVisual(routeBoardDrawing(circuit, sections.scope), 'board', 'route-visual-board')
+  const drawing = routeSectionDrawing(circuit, sections.geometry, sections.scope, true)
   assertRouteVisual(drawing, 'board', 'route-visual-sections')
-  const colors = sections.geometry.wires.map(
-    (wire) =>
-      drawing.lines!.find(
-        (line) =>
-          line.points[0].x === routeBoardPoint(circuit, wire.a).x && line.points[0].y === routeBoardPoint(circuit, wire.a).y && line.strokeWidth === 0.45,
-      )!.strokeColor,
-  )
-  assert.equal(new Set(colors).size, 2, 'each electrical net has a distinct colour')
+  const widths = new Set(sections.geometry.wires.map((wire) => wire.width))
+  assert.equal(new Set(drawing.lines!.filter((line) => widths.has(line.strokeWidth!)).map((line) => line.strokeColor)).size, 2, 'each electrical net has a distinct colour')
+})
+
+test('context copper is cut to the focus box', () => {
+  const [line, ...rest] = routeClip([{ points: [{ x: -5, y: 0 }, { x: 5, y: 0 }, { x: 5, y: 10 }], strokeWidth: 1 }], { minX: -1, maxX: 6, minY: -1, maxY: 1 })
+  assert.deepEqual(line.points, [{ x: -1, y: 0 }, { x: 5, y: 0 }, { x: 5, y: 1 }])
+  assert.equal(rest.length, 0)
+  assert.deepEqual(routeClip([{ points: [{ x: 9, y: 9 }, { x: 10, y: 9 }] }], { minX: 0, maxX: 1, minY: 0, maxY: 1 }), [])
+})
+
+test('pin marks never grow past half their closest spacing', () => {
+  const drawing: GraphicsObject = { circles: [], polygons: [] }
+  routeMarks(drawing, [{ point: { x: 0, y: 0 }, color: 'red', driver: true }, { point: { x: 0.8, y: 0 }, color: 'red', driver: false }], 10)
+  assert.ok(drawing.circles![0].radius < 0.4)
+  assert.ok(Math.max(...drawing.polygons![0].points.map((point) => point.x)) < 0.8 + 0.4)
 })
 
 test('display sampling bounds object counts and preserves the first and last item', () => {

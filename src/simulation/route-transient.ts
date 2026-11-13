@@ -1,6 +1,6 @@
 import { BaseSolver } from '@tscircuit/solver-utils'
 import type { GraphicsObject } from 'graphics-debug'
-import { routeSectionDrawing, routeText, routeTextSize, type RoutedSections } from '../board'
+import type { RoutedSections } from '../board'
 import { rootScope, snapshot, sha256, type Produced } from '../kernel'
 import { invoke, type SolverContext, type SolverRequest } from '../solver'
 import { spiceProbeRows } from '../observation'
@@ -52,44 +52,11 @@ export class RouteTransientSolver extends BaseSolver {
   }
   /** The runtime capability must be supplied again when constructing a new solver. */
   override getConstructorParams(): [RouteTransientInput] { return [this.input] }
-  /** Use the parent pipeline's pure atlas renderer for actual live probe samples. */
+  /** Probe marks on the board and their waveforms beside it; the axes stay empty until ngspice returns samples. */
   override visualize(): GraphicsObject {
-    const capture = this.output?.value
-    if (!capture) {
-      const { compiled, board } = this.input
-      const title = this.failed
-        ? `6 · Transient failed: ${this.error}`
-        : this.running
-          ? '6 · Transient: running ngspice…'
-          : '6 · Transient: compiled deck'
-      const drawing: GraphicsObject = board
-        ? routeSectionDrawing(board.circuitJson, board.geometry, board.scope, title)
-        : { coordinateSystem: 'cartesian', texts: [], lines: [], rects: [] }
-      if (!board) routeText(drawing, 2, 98, title, '#a16207', routeTextSize.title)
-      if (this.failed) drawing.texts![0].color = '#dc2626'
-
-      drawing.texts = drawing.texts!.filter((text) => text.y !== 87)
-      routeText(
-        drawing,
-        2,
-        87,
-        `${compiled.probes.length} probes · ${(compiled.durationSeconds * 1e9).toFixed(2)} ns · ${compiled.deck.length} deck bytes`,
-        '#475569',
-      )
-      routeText(
-        drawing,
-        2,
-        81,
-        this.failed ? 'No completed ngspice result' : this.running ? 'Running ngspice — no waveform data yet' : 'Deck ready — no waveform data yet',
-        this.failed ? '#dc2626' : '#a16207',
-      )
-      return drawing
-    }
-    const routes = this.input.compiled.evidence.routes as { from: string; to: string }[] | undefined
-    const labelled = capture && { ...capture, probes: capture.probes.map(probe => {
-      const end = routes?.some(route => route.from === probe.sourcePortId) ? 'TX near' : routes?.some(route => route.to === probe.sourcePortId) ? 'RX far' : undefined
-      return end ? { ...probe, name: `${probe.name} · ${end}` } : probe
-    }) }
-    return routeWaveformDrawing(labelled, this.input.compiled.durationSeconds, this.failed ? this.error ?? 'Transient failed' : undefined)
+    const { compiled, board } = this.input
+    const routes = compiled.evidence.routes as { from: string; to: string }[] | undefined
+    const probes = compiled.probes.map(probe => ({ name: probe.name, sourcePortId: probe.signalSourceId, near: Boolean(routes?.some(route => route.from === probe.signalSourceId)) }))
+    return routeWaveformDrawing(board, probes, this.output?.value, compiled.durationSeconds, this.failed ? this.error ?? 'Transient failed' : undefined)
   }
 }

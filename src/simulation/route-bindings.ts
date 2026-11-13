@@ -2,7 +2,7 @@ import { BaseSolver } from '@tscircuit/solver-utils'
 import type { GraphicsObject } from 'graphics-debug'
 import { admitBuffers, compileBuffers, ibisAssembly, type AdmittedBuffers, type AssemblyEntry } from '../buffers'
 import { rootScope, snapshot, type Artifact, type Produced } from '../kernel'
-import { routeBoardDrawing, routeBoardPoint, routeText, routeDisplayItems } from '../board'
+import { routeBoardDrawing, routeDrawingUnit, routeFailure, routeFocus, routeInside, routeMarks, routePortPoint, routeSourceColor, routeSources, routeTones } from '../board'
 import { generalDeclarations, modelRunDefinition } from './declarations'
 import { electricalSources } from './netlist'
 import type { Declarations, SimulationPlan } from './types'
@@ -56,54 +56,31 @@ export class RouteBindingsSolver extends BaseSolver {
   }
   /** Original input without converter objects. */
   override getConstructorParams(): [RouteBindingsInput] { return [this.input] }
-  /** Pins keep their physical position; a small labelled key explains their vendor binding. */
+  /** Bound pins at their pads in their net's colour: drivers as dots, receivers as rings, rail pins near the copper as small grey dots; unbound lane ends turn red. */
   override visualize(): GraphicsObject {
     const circuit = this.input.circuitJson
-    const drawing = routeBoardDrawing(circuit, this.input.scope, '4 · Bindings: attach IBIS buffers')
-    routeText(
-      drawing,
-      2,
-      87,
-      `${this.models.length}/${this.declarations?.models.length ?? '?'} models bound · Blue: driver · Cyan: receiver · Green: rail`,
-      '#475569',
+    const drawing = routeBoardDrawing(circuit, this.input.scope, 0.6)
+    const sources = routeSources(circuit, this.input.scope)
+    const focus = routeFocus(circuit, this.input.scope)
+    const unit = routeDrawingUnit(drawing, circuit)
+    const marks = this.models.flatMap((model) =>
+      [...new Set(Object.values(model.spicePinMapping))].flatMap((id) => {
+        const point = routePortPoint(circuit, id)
+        const lane = this.input.mappings.find((mapping) => mapping.from === id || mapping.to === id)
+        if (!point || !lane || !model.metadata.pins.some((pin) => pin.port === id)) {
+          if (point && (!focus || routeInside(point, focus))) drawing.circles!.push({ center: point, radius: unit * 0.3, fill: routeTones.quiet, stroke: routeTones.quiet })
+          return []
+        }
+        return [{ point, color: routeSourceColor(sources, lane.sourceTraceId), driver: Boolean(this.plan?.states.some((state) => state.source_port_id === id && state.is_output)) }]
+      }),
     )
-    const labels = new Map<string, { point: { x: number; y: number }; name: string; color: string; pins: number }>()
-    for (const model of routeDisplayItems(this.models, 48)) {
-      const signals = model.metadata.pins
-      for (const id of new Set(Object.values(model.spicePinMapping))) {
-        const port = circuit.find((record) => record.type === 'pcb_port' && record.source_port_id === id)
-        if (!port || port.type !== 'pcb_port') continue
-        const point = routeBoardPoint(circuit, [port.x, port.y])
-        const signal = signals.find((pin) => pin.port === id)
-        const driver = this.plan?.states.some((state) => state.source_port_id === id && state.is_output)
-        const color = !signal ? '#16a34a' : driver ? '#2563eb' : '#06b6d4'
-        drawing.circles?.push({ center: point, radius: signal ? 0.85 : 0.5, fill: color, stroke: color })
-        if (!signal) continue
-        const source = circuit.find((record) => record.type === 'source_port' && record.source_port_id === id)
-        const component =
-          source?.type === 'source_port' &&
-          circuit.find((record) => record.type === 'source_component' && record.source_component_id === source.source_component_id)
-        const name = `${component && component.type === 'source_component' ? component.name : model.name} ${driver ? 'driver' : 'receiver'} → ${signal.model}`
-        const previous = labels.get(name)
-        labels.set(name, { point: previous?.point ?? point, name, color, pins: (previous?.pins ?? 0) + 1 })
-      }
-    }
-    for (const [i, label] of [...labels.values()].slice(0, 6).entries()) {
-      const y = 38 - i * 5
-      drawing.lines?.push({ points: [label.point, { x: 20 + i * 8, y: y + 1 }], strokeColor: label.color, strokeWidth: 0.1 })
-      routeText(drawing, 2, y, `${label.name}${label.pins > 1 ? ` (${label.pins} pins)` : ''}`, label.color)
-    }
-    if (labels.size > 6) routeText(drawing, 2, 12, `First 6 bindings labelled; all ${this.models.length} models retained`, '#64748b')
+    routeMarks(drawing, marks, unit)
     if (this.failed) {
-      for (const [i, reason] of (`Missing / rejected model: ${this.error ?? 'IBIS binding unavailable'}`.match(/.{1,85}/g) ?? []).slice(0, 3).entries())
-        routeText(drawing, 2, 82 - i * 3, reason, '#dc2626')
-      for (const port of routeDisplayItems(
-        circuit
-          .filter((record) => record.type === 'pcb_port')
-          .filter((record) => this.input.mappings.some((mapping) => mapping.from === record.source_port_id || mapping.to === record.source_port_id)),
-        48,
-      ))
-        drawing.circles?.push({ center: routeBoardPoint(circuit, [port.x, port.y]), radius: 1, stroke: '#dc2626' })
+      routeMarks(drawing, this.input.mappings.flatMap((mapping) => [mapping.from, mapping.to]).flatMap((id) => {
+        const point = routePortPoint(circuit, id)
+        return point ? [{ point, color: routeTones.failure, driver: false }] : []
+      }), unit * 1.5)
+      routeFailure(drawing, circuit, this.error ?? 'IBIS binding unavailable')
     }
     return drawing
   }

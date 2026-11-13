@@ -1,15 +1,15 @@
 import React from 'react'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { getSvgFromGraphicsObject, type GraphicsObject } from 'graphics-debug'
+import type { GraphicsObject } from 'graphics-debug'
 import { Resvg } from '@resvg/resvg-js'
 import { type BaseSolver } from '@tscircuit/solver-utils'
 import { Circuit } from '@tscircuit/core'
 import { RoutedPipelineSolver, routedStages, type RoutedProblem } from '../src/pipeline'
-import { RouteNetworkSolver, routeWaveformDrawing } from '../src/simulation'
 import { createNativeSolver } from '../src/adapters'
 import { sha256 } from '../src/kernel'
-import { routeText, type CircuitJson } from '../src/board'
+import { routeTones, type CircuitJson } from '../src/board'
+import { boardPictureSvg } from '../src/board/board-picture'
 import { TwoTraceBoard } from '../examples/routed/two-trace-board'
 import { withDdr3Signals } from '../examples/routed/ddr3-signals'
 
@@ -19,9 +19,9 @@ const models = resolve(process.env.IBIS_MODEL_DIR ?? 'models')
 await mkdir(output, { recursive: true })
 const manifest: Record<string, unknown> = {}
 
-/** Rasterize the exact SVG returned by graphics-debug, with hover labels disabled. */
-async function render(name: string, drawing: GraphicsObject): Promise<void> {
-  const svg = getSvgFromGraphicsObject(drawing, { svgWidth: 1600, svgHeight: 1100, includeTextLabels: false, backgroundColor: 'white' })
+/** Rasterize the stage drawing over the real board, exactly as the site composes it. */
+async function render(name: string, circuit: CircuitJson, drawing: GraphicsObject): Promise<void> {
+  const svg = boardPictureSvg(circuit, drawing, 1600, 1100)
   await writeFile(join(output, `${name}.graphics.json`), JSON.stringify(drawing))
   await writeFile(join(output, `${name}.svg`), svg)
   await writeFile(join(output, `${name}.png`), new Resvg(svg, { font: { defaultFontFamily: 'Arial' } }).render().asPng())
@@ -36,12 +36,13 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
   const execute = name === 'two-trace' && process.argv.includes('--native-two-trace')
   const context = { runSolver: createNativeSolver({ timeoutMs: 10_000 }), progress: console.log }
   const root = new RoutedPipelineSolver(input, context)
-  await render(`${name}-root-initial`, root.initialVisualize())
+  const circuit = input.circuitJson
+  await render(`${name}-root-initial`, circuit, root.initialVisualize())
   const seen = new Set<string>()
   let progress = performance.now()
   while (!root.solved) {
     if (root.getCurrentStageName() === 'RouteTransientSolver' && !execute) {
-      await render(`${name}-5-transient-pending`, routeWaveformDrawing(undefined, root.stageOutput('RoutedAdmissionSolver').value[0].bindings.options.durationSeconds))
+      await render(`${name}-5-transient-pending`, circuit, root.visualizeStage(6))
       break
     }
     try {
@@ -51,14 +52,11 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
       const index = routedStages.findIndex((entry) => entry.solverName === stage)
       const solver = root.getSolver(stage)!
       if (stage === 'RouteTransientSolver') {
-        await render(`${name}-5-transient-failed`, solver.visualize())
+        await render(`${name}-5-transient-failed`, circuit, solver.visualize())
         throw error
       }
-      await render(`${name}-${index}-network-rejected`, solver.visualize())
-      const capture = routeWaveformDrawing(undefined, root.stageOutput('RoutedAdmissionSolver').value[0].bindings.options.durationSeconds)
-      routeText(capture, 65, 153, 'Upstream network rejected; no deck to execute', '#dc2626', 2)
-      await render(`${name}-5-capture-upstream-blocked`, capture)
-      manifest[`${name}-blocked`] = { stage, reason: String(error), capture: 'pure drawing only; capture solver was not reached' }
+      await render(`${name}-${index}-network-rejected`, circuit, solver.visualize())
+      manifest[`${name}-blocked`] = { stage, reason: String(error), capture: 'capture solver was not reached' }
       await writeFile(join(output, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
       console.log(`${name}: BLOCKED ${String(error)}`)
       return
@@ -67,9 +65,9 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
       const solver = root.getSolver<BaseSolver>(stage.solverName)
       if (stage.solverName === 'RouteFieldsSolver' && !solver?.solved && solver?.stats.sections > 0 && !seen.has('fields-coupled')) {
         const drawing = solver.visualize()
-        if (drawing.lines?.some((line) => line.strokeColor === '#9333ea')) {
+        if (drawing.polygons?.some((polygon) => polygon.fill === routeTones.coupling)) {
           seen.add('fields-coupled')
-          await render(`${name}-2-fields-coupled`, drawing)
+          await render(`${name}-2-fields-coupled`, circuit, drawing)
         }
       }
       if (!solver?.solved || seen.has(stage.solverName)) continue
@@ -80,7 +78,7 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
           JSON.stringify({ input: solver.getConstructorParams(), output: solver.getOutput() }),
         )
       const index = routedStages.findIndex((entry) => entry.solverName === stage.solverName)
-      await render(`${name}-${index}-${['admission', 'sections', 'fields', 'bindings', 'network', 'transient'][index]}`, solver.visualize())
+      await render(`${name}-${index}-${['admission', 'sections', 'fields', 'bindings', 'network', 'transient'][index]}`, circuit, solver.visualize())
     }
     if (performance.now() - progress > 15_000) {
       console.log(`${name}: stepping ${root.getCurrentStageName()} ${JSON.stringify(root.getSolver(root.getCurrentStageName())?.stats)}`)
@@ -92,7 +90,7 @@ async function stages(name: string, input: RoutedProblem): Promise<void> {
   await writeFile(join(output, `${name}.cir`), compiled.deck)
   manifest[`${name}-deck`] = { bytes: Buffer.byteLength(compiled.deck), sha256: sha256(compiled.deck) }
   // Compile-only renders stop before stage 5; only a completed live run gets a final atlas.
-  if (root.solved) await render(`${name}-root-final`, root.visualize())
+  if (root.solved) await render(`${name}-root-final`, circuit, root.visualize())
 
 }
 
