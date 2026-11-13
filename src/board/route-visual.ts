@@ -124,9 +124,11 @@ export function routeView(circuit: CircuitJson, scope: CopperScope): RouteView {
   // Channels come from signal records in a whole circuit, or from the per-driver stimuli of an admitted block; both name the same pairs and bit periods.
   const channels = new Map<string, { ends: Set<string>; legs: string[]; unitInterval: number }>()
   for (const record of circuit) {
-    if (record.type === 'simulation_signal') {
-      const legs = 'p_source_port_id' in record.driver ? [record.driver.p_source_port_id, record.driver.n_source_port_id] : [record.driver.source_port_id]
-      channels.set(record.name, { ends: new Set([record.driver, ...record.receivers].flatMap((end) => Object.values(end).filter((value): value is string => typeof value === 'string'))), legs, unitInterval: 1 / record.bit_rate_bps })
+    // Read structurally: some circuit-json releases leave signal records out of the record union.
+    const signal = record as unknown as { type: string; name: string; driver: Record<string, unknown>; receivers: Record<string, unknown>[]; bit_rate_bps: number }
+    if (signal.type === 'simulation_signal') {
+      const legs = [signal.driver.p_source_port_id, signal.driver.n_source_port_id].every((port) => typeof port === 'string') ? [signal.driver.p_source_port_id, signal.driver.n_source_port_id] : [signal.driver.source_port_id]
+      channels.set(signal.name, { ends: new Set([signal.driver, ...signal.receivers].flatMap((end) => Object.values(end).filter((value): value is string => typeof value === 'string'))), legs: legs.filter((port): port is string => typeof port === 'string'), unitInterval: 1 / signal.bit_rate_bps })
     }
     if (record.type === 'simulation_digital_stimulus' && record.name) {
       const channel = channels.get(record.name) ?? { ends: new Set<string>(), legs: [], unitInterval: record.bit_duration_ms / 1000 }
