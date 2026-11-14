@@ -24,6 +24,7 @@ export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: R
   const wires = [...new Map(extracted.slices.flatMap(slice => slice.wires.map(wire => [wire.id, wire] as const))).values()].sort((a, b) => a.id - b.id)
   const maximumDelayPerMetre = Math.max(...extracted.slices.map(delayPerMetre))
   const targetMm = riseSeconds / cellsPerRise / refinement / maximumDelayPerMetre * 1000
+  const dispersionMm = 2 * riseSeconds / maximumDelayPerMetre * 1000
   const cells: ArcCell[] = []
   const arc = new Map<number, ArcWire>()
   const contacts = new Map<string, number>()
@@ -49,7 +50,9 @@ export function* routeLadderSteps(extracted: ExtractedRoutes, endpoint: (wire: R
       arc.set(wire.id, { offset: length, length: wire.end - wire.start, cells: [], sign: (wire.b[0] - wire.a[0]) * wire.u[0] + (wire.b[1] - wire.a[1]) * wire.u[1] > 0 ? 1 : -1 })
       length += wire.end - wire.start
     }
-    const count = Math.max(1, Math.ceil(length / targetMm))
+    // Ladder dispersion accumulates along a run: phase error ~ delay x cell delay^2. Runs longer than two rise times
+    // shrink their cells by sqrt(two rise times / run delay), which keeps the edge ripple independent of length.
+    const count = Math.max(1, Math.ceil(length / targetMm * Math.max(1, Math.sqrt(length / dispersionMm))))
     const indices = Array.from({ length: count }, (_, i) => cells.length + i)
     /** Locate a physical point along the original (simplified) polyline, including its bends. */
     const point = (distance: number): { wire: RouteWire; position: RouteXY } => {
