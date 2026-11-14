@@ -2,12 +2,12 @@
  * solver — the one port to native execution, and the protocol for using it.
  * Owns: SolverRequest/SolverResult/RunSolver (public), result validation
  * (shape, exit code, required outputs), and capture of request/stdout/stderr/files as artifacts.
- * Does NOT own: interpreting solver output (extraction, simulation do that).
+ * Does NOT own: interpreting solver output (simulation does that).
  * Imports: kernel.
  */
 import { diagnostics, type ArtifactScope, type Produced } from '../kernel'
 
-export type Solver = 'fasthenry' | 'fastercap' | 'ngspice'
+export type Solver = 'ngspice'
 export interface SolverRequest {
   solver: Solver
   /** Paths relative to the solver's isolated working directory. */

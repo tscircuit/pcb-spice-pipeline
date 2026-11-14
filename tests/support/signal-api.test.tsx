@@ -4,9 +4,7 @@ import React from 'react'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { renderSignals } from './signal-render'
-import { prepareBlocks } from '../../src/pipeline/signals'
-import { geometryFromCircuitJson } from '../../src/board'
+import { admittedBindings, prepareBlocks, renderSignals } from './signal-render'
 import { admitBuffers, compileBuffers } from '../../src/buffers'
 import { generalDeclarations, modelRunDefinition } from '../../src/simulation'
 import { rootScope } from '../../src/kernel'
@@ -42,17 +40,13 @@ test('Real core renders source records and core-owned stackup for unit boards', 
   }
 })
 
-test('four-conductor derivation and geometry are invariant under signal record order', { skip: !modelDir }, async () => {
+test('four-conductor derivation is invariant under signal record order', { skip: !modelDir }, async () => {
   const circuit = await renderSignals(<Four />)
   const ibis = await sources()
   const a = prepareBlocks(circuit, ibis)[0]
   const b = prepareBlocks([...circuit.filter(r => r.type !== 'simulation_signal'), ...circuit.filter(r => r.type === 'simulation_signal').reverse()], ibis)[0]
   assert.equal(a.settings.lanes.length, 4)
   assert.deepEqual(a.settings, b.settings)
-  assert.deepEqual(geometryFromCircuitJson(a.circuit, a.settings), geometryFromCircuitJson(b.circuit, b.settings))
-  const geometry = geometryFromCircuitJson(a.circuit, a.settings)
-  assert.equal(geometry.cells[0].conductors.length, 5)
-  geometry.cells[0].conductors.slice(0, -1).map(c => c.yM).sort().forEach((value, i) => assert.ok(Math.abs(value - i * .0004) < 1e-15))
 })
 
 test('RS485 differential identity and the placed termination are derived from real vendor data and TSX', { skip: !modelDir }, async () => {
@@ -75,10 +69,10 @@ test('signal packages and vendor reference evidence remain present; disabled dri
   assert.throws(() => prepareBlocks(circuit, ibis), /has no disabled state/)
   signal.driver_disabled = false
   signal.pattern = '0'
-  const prepared = prepareBlocks(circuit, ibis)[0]
-  const geometry = geometryFromCircuitJson(prepared.circuit, prepared.settings)
-  const declarations = generalDeclarations(prepared.circuit, geometry, prepared.settings)
-  const admitted = admitBuffers(declarations.models, ibis, prepared.settings, rootScope('buffers'))
+  delete signal.seed
+  const bindings = admittedBindings(circuit, ibis)
+  const declarations = generalDeclarations(bindings.circuitJson, bindings, bindings.modeling)
+  const admitted = admitBuffers(declarations.models, ibis, {}, rootScope('buffers'))
   const compiled = compileBuffers(admitted.value, declarations.plans, modelRunDefinition)[0]
   for (const model of compiled) {
     assert.equal(model.metadata.packagePolicy, 'vendor')

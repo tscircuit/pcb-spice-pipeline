@@ -1,13 +1,12 @@
-// Copy of tests/fixtures/general.mjs + in-memory.mjs with geometry from the new board module.
+// The straight two-lane board with explicit experiment records and hand-written lane mappings.
 import {readFile} from 'node:fs/promises'
-export const fixtureGeometry=()=>({mappings:[['p0','p2'],['p1','p3']].map(([from,to],i)=>({port:['DQS','DQSn'][i],sourceTraceId:`s${i}`,from,to,pcbPorts:[],stages:[],originalRoute:[]})),cells:[],approximations:[]})
+export const fixtureGeometry=()=>({mappings:[['p0','p2'],['p1','p3']].map(([from,to],i)=>({port:['DQS','DQSn'][i],sourceTraceId:`s${i}`,from,to}))})
 const geometryFromCircuitJson=fixtureGeometry
 const read=async path=>JSON.parse(await readFile(new URL(path,import.meta.url),'utf8'))
 export const circuit=await read('../fixtures/straight.circuit.json')
-export const physical=await read('../fixtures/straight.modeling.json')
 export const fixture=()=>{
   const cj=structuredClone(circuit)
-  const m={...structuredClone(physical),channelReference:{sourcePortId:'g0'},supplies:[{positive:{sourcePortId:'v0'},negative:{sourcePortId:'g0'},voltageV:3.3}]}
+  const m={channelReference:{sourcePortId:'g0'},supplies:[{positive:{sourcePortId:'v0'},negative:{sourcePortId:'g0'},voltageV:3.3}]}
   cj.push(...['u0','u1'].map((id,i)=>({type:'source_component',source_component_id:id,name:i?'RX':'TX',source_group_id:'board-group'})),{type:'source_port',source_port_id:'g0',source_component_id:'u0',name:'GND'},{type:'source_port',source_port_id:'v0',source_component_id:'u0',name:'VDD'})
   cj.push({type:'source_group',source_group_id:'board-group',subcircuit_id:'board',is_subcircuit:true})
   for(const [index,ids] of [['p0','p1'],['p2','p3']].entries()) cj.push({type:'simulation_ibis_model',simulation_ibis_model_id:`model-${index}`,source_component_id:`u${index}`,ibis_model_asset:{project_relative_path:'models/test.ibs',url:'./models/test.ibs',mimetype:'text/plain'},ibis_component_name:'test',ibis_pin_name_to_source_port_id:Object.fromEntries(ids.map((id,i)=>[String(i+1),id]))})
@@ -21,4 +20,3 @@ export const fixture=()=>{
   cj.push({type:'simulation_voltage_probe',simulation_voltage_probe_id:'diff',subcircuit_id:'board',name:'diff',signal_input_source_port_id:'p2',reference_input_source_port_id:'p3'},{type:'simulation_voltage_probe',simulation_voltage_probe_id:'single',subcircuit_id:'board',name:'single',signal_input_source_port_id:'p2'})
   return {cj,m,g:geometryFromCircuitJson(cj,m)}
 }
-export {fixtureSolver} from '../fixtures/solver.mjs'

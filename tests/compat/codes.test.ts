@@ -10,26 +10,17 @@ const src = join(repo, 'src')
 
 // Pinned diagnostic codes.
 const RAISED = [
-  'analytic_resistance', 'analytic_return', 'artifact_collision', 'artifact_path', 'cap_convergence',
-  'capacitance_sign', 'channel_fanout', 'channel_model', 'channel_net', 'channel_short',
-  'circuit_json', 'circuit_schema', 'conductor_overlap', 'converter_version', 'copper_surface',
-  'electrical_input', 'empty_route', 'endpoint_layer', 'endpoint_position', 'extraction',
-  'fastercap_output', 'fastercap_ports', 'fasthenry_output', 'fasthenry_ports', 'file_path',
-  'floating_reference', 'floating_source', 'ground_connection', 'ground_connectivity', 'ground_geometry',
-  'ground_mesh', 'ground_net', 'ground_reference', 'ibis_asset', 'ibis_asset_missing',
-  'ibis_contract', 'ibis_mapping', 'ibis_model', 'ibis_state', 'lane_spacing',
-  'lanes', 'layer_transition', 'matrix_dimension', 'matrix_format', 'matrix_order',
-  'matrix_zero', 'mesh_convergence', 'model_frequency', 'modeling_input', 'native_convergence',
+  'artifact_collision', 'artifact_path', 'channel_fanout', 'channel_model', 'channel_net',
+  'channel_short', 'circuit_schema', 'electrical_input', 'file_path', 'floating_source',
+  'ibis_asset', 'ibis_asset_missing', 'ibis_contract', 'ibis_mapping', 'ibis_model',
+  'ibis_state', 'matrix_format', 'matrix_zero', 'mesh_convergence', 'model_frequency',
   'native_declaration', 'native_geometry', 'native_output', 'native_solver', 'native_timeout',
-  'passive_capability', 'passive_reference', 'passivity', 'pin_mapping', 'probe_observation',
-  'probe_reference', 'reciprocity', 'reduction', 'reference_energy', 'result_schema',
-  'return_geometry', 'route_geometry', 'route_selection', 'route_topology', 'route_type',
-  'sections', 'signal_integrity_input', 'simulation_capability', 'simulation_duration', 'simulation_experiment',
+  'passive_capability', 'passive_reference', 'passivity', 'pin_mapping', 'probe_reference',
+  'reciprocity', 'route_type', 'simulation_capability', 'simulation_duration', 'simulation_experiment',
   'simulation_id', 'simulation_probe', 'simulation_reference', 'simulation_scope', 'simulation_start',
-  'simulation_timing', 'solver_result', 'source_capability', 'source_edge', 'spice_options',
-  'stackup', 'stale_endpoint', 'stimulus_coverage', 'stimulus_duplicate', 'stimulus_missing',
-  'stimulus_pattern', 'stimulus_state', 'supply_missing', 'supply_reference', 'supply_short',
-  'varying_width', 'vendor_hash', 'via_geometry', 'via_stub', 'waveform',
+  'simulation_timing', 'solver_result', 'source_capability', 'source_edge', 'stackup',
+  'stimulus_coverage', 'stimulus_duplicate', 'stimulus_missing', 'stimulus_pattern', 'stimulus_state',
+  'supply_missing', 'supply_reference', 'supply_short', 'via_geometry', 'waveform',
 ].sort()
 
 /** Reads the DiagnosticCode union from src/modules.generated.ts as a list of its literal members. */
@@ -98,5 +89,5 @@ test('every literal code raised in non-legacy src/ is in the pinned set', () => 
   const raised = literalRaises()
   const unknown = [...raised].filter(([code]) => !pinned.has(code)).map(([code, files]) => `${code} (${[...new Set(files)].join(', ')})`)
   assert.deepEqual(unknown, [])
-  assert.ok(raised.size >= 85, `scanner found ${raised.size} codes; removed legacy API paths must still leave the active diagnostics scanned`)
+  assert.ok(raised.size >= 55, `scanner found ${raised.size} codes; removed legacy API paths must still leave the active diagnostics scanned`)
 })
