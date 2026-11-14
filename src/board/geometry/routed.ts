@@ -161,8 +161,17 @@ function groundConnection(circuit: CircuitJson, m: ResolvedModeling, portId: str
   for (const key of ['start_pcb_port_id', 'end_pcb_port_id'] as const) if (first[key] && first[key] !== port.pcb_port_id) fail('ground_connection', `${portId}: reference route endpoint metadata disagrees with its physical pad`)
   const end = route.at(-1)!
   let contactRadiusMm: number
-  if (end.route_type !== 'wire') fail('ground_connection', `${portId}: ground lead must end on a wire layer`)
-  if (!pours.some(p => p.layer === end.layer && contains([end.x, end.y], p.polygon))) {
+  if (end.route_type === 'via') {
+    const vias = circuit.filter(e => e.type === 'pcb_via').filter(via =>
+      via.pcb_trace_id === traces[0].pcb_trace_id && Math.hypot(via.x - end.x, via.y - end.y) < 1e-5 &&
+      (!via.source_net_id || netIds.has(via.source_net_id)))
+    if (vias.length !== 1) fail('ground_connection', `${portId}: terminal reference via requires one associated physical barrel`)
+    const via = vias[0]
+    const radius = validateReferenceVia(via, m, portId)
+    if (!pours.some(p => p.layer === end.to_layer && viaSpans(via, end.from_layer, p.layer, m) && barrelInside([end.x, end.y], radius, p.polygon)))
+      fail('ground_connection', `${portId}: terminal reference via misses ground copper`)
+    contactRadiusMm = via.outer_diameter / 2
+  } else if (!pours.some(p => p.layer === end.layer && contains([end.x, end.y], p.polygon))) {
     const vias = circuit.filter(e => e.type === 'pcb_via').filter(e => e.source_net_id && netIds.has(e.source_net_id) && e.layers.includes(end.layer) && Math.hypot(e.x - end.x, e.y - end.y) < 1e-5)
     const targets = vias.flatMap(via => pours.filter(p => viaSpans(via, end.layer, p.layer, m) && contains([via.x, via.y], p.polygon)).map(p => ({ via, pour: p })))
     if (targets.length !== 1) fail('ground_connection', `${portId}: reference via must connect unambiguously to actual ground copper`)
@@ -204,6 +213,7 @@ export function routedCopperGeometry(circuit: CircuitJson, m: ResolvedModeling, 
     return { pcbCopperPourId: pour.pcb_copper_pour_id, layer: pour.layer, polygon, ...layer(m, pour.layer) }
   })
   if (!pours.length) fail('ground_geometry', `${net.name}: no physical ground copper pours found`)
+  if (m.copperScope && pours.length > 1) fail('ground_connectivity', 'Reference leads must reach one connected pour; inter-pour stitching extraction is not supported')
   let receiver: string
   if (m.groundReturn) receiver = selectPort(circuit, m.groundReturn).source_port_id
   else {
@@ -230,12 +240,11 @@ export function routedCopperGeometry(circuit: CircuitJson, m: ResolvedModeling, 
   return { mappings, cells: [{ stage: 0, profile: 'routed-copper', conductivitySm: m.conductivitySm, relativePermittivity: m.relativePermittivity!, conductors, routedCopper }],
     units: { circuitJson: 'mm', geometry: 'm', conductivity: 'S/m' }, approximations: [
       'Original routed signal coordinates and net-connected ground copper boundaries/cutouts; copper heights/thicknesses from stackup',
-      'FastHenry ground polygons discretized into an adaptive rectangular conductor mesh; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; finite reference contact areas resolved locally; ground mesh and filaments refined together',
+      'FastHenry full ground polygons use fine rectangular return-current corridors within one trace height, graded spacing farther away and locally resolved finite contacts; cutout boundaries rasterized and edge strips have mesh-dependent boundary extension; ground mesh and skin-depth edge filaments refined together; electrically thin planes use one thickness filament',
       'FasterCap uses closed polygon solids with 1e-12 mm integer-grid booleans, preserving pour cutouts; ground islands on the same electrical net treated as equipotential',
-      'Only the driver and receiver reference leads/vias are extracted; other ground routing, reference stitching and package/PDN impedance omitted',
+      'Only endpoint reference leads/vias are geometrically extracted; die rails remain ideal and vendor scalar packages are added separately',
       'Via rectangular equivalent preserves plated barrel metal area; offset pad contacts use an inscribed strip; other pads and unused through-via stubs omitted; wire joins rounded',
-      'Homogeneous explicit effective permittivity; other power copper, neighboring unselected nets, dielectric loss and copper roughness omitted',
+      'Finite board dielectric slabs with declared thickness/permittivity and air outside; soldermask, other power copper, dielectric loss and copper roughness omitted',
       'Whole routed network R/L/C distributed into uniform pi sections; constant R/L at modelHz; broadband dispersion and spatially varying transmission-line parameters not fitted',
     ] }
 }
-

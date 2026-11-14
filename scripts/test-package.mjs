@@ -5,7 +5,7 @@ import {join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
-import {inMemoryInput} from '../tests/fixtures/in-memory.mjs'
+import React from 'react'
 
 const exec=promisify(execFile)
 const root=fileURLToPath(new URL('../',import.meta.url))
@@ -32,26 +32,44 @@ try {
   // Hosts supply circuit-json, as tscircuit does for core and the other converters.
   const circuitJsonVersion=JSON.parse(await readFile(join(root,'package.json'),'utf8')).devDependencies['circuit-json']
   await run('npm',['install','--ignore-scripts','--legacy-peer-deps','--no-audit','--no-fund',`circuit-json@${circuitJsonVersion}`],consumer)
+  // Until circuit-json#983 is released, exercise the exact locally built peer schemas.
+  if(process.env.SI_LOCAL_CIRCUIT_JSON_DIST){
+    for(const file of ['index.mjs','index.d.mts'])await copyFile(join(process.env.SI_LOCAL_CIRCUIT_JSON_DIST,file),join(consumer,'node_modules/circuit-json/dist',file))
+  }
   const manifest=JSON.parse(await readFile(join(installed,'package.json'),'utf8'))
   assert.equal(manifest.name,'@tscircuit/signal-integrity-pipeline')
   assert.equal(manifest.main,'./dist/index.js')
   assert.equal(manifest.types,'./dist/index.d.ts')
   assert.equal(manifest.scripts.prepare,undefined)
   assert.ok(Object.values(manifest.peerDependenciesMeta).every(peer=>peer.optional))
-  const input=inMemoryInput()
-  input.ibisSources=Object.fromEntries(Object.entries(input.ibisSources).map(([path,bytes])=>[path,bytes.toString('utf8')]))
+  // Real vendor bytes are optional for package portability checks; never substitute invented IBIS.
+  const input={circuitJson:[],ibisSources:{}}
+  if(process.env.IBIS_MODEL_DIR){
+    const {renderSignals}=await import('../tests/support/signal-render.tsx')
+    const {default:Single}=await import('../examples/level1-single-ended/level1-single-ended.tsx')
+    input.circuitJson=(await renderSignals(React.createElement(Single))).filter(record=>record.type!=='pcb_trace')
+    for(const record of input.circuitJson)if(record.type==='simulation_signal_integrity')record.allow_unrouted_traces=true
+    input.ibisSources['models/sn74lvc1g04.ibs']=await readFile(join(process.env.IBIS_MODEL_DIR,'sn74lvc1g04.ibs'),'utf8')
+  }
   await writeFile(join(consumer,'input.json'),JSON.stringify(input))
-  await copyFile(join(root,'tests/fixtures/solver.mjs'),join(consumer,'solver.mjs'))
+  // Canned waveform checks the packaged IO boundary, not solver physics. Native evidence is separate.
+  await writeFile(join(consumer,'solver.mjs'),`export async function fixtureSolver(request){
+    if(request.solver!=='ngspice')throw Error('Ideal copper should require no extraction');
+    const end=Number(request.files['simulation.cir'].match(/^tran +\\S+ +(\\S+)/m)[1]);
+    return {stdout:'',stderr:'',files:{'waveform.dat':'time voltage\\n'+Array.from({length:961},(_,i)=>[i*end/960,end<2e-6?0:3.3*(Math.floor(i/20)%2)].join(' ')).join('\\n')+'\\n'}};
+  }`)
   const smoke=`import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 import {runPipeline,generateReport} from '@tscircuit/signal-integrity-pipeline';
 import {createNativeSolver,loadIbisSources,writePipelineOutput} from '@tscircuit/signal-integrity-pipeline/node';
 import {fixtureSolver} from './solver.mjs';
-const result=await runPipeline({...JSON.parse(readFileSync('input.json','utf8')),runSolver:fixtureSolver});
-assert.equal(result.experiments.length,1);assert.ok(generateReport(result)['results.html']);
+const input=JSON.parse(readFileSync('input.json','utf8'));
+await assert.rejects(runPipeline({...input,modeling:{},runSolver:fixtureSolver}),{code:'signal_integrity_input'});
+if(input.circuitJson.length){const result=await runPipeline({...input,runSolver:fixtureSolver});assert.equal(result.blocks.length,1);assert.ok(result.blocks[0].results.some(r=>r.type==='simulation_signal_waveform'));assert.ok(generateReport(result)['results.html']);}
+else assert.deepEqual((await runPipeline({...input,runSolver:fixtureSolver})).blocks,[]);
 assert.equal(typeof createNativeSolver,'function');assert.equal(typeof loadIbisSources,'function');assert.equal(typeof writePipelineOutput,'function');`
   await writeFile(join(consumer,'smoke.mjs'),smoke)
   await run(process.execPath,['smoke.mjs'],consumer)
-  console.log('Packed Node import + complete in-memory run: passed (host circuit-json only; no other peers, source tree or install scripts)')
+  console.log(`Packed Node exports/removal contract: passed; real-IBIS in-memory run: ${input.circuitJson.length?'passed with canned waveform':'skipped (set IBIS_MODEL_DIR)'}; no source tree or implicit peers`)
   const denied=(await readFile(join(root,'tests/denied-host.mjs'),'utf8'))
     .replace("'./fixtures/solver.mjs'","'./solver.mjs'").replace("'../dist/index.js'","'@tscircuit/signal-integrity-pipeline'")
   await writeFile(join(consumer,'denied-host.mjs'),denied.replace("readFileSync(0,'utf8')","readFileSync('input.json','utf8')"))
@@ -70,7 +88,7 @@ void execute;void request;void circuitJson;void simulate;`)
   const bun=process.env.BUN??'bun'
   try {
     await run(bun,['smoke.mjs'],consumer)
-    console.log('Packed Bun import + complete in-memory run: passed')
+    console.log(`Packed Bun contract: passed; real-IBIS in-memory run: ${input.circuitJson.length?'passed with canned waveform':'skipped (set IBIS_MODEL_DIR)'}`)
   }
   catch(error){
     if(/ENOENT/.test(error.message))console.log('Packed Bun smoke: skipped (set BUN to the executable)')

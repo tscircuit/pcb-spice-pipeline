@@ -30,3 +30,7 @@ test('model loading rejects HTML, ZIP, invalid UTF-8 and oversized data',()=>{
   for(const payload of ['<!doctype html><title>Download</title>','PK\x03\x04archive',Buffer.from([0xc3,0x28]),new Uint8Array(64*1024*1024+1),42])
     assert.throws(()=>loadModelSource(model(asset),{[asset.project_relative_path]:payload}),/IBIS|plain|ZIP|UTF|HTML|encoded|expected/i)
 })
+
+test('non-IBIS source bytes are rejected before conversion',()=>{
+  assert.throws(()=>loadModelSource({pipelineId:'bad',ibis_model_asset:{project_relative_path:'bad.ibs'}},{'bad.ibs':'PK\x03\x04'}),{code:'ibis_asset'})
+})

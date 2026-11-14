@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import type { CircuitJson } from '../../src/board'
-import type { Modeling } from '../../src/pipeline'
+import type { NumericalSettings as Modeling } from '../../src/pipeline'
 
 /** The straight two-pad fixture with a bottom-layer ground plane, ground pins and a receiver IBIS model added, for routed-copper return-path tests. */
 export function groundPlaneFixture(): { circuit: CircuitJson; modeling: Modeling } {
@@ -13,7 +13,6 @@ export function groundPlaneFixture(): { circuit: CircuitJson; modeling: Modeling
   modeling.extraction.groundMeshMm = .5
   modeling.extraction.filaments = 3
   modeling.extraction.refinementFilaments = 5
-  delete modeling.profiles
   circuit.push({ type: 'source_net', source_net_id: 'ground', name: 'GND', is_ground: true, member_source_group_ids: [] })
   for (let i = 0; i < 2; i++) circuit.push(
     { type: 'source_port', source_port_id: `ground${i}`, source_component_id: `u${i}`, name: 'GND', pin_number: 5 },
@@ -30,7 +29,7 @@ export function groundPlaneFixture(): { circuit: CircuitJson; modeling: Modeling
     ibis_pin_name_to_reference_source_port_ids: {
       '3': { pulldown_reference_source_port_id: 'ground1', ground_clamp_reference_source_port_id: 'ground1' },
       '4': { ground_clamp_reference_source_port_id: 'ground1' },
-    }, model_value_corner: 'typical', include_package_parasitics: false })
+    } })
   return { circuit, modeling }
 }
 

@@ -84,6 +84,26 @@ export function electricalSources(circuit: CircuitJson, modeling: SimulationMode
     if (components.length !== 1) fail('passive_reference', 'Selected passive component is missing or ambiguous')
     const component = components[0]
     const ports = sourcePorts.filter(e => e.source_component_id === component.source_component_id).sort((a, b) => Number(a.pin_number) - Number(b.pin_number))
+    const placed = circuit.filter(r => r.type === 'simulation_spice_subcircuit').filter(r => r.source_component_id === component.source_component_id)
+    if (placed.length) {
+      if (placed.length !== 1) fail('passive_capability', `${component.name}: placed SPICE model is ambiguous`)
+      const model = placed[0]
+      const header = /^\.subckt\s+(\S+)\s+([^\r\n]+)$/mi.exec(model.subcircuit_source)
+      const unsupported = /^\s*(?:\.(?:include|lib|control|end|tran|ac|dc)\b|[BESGWFT])/mi.test(model.subcircuit_source)
+      if (!header || unsupported) fail('passive_capability', `${component.name}: placed SPICE model is unsupported; it cannot be discarded.`)
+      const pins = header[2].trim().split(/\s+/)
+      if (pins.some(pin => !model.spice_pin_to_source_port_map[pin])) fail('passive_capability', `${component.name}: placed SPICE model has unmapped terminals`)
+      const namespaced = namespaceSpice(model.subcircuit_source, `PLACED${i}`)
+      const nodesForPins = pins.map(pin => nodes.node(model.spice_pin_to_source_port_map[pin]))
+      nodesForPins.forEach(node => activeNodes.add(node))
+      passives.push(namespaced.source, `XPHYSICAL${i} ${nodesForPins.join(' ')} ${namespaced.wrapper}`)
+      // Supported passive resistor/inductor edges determine the DC rail connectivity.
+      for (const line of model.subcircuit_source.split(/\r?\n/)) {
+        const match = /^\s*[RL]\S*\s+(\S+)\s+(\S+)\s+/i.exec(line)
+        if (match && pins.includes(match[1]) && pins.includes(match[2])) dcConnections.push([nodesForPins[pins.indexOf(match[1])], nodesForPins[pins.indexOf(match[2])]])
+      }
+      continue
+    }
     if (ports.length !== 2) fail('passive_capability', `${component.name}: expected two physical ports`)
     const pos = nodes.node(ports[0].source_port_id)
     const neg = nodes.node(ports[1].source_port_id)
@@ -146,7 +166,7 @@ export function simulationSpiceOptions(overrides: SimulationPlan['experiment']['
 export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geometry, 'mappings'>, modeling: { sections: number }, extracted: readonly StageMatrices[], models: readonly CompiledModel[], nodes: CircuitNodes, electrical: ElectricalSources): string {
   const lines = ['Native transient: explicit physical source rails, IBIS run controls and extracted PCB channel']
   const options = simulationSpiceOptions(plan.experiment.spice_options)
-  lines.push('.options ' + Object.entries(options).map(([key, input]) => `${key}=${input}`).join(' '), ...electrical.lines)
+  lines.push('.options ' + Object.entries(options).map(([key, input]) => `${key}=${input}`).join(' ') + ' maxord=1', ...electrical.lines)
   for (const [i, model] of models.entries()) {
     const renamed = namespaceSpice(model.source, `IBIS${i}`)
     const wrapper = model.source.match(/^\.subckt\s+\S+\s+(.+)$/mi)
@@ -161,10 +181,27 @@ export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geom
   if (extracted.some(stage => stage.R.length !== geometry.mappings.length)) fail('matrix_dimension', 'Extracted channels must match every selected signal')
   const channel = [...geometry.mappings.map(mapping => nodes.node(mapping.from)), ...geometry.mappings.map(mapping => nodes.node(mapping.to))]
   if (channel.includes('0') || new Set(channel).size !== channel.length) fail('channel_short', 'Every selected signal must have distinct driver and receiver nodes separate from the reference')
-  lines.push(channelSpice(extracted, modeling.sections), `XCHAN ${[...channel, '0'].join(' ')} CHANNEL`)
+  const taps = geometry.mappings.flatMap((mapping, conductor) => (mapping.intermediatePorts ?? []).map((tap, i) => ({ ...tap, conductor, name: `TAP${conductor}_${i}` })))
+  if (channel.length) lines.push(channelSpice(extracted, modeling.sections, taps), `XCHAN ${[...channel, ...taps.map(tap => nodes.node(tap.sourcePortId)), '0'].join(' ')} CHANNEL`)
   validateProbeScope(plan, geometry, models, nodes, electrical)
   // IBIS behavioral sources reference internal voltage-source currents. Probe-only
   // saves discard those branch vectors in upstream ngspice; preserve them all.
+  // Initialize channel charge from the declared logic levels. Constraints apply
+  // only during startup; every reported measurement excludes 16 UI settling.
+  const initialConditions: string[] = []
+  for (const mapping of geometry.mappings) {
+    const stimulus = plan.stimuli.find(s => [mapping.from, mapping.to].includes(s.source_port_id))
+    if (!stimulus) continue
+    const pin = models.flatMap(model => model.metadata?.pins ?? []).find(pin => pin.port === stimulus.source_port_id)
+    const high = Boolean(stimulus.initial_state) !== Boolean(stimulus.inverted) !== (pin?.polarity === 'inverting')
+    const rail = pin?.references.pullup
+    const supply = rail ? electrical.sourceBindings.find(source => source.positiveNode === nodes.node(rail)) : undefined
+    const voltage = supply ? electrical.lines.find(line => line.startsWith('V') && line.split(/\s+/)[1] === supply.positiveNode)?.split(/\s+/)[3] : undefined
+    if (!voltage || !Number.isFinite(Number(voltage))) continue
+    const initial = high ? Number(voltage) : 0
+    for (const id of [mapping.from, mapping.to]) initialConditions.push(`v(${nodes.node(id)})=${initial}`)
+  }
+  if (initialConditions.length) lines.push('.ic ' + initialConditions.join(' '))
   lines.push('.control', 'set wr_singlescale', 'set wr_vecnames', 'set numdgt=17', 'save all', `tran ${num(plan.maxStepSeconds)} ${num(plan.durationSeconds)} ${num(plan.startTimeSeconds)} ${num(plan.maxStepSeconds)}`)
   for (const [i, probe] of plan.probes.entries()) lines.push(`let probe${i} = ${probe.signalNode === '0' ? '0' : `v(${probe.signalNode})`}-${probe.referenceNode === '0' ? '0' : `v(${probe.referenceNode})`}`)
   lines.push(`wrdata waveform.dat ${plan.probes.map((_, i) => `probe${i}`).join(' ')}`, 'quit', '.endc', '.end', '')
@@ -178,7 +215,7 @@ export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geom
 export function validateProbeScope(plan: SimulationPlan, geometry: Pick<Geometry, 'mappings'>, models: readonly ElectricalModel[], nodes: CircuitNodes, electrical: ElectricalSources): void {
   const active = new Set(electrical.activeNodes)
   for (const model of models) for (const id of Object.values(model.spicePinMapping)) active.add(nodes.node(id))
-  for (const model of models) for (const pin of model.metadata?.pins ?? []) for (const [role, id] of Object.entries(pin.references ?? {})) if (!electrical.grounded.has(nodes.node(id))) fail('floating_reference', `${model.name} physical pin ${pin.physicalPin} ${role}: reference rail has no explicit source/passive DC path to channelReference`)
+  for (const model of models) for (const pin of model.metadata?.pins ?? []) for (const [role, id] of Object.entries(pin.references ?? {})) if (id !== undefined && !electrical.grounded.has(nodes.node(id))) fail('floating_reference', `${model.name} physical pin ${pin.physicalPin} ${role}: reference rail has no explicit source/passive DC path to channelReference`)
   for (const mapping of geometry.mappings) {
     active.add(nodes.node(mapping.from))
     active.add(nodes.node(mapping.to))

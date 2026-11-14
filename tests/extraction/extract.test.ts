@@ -5,6 +5,7 @@ import {rootScope,type FileMap} from '../../src/kernel'
 import type {RunSolver,SolverContext,SolverRequest,SolverResult} from '../../src/solver'
 import {extractChannel,type ExtractedStage} from '../../src/extraction'
 import {geometryFromCircuitJson} from '../../src/board'
+import {barFixture} from './solvers'
 import {groundPlaneFixture} from '../fixtures/ground-plane'
 
 /** A solver context that uses the given fake solver and discards progress messages. */
@@ -60,7 +61,12 @@ test('FasterCap failures override its mesh report; routed mm and legacy m result
     const files:FileMap={}
     const {circuit,modeling:copperModeling}=groundPlaneFixture()
     const modeling=legacy?JSON.parse(await readFile(new URL('../fixtures/straight.modeling.json',import.meta.url),'utf8')):copperModeling
-    const geometry=geometryFromCircuitJson(circuit,modeling)
+    const geometry=legacy?barFixture().geometry:geometryFromCircuitJson(circuit,modeling)
+    if (legacy) {
+      geometry.cells[0].conductors[2].widthM=.002
+      geometry.cells[0].conductors[0].widthM=.0001
+      geometry.cells[0].conductors[1].widthM=.0001
+    }
     const extraction=extract(geometry,modeling,files,solver)
     if(fails) await assert.rejects(extraction,error=>{
       assert.equal((error as {code:string}).code,skips?'native_geometry':'native_convergence')
@@ -74,7 +80,7 @@ test('FasterCap failures override its mesh report; routed mm and legacy m result
       assert.equal(result.conversions.capacitanceSolverCoordinateUnits,legacy?'m':'mm')
       assert.equal(result.conversions.capacitanceScaleToFarads,legacy?1:1e-3)
       assert.ok(Math.abs(result.primitiveCapacitance[0][0]-4e-12)<1e-24)
-      assert.ok(Math.abs(result.C[0][0]-10e-12/3)<1e-24)
+      assert.ok(Math.abs(result.C[0][0]-4e-12)<1e-24)
       for(const phase of ['', 'refinement']) {
         const record=JSON.parse(files[`stage-0/${phase?phase+'/':''}fasthenry.request.json`])
         assert.deepEqual(record.args,legacy?['channel.inp']:['-p','seg','channel.inp'])

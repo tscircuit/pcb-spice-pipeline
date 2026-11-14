@@ -40,6 +40,11 @@ export default tseslint.config(
     },
   },
   {
+    // Keep the upstream RFC assets byte-identical, including their example-style signatures.
+    files: ['examples/**/*.tsx'],
+    rules: { 'jsdoc/require-jsdoc': 'off', 'local/typed-signature': 'off' },
+  },
+  {
     // 5. One test file per source file: tests/<module>/<name>.test.ts tests src/<module>/<name>.ts.
     files: ['tests/**/*.test.{ts,tsx,mjs}'],
     rules: { 'local/test-file-matches-source': 'error' },

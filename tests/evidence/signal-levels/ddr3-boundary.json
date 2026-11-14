@@ -1,0 +1,7 @@
+{
+  "status": "expected_error",
+  "rendering": "source_preflight_routeRemaining_false_not_full_layout",
+  "error": ".CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.",
+  "real_core_error": ".CPU: coupled [Package Model] not implemented yet; scalar fallback is forbidden.",
+  "native_solver_calls": 0
+}

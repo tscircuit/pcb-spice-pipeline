@@ -1,3 +1,4 @@
+import { groundPlaneFixture } from '../fixtures/ground-plane'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -39,11 +40,11 @@ test('conductivity defaults to annealed copper, preserves explicit per-layer val
   if (stackup.type !== 'pcb_stackup' || stackup.layers[0].layer_type !== 'copper') throw Error('fixture')
   stackup.layers[0].electrical_conductivity_s_per_m = 3e7
   assert.deepEqual(stackupFromCircuitJson(circuit).copperLayers.map(layer => layer.conductivitySm), [5.8e7, 5.8e7, 5.8e7, 3e7])
-  const small = JSON.parse(readFileSync(new URL('../fixtures/straight.circuit.json', import.meta.url), 'utf8'))
-  const modeling = JSON.parse(readFileSync(new URL('../fixtures/straight.modeling.json', import.meta.url), 'utf8'))
-  small.find((record: {type: string}) => record.type === 'pcb_stackup').layers[0].electrical_conductivity_s_per_m = 3e7
+  const { circuit: small, modeling } = groundPlaneFixture()
+  const physicalStack = small.filter(record => record.type === 'pcb_stackup')[0]
+  if (physicalStack.layers[0].layer_type === 'copper') physicalStack.layers[0].electrical_conductivity_s_per_m = 3e7
   const geometry = geometryFromCircuitJson(small, modeling)
-  assert.equal(geometry.cells[0].conductors[0].conductivitySm, 3e7)
+  assert.equal(geometry.cells[0].routedCopper!.signals[0].segments[0].conductivitySm, 3e7)
   assert.match(fastHenryDeck(geometry.cells[0], modeling.extraction), /sigma=30000000/)
 })
 

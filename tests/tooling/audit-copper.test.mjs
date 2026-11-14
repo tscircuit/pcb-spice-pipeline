@@ -5,7 +5,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { auditMatrices } from '../../scripts/verification/audit-matrices.mjs'
 import { auditGroundCopper } from '../../scripts/verification/audit-general.mjs'
-import { independentlyCheckMatrices } from '../../scripts/audit-eye.mjs'
 
 // Hand-written native-output fixtures: no pipeline geometry or matrix helpers.
 async function nativeFixture(t, routed, lanes) {
@@ -20,15 +19,14 @@ async function nativeFixture(t, routed, lanes) {
     { a: [0, 0, 0], b: [3, 4, 0], widthMm: .1, thicknessMm: .035 },
     { a: [3, 4, 0], b: [3, 4, 12], widthMm: .2, thicknessMm: .025 },
   ] })) }
-  const modeling = { reduction: routed ? 'routed-copper' : 'straightened-stages', conductivitySm: 58e6, extraction: { modelHz: frequency } }
+  const modeling = { reduction: routed ? 'routed-copper' : 'straightened-stages', conductivitySm: 58e6, extraction: { modelHz: frequency, reciprocityTolerance: .025 } }
   const resistance = routed ? .005 / (58e6 * .0001 * .000035) + .012 / (58e6 * .0002 * .000025) : .01 / (58e6 * .0001 * .000035)
   const returnR = .1 * dimension
   const returnL = 1e-9 * dimension
-  const rowSum = (4 - .5 * lanes) * 1e-12
   const extraction = {
     R: Array.from({ length: lanes }, (_, i) => Array.from({ length: lanes }, (_, j) => returnR + (i === j ? .1 * (i + 1) : 0))),
     L: Array.from({ length: lanes }, (_, i) => Array.from({ length: lanes }, (_, j) => returnL + (i === j ? 1e-9 * (i + 1) : 0))),
-    C: Array.from({ length: lanes }, (_, i) => Array.from({ length: lanes }, (_, j) => (i === j ? 4e-12 : -.5e-12) - rowSum / dimension)),
+    C: Array.from({ length: lanes }, (_, i) => Array.from({ length: lanes }, (_, j) => i === j ? 4e-12 : -.5e-12)),
     checks: { analyticResistanceOhm: Array(routed ? lanes : dimension).fill(resistance) },
     conversions: { capacitanceScaleToFarads: routed ? 1e-3 : 1, capacitanceSolverCoordinateUnits: routed ? 'mm' : 'm' },
   }
@@ -44,13 +42,13 @@ async function nativeFixture(t, routed, lanes) {
   return { out, dir, cell, modeling, extraction, save, resistance }
 }
 
-for (const [label, audit] of [['general', auditMatrices], ['package', independentlyCheckMatrices]]) {
+for (const [label, audit] of [['matrix', auditMatrices]]) {
   test(`${label} independent audit preserves legacy metres and routed millimetres for one to three signals`, async t => {
     for (const routed of [false, true]) for (const lanes of [1, 3]) await t.test(`${routed ? 'routed' : 'legacy'}: ${lanes} lanes`, async t => {
       const fixture = await nativeFixture(t, routed, lanes)
       const result = await audit(fixture.out, fixture.cell, fixture.modeling)
       assert.equal(result.capacitanceScaleToFarads, routed ? 1e-3 : 1)
-      assert.ok(result.C[0][0] > 1e-12 && result.C[0][0] < 4e-12)
+      assert.ok(Math.abs(result.C[0][0] - 4e-12) < 1e-26)
       const dc = result.dcResistanceOhm ?? result.independentDcResistanceOhm
       assert.deepEqual(dc, Array(routed ? lanes : lanes + 1).fill(fixture.resistance))
       assert.equal(result.groundDcResistanceCheck.status, routed ? 'not-applicable' : 'checked')

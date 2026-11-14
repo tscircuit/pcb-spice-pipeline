@@ -18,10 +18,95 @@
 threshold: 85
 
 domain:
+  middleware: the local HTTP handler installed in the Vite development server
+  local: running on the user's computer through its installed native solver
+  detect: check whether a solver executable is available on PATH
+  response: the status and result returned by an HTTP request
+  transient: a circuit simulation that follows voltage and current through time
+  vector: one named sequence of engine samples, such as time or a node voltage
+  worker: an isolated browser thread that can be terminated to stop a solver
+  watchdog: a host timer that terminates an engine exceeding its runtime limit
+  admission: validation and derivation of one declared signal-integrity block
+  network: the connected electrical cells and correction elements of routed copper
+  execution: a completed invocation through the solver port
+  visualize: draw a solver's current physical work in the shared graphics atlas
+  snapshot: a copied and frozen domain value published by a completed stage
+  pair: two conductors screened together for mutual coupling
+  arc: distance measured along a routed polyline including its bends
+  antipad: clearance opening in a plane around a signal via
+  bias: very weak DC anchor used to fix an otherwise floating common-mode voltage
+  branch: a SPICE element current or a connection in a circuit graph
+  causal: a response that depends only on present and earlier input
+  capacitive: coupling between conductors through their electric field
+  chord: straight approximation to a densely tessellated curve
+  delay: time needed for a signal edge to propagate through a line
+  inductance: magnetic flux linkage per unit current, measured in henries
+  inductive: coupling between conductors through their magnetic field
+  ladder: distributed line approximated by connected lumped electrical cells
+  lateral: distance transverse to a routed line in the board plane
+  mask: insulating soldermask on the outer copper layers
+  metre: SI unit of length used for per-unit-length electrical matrices
+  oblique: a neighbour whose direction differs from the local trace direction
+  parallel: conductors sharing a common longitudinal direction
+  pole: a stable relaxation rate in a causal rational loss model
+  rail: a power or ground supply connection
+  shunt: an electrical branch across two conductor or reference nodes
+  simplify: reduce curve tessellation while bounding geometric displacement
+  slice: one local cross-section of routed conductors and reference surfaces
+  sparse: a matrix or realization with mostly zero couplings
+  transition: a change of layer, reference or conductor geometry
+  prepare: derive private experiment settings from the declared channel intent
+  block: an independently declared group of signals in a channel experiment
+  idle: an experiment with no transitions used to determine settled voltages
+  initial: the state or value at the beginning of a simulation
+  power: an electrical supply net or reference plane
+  nearby: inside the explicitly defined spatial coupling horizon
+  unused: a vendor package lead excluded from the selected physical pin mapping
+  remainder: the part of a matrix diagonal left after its mutual energy terms
+  cursor: the current position while traversing an ordered route
+  above: toward increasing solver z in a physical stackup
+  below: toward decreasing solver z in a physical stackup
+  digital: a stimulus described by timed binary logic states
+  normal: perpendicular to a surface or conductor direction
+  correction: an explicit recorded change required by a documented numerical convention
+  deviation: the measured difference between an approximation and its reference
+  conductance: electrical admittance that dissipates power, measured in siemens
+  coupling: mutual electrical or magnetic interaction between conductors
+  cache: reused solution keyed only by identical physical cross-section geometry
+  diameter: the full width of a circular barrel, pad or aperture
+  diagonal: matrix entries relating each conductor to itself
+  actual: read directly from the physical source-board records
+  cut: a partition point at a physical geometry or reference change
+  die: the semiconductor side of a vendor package model
+  er: relative dielectric permittivity
+  h: inductance measured in henries
+  l: inductance matrix or its entries
+  c: capacitance matrix or its entries
+  non: prefix identifying an explicitly excluded property
+  pre: prefix identifying a check before a stage
+  general: shared across supported channel experiment shapes
+  allow: an explicit caller-selected modelling permission
+  alternate: an additional candidate file or implementation
+  join: connect physically continuous copper pieces into one path
+  self: a matrix term belonging to one conductor rather than a mutual pair
+  top: the outer copper layer on the upper face of the board
+  bottom: the outer copper layer on the lower face of the board
+  second: the SI time unit or the second member of an ordered pair
+  charge: electric charge on a conductor or dielectric interface in the cross-section solve
+  contrast: relative permittivity difference across a dielectric interface
+  derivative: sensitivity of an extracted matrix to material or boundary displacement
+  extent: horizontal reach of the discretised dielectric interfaces
+  interface: boundary between two dielectric materials
+  kernel: Green function relating boundary charge to potential or field
+  loss: energy dissipated in conductors or dielectrics
+  recession: displacement of conducting walls away from the field for Wheeler loss
+  recede: move a conducting wall away from the field region
+  skin: concentration of alternating conductor current near its surface
+  tangent: dielectric dissipation factor or direction along a boundary panel
+  vacuum: reference material with relative permittivity one
   admit: the first stage, which reads the board's Circuit JSON and checks it before anything else uses it
   artifact: a file the pipeline produces (solver deck, log, waveform, report data), recorded in the ledger
   assembly: the bundle of converted IBIS chip models used by one experiment
-  assessment: the DDR timing check for one data signal and its strobe
   asset: an IBIS model file that the board names (ibis_model_asset in Circuit JSON)
   barrel: the plated copper tube that lines a via hole
   bind: the stage that attaches chip models and probes to the planned experiments
@@ -30,7 +115,8 @@ domain:
   brand: a TypeScript type tag that proves a value passed a check (for example an admitted id)
   buffer: an IBIS model of a chip's input or output circuit
   capacitance: how much charge copper stores per volt (the C in RLGC)
-  capture: the moment a receiver samples data, set by the strobe
+  coupled: electrical behavior in one pin or conductor that depends on another
+  capture: a finite recording of voltages over time
   channel: everything electrical between driver and receiver: lanes, their return paths and nearby copper
   circuit: an electrical network; also the Circuit JSON document that describes the board
   coarse: the first, cheaper solver pass on a rough mesh, before refinement
@@ -38,50 +124,47 @@ domain:
   conductivity: how easily a material carries current, in siemens per metre
   conductor: one piece of copper the field solver treats as a single electrical body
   convergence: the check that a finer mesh no longer changes the answer
+  coefficient: a dimensionless multiplier on an IBIS pullup or pulldown current
   copper: the metal shapes on the board: traces, pours, pads and vias
-  crossing: the moment a waveform passes a threshold voltage
   deck: an input file for a solver (FastHenry, FasterCap or ngspice)
-  declare: the stage that plans the experiments, probes and eyes before any solver runs
-  derating: a DDR timing adjustment that depends on how fast the signal edges are
+  declare: the stage that plans experiments and probes before any solver runs
   diagnostic: the library's one error type: a short code, the module that failed and the logs that explain it
   dielectric: the insulating material between copper layers
   differential: a signal carried as the voltage difference between two wires
   driver: the chip output that sends a signal
   evidence: data kept in the result that shows how a conclusion was reached
-  experiment: one simulation run: a stimulus, its probes and the eyes measured from it
+  experiment: one transient run with stimuli and probes
   extract: the stage that measures each wire's R, L and C with the field solvers
   extraction: measuring wire R, L and C from board geometry with field solvers (FastHenry, FasterCap)
-  eye: the eye diagram, many bit periods of a waveform overlaid to show how open the signal is
+  fixture: a known resistive load used to capture an IBIS switching waveform
   filament: a thin straight strip of copper that FastHenry splits a conductor into
-  finding: one problem a check reports, such as a DDR timing violation
-  fold: to overlay a waveform's bit periods on top of each other, building an eye
-  gate: the time span of a waveform that an eye or strobe check is allowed to use
+  gate: the start of the interval compared during numerical convergence
   geometry: the board's copper shapes, layers and positions, in millimetres
-  grade: the speed grade of a memory part, which sets its timing limits
   ground: the zero-volt reference copper that signal current returns through
   henry: the unit of inductance; also the second half of FastHenry, the inductance solver
-  hold: DDR hold time, how long data must stay stable after the strobe edge
   impedance: a wire's opposition to changing current, in ohms
   lane: one signal path on the board
   layer: one copper or insulating sheet in the stackup
   ledger: the single record of every artifact path the pipeline writes; a second write to a path fails
   loop: a current loop: out along a conductor and back through its return path
-  margin: how far a measurement is inside its limit
   mesh: the grid of small pieces a field solver splits copper into
-  metric: one number measured from an eye, such as its height or width
   model: a chip model (IBIS) or the electrical model of the channel built from extraction
-  modeling: the settings for a run (extraction, buffers, simulation, DDR), read from the board by default
+  modeling: private numerical settings derived from Circuit JSON
   net: a set of pins and copper that are connected together
-  neutrality: the check that the charges in a capacitance matrix balance out to zero
   node: a named connection point in the SPICE circuit
-  observation: the module that turns simulated waveforms into eyes and their metrics
-  observe: the stage that builds eyes and DDR checks from the simulated waveforms
+  observation: adaptive waveform parsing and numerical convergence
+  observe: the stage that records accepted waveforms and convergence evidence
   pad: the copper area a component pin is soldered to
   panel: a small flat piece of copper surface that FasterCap solves the charge on
   passive: a component that does not amplify: resistor, capacitor or inductor
   permittivity: how strongly an insulator stores electric field (its dielectric constant)
   pin: a chip leg, named in the IBIS model
   pipeline: the whole run from board to report, as a fixed chain of stages
+  schedule: the actual logical transitions and their times in one stimulus
+  settle: stay within a stated tolerance for the entire remaining measured waveform
+  switching: the time-dependent activation of a buffer's pullup and pulldown currents
+  tail: the inactive end of a measured transition after settling
+  weight: a switching coefficient extracted from IBIS voltage and current data
   plane: a large copper area on one layer, usually ground or power
   plating: the copper lining inside a via hole
   polygon: a closed shape made of outline rings of points
@@ -98,7 +181,6 @@ domain:
   route: the path a trace follows across the board, as points and vias
   scope: a named folder of artifacts that one module is allowed to write
   seal: the final stage, which sorts and freezes the result's files
-  setup: DDR setup time, how long data must be stable before the strobe edge
   signal: a voltage that carries data along a lane
   simulate: the stage that runs the SPICE circuit in ngspice
   simulation: running the SPICE circuit over time with ngspice
@@ -110,19 +192,29 @@ domain:
   stackup: the order and thickness of the board's copper and insulating layers
   stage: one fixed step of the pipeline (admit, declare, bind, extract, simulate, observe, seal)
   stimulus: the bit pattern a driver sends during an experiment
-  strobe: the DDR timing signal (DQS) that tells the receiver when to sample data
   stub: the unused part of a via beyond the layer where the signal leaves it
   subcircuit: a nested group of components on the board; in SPICE, a reusable circuit block
   subject: the thing a diagnostic points at, such as a cell, port or experiment
   terminal: a connection end of a conductor or source
   trace: a copper wire on one board layer
   via: a plated hole that carries a signal between layers
-  violation: a measurement that breaks its limit
   waveform: voltage over time at one probe
-  window: a span of time: one bit period in an eye, or the time data is valid in a DDR check
   wire: a piece of copper that carries a signal; in plain words, a trace or via
+  picture: the real board drawn by circuit-to-svg with a stage drawing on top, both in one camera
+  focus: the board region a stage drawing keeps in view, around the selected copper
+  pane: an opaque panel beside the board in a stage drawing, holding a cross-section or a waveform plot
+  mark: a dot or ring drawn at a pin; a dot for a driver, a ring for a receiver
+  tone: a fixed drawing colour with one meaning, such as the slice cut or a failure
+  strip: a pane showing each selected net unrolled into a to-scale bar
+  eye: a waveform folded every two bit periods so all transitions overlay
+  envelope: the band between the lowest and highest of many probe curves at each moment
+  excursion: how far a curve goes beyond the band most samples stay in
+  camera: the fixed board region a problem's stage drawings show
+  halo: a dark outline behind a mark so it reads over copper
 
 abbreviations:
+  http: Hypertext Transfer Protocol used by the browser solver adapter
+  wasm: WebAssembly, the portable binary format used to run ngspice in a browser
   abstol: absolute current tolerance (ngspice option)
   ac: alternating current; in DDR thresholds, the level a signal must reach
   args: arguments
@@ -157,6 +249,7 @@ abbreviations:
   spice: the standard circuit simulation netlist format (run by ngspice)
   stderr: standard error output of a program
   stdout: standard output of a program
+  svg: Scalable Vector Graphics, the image format of board pictures
   ui: unit interval, one bit period
   url: web address
   v: volt
@@ -173,10 +266,10 @@ general:
   - expect fail fall find finish flip flush generate get has invoke is link load locate match measure
   - merge normalize omit override parse produce quote raise read receive reduce refine register remove rename
   - replace reset resolve rise run select set shift skip solve sort split start supply test transmit
-  - unlink update use validate view visit write
+  - unlink update use validate view visit write trim crop unroll cast fold
   # states and outcomes
   - connected contained default failure found grounded killed named oriented pinned scoped seen supplied
-  - unavailable unconverged unevaluated unselected used
+  - unavailable unconverged unevaluated unselected used done built crowded kept
   # data shapes and code structure
   - all any array attachment base binding body boolean box bucket budget byte candidate cell chain child
   - code column command comment content context count data declaration definition descriptor element
@@ -189,11 +282,11 @@ general:
   - adapter comparison conversion converter diagram directory domain engine fast faster invocation tool
   # report and user interface
   - ambiguity approximation button canvas client color description detail download drag font hint issue
-  - limitation listener overlay overview plot reason report role summary tab viewer warning
+  - limitation listener overlay overview plot reason report role summary tab viewer warning drawing frame margin alpha bar hue tick band casing digit glyph lightness pitch fallback
   # describing and comparing
   - absolute active analytic best canonical common compatible compatibility condition convention direct
   - empty equivalent exact expected finite fixed flat full global high horizontal inner limit low lowest
-  - max maximum middle min minimum native negative next numeric original other outer own physical
+  - max maximum middle min minimum native negative next numeric original other outer own physical half highest least longest median most near far reach leg
   - positive preceding previous primitive prior pure quiet range raw relative safe serial target threshold
   - characterization compliance
   # quantities, electricity and units
@@ -201,11 +294,11 @@ general:
   - interval material matrix measurement milliseconds ohm offset origin peak period phase plateau
   - quantity reduction sample scale seconds speed step time timeout tolerance transmission voltage zero
   # math
-  - cholesky delaunay interpolation multiply norm sum symmetrize transpose union
+  - cholesky delaunay interpolation multiply norm sum symmetrize transpose union total
   # geometry
   - alignment anchor ancestor area aspect border boundary center contact connection coordinate curve
   - depth direction distance division edge endpoint epsilon face gap height hole left length nearest
-  - outline point position profile radius right round segment side sign size sizing spacing surface
+  - outline point position profile radius right round segment side sign size sizing spacing surface circle corner closest across
   - thickness triangle width
   # axis letters and their steps or counts (x, dx = step along x, nx = count along x)
   - x y z dx dy nx ny nz

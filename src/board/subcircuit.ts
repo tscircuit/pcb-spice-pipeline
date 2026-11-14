@@ -1,6 +1,6 @@
 import { fail } from './diagnostics'
 
-interface ScopeRecord { type: string; [key: string]: unknown }
+interface ScopeRecord { type: string; source_group_id?: string; subcircuit_id?: string; parent_source_group_id?: string }
 
 /**
  * Saved subcircuits nest: a board subcircuit can contain sibling subcircuits

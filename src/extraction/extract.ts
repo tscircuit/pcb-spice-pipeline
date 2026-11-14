@@ -5,8 +5,8 @@ import type { Geometry, GeometryCell } from '../board'
 import { fail } from './diagnostics'
 import { fastHenryDeck, fasterCapDeck, copperCapacitanceScaleToFarads } from './decks'
 import { checkNativeRun, impedanceSamples, parseFasterCap } from './parse'
-import { validateMatrix, loopImpedance, referenceCapacitance, type MatrixCheck, type CapacitanceCheck } from './checks'
-import { multiply, transpose, sum, type Matrix } from './linalg'
+import { validateMatrix, loopImpedance, referenceCapacitance, referenceConductance, reciprocityResidual, type MatrixCheck, type CapacitanceCheck } from './checks'
+import { multiply, transpose, type Matrix } from './linalg'
 import { channelSpice } from './rlgc'
 import type { ExtractionModeling, ExtractedChannel, ExtractedStage, RefinementCheck } from './types'
 
@@ -77,33 +77,29 @@ export async function extractChannel(geometry: Geometry, modeling: ExtractionMod
     const L: MatrixCheck=validateMatrix(loopImpedance(selected.L),'L loop',modeling.extraction.reciprocityTolerance)
     validateMatrix(selected.R,'R primitive',modeling.extraction.reciprocityTolerance)
     validateMatrix(selected.L,'L primitive',modeling.extraction.reciprocityTolerance)
-    const capRun=await run(stageScope,{solver:'fastercap',args:['channel.lst','-b',`-a${modeling.extraction.capTolerance}`,...(cell.routedCopper?['-ap']:[]),'-e'],files:fc,outputFiles:[]})
+    const capRun=await run(stageScope,{solver:'fastercap',args:['channel.lst','-b',`-a${modeling.extraction.capTolerance}`,...(cell.routedCopper || cell.dielectric?['-ap']:[]),'-e'],files:fc,outputFiles:[]})
     checkNativeRun(capRun,dir,'fastercap',{subjects:subject,artifacts:capRun.logPaths})
     const cap: {names: string[]; matrix: Matrix}=parseFasterCap(capRun.stdout)
-    const capacitanceScaleToFarads=cell.routedCopper?copperCapacitanceScaleToFarads:1
+    const capacitanceScaleToFarads=cell.routedCopper || cell.dielectric?copperCapacitanceScaleToFarads:1
     cap.matrix=cap.matrix.map(row=>row.map(value=>value*capacitanceScaleToFarads))
     const capDiff=[...capRun.stdout.matchAll(/Weighted Frobenius norm of the difference between capacitance \(auto option\):\s*([\deE+.-]+)/g)].at(-1)
     const capConvergence=capDiff?Number(capDiff[1]):null
     if(capConvergence===null||!Number.isFinite(capConvergence)||capConvergence<0||capConvergence>modeling.extraction.capTolerance) fail('cap_convergence','FasterCap did not report converged automatic refinement within requested tolerance',{subjects:subject,artifacts:capRun.logPaths})
     if(cap.names.length!==cell.conductors.length||cap.matrix.length!==cell.conductors.length||!cap.names.every((n,i)=>n.endsWith(`_${cell.conductors[i].name}`))) fail('matrix_order',`FasterCap C conductor ordering changed: ${cap.names}`,{subjects:subject})
-    const primitiveC: MatrixCheck=validateMatrix(cap.matrix,'C primitive',modeling.extraction.reciprocityTolerance)
-    const C: CapacitanceCheck=referenceCapacitance(primitiveC.matrix)
-    if(primitiveC.matrix.some((r,i)=>sum(r)<=0||r.some((v,j)=>i!==j&&v>0))) fail('capacitance_sign','Primitive Maxwell matrix needs nonpositive off-diagonals and positive capacitance to infinity',{subjects:subject})
-    const cr=primitiveC.matrix.map(sum)
+    const primitiveC={reciprocityResidual:reciprocityResidual(cap.matrix,'C primitive'),checked:false as const}
+    const C: CapacitanceCheck=referenceCapacitance(cap.matrix,modeling.extraction.reciprocityTolerance)
     const v=cell.conductors.slice(0,-1).map((_,i)=>i===0?1.2:-.7)
-    const offset=-sum(v.map((value,i)=>cr[i]*value))/C.denominator
-    const full=v.map(value=>[value+offset]).concat([[offset]])
-    const q: Matrix=multiply(primitiveC.matrix,full)
+    const full=v.map(value=>[value]).concat([[0]])
+    const q: Matrix=multiply(cap.matrix,full)
     const energy=multiply(transpose(full),q)[0][0]
     const reducedEnergy=multiply(multiply([v],C.matrix),transpose([v]))[0][0]
     const energyResidual=Math.abs(energy-reducedEnergy)/Math.abs(energy)
-    const neutralityResidual=Math.abs(sum(q.flat()))/Math.max(...q.flat().map(Math.abs))
-    if(!Number.isFinite(energyResidual)||!Number.isFinite(neutralityResidual)||energyResidual>1e-10||neutralityResidual>1e-10) fail('reference_energy','Neutral finite-return charge/energy reconstruction failed',{subjects:subject})
-    const result: ExtractedStage={stage:cell.stage,profile:cell.profile,R:R.matrix,L:L.matrix,C:C.matrix,units:{R:'ohm',L:'H',C:'F'},frequencyHz:selected.frequencyHz,primitiveOrder:cell.conductors.map(c=>c.name),primitiveImpedance:spectrum,modelPrimitiveImpedance:selected,primitiveCapacitance:cap.matrix,checks:{R,L,C,primitiveC,convergence,capConvergence,analyticResistanceOhm:analytic,analyticResistanceRelativeErrors:errors,analyticFrequencyHz:lowest.frequencyHz,analyticLoopResistanceOhm:analyticLoop,dcLoopResidual,energyResidual,neutralityResidual},conversions:{impedance:'R=Re(Z), L=Im(Z)/(2*pi*f); A=[I;-ones]; loop=A^T primitive A',capacitance:C.convention,capacitanceSolverCoordinateUnits:cell.routedCopper?'mm':'m',capacitanceScaleToFarads,neutralityDenominatorF:C.denominator}}
+    if(!Number.isFinite(energyResidual)||energyResidual>1e-10) fail('reference_energy','Grounded-return energy reconstruction failed',{subjects:subject})
+    const result: ExtractedStage={stage:cell.stage,profile:cell.profile,R:R.matrix,L:L.matrix,C:C.matrix,G:referenceConductance(cap.matrix.map(row=>row.map(()=>0))),units:{R:'ohm',L:'H',C:'F',G:'S'},frequencyHz:selected.frequencyHz,primitiveOrder:cell.conductors.map(c=>c.name),primitiveImpedance:spectrum,modelPrimitiveImpedance:selected,primitiveCapacitance:cap.matrix,checks:{R,L,C,primitiveC,convergence,capConvergence,analyticResistanceOhm:analytic,analyticResistanceRelativeErrors:errors,analyticFrequencyHz:lowest.frequencyHz,analyticLoopResistanceOhm:analyticLoop,dcLoopResidual,energyResidual},conversions:{impedance:'R=Re(Z), L=Im(Z)/(2*pi*f); A=[I;-ones]; loop=A^T primitive A',capacitance:C.convention,capacitanceSolverCoordinateUnits:cell.routedCopper || cell.dielectric?'mm':'m',capacitanceScaleToFarads}}
     record([stageScope.json('extraction.json',result)])
     extracted.push(result)
   }
-  const spice=channelSpice(extracted,modeling.sections)
+  const spice=geometry.mappings.length ? channelSpice(extracted,modeling.sections,geometry.mappings.flatMap((mapping, conductor) => (mapping.intermediatePorts ?? []).map((tap, i) => ({ ...tap, conductor, name: `TAP${conductor}_${i}` })))) : ''
   record([scope.text('channel.cir',spice)])
   return {value:{matrices:extracted,spice},artifacts:[...files.values()]}
 }

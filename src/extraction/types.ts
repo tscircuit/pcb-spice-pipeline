@@ -21,23 +21,23 @@ export interface RefinementCheck {
 /** One stage's checked extraction: today's `stage-N/extraction.json` and one entry of PipelineResult.matrices. Key order is serialized. */
 export interface ExtractedStage {
   stage: number; profile: string
-  R: Matrix; L: Matrix; C: Matrix
-  units: { R: 'ohm'; L: 'H'; C: 'F' }
+  R: Matrix; L: Matrix; C: Matrix; G: Matrix
+  units: { R: 'ohm'; L: 'H'; C: 'F'; G: 'S' }
   frequencyHz: number
   primitiveOrder: string[]
   primitiveImpedance: ImpedanceSample[]
   modelPrimitiveImpedance: ImpedanceSample
   primitiveCapacitance: Matrix
   checks: {
-    R: MatrixCheck; L: MatrixCheck; C: CapacitanceCheck; primitiveC: MatrixCheck
+    R: MatrixCheck; L: MatrixCheck; C: CapacitanceCheck; primitiveC: { reciprocityResidual: number; checked: false }
     convergence: RefinementCheck; capConvergence: number
     analyticResistanceOhm: number[]; analyticResistanceRelativeErrors: number[]; analyticFrequencyHz: number
     analyticLoopResistanceOhm: Matrix | null; dcLoopResidual: number | null
-    energyResidual: number; neutralityResidual: number
+    energyResidual: number
   }
   conversions: {
     impedance: string; capacitance: string
-    capacitanceSolverCoordinateUnits: 'mm' | 'm'; capacitanceScaleToFarads: number; neutralityDenominatorF: number
+    capacitanceSolverCoordinateUnits: 'mm' | 'm'; capacitanceScaleToFarads: number
   }
 }
 /** Today's `extracted` array (PipelineResult.matrices), in stage order. */
