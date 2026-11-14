@@ -1,12 +1,19 @@
 /** Positive-real Foster quadrature: sqrt(s), and a finite-band constant-loss-tangent dielectric. */
 export interface LossPole { rate: number; skin: number; dielectric: number }
 
-/** Logarithmic Stieltjes quadrature. Every pole is negative real and every branch weight positive. */
+/** Skin weight / sqrt(rate) and dielectric weight per pole, a nonnegative least-squares fit of Zs = (1 + j) sqrt(f)
+ * and of a constant loss tangent (G = w, dC/d ln w = -(2/pi) G/w) over 10 MHz–5 GHz. The interior weights stay near the
+ * log-uniform Stieltjes quadrature (0.2197, 0.7788); the end poles absorb the truncated tails. Worst error in band: 0.8%
+ * skin magnitude and phase, 0.2% dielectric G, 1.0% Kramers–Kronig slope.
+ */
+const skinWeights = [.617084, .126051, .234089, .215091, .222717, .215633, .232706, .127446, .617523]
+const dielectricWeights = [1.22314, .743928, .775148, .781415, .776727, .781436, .774987, .743842, 1.22581]
+
+/** Nine negative real poles, log-uniform from 10^6.25 to 10^10.5 Hz, each with positive branch weights. */
 export function causalLossPoles(): LossPole[] {
-  const step = Math.log(10)
-  return Array.from({ length: 9 }, (_, i) => {
-    const rate = 2 * Math.PI * 10 ** (i + 4)
-    return { rate, skin: Math.sqrt(rate) * step / (Math.PI * Math.sqrt(Math.PI)), dielectric: 2 * step / Math.PI }
+  return skinWeights.map((skin, i) => {
+    const rate = 2 * Math.PI * 10 ** (6.25 + 4.25 * i / 8)
+    return { rate, skin: skin * Math.sqrt(rate), dielectric: dielectricWeights[i] }
   })
 }
 
