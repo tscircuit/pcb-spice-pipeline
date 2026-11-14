@@ -191,4 +191,7 @@ dielectric BEM solve directly, omitting unused vacuum, magnetic and recession
 solves; one- and two-plane coefficient equality is tested exactly.
 
 Use `bun scripts/run-routed-ddr3.tsx --addr-cmd` with ignored local vendor models
-and `models/ddr3-board.json` (or `SI_DDR3_BOARD`).
+and `models/ddr3-board.json` (or `SI_DDR3_BOARD`). The same loader is used by the
+Cosmos addr/cmd page; the level-4 page renders its original lower-byte TSX.
+The local HTTP boundary accepts at most 64 MiB of JSON and serializes native
+execution with a 45-minute deadline and `OMP_NUM_THREADS=1`.
