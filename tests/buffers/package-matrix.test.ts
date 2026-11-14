@@ -28,3 +28,29 @@ test('open unused leads retain principal R/L and floating-charge capacitance, wi
   assert.doesNotThrow(() => selectPackageModel({ ...model, R: [[0, 0, 0], [0, 0, 0], [0, 0, 0]] }, model.pins))
   assert.doesNotThrow(() => selectPackageModel({ ...model, R: [[1, 1, 1], [1, 1, 1], [1, 1, 1]] }, model.pins), 'rank-deficient passive resistance is supported')
 })
+
+import { parsePackageModel } from '../../src/buffers/package-model'
+import { energyFacts, maxwellFacts, vendorText } from '../support/golden-checks'
+
+test('golden invariants: AM335x vendor package L, C are SPD with |k| < 1 and C is Maxwell after sign correction', async context => {
+  // A passive reciprocal lumped package (IBIS 7.x [Define Package Model]; Paul, Inductance: Loop and Partial, ch. 5):
+  // L and C symmetric positive definite, every |k| = |M_ij|/sqrt(L_ii L_jj) < 1; R PSD; the Maxwell C has positive
+  // diagonal, non-positive off-diagonal entries and non-negative row sums. Tolerances are floating point only.
+  const text = await vendorText(context, 'sprm552c.ibs')
+  if (!text) return
+  const model = parsePackageModel(text, 'am335x_zcz')
+  const selected = selectPackageModel(model, model.pins)
+  const L = energyFacts(model.L)
+  const C = energyFacts(selected.C)
+  const R = energyFacts(model.R)
+  const maxwell = maxwellFacts(selected.C)
+  const self = model.L.map((row, i) => row[i])
+  const mutual = model.L.map((row, i) => row.reduce((sum, value, j) => sum + (i === j ? 0 : Math.abs(value)), 0))
+  const positiveRaw = model.C.flat().filter((value, index) => index % (model.pins.length + 1) !== 0 && value > 0).length
+  context.diagnostic(JSON.stringify({ pins: model.pins.length, L, C, R, maxwell, rawPositiveOffDiagonalC: positiveRaw, signCorrection: selected.capacitanceSignCorrection,
+    selfLnH: [Math.min(...self) * 1e9, Math.max(...self) * 1e9], summedMutualLnH: [Math.min(...mutual) * 1e9, Math.max(...mutual) * 1e9], largestKPins: L.pair.map(i => model.pins[i]) }))
+  assert.ok(L.asymmetry <= 1e-12 && L.minimumEigenvalue > 0 && L.coupling < 1, `L: ${JSON.stringify(L)}`)
+  assert.ok(C.asymmetry <= 1e-12 && C.minimumEigenvalue > 0 && C.coupling < 1, `C: ${JSON.stringify(C)}`)
+  assert.ok(R.minimumEigenvalue >= -1e-12 * R.maximumEigenvalue, `R: ${JSON.stringify(R)}`)
+  assert.ok(maxwell.minimumDiagonal > 0 && maxwell.maximumOffDiagonal <= 0 && maxwell.minimumRowSum >= -1e-9, `Maxwell: ${JSON.stringify(maxwell)}`)
+})

@@ -57,6 +57,36 @@ export function coupledStripline(w: number, gap: number, b: number, er: number):
   return {ze:ze/Math.sqrt(er),zo:zo/Math.sqrt(er),l12:(ze-zo)/(2*299792458),c12:er*(1/ze-1/zo)/(2*299792458)}
 }
 
+/** Arithmetic–geometric mean; K(k) = pi / (2 AGM(1, k')), so K(k)/K(k') = AGM(1, k)/AGM(1, k') without 1 - k^2 cancellation. */
+function agm(a: number, b: number): number {
+  while (Math.abs(a - b) > Number.EPSILON * a) [a, b] = [(a + b) / 2, Math.sqrt(a * b)]
+  return a
+}
+
+/** Exact zero-thickness centred stripline, S. B. Cohn, "Characteristic impedance of the shielded-strip
+ * transmission line", IRE Trans. MTT-2 (1954), pp. 52–57: Z0 = eta0/(4 sqrt(er)) K(k)/K(k'), k = sech(pi w/2b)
+ * (the familiar 30 pi is eta0/4 with eta0 ~ 120 pi). Per-unit-length C = sqrt(er)/(c Z0) = 4 eps0 er K(k')/K(k).
+ * w and b share any length unit; capacitance is in F/m.
+ */
+export function stripline(w: number, b: number, er: number): { z: number; capacitance: number } {
+  const x = Math.PI * w / (2 * b)
+  const ratio = agm(1, 1 / Math.cosh(x)) / agm(1, Math.tanh(x))
+  return { z: 376.730313668 / (4 * Math.sqrt(er)) * ratio, capacitance: 4 * 8.8541878128e-12 * er / ratio }
+}
+
+/** Wheeler incremental-inductance stripline conductor loss as tabulated by D. M. Pozar, Microwave Engineering,
+ * 4th ed., section 3.7 (Cohn thick-strip fit): alpha_c = 2.7e-3 Rs er Z0 A / (30 pi (b - t)) Np/m when sqrt(er) Z0 < 120 ohm,
+ * A = 1 + 2W/(b - t) + (b + t)/(pi (b - t)) ln((2b - t)/t), with Pozar's own Z0 = 30 pi b/(sqrt(er) (We + 0.441 b)).
+ * Returns alpha_c in Np/m. Lengths in metres; a curve fit, never an exact reference.
+ */
+export function pozarStriplineAttenuation(w: number, b: number, t: number, er: number, surfaceResistance: number): number {
+  const effective = w / b >= .35 ? w : w - b * (.35 - w / b) ** 2
+  const z = 30 * Math.PI * b / (Math.sqrt(er) * (effective + .441 * b))
+  if (Math.sqrt(er) * z >= 120) throw new Error('Pozar narrow-strip branch is not implemented')
+  const a = 1 + 2 * w / (b - t) + (b + t) / (Math.PI * (b - t)) * Math.log((2 * b - t) / t)
+  return 2.7e-3 * surfaceResistance * er * z * a / (30 * Math.PI * (b - t))
+}
+
 /** H–J single microstrip, Qucs equations 11.4–11.7 and 11.15–11.16; dimensions normalized to h. */
 export function singleMicrostrip(u: number, er: number): { z: number; ee: number } {
   const a = 1 + Math.log((u ** 4 + (u / 52) ** 2) / (u ** 4 + .432)) / 49 + Math.log(1 + (u / 18.1) ** 3) / 18.7
