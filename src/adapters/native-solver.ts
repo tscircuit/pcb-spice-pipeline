@@ -3,12 +3,13 @@ import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import type { RunSolver, Solver } from '../solver'
+import type { RunSolver, Solver, SolverRequest, SolverResult } from '../solver'
 import { fail } from './diagnostics'
 import { contained, relativeFile } from './paths'
 
 export interface NativeSolverOptions { tools?: Partial<Record<Solver, string>>; timeoutMs?: number }
 const exec = promisify(execFile)
+let nativeTail: Promise<void> = Promise.resolve()
 
 /**
  * Executes only requests passed by the caller; never installs or downloads tools.
@@ -17,7 +18,8 @@ const exec = promisify(execFile)
  */
 export function createNativeSolver({ tools = {}, timeoutMs = 900000 }: NativeSolverOptions = {}): RunSolver {
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) fail('native_timeout', 'timeoutMs must be a positive integer')
-  return async request => {
+  /** Execute one request after the shared native queue grants its slot. */
+  const run = async (request: SolverRequest): Promise<SolverResult> => {
     if (!['fasthenry', 'fastercap', 'ngspice'].includes(request.solver)) fail('native_solver', 'Unknown solver')
     for (const path of [...Object.keys(request.files), ...request.outputFiles]) relativeFile(path)
     const directory = await mkdtemp(join(tmpdir(), 'pcb-spice-'))
@@ -30,7 +32,7 @@ export function createNativeSolver({ tools = {}, timeoutMs = 900000 }: NativeSol
       let run: { stdout: string; stderr: string }
       try {
         run = await exec(tools[request.solver] ?? (request.solver === 'fastercap' ? 'FasterCap' : request.solver), request.args,
-          { cwd: directory, timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, env: { ...process.env, OMP_NUM_THREADS: '1' } })
+          { cwd: directory, timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, env: { ...process.env, OMP_NUM_THREADS: '1', SPICE_ASCIIRAWFILE: '1' } })
       } catch (error) {
         const detail = error as Error & { code?: string | number | null; killed?: boolean; signal?: string; stdout?: string; stderr?: string }
         // execFile's timeout kills with SIGTERM and no exit code. External
@@ -52,4 +54,17 @@ export function createNativeSolver({ tools = {}, timeoutMs = 900000 }: NativeSol
       return { ...run, files }
     } finally { await rm(directory, { recursive: true, force: true }) }
   }
+  return async request => {
+    const previous = nativeTail
+    let release!: () => void
+    nativeTail = new Promise<void>(resolve => {
+      release = resolve
+    })
+    await previous
+    try {
+      return await run(request)
+    }
+    finally { release() }
+  }
+
 }

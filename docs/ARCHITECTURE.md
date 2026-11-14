@@ -1,90 +1,38 @@
-# signal-integrity-pipeline: domain-owned modules, stages as values, verification by types and oracles
+# Signal-integrity pipeline architecture
 
-## Problem
-
-`signal-integrity-pipeline` (formerly `pcb-spice-pipeline`) turns Circuit JSON into native-solver extraction, IBIS buffers, ngspice transients, eyes and DDR checks. Today it is ~3.7k LOC in one flat `src/`. `runPipeline` is an 85-line function that owns every stage and the whole artifact layout. `matrices.mjs` mixes errors, math and parsers and is imported nearly everywhere. Three import cycles exist (`geometry↔copper`, `geometry↔ddr`, `modeling↔general-pipeline`). `Modeling` lives in `geometry.ts`, `PipelineResult` is inferred, error codes are ad-hoc strings, legacy and Node-only code is importable from pure code, and artifact paths are string literals in four files.
-
-Must keep: the public names and signatures (`runPipeline`, `generateReport`, `modelingFromCircuitJson`, `assessDdr`, `resolveDdrAssessments(plans, geometry, configs)`, `stackupFromCircuitJson`, `transmittedBits`, listed types), the `/node` entry with its object-arg signatures, a root entry with no `node:*`, byte-identical output for identical inputs + solver outputs, today's error codes, artifact paths and `geometry.json` shape, and native physics only.
-
-## Usage (caller's view)
-
-Unchanged for callers. Errors become typed.
-
-```ts
-import { runPipeline, generateReport, Diagnostic } from '@tscircuit/signal-integrity-pipeline'
-import { createNativeSolver, loadIbisSources, writePipelineOutput } from '@tscircuit/signal-integrity-pipeline/node'
-
-const result = await runPipeline({
-  circuitJson,
-  ibisSources: await loadIbisSources({ circuitJson, baseDir: projectDir }),
-  runSolver: createNativeSolver({ timeoutMs: 600_000 }),
-  onProgress: console.log,
-})
-await writePipelineOutput({ result, outputDir: 'out/' })
-```
-
-```ts
-try { await runPipeline({ circuitJson, ibisSources, runSolver: cannedSolver(fixtures) }) }
-catch (e) {
-  if (e instanceof Diagnostic && e.code === 'mesh_convergence')   // DiagnosticCode: closed union, same strings as today
-    show(e.domain, e.subjects, e.artifacts)                          // 'extraction', [{kind:'cell',id:'2'}], ['stage-2/fasthenry.stdout.log']
-}
-```
-
-```ts
-// Contributor fixing straightened-stage returns (#49/#53/#54) touches one module and its tests:
-//   src/board/geometry/straightened.ts        the code
-//   tests/board/straightened.oracle.test.ts   fast-check: returns follow pcb_stackup planes; stripline gets both
-//   tests/board/metamorphic.test.ts           translate/mirror the board -> identical cells
-// `pnpm verify` = check:modules + typecheck + test. No JVM.
-```
-
-## Shape
-
-**Modules are directories grouped by what they know.** Each has one public `index.ts`; everything else is unreachable from outside (S2).
-
-| module | owns | artifacts |
-|---|---|---|
-| `kernel` | `Diagnostic` + code registry, `Artifact`/`ArtifactScope`/`ArtifactLedger`, `SafeId`, `sha256` | none (provides the ledger) |
-| `solver` | `RunSolver` port; `invoke()` is the only way to run a solver: result shape, exit code, required outputs, log capture | `<scope>/<solver>.{request.json,stdout.log,stderr.log}` + I/O files |
-| `board` | Circuit JSON admission → `Board`, stackup, port selection, lanes, both reductions as **unmeshed mm copper** | `inputs/circuit.json`, `geometry.json` |
-| `extraction` | meshing (ground mesh, polygon mesh, panel sizing), FastHenry/FasterCap decks, parsers, convergence, reciprocity/passivity/DC-R, linear algebra, RLGC | today's `stage-N/**`, `channel.cir` |
-| `buffers` | IBIS admission, SHA pinning, pinned converter, compiled libs | `vendor-sources.json`, `<exp>/native-ibis-assembly.json`, `<exp>/*.lib` |
-| `simulation` | experiments, node map, probe scope, netlist, ngspice diagnostics, waveform coverage, result records | `electrical-node-map.json`, `experiments/<id>/…` |
-| `observation` | `Signal`, `EyeRequest`, complete-window folding, metrics (leaf) | `<exp>/eyes/**`, `<exp>/eyes.json` |
-| `ddr` | config binding (incl. receiver-pad check against geometry), DQS crossings, capture classification, status rule | none (embedded in eye JSON) |
-| `pipeline` | `PipelineOptions`/`PipelineResult`, composite `Modeling`, `STAGES`, the ledger, `sealResult()` | `inputs/modeling.json`, `circuit-results.json` |
-| `report` | HTML/CSV from a sealed result, bundled client | separate `FileMap` |
-| `adapters` | `/node`: native solver workdir, fs IBIS loading, output writing | disk |
+The public entry consumes Circuit JSON source records from RFC #28. It rejects the
+removed modeling option. `pipeline/signals.ts` groups blocks and derives private
+settings and native declarations. `pipeline/prepared.ts` runs the existing typed
+stage chain after derivation. The lowered transient records are private and never
+appear in the new result Circuit JSON.
 
 ```mermaid
-flowchart BT
-  solver["solver<br/>invoke()"]
-  extraction --> solver & board
-  buffers --> board
-  simulation --> solver & board & extraction & buffers & observation
-  ddr --> board & simulation
-  pipeline --> solver & board & extraction & buffers & simulation & observation & ddr
-  report --> pipeline & board & simulation & ddr
-  adapters["adapters (/node)"] --> solver & board & buffers & pipeline & report
+flowchart LR
+  source["Circuit JSON SI records"] --> derive["pipeline: independent block derivation<br/>buffers: package admission, unlisted-pin hierarchy and passivity"]
+  derive --> board3d["board: 3D copper, layered dielectric and series receiver taps"]
+  board3d --> check{"straight parallel traces,<br/>one rectangular return<br/>with contacts at opposite ends?"}
+  check -->|"yes"| bars["board: extra 2D bar reduction for R/L<br/>C retains physical copper and dielectric"]
+  check -->|"no"| extract
+  bars --> extract["extraction: native R/L and layered C<br/>R/L convergence; signal-block C reciprocity before symmetrization"]
+  derive --> buffers["buffers: vendor models, scalar/coupled pin packages and ideal die rails"]
+  buffers --> simulate["simulation: undisturbed idle, then native transient<br/>independent section and timestep refinement"]
+  extract --> simulate
+  simulate --> observe["observation: adaptive waveform convergence"]
+  observe --> results["pipeline: RFC result records and artifact ledger"]
+  derive -->|"no SI blocks"| results
 ```
-
-Arrows are imports, always downward. Every module also imports `kernel` (Diagnostic, ids, sha256, ledger); those edges are omitted. `check:modules` fails the build on any other edge shape: cycles, deep imports, `node:*` outside `adapters`.
-
-Imports are acyclic and computed, not declared: kernel ← solver ← extraction; kernel ← board ← {extraction, buffers, ddr, simulation}; observation ← {simulation, ddr}; all ← pipeline ← report; adapters import public surfaces. `legacy/` and tsx helpers move to `tests/support/`.
 
 ```mermaid
 stateDiagram-v2
-  direction LR
   [*] --> input
-  input --> admitted: admit
-  admitted --> declared: declare (build 3D copper model)
-  declared --> bound: bind
-  bound --> extracted: extract (mesh 3D copper, solve R, L, C)
-  extracted --> simulated: simulate
-  simulated --> observed: observe
-  observed --> sealed: seal
-  sealed --> [*]
+  input --> admitted: schema, derived settings and valid package matrices
+  input --> sealed: no SI blocks
+  admitted --> declared: 3D copper model (2D bars if straight parallel) and declarations
+  declared --> bound: buffers and local probes
+  bound --> extracted: mesh copper, native R/L/C
+  extracted --> simulated: undisturbed idle, then converged transient
+  simulated --> observed: accepted waveforms
+  observed --> sealed: results and artifacts
   input --> failed
   admitted --> failed
   declared --> failed
@@ -92,68 +40,249 @@ stateDiagram-v2
   extracted --> failed
   simulated --> failed
   observed --> failed
+  sealed --> [*]
   failed --> [*]
-  note right of bound
-    validation line: runSolver unreachable
-    before here (PureContext, Omit<..., 'runSolver'>)
-  end note
 ```
 
-**The pipeline is a typed fold over stage values** (`src/pipeline/{state,stages,run}.ts`). `PipelineState` is a discriminated union `input → admitted → declared → bound → extracted → simulated → observed → sealed`. `STAGES: Chain<typeof stages>` fails to compile if a stage is missing, duplicated or out of order. Before `bound`, a stage receives `PureContext` and the state holds `Omit<PipelineOptions,'runSolver'>`; `run.ts` is the only holder of `runSolver`. "Validate everything before spending solver work" is a compile-time fact, not a reviewed convention.
+Module boundaries remain enforced by `check:modules`: modules import one another
+through their index, never internals; imports are acyclic; only adapters import
+Node facilities. Domain modules return owned artifacts. The pipeline ledger
+rejects path collisions and seals files in sorted order. Blocks have separate
+artifact prefixes.
 
-**Artifact ownership.** Domain modules return `Produced<T> = { value, artifacts }` written through an owner-stamped `ArtifactScope`. The pipeline's `ArtifactLedger` is the only writer of the output `FileMap`; a second write to a path fails `artifact_collision`; `seal()` sorts keys (determinism). Report reads files only through paths the result names; a missing one fails `report_missing_artifact` instead of rendering `undefined`.
+`board` owns physical admission and geometry; `buffers` owns vendor source bytes,
+pin/model selection and package assembly; `extraction` owns meshes, solver decks,
+parsing, passivity and convergence checks; `simulation` owns electrical sources,
+node identity and ngspice; `observation` owns interpolation and convergence.
+`report` reads sealed artifacts. `adapters` supplies explicit filesystem/process IO.
 
-**Error model.** One `Diagnostic` class (`domain`, `code`, `subjects`, `artifacts`, `hint`). Each module declares its codes once with `diagnostics('<dir>', [...] as const)`; codes may be shared across modules. `check-modules` generates the `DiagnosticCode` union from those tuples, and a compat test pins the set to today's raised codes. `fail` stays private to each module. Brands encode admitted states: `Board`, `SafeId`, `ArtifactPath`, `AdmittedBuffers`, `BoundExperiments`; `GeometryCell` is a union over `kind`.
+`buffers/package-model.ts` parses local IBIS package definitions;
+`package-matrix.ts` validates the complete matrices and reduces unused floating
+pins; `coupled-package.ts` emits the coupled lumped pi circuit. Admission runs
+during signal derivation, before extraction. Assembly records selected matrices,
+original self terms, unused pins, merged rail associations and the termination policy.
+Unlisted pins follow the IBIS scalar hierarchy or implicit merged rail bus rules.
+Core only checks declaration/model bindings, capabilities and routing. The converter still
+supplies die buffers with its package omitted; the pipeline must then realize
+the selected vendor package. See [the electrical contract](coupled-package-model.md).
 
-## Verification
+Tests use TSX for board reproductions. Numerical convergence oracles use analytic
+waveforms; those synthetic waveforms are never claimed as native solver evidence.
+Tests for the removed straightened-stage, legacy fold and DDR assessment paths were deleted. New shared schemas validate every public result. The RFC intentionally changes the public entry, records and artifact paths.
 
-No TLA+. Nothing in this library is concurrent: stages run in order, experiments run one at a time, and no state is shared. TLA+ earns its cost on interleavings, and there are none. During the earlier pass the specs mostly restated their own guards, and a mutant that silently dropped eye windows passed the Observation spec. Each rule now lives in the cheapest tool that actually catches it being broken.
+R/L use the signal-minus-return loop transform. C and G use the ground-referenced primitive signal blocks, with all GND pours and GND-connected conductors held at 0 V. The raw C signal block must pass max|C−Cᵀ|/max|C| ≤ 2.5% before (C+Cᵀ)/2 is passed to the symmetric capacitor writer; records contain total matrices indexed by physical conductors, with P/N entries for differential signals. Dielectric loss is currently zero, so G is the signal block of a zero primitive matrix. The transient uses first-order Gear, tight IBIS tolerances, adaptive native samples, and independent time/section refinement. Each probe must pass both integrated RMS and signed peak tolerances (1% + 1 mV). A failure produces no accepted waveforms.
 
-| What must hold | Enforced by |
+The runtime imports the shared circuit-json schemas. Local validation must build the sibling RFC branch until circuit-json#983 is released. No absolute local dependency links are committed. TSX tests and examples use the built core directly.
+
+Core#5286 emits JLC preset plating (0.018 mm), preserving explicit imported stackup plating. The native runner uses real core. RFC pours now request ground escape routing with `unbroken`; the differential example uses manual paths and retains its original autorouter reproduction. Degree-two copper paths are joined for native extraction, with intermediate receiver pins exposed at their physical arc-length fractions in the uniform pi model. Branches and cycles remain unsupported. The native capacitance deck models each declared dielectric slab and air outside; conductor/dielectric contacts are emitted once. Numerical acceptance, including reciprocity, remains mandatory. See `native-signal-levels.md` for accepted and rejected evidence.
+
+## 2D extraction and routed candidate
+
+`extraction/cross-section.ts`, exported by `extraction/index.ts`, owns a separate
+quasi-TEM numerical interface. It consumes rectangles, infinite solid references,
+and dielectric/mask slabs and returns per-unit-length C/C0/L and frequency-dependent
+R/G. The staged `RoutedPipelineSolver` now consumes it; see
+[routed 2D candidate and execution blockers](routed-2d.md). It is not wired into
+the public stage chain above. The root API, 3D extraction,
+artifact paths and simulation behaviour remain unchanged. The routed root owns its own single ledger fold after all block stages complete. See
+[method, validation and the DDR3 slice demo](2d-cross-section.md).
+
+```mermaid
+flowchart LR
+  section[Rectangular cross-section and material slabs] --> regions[Split at solid reference planes]
+  regions --> fields[Boundary-element material and vacuum solves]
+  fields --> capacitance[C and C0]
+  capacitance --> inductance[External L from inverse C0]
+  fields --> dielectric[Analytic material-energy sensitivity]
+  regions --> walls[Two vacuum wall perturbations]
+  walls --> skin[Wheeler skin-loss matrix]
+  dielectric --> result[Per-unit-length matrices and frequency sampler]
+  skin --> result
+  inductance --> result
+  result --> routed[Opt-in routed candidate: arc-cell energies and causal ladders]
+  routed --> pilot[Bounded native pilot and failure evidence]
+```
+
+## Routed coupling and optional finite-return experiments
+
+`board` admits candidate nets within 32 mm for routed 2D. `extraction/route-coupling.ts`
+solves parallel pairs before assembling final cross-sections; either normalized
+mutual C or L at least 0.5% retains the pair. The cap, 40-conductor guard and
+omissions are recorded. This does not alter the public 3D scope.
+`extraction/route-return.ts` optionally extracts two serial FastHenry R/L meshes
+from the existing two-contact 3D geometry, without native C. `simulation/route-ladder.ts`
+adds its passive shared-return closure or replaces series magnetics with full
+3D loop R/L. Both modes are explicit unqualified hybrids; they are not automatic
+fallbacks or substitutes for a multi-contact return.
+
+```mermaid
+flowchart LR
+  board[Physical routed copper] --> cap[Board candidate-net admission and reference slicing]
+  cap --> pair[Extraction solved parallel pair screen]
+  pair --> field[Extraction retained 2D cross-sections]
+  field --> ladder[Simulation route-arc energy assembly]
+  board -->|optional| magnetic[Extraction serial 3D R/L meshes and checks]
+  magnetic --> hybrid[Explicit closure or full magnetic hybrid]
+  hybrid --> ladder
+  ladder --> native[Guarded serial native transient]
+  native --> compare[Full native-union comparisons and unqualified verdict]
+```
+
+## Inspectable routed compiler
+
+Stage classes live with their domain knowledge. Root admission calls
+`prepareBlockById`, also used by `prepareBlocks`, once per SI block. Each admitted
+block is passed through the same six static top-level stages. The entire
+`pipelineDef` exists before admission starts; no step creates stages at runtime.
+`RoutedStageSolver` steps each domain algorithm across all admitted blocks in
+order, one domain item per step, and publishes an immutable array in admission
+order. It is a `BaseSolver`, with no nested pipeline or child debugger rows.
+The single `routedStages` tuple supplies the debugger order, tests, artifact
+manifest and generated docs below.
+Regenerate with `pnpm exec tsx scripts/document-routed-stages.ts`.
+
+<!-- routed-stages:start -->
+| # | Stage solver |
 |---|---|
-| Stage order; no solver before validation; admitted-before-use | Types: `Chain<>`, `PureContext`, brands |
-| Module fences: no unowned code, index-only imports, acyclic, `node:*` only in adapters | `check-modules` S1–S6 (from the filesystem and import graph) |
-| Every module tested; every declared code raised by some test | `check-modules` M2–M3 |
-| Single writer, sealed is final, sorted output | `tests/kernel/index.test.ts` |
-| Temp dir always removed; timeout kills; only requested outputs read | `tests/adapters/native-solver.test.ts`: fault injection at each step |
-| Geometry, meshing, extraction numerics (#44 #46 #49 #53 #54) | `fast-check` properties vs exact oracle; metamorphic tests (translate, mirror, mesh halving converges); existing `scripts/verification` audits |
-| Eye folding keeps every complete window | Oracle: brute-force window enumeration vs closed-form fold |
-| DDR status rule | Exhaustive decision-table test (small finite input space) |
-| Public API, codes, artifact paths, byte determinism | `tests/compat/`: export snapshot, code-set equality, path snapshot, golden bytes on canned fixtures run twice |
-| Real solver behaviour | Existing `test:native` suite (optional, env-gated) |
+| 1 | RoutedAdmissionSolver |
+| 2 | RouteSectionsSolver |
+| 3 | RouteFieldsSolver |
+| 4 | RouteBindingsSolver |
+| 5 | RouteNetworkSolver |
+| 6 | RouteTransientSolver |
 
-## Synthesis decision
+```mermaid
+flowchart LR
+  s0["RoutedAdmissionSolver<br/>Admit one SI block per step"]
+  s1["RouteSectionsSolver<br/>All admitted blocks, one item per step"]
+  s2["RouteFieldsSolver<br/>All admitted blocks, one item per step"]
+  s3["RouteBindingsSolver<br/>All admitted blocks, one item per step"]
+  s4["RouteNetworkSolver<br/>All admitted blocks, one item per step"]
+  s5["RouteTransientSolver<br/>All admitted blocks, one item per step"]
+  s0 --> s1
+  s1 --> s2
+  s2 --> s3
+  s3 --> s4
+  s4 --> s5
+  s5 <-->|"await RunSolver"| engine["local native ngspice"]
+```
 
-Base: candidate A (domain-owned modules, typed stage chain). Taken from candidate B: derive spec↔code agreement from the source rather than from lists (now applied to code sets and module tests). Rejected from B: the content-addressed result cache (conflicts with "no cached result replaces native physics", and a forgotten version bump means stale extraction); the five-package workspace (the `exports` map plus S2 already fence internals); the generic DAG engine (seven stages and one fan-out fit a typed fold). A counter-review then fixed three blockers: `runSolver` reachable before validation, meshing put in `board`, and invented or renamed error codes. TLA+ was removed after review (see Verification).
+```mermaid
+stateDiagram-v2
+  [*] --> RoutedAdmissionSolver
+  RoutedAdmissionSolver --> RouteSectionsSolver: all blocks completed
+  RouteSectionsSolver --> RouteFieldsSolver: all blocks completed
+  RouteFieldsSolver --> RouteBindingsSolver: all blocks completed
+  RouteBindingsSolver --> RouteNetworkSolver: all blocks completed
+  RouteNetworkSolver --> RouteTransientSolver: all blocks completed
+  RouteTransientSolver --> [*]
+  RoutedAdmissionSolver --> failed
+  RouteSectionsSolver --> failed
+  RouteFieldsSolver --> failed
+  RouteBindingsSolver --> failed
+  RouteNetworkSolver --> failed
+  RouteTransientSolver --> failed
+  failed --> [*]
+```
+<!-- routed-stages:end -->
 
-## Tradeoffs accepted
+`RouteFieldsSolver` owns its geometry-keyed BEM cache; completed snapshots contain
+numeric coefficients without Maps or frequency callbacks. `routedSimulation`,
+its bulk `extractRoutes` loop and caller-owned field cache are deleted. Segmentation
+and ladder generators retain one canonical algorithm, also drained by existing
+numerical primitive callers. Network stepping creates one route run's cells;
+its final step assembles the coupled global matrices, oblique/via terms and deck.
+One BEM solve is atomic. The 40-conductor limit remains enforced. Route-arc
+energies store only nonzero entries integrated from common slices, capped at
+500,000 entries across R/L/skin/C/dielectric matrices. A non-dominant shunt
+requiring dense modal realization separately caps its allocation at 500,000
+entries. Neither guard depends on a raw 1,024-cell limit.
 
-- We accept no formal model of the pipeline protocol, in exchange for no JVM in CI and no spec-drift machinery. The protocol rules are enforced by types instead, and those are checked on every compile.
-- We accept `simulation` importing `observation` types, in exchange for `observation` staying a leaf with no imports.
-- We accept that the public `Modeling` is an intersection of slices each domain owns, in exchange for no caller churn.
-- We accept writing oracle tests per domain module, in exchange for catching the numeric bug classes the open issues actually report.
+Coupled series resistance uses a normalized reciprocal multiport. For
+`S = diag(sqrt(Rii))`, its auxiliary node voltages are `x = S I`, its
+unit-diagonal conductance matrix is `S^-1 R S^-1`, and opposite VCCS stamps
+enforce `V = R I`. This congruence preserves signed mutual resistance and
+passivity without dense inversion. Uncoupled rows use ordinary resistors.
+The former zero-volt sensors and series CCVS chains lost numerical accuracy
+at near-zero Foster voltages on large, weakly anchored neighbour networks.
+Replacing that realization deliberately changes routed deck bytes and their
+pins; field coefficients, loss poles, topology and solver tolerances stay fixed.
 
-## Alternatives considered
+Causal skin loss is one coupled layer, not nine. Every Foster pole scales the
+same matrix, so `Z(s) = z(s) S`. Rows without mutual terms keep scalar R || L pole
+stages. Coupled rows share one normalized multiport: a series VCCS carries
+`I = x / sqrt(Sii)`, the auxiliary KCL is `sum_j Sn_ij u_j = V / sqrt(Sii)`, and a
+grounded unit Foster stage sequence gives `u = z(s) x`. The former per-pole multiports
+and `K` layers stacked nine copies of the coupling graph, which caused 8.9M LU fill
+on the DDR3 deck. Those auxiliary rows have no diagonal, so routed decks set
+`pivrel=0.1`. `klu_refactor` reuses the pivots chosen on the first transient
+iteration, and the default `1e-3` lets the first time point fail. Measurements are in
+`docs/research/ngspice-step-profile.md`.
 
-- **Stage-per-module layout** (`stages/01-admit.ts` with a shared context): temporal decomposition. The geometry and modeling invariants would be spread across stages. Rejected on interface depth.
-- **Package-fenced dataflow graph** (candidate B): a deeper engine, but it adds a cache the README forbids and four internal packages to maintain.
-- **TLA+ for every module, with trace validation**: built and model-checked, then removed. Most specs restated guards, the trace mapping was computed by the code under test, and it needed a JVM toolchain. It caught nothing the types and oracles don't.
+Completed domain values are copied and frozen. Only the root folds the six stages'
+`Produced` artifacts into `ArtifactLedger`; runtime timings stay in `stats`.
+Original assumptions, coupling decisions, reference omissions, external ports,
+model provenance, node maps, via/oblique policies and deck evidence remain visible.
 
-## Open questions and risks
+The site's `Step` input starts at 0 for the initial board, then synchronizes to
+stages 1–6, matching table rows 01–06. Entering a number
+selects that retained stage until the next pipeline advance. Each flat stage
+retains its last completed block's domain solver and final drawing; selecting
+an earlier stage never recomputes it. Each domain solver draws its physical input
+before its first step. Stage wrappers construct that domain solver when admitted,
+and root transitions preview the incoming immutable input before the next step.
+Fields preview the first physical cross-section without solving coefficients.
+Pending transients show the board with probe marks and empty plot axes; curves
+appear only after complete samples arrive. Future stages whose inputs are
+incomplete draw the selected copper in neutral grey, and a problem with no admitted
+blocks shows the whole board with one quiet line. Values outside 0–6 are clamped silently; clicking
+a table row also selects that stage. Selection lives in fixture component state.
+The page starts with this input and the debugger; local asset loading remains,
+while only blocking load, backend and solver errors appear inline.
 
-- DDR: today a strobe-gate failure turns the overall status into `not-evaluated`. Is that intended, or should a violation always win? The decision-table test will pin whichever behaviour you choose.
-- PR #22 adds FastHenry retries. Should `solver.invoke` allow N retries with each attempt's logs recorded, or should a retry stay a caller concern?
-- `RoutedCopperMm` must match today's `routedCopper` JSON exactly. Its shape needs to be copied from `copper.ts` before board moves.
+Every stage draws in board millimetres, y up, inside one fixed camera per problem
+(`routeView`): the selected copper and its endpoint parts (a large package only near
+the copper), plus a pane slot on the side that brings the camera nearest 1.6:1. Every
+stage and every failure shares that camera; failure reasons are written in the pane.
+Nets are coloured by electrical connectivity, one hue per net, and a differential
+channel's two legs are two shades of one hue. Channels, bit periods and pairs come from
+`simulation_signal` records, or from an admitted block's `simulation_digital_stimulus`
+records. Copper keeps its real width, and its layer is in the stroke: top solid, inner
+layers hollow, bottom dimmed. Each stage draws what it produced:
 
-## Staged migration (open PRs keep landing)
+| Stage | Board | Pane |
+|---|---|---|
+| Admission | selected nets, drivers as dots, receivers as rings | each net's routed length, to scale |
+| Sections | sections in two tones of the net's hue, the route cut this step cased white, uncut copper grey | the same partition unrolled per net |
+| Fields | solved copper coloured by Z0, an amber cut at the slice on screen | that slice's stack at one mm scale, Z0 of selected conductors, coupling bands sized by k, the Z0 scale |
+| Bindings | bound parts outlined, ▶ at drivers and ◁ at receivers along the trace | each bound net with its buffer glyphs |
+| Network | coupling bands between parallel sections (width grows with k), cell ticks, modelled vias | cells and coupling unrolled per net |
+| Transient | probe marks | an eye folded every two bit periods when the capture is long, else the window from the first activity; IBIS Vinl–Vinh of single-ended receivers as a band; above six far-end probes an envelope plus the worst curve; amber hatching while ngspice runs |
 
-1. Add `kernel/diagnostic` with the typed `Diagnostic`, and re-export it from the old paths. No moves.
-2. Break the three import cycles.
-3. Land `check-modules` + `tests/compat/` with every module in `tools/exemptions.json` (30-day expiry).
-4. Merge or rebase the meshing PRs (#45, #47, #4) **before** `copper.ts` is split.
-5. Move one module per PR, leaves first: kernel → solver → observation → ddr → buffers → board → extraction → simulation → report → pipeline → adapters. Each PR removes its own exemption and adds its tests.
-6. Delete the re-export shims, and move `legacy/` and the tsx helpers to `tests/support/`.
+Only Z0 values, axis ticks, strip names and lengths, and a failure reason are written;
+silkscreen text never reaches the picture. Every net, mark and curve carries its net
+label, so the site can link them on hover.
 
-## Next implementation step
+`src/board/board-picture.ts` puts the real board under that drawing. `circuit-to-svg`
+renders a dimmed top view (soldermask, pads, silkscreen lines) of only the records
+near the camera, through a `viewport` equal to it. The overlay is graphics-debug's own
+SVG, cropped by `viewBox` to the camera frame it finds in that SVG, so objects outside
+the camera never move it. Both layers are letterboxed in the same box. The site
+stacks the two layers; ctrl/⌘ + wheel zooms 1–20× and dragging pans, and after a
+pause the visible region is re-rendered with labels at the same size. Hovering a
+labelled object dims the others and names it. Stage drawings are cached per solver
+state. Only the site, scripts and tests import the module, so `circuit-to-svg` stays a
+development dependency outside the library bundle. Display sampling caps object counts;
+numerical inputs and native samples remain complete.
 
-Write `tests/compat/` (export snapshot, code set, artifact-path snapshot, golden bytes) against today's `main`. That suite becomes the safety net for every later move.
+`RouteTransientSolver` awaits one `solver.invoke` call in `_stepAsync`. Its
+self-contained `.save` + `.tran` deck keeps KLU and Gear in native batch ngspice.
+Native batch emits ASCII raw vectors (`SPICE_ASCIIRAWFILE=1`). Diagnostics, finite
+samples, start and final simulated time are checked before publishing a capture.
+Errors leave the stage failed without partial output. Native adapter instances
+share a process queue and set OMP_NUM_THREADS=1. Large DDR3 transients remain
+unverified. Completion is candidate evidence without independent convergence
+qualification. `runPipeline` and the 3D path are unchanged.
+
+Async stepping uses solver-utils PR #62 at `127f17012c7c391005254993864b26801f418249`
+through an integrity-locked pkg.pr.new URL. Switch to a release after #62 ships.

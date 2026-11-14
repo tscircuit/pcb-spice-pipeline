@@ -1,0 +1,106 @@
+[
+  {
+    "coupled": false,
+    "refinement": 0,
+    "seconds": 6.835,
+    "request_sha256": "39c7caeee512638f5a9031e58697137eddbf0ed89e33f165c2325bd557135d2b",
+    "matrix": [
+      [
+        1.5212e-12,
+        -1.06686e-12
+      ],
+      [
+        -1.4511000000000001e-12,
+        2.8781e-12
+      ]
+    ],
+    "reciprocity": 0.13350474271220603,
+    "grounded_diagonal_pf_per_m": [
+      38.029999999999994
+    ],
+    "auto_residual": 0.0125243,
+    "dielectric_panels": 9606
+  },
+  {
+    "coupled": false,
+    "refinement": 1,
+    "seconds": 7.346,
+    "request_sha256": "804fb5a3c9c2337fa7855e4845ac37a8a483ce3a647d21bc2211b6dd8f17b7b7",
+    "matrix": [
+      [
+        1.5185500000000002e-12,
+        -1.0699600000000002e-12
+      ],
+      [
+        -1.4543300000000001e-12,
+        2.8899300000000004e-12
+      ]
+    ],
+    "reciprocity": 0.13300322153131733,
+    "grounded_diagonal_pf_per_m": [
+      37.963750000000005
+    ],
+    "auto_residual": 0.0125071,
+    "dielectric_panels": 38616
+  },
+  {
+    "coupled": true,
+    "refinement": 0,
+    "seconds": 5.402,
+    "request_sha256": "1423de525da1e241bad24d9265163764f2162789c17f3a0c62d92abfddb7d631",
+    "matrix": [
+      [
+        1.6432200000000001e-12,
+        -4.56784e-13,
+        -8.13225e-13
+      ],
+      [
+        -4.55981e-13,
+        1.6442399999999999e-12,
+        -8.09127e-13
+      ],
+      [
+        -1.15161e-12,
+        -1.14928e-12,
+        3.4528900000000002e-12
+      ]
+    ],
+    "reciprocity": 0.09851255035636812,
+    "grounded_diagonal_pf_per_m": [
+      41.0805,
+      41.106
+    ],
+    "auto_residual": 0.0099034,
+    "dielectric_panels": 14416
+  },
+  {
+    "coupled": true,
+    "refinement": 1,
+    "seconds": 6.187,
+    "request_sha256": "847f042f2128357f00e6beb4c93cac9a982b086861d28bf25aec2e32016149f2",
+    "matrix": [
+      [
+        1.63796e-12,
+        -4.6842e-13,
+        -8.22912e-13
+      ],
+      [
+        -4.51592e-13,
+        1.68545e-12,
+        -8.144319999999999e-13
+      ],
+      [
+        -1.14788e-12,
+        -1.1767e-12,
+        3.46941e-12
+      ]
+    ],
+    "reciprocity": 0.10441775402734185,
+    "grounded_diagonal_pf_per_m": [
+      40.949000000000005,
+      42.136250000000004
+    ],
+    "auto_residual": 0.0121801,
+    "dielectric_panels": 57856
+  }
+]

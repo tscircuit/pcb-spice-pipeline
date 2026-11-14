@@ -2,7 +2,7 @@ import type { DiagnosticCode, DomainName } from '../modules.generated'
 
 /** What the diagnostic is about, so messages (#51, #52) can name records, not just say "failed". */
 export interface DiagnosticSubject {
-  kind: 'record' | 'lane' | 'cell' | 'experiment' | 'probe' | 'eye' | 'model' | 'artifact' | 'option' | 'solver'
+  kind: 'record' | 'lane' | 'cell' | 'experiment' | 'probe' | 'model' | 'artifact' | 'option' | 'solver'
   id: string
 }
 export interface DiagnosticInit {

@@ -24,7 +24,7 @@ export interface Produced<T> {
 /**
  * A directory a module is allowed to write under, stamped with the owning module.
  * Modules build paths only through a scope; the pipeline hands scopes down
- * (e.g. simulation gets `experiments/<id>`, then hands observation `experiments/<id>/eyes/<eyeId>`).
+ * (e.g. simulation gets `experiments/<id>`, then records numerical convergence under that experiment).
  */
 export interface ArtifactScope {
   readonly owner: DomainName

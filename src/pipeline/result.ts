@@ -4,25 +4,14 @@ import type { ChannelMatrices } from '../extraction'
 import type { RunSolver } from '../solver'
 import type { IbisSources, AssemblyEntry } from '../buffers'
 import type { SimulationPlan, VoltageProbePlan } from '../simulation'
-import type { EyeResult } from '../observation'
-import type { DdrAssessment } from '../ddr'
-import type { PipelineModeling } from './modeling'
+import type { NumericalSettings } from './modeling'
 
-export interface PipelineOptions {
+export interface PreparedOptions {
   circuitJson: CircuitJson
-  modeling?: PipelineModeling
+  modeling: NumericalSettings
   ibisSources: IbisSources
   runSolver: RunSolver
   onProgress?: (message: string) => void
-}
-
-/**
- * One `experiments/<id>/eyes/<eyeId>/eye-data.json` descriptor (and `eyes.json` entry): observation's
- * EyeResult with ddr's assessment embedded when the eye is DDR-aligned. Its CSV lives at
- * `${experiment.directory}/${eye.directory}/eye-data.csv` in PipelineResult.files.
- */
-export interface EyeDescriptor extends EyeResult {
-  readonly ddrAssessment?: DdrAssessment
 }
 
 /** One PipelineResult.experiments[] entry. Field set and serialized key order are today's. */
@@ -37,8 +26,7 @@ export interface ExperimentResult {
   startTimeSeconds: number
   maxStepSeconds: number
   probes: VoltageProbePlan[]
-  eyes: EyeDescriptor[]
-  solverInvocations: 1
+  solverInvocations: number
   waveformSamples: number
   assembly: AssemblyEntry[]
   /** `experiments/<id>/native-ibis-assembly.json`. */
@@ -46,10 +34,10 @@ export interface ExperimentResult {
 }
 
 /** Designed explicitly (was Awaited<ReturnType<typeof runPipeline>>). Same field names, order and shapes as today. */
-export interface PipelineResult {
+export interface PreparedResult {
+  idleVoltages?: number[]
   circuitJson: CircuitJson
-  simulationResultCircuitJson: CircuitJson
-  modeling: PipelineModeling
+  modeling: NumericalSettings
   geometry: ChannelGeometry
   matrices: ChannelMatrices
   experiments: ExperimentResult[]
@@ -57,3 +45,35 @@ export interface PipelineResult {
   /** Sealed ledger: sorted keys, byte-identical for identical inputs + solver outputs. */
   files: FileMap
 }
+
+/** Circuit JSON is the only electrical input; sources and solver are IO ports. */
+export interface PipelineOptions {
+  circuitJson: CircuitJson
+  ibisSources: IbisSources
+  runSolver: RunSolver
+  onProgress?: (message: string) => void
+}
+export interface PipelineBlockResult {
+  duration_s: number
+  simulation_signal_integrity_id: string
+  name: string
+  geometry: ChannelGeometry
+  matrices: ChannelMatrices
+  experiments: ExperimentResult[]
+  numericalSettings: NumericalSettings
+  results: import('../board').SignalResult[]
+  limitations: string[]
+}
+export interface PipelineResult {
+  circuitJson: CircuitJson
+  simulationResultCircuitJson: CircuitJson
+  blocks: PipelineBlockResult[]
+  geometry?: ChannelGeometry
+  matrices: ChannelMatrices
+  experiments: ExperimentResult[]
+  limitations: string[]
+  files: FileMap
+}
+
+/** Historical type name retained for consumers; fields follow the RFC. */
+export type BlockResult = PipelineBlockResult

@@ -6,12 +6,11 @@ import { rootScope, type Produced } from '../../src/kernel'
 import type { SolverRequest, SolverResult } from '../../src/solver'
 import { geometryFromCircuitJson, type Modeling } from '../../src/board'
 import { extractChannel, parseFastHenry, parseFasterCap, validateMatrix, meshPolygon, channelSpice, type ExtractedChannel } from '../../src/extraction'
-import { consistentSolver, type Tweak } from './solvers'
+import { barFixture, consistentSolver, type Tweak } from './solvers'
 
 /** Loads a JSON fixture from tests/fixtures; the caller's declared type says what it holds. */
 const read = <T>(name: string): T => JSON.parse(readFileSync(new URL(`../fixtures/${name}`, import.meta.url), 'utf8'))
-const modeling: Modeling = read('straight.modeling.json')
-const geometry = geometryFromCircuitJson(read('straight.circuit.json'), modeling)
+const { geometry, modeling } = barFixture()
 /** Asserts that f throws a diagnostic with this code (and, if given, a matching message). */
 const rejects = (f: () => unknown, code: string, message?: RegExp): void => assert.throws(f, (e: { code?: string; message: string }) => {
   assert.equal(e.code, code)
@@ -35,9 +34,9 @@ test('the canned solver passes every check on the straight board', async () => {
 
 test('parsers reject malformed native output', () => {
   rejects(() => parseFastHenry(''), 'fasthenry_output', /No frequency matrices in Zc\.mat/)
-  rejects(() => parseFastHenry('Impedance matrix for frequency = 1 5 x 5\n'), 'fasthenry_ports', /One to three signals/)
+  rejects(() => parseFastHenry('Impedance matrix for frequency = 1 1 x 1\n'), 'fasthenry_ports', /At least one signal/)
   rejects(() => parseFasterCap(''), 'fastercap_output', /No 3D capacitance matrix/)
-  rejects(() => parseFasterCap('Capacitance matrix is:\nDimension 5 x 5\ng 1\n'), 'fastercap_ports', /Expected 2x2, 3x3 or 4x4/)
+  rejects(() => parseFasterCap('Capacitance matrix is:\nDimension 1 x 1\ng 1\n'), 'fastercap_ports', /at least two conductors/)
   rejects(() => validateMatrix([[1, 2]], 'X'), 'matrix_format', /X: finite square matrix required/)
   rejects(() => validateMatrix([[0]], 'X'), 'matrix_zero', /X/)
   rejects(() => meshPolygon([[[0, 0], [1, 0], [1, 1]]], () => 0), 'copper_surface', /panel size must be finite and positive/)
@@ -52,15 +51,15 @@ test('native results that fail a physical check never produce matrices', async (
   await solverRun.rejects({}, 'cap_convergence', /FasterCap did not report converged automatic refinement/, { ...modeling, extraction: { ...modeling.extraction, capTolerance: 1e-4 } })
 })
 
-test('underflowing capacitance fails the neutral charge/energy reconstruction', async () => {
+test('nonfinite grounded energy reconstruction is rejected', async () => {
   const base = consistentSolver(geometry, modeling)
-  /** The canned solver, but with every FasterCap capacitance shrunk until it underflows. */
+  /** The canned solver with finite capacitance entries whose test-voltage energy overflows. */
   const tiny: typeof base = async (request: SolverRequest): Promise<SolverResult> => {
     const out = await base(request)
-    return request.solver === 'fastercap' ? { ...out, stdout: out.stdout.replace(/e-12\b/g, 'e-170') } : out
+    return request.solver === 'fastercap' ? { ...out, stdout: out.stdout.replace(/4e-12\b/g, '1.5e308').replace(/-1e-12\b/g, '-1e307') } : out
   }
   await assert.rejects(extractChannel(geometry, modeling, rootScope('extraction'), { runSolver: tiny, progress: () => {} }),
-    { code: 'reference_energy', message: 'reference_energy: Neutral finite-return charge/energy reconstruction failed' })
+    { code: 'reference_energy', message: 'reference_energy: Grounded-return energy reconstruction failed' })
 })
 
 test('channel.cir needs 1..128 sections; a hole outside its outline is not a meshable copper ring', () => {

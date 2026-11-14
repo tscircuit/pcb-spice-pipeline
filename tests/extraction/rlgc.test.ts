@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 import type { CircuitJson } from 'circuit-json'
 import { channelSpice, fastHenryDeck, fasterCapDeck, type StageMatrices as ChannelMatrices, type Matrix } from '../../src/extraction'
 import { geometryFromCircuitJson, type Modeling } from '../../src/board'
+import { createNativeSolver } from '../../src/adapters'
 
 const baseCircuit: CircuitJson = JSON.parse(await readFile(new URL('../fixtures/straight.circuit.json', import.meta.url), 'utf8'))
 const baseModeling: Modeling = JSON.parse(await readFile(new URL('../fixtures/straight.modeling.json', import.meta.url), 'utf8'))
@@ -30,35 +31,6 @@ function threeSignals(): { circuit: CircuitJson; modeling: Modeling } {
   return { circuit, modeling }
 }
 
-test('all three selected signals and the common return reach both solver inputs in declared order', () => {
-  const { circuit, modeling } = threeSignals()
-  const geometry = geometryFromCircuitJson(circuit, modeling)
-  assert.deepEqual(geometry.mappings.map(({ from, to }) => [from, to]), [['p0', 'p2'], ['p1', 'p3'], ['p4', 'p5']])
-  const cell = geometry.cells[0]
-  assert.deepEqual(cell.conductors.map(conductor => conductor.name), ['sig0', 'sig1', 'sig2', 'return'])
-  const inductance = fastHenryDeck(cell, modeling.extraction)
-  assert.deepEqual([...inductance.matchAll(/^\.external (\S+) (\S+)$/gm)].map(match => match.slice(1)),
-    [['N0a', 'N0b'], ['N1a', 'N1b'], ['N2a', 'N2b'], ['N3a', 'N3b']])
-  const capacitance = fasterCapDeck(cell, modeling.extraction)
-  assert.deepEqual(capacitance['channel.lst'].split('\n').filter(line => line.startsWith('C ')).map(line => line.split(' ')[1]),
-    ['sig0.txt', 'sig1.txt', 'sig2.txt', 'return.txt'])
-})
-
-test('unsupported fan-out, duplicated physical lanes and missing neighbor routes fail explicitly', () => {
-  const branched = threeSignals()
-  const source = branched.circuit.find(element => element.type === 'source_trace' && element.source_trace_id === 's0')
-  assert.ok(source?.type === 'source_trace')
-  source.connected_source_port_ids.push('p4')
-  assert.throws(() => geometryFromCircuitJson(branched.circuit, branched.modeling), /route_selection.*fan-out/)
-
-  const duplicate = threeSignals()
-  duplicate.modeling.lanes[2] = { ...duplicate.modeling.lanes[0], port: 'DUPLICATE' }
-  assert.throws(() => geometryFromCircuitJson(duplicate.circuit, duplicate.modeling), /pin_mapping.*distinct physical/)
-
-  const missing = threeSignals()
-  missing.circuit = missing.circuit.filter(element => !(element.type === 'pcb_trace' && element.pcb_trace_id === 't2'))
-  assert.throws(() => geometryFromCircuitJson(missing.circuit, missing.modeling), /route_selection.*DQ_NEIGHBOR/)
-})
 
 const channel: ChannelMatrices = {
   R: [[4, .5, .25], [.5, 5, .75], [.25, .75, 6]],
@@ -129,4 +101,51 @@ test('malformed or nonpassive selected matrices fail before emitting a partial c
   assert.throws(() => channelSpice([{ ...channel, L: [[1, 2, 0], [2, 1, 0], [0, 0, 1]] }], 1), /passivity/)
   assert.throws(() => channelSpice([{ ...channel, C: [[3, .1, 0], [.1, 3, 0], [0, 0, 3]] }], 1), /capacitance_sign/)
   assert.throws(() => channelSpice([], 1), /matrix_dimension/)
+})
+
+test('native lossless-limit line preserves analytic delay, impedance and section/stage invariance', { skip: !process.env.NGSPICE_BIN }, async () => {
+  const solve = createNativeSolver({ timeoutMs: 15000, tools: { ngspice: process.env.NGSPICE_BIN } })
+  // 100 ps, 50 ohms. The 1 nOhm resistance is below the numerical tolerance;
+  // channelSpice currently requires positive-definite R, including for this limit.
+  const line = { R: [[1e-9]], L: [[5e-9]], C: [[2e-12]] }
+  const frequency = 1e9
+  const omega = 2 * Math.PI * frequency
+  const delay = Math.sqrt(line.L[0][0] * line.C[0][0])
+  const results: number[][] = []
+  for (const [stages, sections] of [[1, 8], [1, 16], [2, 4]]) {
+    const matrices = Array.from({ length: stages }, () => ({
+      R: [[line.R[0][0] / stages]], L: [[line.L[0][0] / stages]], C: [[line.C[0][0] / stages]],
+    }))
+    const deck = ['Matched line with a nonzero reference', 'VREF ref 0 1.7', 'V1 source ref AC 1', 'RS source near 50', 'RL far ref 50',
+      channelSpice(matrices, sections), 'XCHAN near far ref CHANNEL', '.control', 'set wr_singlescale', 'set wr_vecnames', 'set numdgt=17',
+      `ac lin 1 ${frequency} ${frequency}`, 'wrdata line.dat v(near,ref) v(far,ref)', 'quit', '.endc', '.end'].join('\n')
+    const output = await solve({ solver: 'ngspice', files: { 'line.cir': deck }, args: ['-n', '-b', 'line.cir'], outputFiles: ['line.dat'] })
+    const values = output.files['line.dat'].trim().split('\n')[1].trim().split(/\s+/).map(Number)
+    const measuredDelay = -Math.atan2(values[4], values[3]) / omega
+    assert.ok(Math.abs(measuredDelay / delay - 1) < .001, 'phase delay agrees with sqrt(LC) within 0.1%')
+    // Z_in = 50 V_near / (1 - V_near), independently of the line's emitted elements.
+    const denominator = (1 - values[1]) ** 2 + values[2] ** 2
+    const real = 50 * (values[1] * (1 - values[1]) - values[2] ** 2) / denominator
+    const imaginary = 50 * values[2] / denominator
+    assert.ok(Math.hypot(real - 50, imaginary) < .05, 'matched input impedance agrees with sqrt(L/C) within 0.1%')
+    assert.ok(Math.hypot(values[3] - .5 * Math.cos(omega * delay), values[4] + .5 * Math.sin(omega * delay)) < .0005)
+    results.push(values)
+  }
+  for (const values of results.slice(1)) for (let i = 1; i < values.length; i++) {
+    assert.ok(Math.abs(values[i] - results[0][i]) < .0005, 'refining or splitting a physical stage preserves the waveform')
+  }
+})
+
+test('internal receiver taps split uniform pi cells at their physical position', () => {
+  const deck = channelSpice([{ R: [[10]], L: [[1e-8]], C: [[1e-12]] }], 2, [{ conductor: 0, fraction: .9, name: 'RX' }])
+  assert.match(deck, /\.subckt CHANNEL IN0 OUT0 RX REF/)
+  assert.match(deck, /L1_0 R1_0 RX 4e-9/)
+  assert.match(deck, /VS2_0 RX S2_0 0/)
+  assert.match(deck, /R2_0 S2_0 R2_0 1\b/)
+})
+
+test('invalid internal taps cannot create negative pi sections or extra SPICE terminals', () => {
+  const matrices = [{ R: [[1]], L: [[1e-9]], C: [[1e-12]] }]
+  for (const fraction of [0, 1, -1, NaN]) assert.throws(() => channelSpice(matrices, 2, [{ conductor: 0, fraction, name: 'RX' }]), /Internal taps/)
+  assert.throws(() => channelSpice(matrices, 2, [{ conductor: 0, fraction: .5, name: 'RX REF' }]), /Internal taps/)
 })

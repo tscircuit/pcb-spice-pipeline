@@ -1,30 +1,13 @@
-import { Circuit, analog } from '@tscircuit/core'
+import { Circuit } from '@tscircuit/core'
 import React from 'react'
 import type { AnyCircuitElement } from 'circuit-json'
-import { modelingFromCircuitJson } from '../../src/pipeline'
+import type { NumericalSettings } from '../../src/pipeline'
 import { geometryFromCircuitJson } from '../../src/board'
 import { fastHenryDeck } from '../../src/extraction'
 
 const lanes = ['DQ', 'DQS', 'DQSn'] as const
-let state = 0x7f
-const prbs7 = Array.from({ length: 127 }, () => {
-  const bit = state & 1
-  state = (state >> 1) | (((state ^ (state >> 1)) & 1) << 6)
-  return bit
-}).join('')
-const channel = {
-  reduction: 'routed-copper' as const, sections: 12, relativePermittivity: 4.1,
-  lanes: lanes.map(name => ({ name, from: `.U1 > .${name}`, to: `.U3 > .${name}` })),
-  referencePinRef: '.U1 > .GND',
-  extraction: { minimumFrequency: '1Hz', maximumFrequency: '1GHz', modelFrequency: '100MHz',
-    filaments: 3, refinementFilaments: 5, convergenceTolerance: .05, capacitanceTolerance: .02,
-    reciprocityTolerance: .025, dcResistanceTolerance: .002, maxPanelLength: '2mm', groundMeshSize: '3mm' },
-  via: { platingThickness: '.025mm', equivalentWidth: '.1mm', omitThroughViaStubs: true },
-}
-
 /**
- * Extraction-only reduction of the AM3352 DDR timeout. No vendor model or eye
- * result is needed to reproduce the process deadline before transient analysis.
+ * Extraction-only reduction of the AM3352 DDR process deadline, before transient analysis.
  */
 export default function NativeDdrTimeout(): React.JSX.Element {
   return <board width={20} height={14} layers={4} thickness={1.6}
@@ -38,10 +21,6 @@ export default function NativeDdrTimeout(): React.JSX.Element {
         </footprint>} />
       {/* Declaration only: this extraction test never opens an IBIS file. */}
       <silkscreentext text={name} pcbX={i ? 6 : -6} pcbY={2} fontSize={.8} />
-      <ibismodel componentRef={`chip.${name}`} ibisComponentName="TEST"
-        ibisModelAsset={{ project_relative_path: 'extraction-only.ibs', url: './extraction-only.ibs', mimetype: 'text/plain' }}
-        ibisPinNameToPortLabel={{ '1': 'DQ', '2': 'DQS', '3': 'DQSn', '4': 'GND' }}
-        modelValueCorner="typical" includePackageParasitics={false} />
       <via name={`GND_${name}`} pcbX={(i ? 6 : -6) + .4} pcbY={-2}
         holeDiameter={.2} outerDiameter={.4} layers={['top', 'inner1', 'inner2', 'bottom']} connectsTo="net.GND" />
       <trace from={`.${name} > .GND`} to={`.GND_${name} > .top`} width={.15}
@@ -54,15 +33,6 @@ export default function NativeDdrTimeout(): React.JSX.Element {
     <net name="GND" />
     <copperpour name="REFERENCE" layer="bottom" connectsTo="net.GND" unbroken
       outline={[{ x: -9, y: -6 }, { x: 9, y: -6 }, { x: 9, y: 6 }, { x: -9, y: 6 }]} />
-    <voltageprobe name="DQ_RX" connectsTo=".U3 > .DQ" referenceTo=".U3 > .GND" />
-    <voltageprobe name="DQS_RX" connectsTo=".U3 > .DQS" referenceTo=".U3 > .DQSn" />
-    <analog.transientsimulation name="WRITE" spiceEngine="pcb_spice" duration="512ns" timePerStep="10ps" pcbSpiceChannel={channel}
-      ibisPinStates={Object.fromEntries(lanes.map(name => [`.U1 > .${name}`, { isOutput: true, isOutputEnabled: true }]))} />
-    {lanes.map((name, i) => <analog.digitalstimulus key={name} name={name} simulationRef=".WRITE"
-      sourcePinRef={`.U1 > .${name}`} bitDuration="1.5625ns" startTime={i ? '.78125ns' : '0ns'}
-      initialState={0} inverted={i === 2} transmittedData={{ transmissionType: 'bits', bits: i ? '01' : prbs7, repeat: true }} />)}
-    <analog.eyediagram name="DQ_EYE" simulationRef=".WRITE" probeRef=".DQ_RX" unitInterval="1.5625ns" timeOrigin="0ns" startTime="40ns" />
-    <analog.eyediagram name="DQS_EYE" simulationRef=".WRITE" probeRef=".DQS_RX" unitInterval="1.5625ns" timeOrigin=".78125ns" startTime="40ns" />
   </board>
 }
 
@@ -72,7 +42,14 @@ export async function nativeDdrTimeout(): Promise<{ records: AnyCircuitElement[]
   circuit.add(<NativeDdrTimeout />)
   await circuit.renderUntilSettled()
   const records = circuit.getCircuitJson()
-  const modeling = { ...modelingFromCircuitJson(records), groundReturn: { component: 'U3', port: 'GND' } }
+  const modeling: NumericalSettings = {
+    reduction: 'routed-copper', sections: 12, relativePermittivity: 4.1,
+    lanes: lanes.map(name => ({ port: name, from: { component: 'U1', port: name }, to: { component: 'U3', port: name } })),
+    channelReference: { component: 'U1', port: 'GND' }, groundReturn: { component: 'U3', port: 'GND' },
+    viaPlatingMm: .025, viaEquivalentWidthMm: .1, omitThroughViaStubs: true,
+    extraction: { minimumHz: 1, maximumHz: 1e9, modelHz: 1e8, filaments: 3, refinementFilaments: 5,
+      convergenceTolerance: .05, capTolerance: .02, reciprocityTolerance: .025, dcResistanceTolerance: .002, maxPanelLengthMm: 2, groundMeshMm: 3 },
+  }
   const geometry = geometryFromCircuitJson(records, modeling)
   const deck = fastHenryDeck(geometry.cells[0], { ...modeling.extraction,
     minimumHz: modeling.extraction.modelHz, maximumHz: modeling.extraction.modelHz,

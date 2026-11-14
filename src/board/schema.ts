@@ -1,16 +1,23 @@
 // Circuit JSON record admission (was schema.ts + circuit-schema.mjs). Validation never edits input.
 import { z } from 'zod'
 import * as base from 'circuit-json'
-import type { CircuitJson } from 'circuit-json'
+import type { CircuitJson as BaseCircuitJson } from 'circuit-json'
+import { isQuiet, simulation_signal, simulation_signal_integrity } from './signals'
+export type { SimulationIbisModel } from 'circuit-json'
+export type CircuitJson = (BaseCircuitJson[number] | SimulationIbisPinState | SimulationDigitalStimulus)[]
 import { fail } from './diagnostics'
 
-export type {
-  CircuitJson,
-  SimulationExperiment,
-  SimulationIbisModel,
-  SimulationIbisPinState,
-  SimulationDigitalStimulus,
-} from 'circuit-json'
+export type { SimulationExperiment } from 'circuit-json'
+/** Private declarations produced only after the public Circuit JSON boundary has been validated. */
+export interface SimulationIbisPinState {
+  type: 'simulation_ibis_pin_state'; simulation_ibis_pin_state_id: string; simulation_experiment_id: string
+  source_port_id: string; is_output: boolean; is_output_enabled?: boolean
+}
+export interface SimulationDigitalStimulus {
+  type: 'simulation_digital_stimulus'; simulation_digital_stimulus_id: string; simulation_experiment_id: string
+  name: string; source_port_id: string; bit_duration_ms: number; start_time_ms: number; initial_state: 0 | 1; inverted?: boolean
+  transmission_pattern: { transmission_type: 'bits'; bits: string; repeat: boolean }
+}
 
 /** Saved boards retain a few older physical serialization forms. Validate their
  * equivalent official schemas without changing the original geometry values. */
@@ -56,6 +63,8 @@ const physicalCompatibility: Record<string, z.ZodTypeAny> = {
 }
 /** Picks the zod schema for one record by its type (source components by ftype), preferring the compatibility schemas. */
 export function recordSchema(record: { type: string; ftype?: string }): z.ZodTypeAny | undefined {
+  if (record.type === 'simulation_signal') return simulation_signal
+  if (record.type === 'simulation_signal_integrity') return simulation_signal_integrity
   let schemaName = record.type
   if (record.type === 'source_component') schemaName = `source_${record.ftype}`
   return physicalCompatibility[record.type] ?? Reflect.get(base, schemaName)
@@ -83,5 +92,19 @@ export function validateCircuitRecords(records: unknown): void {
       const path=issue.path?.join('.')
       fail('circuit_schema',`${type} ${id}: ${path?path+': ':''}${issue.message}`)
     }
+  }
+  const circuit = records as CircuitJson
+  const signals = new Map(circuit.filter(record => record.type === 'simulation_signal').map(signal => [signal.simulation_signal_id, signal]))
+  for (const waveform of circuit.filter(record => record.type === 'simulation_signal_waveform')) {
+    const signal = signals.get(waveform.simulation_signal_id)
+    if (signal && isQuiet(signal) !== (waveform.idle_voltage_v !== undefined)) fail('circuit_schema', `${signal.name}: idle_voltage_v is required on quiet waveforms and absent on switching waveforms`)
+  }
+  for (const rlgc of circuit.filter(record => record.type === 'simulation_signal_integrity_rlgc')) for (const signalId of new Set(rlgc.conductors.map(conductor => conductor.simulation_signal_id))) {
+    const signal = signals.get(signalId)
+    if (!signal) continue
+    const ports = rlgc.conductors.filter(conductor => conductor.simulation_signal_id === signalId).map(conductor => conductor.source_port_id)
+    const driver = signal.driver
+    const expected = 'source_port_id' in driver ? [driver.source_port_id] : [driver.p_source_port_id, driver.n_source_port_id]
+    if (ports.length !== expected.length || expected.some(port => !ports.includes(port))) fail('circuit_schema', `${signal.name}: RLGC conductors must identify every driver port exactly once`)
   }
 }

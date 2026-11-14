@@ -27,17 +27,6 @@ export interface VoltageProbePlan {
   signalNode: string
   referenceNode: string
 }
-export interface EyePlan {
-  simulationEyeDiagramId: string
-  name: string
-  simulationExperimentId: string
-  simulationVoltageProbeId: string
-  column: number
-  unitIntervalSeconds: number
-  timeOriginSeconds: number
-  startTimeSeconds: number
-  endTimeSeconds: number
-}
 export interface SimulationPlan {
   simulationExperimentId: string
   name: string
@@ -49,16 +38,10 @@ export interface SimulationPlan {
   states: SimulationIbisPinState[]
   stimuli: (SimulationDigitalStimulus & { transmission_pattern: { bits: string } })[]
   probes: VoltageProbePlan[]
-  eyes: EyePlan[]
   models: PipelineIbisModel[]
 }
-/**
- * A plan whose experiment and eye ids passed kernel safeId (safeSimulationPlans), shaped as observation's
- * EyeRequest. Note: today's code never validates simulationVoltageProbeId; it is branded only because
- * EyeRequest requires it (it reaches CSV headers, not paths).
- */
-export type SafeEyePlan = Omit<EyePlan, 'simulationEyeDiagramId' | 'simulationExperimentId' | 'simulationVoltageProbeId'> & { simulationEyeDiagramId: SafeId; simulationExperimentId: SafeId; simulationVoltageProbeId: SafeId }
-export type SafeSimulationPlan = Omit<SimulationPlan, 'simulationExperimentId' | 'eyes'> & { simulationExperimentId: SafeId; eyes: SafeEyePlan[] }
+/** A plan with an admitted experiment artifact identifier. */
+export type SafeSimulationPlan = Omit<SimulationPlan, 'simulationExperimentId'> & { simulationExperimentId: SafeId }
 
 /** Today's generalDeclarations return value. `models` holds only models some plan uses, in declaration order. */
 export interface Declarations {
@@ -100,13 +83,11 @@ export interface ExperimentRun {
   /** `experiments/<id>`. */
   readonly directory: string
   readonly rows: number[][]
-  /** SHA-256 of `<directory>/waveform.csv`, the eye descriptors' sourceSha256. */
+  /** SHA-256 of `<directory>/waveform.csv`, the accepted waveform's identity. */
   readonly waveformCsvSha256: string
-  /** This experiment's simulation_transient_voltage_graph records, one per probe. */
-  readonly records: CircuitJson
 }
 /** Today's PipelineResult.experiments[] entry. Key order is serialized. */
-export interface ExperimentResult<E = unknown, A = unknown> {
+export interface ExperimentResult<A = unknown> {
   plan: SimulationPlan
   waveform: { timeUnit: 's'; voltageUnit: 'V'; rows: number[][] }
   simulationExperimentId: string
@@ -116,7 +97,6 @@ export interface ExperimentResult<E = unknown, A = unknown> {
   startTimeSeconds: number
   maxStepSeconds: number
   probes: VoltageProbePlan[]
-  eyes: E[]
   solverInvocations: 1
   waveformSamples: number
   assembly: A[]

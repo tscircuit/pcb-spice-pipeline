@@ -1,0 +1,668 @@
+{
+  "status": "unresolved_no_production_change",
+  "fixture": "tests/fixtures/layered-microstrip.tsx",
+  "fixture_sha256": "a300b25b1b92854785e9459c5c4f0d20a782531e1ca673856459664a237b7b6e",
+  "binary_sha256": "7bc18e61a66a9814d7a893cd1e7a7ffbf9246607a6f1128028870a467165c101",
+  "acceptance": {
+    "C_auto": 0.02,
+    "primitive_reciprocity": 0.025
+  },
+  "geometry": {
+    "route_length_mm": 40,
+    "trace_width_mm": 0.15,
+    "copper_thickness_mm": 0.03,
+    "dielectric_height_mm": 1.43,
+    "er": 4.42,
+    "board_mm": [
+      50,
+      14
+    ],
+    "coupled_pitch_mm": 0.75,
+    "trace_bends": 0,
+    "vias": 0
+  },
+  "interpretation": "Raw primitive matrices only. Every physical layered candidate is rejected. No symmetrization, reduction, tolerance change, fitting, transient, or accepted accuracy claim.",
+  "refinement": [
+    {
+      "coupled": false,
+      "refinement": 0,
+      "seconds": 6.835,
+      "request_sha256": "39c7caeee512638f5a9031e58697137eddbf0ed89e33f165c2325bd557135d2b",
+      "matrix": [
+        [
+          1.5212e-12,
+          -1.06686e-12
+        ],
+        [
+          -1.4511000000000001e-12,
+          2.8781e-12
+        ]
+      ],
+      "reciprocity": 0.13350474271220603,
+      "grounded_diagonal_pf_per_m": [
+        38.029999999999994
+      ],
+      "auto_residual": 0.0125243,
+      "dielectric_panels": 9606,
+      "accepted": false,
+      "rejection": "reciprocity: C primitive: residual 0.13350474271220603 > 0.025"
+    },
+    {
+      "coupled": false,
+      "refinement": 1,
+      "seconds": 7.346,
+      "request_sha256": "804fb5a3c9c2337fa7855e4845ac37a8a483ce3a647d21bc2211b6dd8f17b7b7",
+      "matrix": [
+        [
+          1.5185500000000002e-12,
+          -1.0699600000000002e-12
+        ],
+        [
+          -1.4543300000000001e-12,
+          2.8899300000000004e-12
+        ]
+      ],
+      "reciprocity": 0.13300322153131733,
+      "grounded_diagonal_pf_per_m": [
+        37.963750000000005
+      ],
+      "auto_residual": 0.0125071,
+      "dielectric_panels": 38616,
+      "accepted": false,
+      "rejection": "reciprocity: C primitive: residual 0.13300322153131733 > 0.025"
+    },
+    {
+      "coupled": true,
+      "refinement": 0,
+      "seconds": 5.402,
+      "request_sha256": "1423de525da1e241bad24d9265163764f2162789c17f3a0c62d92abfddb7d631",
+      "matrix": [
+        [
+          1.6432200000000001e-12,
+          -4.56784e-13,
+          -8.13225e-13
+        ],
+        [
+          -4.55981e-13,
+          1.6442399999999999e-12,
+          -8.09127e-13
+        ],
+        [
+          -1.15161e-12,
+          -1.14928e-12,
+          3.4528900000000002e-12
+        ]
+      ],
+      "reciprocity": 0.09851255035636812,
+      "grounded_diagonal_pf_per_m": [
+        41.0805,
+        41.106
+      ],
+      "auto_residual": 0.0099034,
+      "dielectric_panels": 14416,
+      "accepted": false,
+      "rejection": "reciprocity: C primitive: residual 0.09851255035636812 > 0.025"
+    },
+    {
+      "coupled": true,
+      "refinement": 1,
+      "seconds": 6.187,
+      "request_sha256": "847f042f2128357f00e6beb4c93cac9a982b086861d28bf25aec2e32016149f2",
+      "matrix": [
+        [
+          1.63796e-12,
+          -4.6842e-13,
+          -8.22912e-13
+        ],
+        [
+          -4.51592e-13,
+          1.68545e-12,
+          -8.144319999999999e-13
+        ],
+        [
+          -1.14788e-12,
+          -1.1767e-12,
+          3.46941e-12
+        ]
+      ],
+      "reciprocity": 0.10441775402734185,
+      "grounded_diagonal_pf_per_m": [
+        40.949000000000005,
+        42.136250000000004
+      ],
+      "auto_residual": 0.0121801,
+      "dielectric_panels": 57856,
+      "accepted": false,
+      "rejection": "reciprocity: C primitive: residual 0.10441775402734185 > 0.025"
+    },
+    {
+      "coupled": false,
+      "refinement": 2,
+      "seconds": 42.909,
+      "request_sha256": "b698386cc78f7efff4b677dac3b46ab890e815b866b86ad5d044ea233ae5562f",
+      "matrix": [
+        [
+          1.53216e-12,
+          -1.06814e-12
+        ],
+        [
+          -1.46682e-12,
+          2.88472e-12
+        ]
+      ],
+      "reciprocity": 0.1382040544662914,
+      "grounded_diagonal_pf_per_m": [
+        38.304
+      ],
+      "auto_residual": 0.00813949,
+      "dielectric_panels": 154464,
+      "accepted": false,
+      "rejection": "reciprocity: C primitive: residual 0.1382040544662914 > 0.025"
+    },
+    {
+      "coupled": true,
+      "refinement": 2,
+      "seconds": 20.653,
+      "request_sha256": "e134d787ed2ca16ce0e52858f60c03cc6b1a3d90844535d48f8d49ac653938a6",
+      "matrix": [
+        [
+          1.65439e-12,
+          -4.56356e-13,
+          -8.194550000000001e-13
+        ],
+        [
+          -4.58521e-13,
+          1.6435e-12,
+          -8.117630000000001e-13
+        ],
+        [
+          -1.15757e-12,
+          -1.15003e-12,
+          3.46816e-12
+        ]
+      ],
+      "reciprocity": 0.09753500415205758,
+      "grounded_diagonal_pf_per_m": [
+        41.35975,
+        41.0875
+      ],
+      "auto_residual": 0.0173641,
+      "dielectric_panels": 231424,
+      "accepted": false,
+      "rejection": "reciprocity: C primitive: residual 0.09753500415205758 > 0.025"
+    }
+  ],
+  "candidates": [
+    {
+      "variant": "layered-edge-refine",
+      "coupled": false,
+      "refinement": 0,
+      "seconds": 50.498,
+      "request_sha256": "10bf8835690f225320bf9576878330fa55cbfb0f82ee6bd3987f16b93e65e3ea",
+      "matrix": [
+        [
+          1.5311800000000001e-12,
+          -1.1405600000000001e-12
+        ],
+        [
+          -1.5021800000000002e-12,
+          2.98203e-12
+        ]
+      ],
+      "reciprocity": 0.12126638565004377,
+      "grounded_diagonal_pf_per_m": [
+        38.279500000000006
+      ],
+      "auto_residual": 0.00435198,
+      "dielectric_panels": 142716,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "layered-edge-refine",
+      "coupled": true,
+      "refinement": 0,
+      "seconds": 22.087,
+      "request_sha256": "a77b79b0cc7c3ef575126cc85bc20cfe4a12594017be266360af8695470b4c14",
+      "matrix": [
+        [
+          1.65397e-12,
+          -4.37599e-13,
+          -7.878630000000001e-13
+        ],
+        [
+          -4.46703e-13,
+          1.6361400000000001e-12,
+          -7.970340000000001e-13
+        ],
+        [
+          -1.1761e-12,
+          -1.15677e-12,
+          3.45397e-12
+        ]
+      ],
+      "reciprocity": 0.11240311873004107,
+      "grounded_diagonal_pf_per_m": [
+        41.34925,
+        40.9035
+      ],
+      "auto_residual": 0.013426,
+      "dielectric_panels": 186964,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "layered-projected-refine",
+      "coupled": false,
+      "refinement": 0,
+      "seconds": 3.392,
+      "request_sha256": "fdcbc071167b91b30465b79701442cb996d5276977707433e127f8c3d40bbd38",
+      "matrix": [
+        [
+          1.54694e-12,
+          -1.00903e-12
+        ],
+        [
+          -1.48503e-12,
+          2.9106400000000002e-12
+        ]
+      ],
+      "reciprocity": 0.1635379160596982,
+      "grounded_diagonal_pf_per_m": [
+        38.6735
+      ],
+      "auto_residual": 0.0100345,
+      "dielectric_panels": 9618,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "layered-projected-refine",
+      "coupled": true,
+      "refinement": 0,
+      "seconds": 3.801,
+      "request_sha256": "fea6c259f869428a236e7863ccedb08d729ec3b9c14a36b049d8099f3c1df6ac",
+      "matrix": [
+        [
+          1.6776500000000002e-12,
+          -4.765590000000001e-13,
+          -7.88361e-13
+        ],
+        [
+          -4.77237e-13,
+          1.68044e-12,
+          -7.884079999999999e-13
+        ],
+        [
+          -1.15435e-12,
+          -1.1566700000000002e-12,
+          3.45439e-12
+        ]
+      ],
+      "reciprocity": 0.10660695520772125,
+      "grounded_diagonal_pf_per_m": [
+        41.941250000000004,
+        42.011
+      ],
+      "auto_residual": 0.0123113,
+      "dielectric_panels": 14438,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "refine-return",
+      "coupled": false,
+      "request_sha256": "d6766464ec2d54031f3127b00ae43d7b72e651493d27b7cbbcef27c72fb8ec37",
+      "matrix": [
+        [
+          1.53046e-12,
+          -9.84924e-13
+        ],
+        [
+          -1.47604e-12,
+          2.91244e-12
+        ]
+      ],
+      "reciprocity": 0.1686269931741083,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "refine-signal",
+      "coupled": false,
+      "request_sha256": "72389fb9300746fc6ec1cca77cda2493cc2eab4e972646fcc5b02a575c34c0de",
+      "matrix": [
+        [
+          1.5189600000000002e-12,
+          -1.04459e-12
+        ],
+        [
+          -1.44567e-12,
+          2.87459e-12
+        ]
+      ],
+      "reciprocity": 0.13952598457519155,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "refine-both",
+      "coupled": false,
+      "request_sha256": "f83bf07f5005ddc996a9218b1c62318a3733880aa371fd017eb0dd2e7c4159ae",
+      "matrix": [
+        [
+          1.5165499999999998e-12,
+          -9.60547e-13
+        ],
+        [
+          -1.45851e-12,
+          2.88315e-12
+        ]
+      ],
+      "reciprocity": 0.17271491250888785,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "per-panel-reference",
+      "coupled": false,
+      "request_sha256": "97e4259f511a08edbe023671d57a7ec6795971d7929acb5a824872216d4fca57",
+      "matrix": [
+        [
+          1.5212e-12,
+          -1.06686e-12
+        ],
+        [
+          -1.4511000000000001e-12,
+          2.8781e-12
+        ]
+      ],
+      "reciprocity": 0.13350474271220603,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "per-panel-inward",
+      "coupled": false,
+      "request_sha256": "e354f34d60dee5973bd6a7f9a77be263db0fc18def70dbfaa7b941b28d311dfe",
+      "matrix": [
+        [
+          1.5212e-12,
+          -1.06686e-12
+        ],
+        [
+          -1.4511000000000001e-12,
+          2.8781e-12
+        ]
+      ],
+      "reciprocity": 0.13350474271220603,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "reverse-c-order",
+      "coupled": false,
+      "request_sha256": "dfc08ebfcd32f8d1c29314dfd36b693a46ec780afd07eaa2ce73976dbf663468",
+      "matrix": [
+        [
+          1.5212e-12,
+          -1.06686e-12
+        ],
+        [
+          -1.4511000000000001e-12,
+          2.8781e-12
+        ]
+      ],
+      "reciprocity": 0.13350474271220603,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "tight-gmres",
+      "coupled": false,
+      "request_sha256": "b49e64c75779b9d9cca510e63985a7e503e2e9806f021a0a7560fe411fd9b8c1",
+      "matrix": [
+        [
+          1.5212e-12,
+          -1.06686e-12
+        ],
+        [
+          -1.4511000000000001e-12,
+          2.8781e-12
+        ]
+      ],
+      "reciprocity": 0.13350474271220603,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "split-interface",
+      "coupled": false,
+      "request_sha256": "f59fa79d075bc910c64cc3403e5b1ab8085f1872945f2cabe7e0a647cbe78e7e",
+      "matrix": [
+        [
+          1.52413e-12,
+          -1.01998e-12
+        ],
+        [
+          -1.4795700000000001e-12,
+          2.7517500000000003e-12
+        ]
+      ],
+      "reciprocity": 0.16701735259380396,
+      "accepted": false,
+      "reverted": true
+    },
+    {
+      "variant": "same-medium",
+      "coupled": false,
+      "request_sha256": "e40e4fbd3e551e0704883ac1e7994b6bc77a41075f3cb327e949c7ef6f65fbce",
+      "matrix": [
+        [
+          5.74035e-13,
+          -5.28079e-13
+        ],
+        [
+          -5.25178e-13,
+          1.6374e-12
+        ]
+      ],
+      "reciprocity": 0.0017717112495419503,
+      "accepted": false,
+      "control": "All copper in air, dielectric omitted: different physical problem; numerical control only",
+      "reverted": true
+    },
+    {
+      "variant": "direct-01",
+      "coupled": false,
+      "request_sha256": "e33daaeca938b7a6ffe7241fd6dc658d99e982fcc7d5add7c0e6b95800f237dd",
+      "matrix": [
+        [
+          1.49849e-12,
+          -1.1082400000000001e-12
+        ],
+        [
+          -1.46266e-12,
+          2.95219e-12
+        ]
+      ],
+      "reciprocity": 0.12005324860527262,
+      "accepted": false,
+      "reverted": true
+    }
+  ],
+  "candidate_definitions": {
+    "layered-edge-refine": "Both copper and interface sizing use min(original, thickness/2 + 0.5*distance_to_each_copper_polygon_edge); all physical copper unchanged.",
+    "layered-projected-refine": "Grade both meshes by XY-projected signal/reference segment distance; matching top/bottom XY sizing, no geometry change.",
+    "refine-return": "Uniformly subdivide every return panel triangle into four, splitting quadrilaterals into triangles first; keep dielectric and signals fixed.",
+    "refine-signal": "Same uniform subdivision of signal panels only.",
+    "refine-both": "Same uniform subdivision of all conductor panels.",
+    "per-panel-reference": "Replace global reference-side convention with a per-panel outward reference 0.01 mm away and omit trailing minus; same physical sides.",
+    "per-panel-inward": "Per-panel inward reference, retaining the trailing minus; same physical sides.",
+    "reverse-c-order": "Reverse the material-specific C surface file order within each connected conductor; no material or geometry change.",
+    "split-interface": "Partition each D file into 2 mm XY centroid tiles, preserving all panel geometry and reference-side conventions.",
+    "tight-gmres": "Requested -t0.000001 with production auto mode; output unchanged. This does not establish whether auto mode honors that manual option.",
+    "direct-01": "Requested -d0.1 with production auto mode. Manual solver options are diagnostics only, never production changes."
+  },
+  "bounded_timeout": {
+    "variant": "direct-001",
+    "timeout_ms": 90000,
+    "result": "native_timeout; no complete matrix",
+    "note": "Requested -d0.01 in auto mode; no production setting changed."
+  },
+  "analytic": {
+    "source": "https://qucs.sourceforge.net/tech/node75.html",
+    "model": "Hammerstad/Jensen zero thickness, infinite plane",
+    "C_pf_per_m": 37.565933,
+    "raw_baseline_pf_per_m": 38.03,
+    "raw_diagonal_difference": 0.012353400087254496,
+    "accepted_C_pf_per_m": null,
+    "note": "The +1.235% raw diagonal agreement cannot validate an asymmetric matrix. Finite ends, finite board, 30 um copper thickness and numerical error remain mixed; no residual contribution was isolated."
+  },
+  "final_baseline_confirmation": [
+    {
+      "accepted": false,
+      "rejection": "reciprocity: C primitive: residual 0.13350474271220603 > 0.025",
+      "coupled": false,
+      "refinement": 0,
+      "seconds": 20.719,
+      "request_sha256": "39c7caeee512638f5a9031e58697137eddbf0ed89e33f165c2325bd557135d2b",
+      "matrix": [
+        [
+          1.5212e-12,
+          -1.06686e-12
+        ],
+        [
+          -1.4511000000000001e-12,
+          2.8781e-12
+        ]
+      ],
+      "reciprocity": 0.13350474271220603,
+      "grounded_diagonal_pf_per_m": [
+        38.029999999999994
+      ],
+      "auto_residual": 0.0125243,
+      "dielectric_panels": 9606
+    },
+    {
+      "accepted": false,
+      "rejection": "reciprocity: C primitive: residual 0.09851255035636812 > 0.025",
+      "coupled": true,
+      "refinement": 0,
+      "seconds": 14.831,
+      "request_sha256": "1423de525da1e241bad24d9265163764f2162789c17f3a0c62d92abfddb7d631",
+      "matrix": [
+        [
+          1.6432200000000001e-12,
+          -4.56784e-13,
+          -8.13225e-13
+        ],
+        [
+          -4.55981e-13,
+          1.6442399999999999e-12,
+          -8.09127e-13
+        ],
+        [
+          -1.15161e-12,
+          -1.14928e-12,
+          3.4528900000000002e-12
+        ]
+      ],
+      "reciprocity": 0.09851255035636812,
+      "grounded_diagonal_pf_per_m": [
+        41.0805,
+        41.106
+      ],
+      "auto_residual": 0.0099034,
+      "dielectric_panels": 14416
+    }
+  ],
+  "final_baseline_note": "React Fragment keys fixed TSX intrinsic-prop type errors without changing native deck bytes; request hashes match the reproduction.",
+  "construction_checks": {
+    "status": "passed_geometry_checks_not_numerical_acceptance",
+    "checks": [
+      "Top, bottom and all four D slab side directions are present",
+      "Every D reference with trailing minus lies on the FR-4 side of every panel",
+      "D plus reversed FR-4-contact C surfaces have zero net oriented area and enclose 50*14*1.43 mm^3",
+      "Every D-panel centroid avoids copper contact polygons at the same z",
+      "Trace underside and plane top C faces use er=4.42; trace top/sides and plane underside/sides use air"
+    ],
+    "contact_edge_sizing": {
+      "definition": "Largest ratio of panel longest-edge lengths across exactly shared C/D input edges, endpoints rounded to 1e-8 mm; partial T-junction edges are excluded from this statistic",
+      "baseline": {
+        "shared_edges": 1136,
+        "maximum_ratio": 3.7424194575524723
+      },
+      "edge_graded_candidate": {
+        "shared_edges": 27588,
+        "maximum_ratio": 1.6969643557391212,
+        "single_reciprocity": 0.12126638565004377
+      }
+    },
+    "horizontal_D_contact_intersections": {
+      "checked_panels": 9558,
+      "positive_area_overlaps": 0,
+      "integer_grid_mm": 1e-08,
+      "method": "Independently intersect each horizontal D input triangle with the unmeshed TSX-derived copper polygon solids that touch its z plane; no nonempty Clipper intersection."
+    }
+  },
+  "supplementary_level2_replay": {
+    "name": "two",
+    "rendering": "real_core_without_adapter",
+    "core_module": "/Users/ankan/.t3/scratch/2026-11-07-git-github-com-tscircuit-signal-883a95fb/pipeline-si/../core/dist/index.js",
+    "core_sha256": "67c7f6649d84798bad16b93159478cd671685f93c3919191de3d43d44148167a",
+    "example_sha256": "7b78e046f3bcbe934a2e376cfaa49345ed5fc36a4475c7fa77d98b738a11f3b4",
+    "large_artifacts": "gzip_level_1_above_2_MB",
+    "runner_sha256": "3cb8aafad69a80a6ce96d581bb2dafb00b57077bc4fc9ee3770efbaf737916bc",
+    "native_timeout_ms": 600000,
+    "implementation_head": "2c43ab83c2f4471b2822e86f0fba3cdbc12c7c6e",
+    "sources": {
+      "models/sn74lvc1g04.ibs": "03033638d7fe8bf268428be133a5aad63aae0145980113561b20ab92063e2c00",
+      "models/sn65hvd72.ibs": "293f71f8d6c8764914a73564ebbb5b9e0e706d9dcc18d87aae91f1def06ca47e"
+    },
+    "circuit_json_schema_sha256": "fa7a5b535c27ccbd38b977a3ede0115ab46cf30da616fe13ba9f7001d0dc94a9",
+    "status": "failed_native",
+    "seconds": 4.017,
+    "error": "reciprocity: C primitive: residual 0.09675331594056424 > 0.025",
+    "code": "reciprocity",
+    "native_execution": [
+      {
+        "solver": "fasthenry",
+        "request_sha256": "dde23efc3d9e433081abe548523bafe5ecbb6548c3758f282fd7b2514f68f13a",
+        "args": [
+          "-p",
+          "seg",
+          "channel.inp"
+        ],
+        "exact_native_extraction_replay_from": "runs/cap-review-two-rl-cache/native-0-fasthenry"
+      },
+      {
+        "solver": "fasthenry",
+        "request_sha256": "db873f83c869d289ff5d67f1ec0c64ddc6ad0b73ec4c926e60469c235dd9cabb",
+        "args": [
+          "-p",
+          "seg",
+          "channel.inp"
+        ],
+        "exact_native_extraction_replay_from": "runs/cap-review-two-rl-cache/native-1-fasthenry"
+      },
+      {
+        "solver": "fastercap",
+        "request_sha256": "972c838a0bd28247ae11ebe06e69f5da4b21078d19fbb678d047bec608fe870a",
+        "args": [
+          "channel.lst",
+          "-b",
+          "-a0.02",
+          "-ap",
+          "-e"
+        ]
+      }
+    ],
+    "physical_records": {
+      "pcb_trace": 9,
+      "pcb_via": 4,
+      "pcb_copper_pour": 1
+    }
+  },
+  "supplementary_level2_replay_note": "Supplementary fresh FasterCap run replays only byte-identical earlier R/L requests. The main rfc-boards.json evidence uses the completed fresh uncached Level 2 run, not this replay."
+}

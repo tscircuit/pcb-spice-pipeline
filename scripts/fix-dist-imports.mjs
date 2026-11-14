@@ -19,6 +19,6 @@ for (const file of walk('dist').filter(f => /\.(?:js|d\.ts)$/.test(f))) {
       : null
     if (!full) throw new Error(`${file}: cannot resolve '${spec}'`)
     return `${pre}${q}${full}${q}`
-  })
+  }).replace(/(new URL\(['"]\.\/[^'"]+)\.ts(['"],\s*import\.meta\.url\))/g, '$1.js$2')
   if (out !== src) writeFileSync(file, out)
 }
