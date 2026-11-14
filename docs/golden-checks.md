@@ -26,7 +26,7 @@ skip without `IBIS_MODEL_DIR` or without the named file (`sprm552c.ibs`, `W631GG
 
 ## Results
 
-Measured on 2026-11-14. Cross-sections use b = 1 mm and copper unless stated otherwise.
+Measured on 2026-11-14; #5 and #10 re-measured after the mesh fix. Cross-sections use b = 1 mm and copper unless stated otherwise.
 
 | # | Check | Reference | Expected / tolerance (fixed in advance) | Measured | Status |
 |---|---|---|---|---|---|
@@ -34,12 +34,12 @@ Measured on 2026-11-14. Cross-sections use b = 1 mm and copper unless stated oth
 | 2 | Stripline C and Z0, w/b = 0.25, 0.5, 1, 2, 4 (t/b = 5e-4, εr 4) | Cohn 1954 exact: Z0 = η0/(4√εr)·K(k)/K(k′), k = sech(πw/2b) | C ≤ 1% at the default 12 panels/edge; C ≤ 0.5% at 24; Z0 ≤ 1% | C error 0.23 / 0.15 / 0.09 / 0.06 / 0.05% at 12; ≤ 0.26% at 24; Z0 ≤ 0.23% | pass |
 | 3 | Stripline mesh trend, 6 → 24 panels | same | 24-panel error ≤ max(6-panel error, 0.2% thickness floor) | w/b 0.25: 0.023 → 0.163 → 0.233 → 0.250 → 0.259%. The error rises to a plateau. | **todo** |
 | 4 | Parallel-plate trend, w/b = 2, 5, 10 | C_pp = 4εw/(b − t); exact fringe from Cohn | C/C_pp within 1% of Cohn's ratio; decreasing | 1.2208 / 1.0882 / 1.0450 vs 1.2206 / 1.0883 / 1.0441 | pass |
-| 5 | Parallel-plate limit, w/b = 20 | same | within 1% of Cohn (1.0221); below w/b = 10; within 3% of C_pp | 1.0633 (C 4.0% high); trend reverses | **todo** |
+| 5 | Parallel-plate limit, w/b = 20 | same | within 1% of Cohn (1.0221); below w/b = 10; within 3% of C_pp | 1.02213 vs 1.02206 (0.006%), below 1.0442 at w/b = 10 | pass |
 | 6 | Homogeneous L·C = μ0ε0εr·I (3-line stripline εr 4; air microstrip pair) | Paul, *MTL* §3.2 | ≤ 1e-9 relative | 1.4e-16, 2.8e-16 | pass |
 | 7 | DC resistance R = 1/(σwt), and R(1 kHz) | Ohm's law; δ(1 kHz) ≈ 2 mm ≫ t | R_dc exact to 1e-12; R(1 kHz)/R_dc − 1 ≤ 1e-3 | exact; 6.5e-5, 1.2e-5 | pass |
 | 8 | R ∝ √f, exponent from 10 to 40 GHz (w/b 0.5, 1, 2; t = 35 µm) | skin effect, δ ≪ t | exponent in [0.49, 0.5] | 0.49987 / 0.49990 / 0.49991 | pass |
 | 9 | Skin R equals Wheeler's rule, recomputed in the test (own recession and step) | Wheeler 1942: R = (Rs/μ0)·dL/dn | ≤ 1% | 1.4e-5 (stripline), 4.9e-5 (microstrip pair, full 2×2) | pass |
-| 10 | Wide stripline R → Rs/w (w = 20, 40 mm) | Ramo, Whinnery & Van Duzer §8.3 | Richardson 2r(40) − r(20) within 2% of 1; r(20) > r(40) > 1; at 12 and at 24 panels | 12 panels: r = 1.078, 1.853 (limit 2.63); 24 panels: r = 1.012, 1.081 (r40 > r20) | **todo** |
+| 10 | Wide stripline R → Rs/w (w = 20, 40 mm) | Ramo, Whinnery & Van Duzer §8.3 | Richardson 2r(40) − r(20) within 2% of 1; r(20) > r(40) > 1; at 12 and at 24 panels | 12 panels: r = 1.0081, 1.0043 (Richardson 1.0005); 24 panels: r = 1.0081, 1.0043 | pass |
 | 11 | Stripline skin R against Pozar's Wheeler-derived formula (w/b 0.5, 1, 2; t/b 0.035) | Pozar, *Microwave Engineering* 4th ed. §3.7 | within 10% (a curve fit) | solver/Pozar = 0.855 / 0.866 / 0.886 | **todo** |
 | 12 | Causal-loss poles are stable and passive | Guillemin, Foster positive-real form | all poles −rate < 0; all elements > 0; Re Z, Re Y ≥ 0 from 1 Hz to 1 THz | holds | pass |
 | 13 | Skin phase X/R = 1 (Zs = (1 + j)Rs), 10 MHz – 5 GHz | Ramo, Whinnery & Van Duzer §5.4 | ≤ 5% | worst 7.2% (1.85 GHz) | **todo** |
@@ -61,7 +61,7 @@ Measured on 2026-11-14. Cross-sections use b = 1 mm and copper unless stated oth
 
 | Finding | Evidence | Post-hoc reading (not a check) |
 |---|---|---|
-| The default 12-panel mesh under-resolves wide conductors | #5: C 4% high at w/b = 20; #10: r(20) = 1.078 against 1.008 at 48 panels, and r(40) = 1.85 against a limit near 1 | Accuracy improves with panels: 48 panels reach Cohn's value within 0.007%. Panel count per edge is fixed whatever the aspect ratio. At DDR-like w/b = 0.5–2, C is within 0.15% of Cohn, and at w/b = 1 skin R changes 0.03% from 12 to 48 panels. |
+| Fixed: the 12-panel mesh under-resolved wide conductors | #5 was 4.0% high (C/C_pp 1.0633) and #10 had r(40) = 1.85 | Each horizontal conductor face had a fixed panel count, so the middle panel of a 20 mm strip spanned about 6 gaps. A face longer than six plane distances now gets panels in proportion to its length (`cross-section-mesh.ts`). Narrower faces, which covers every DDR-width trace, mesh exactly as before. |
 | Skin R sits 11–14% below Pozar's closed form | #11 | The solver value is mesh-converged and matches Wheeler's rule (#9). Pozar uses the zero-thickness Z0 (65.4 Ω vs 61.3 Ω at w/b 1), and R ∝ Z0² accounts for ~12%. Unresolved. |
 | Causal-loss ripple | #13 (7.2% phase), #14 (18.5% local slope) | One pole per decade. Averaged over a decade, the dielectric slope equals −2/π within 2.5e-7, so causality holds on average. |
 | Ladder dispersion ringing | #22 | It decays to 3.6 mV within the next 100 ps and falls to 5.0 mV at 20 cells per rise. The near end shows 0.8 mV, so it is not a reflection. |

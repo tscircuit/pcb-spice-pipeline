@@ -201,7 +201,7 @@ test('golden stage 3: parallel-plate trend C/C_pp -> 1 for w/b = 2, 5, 10', () =
   assert.ok(rows.every((row, i) => !i || row.solved < rows[i - 1].solved), 'decreases monotonically')
 })
 
-test('golden stage 3: parallel-plate limit at w/b = 20', { todo: 'FAILS as declared. Measured C/C_pp = 1.0633 at the default 12 panels/edge vs Cohn exact 1.0221 (4.0% C error), larger than at w/b = 10 (1.0450), so the trend reverses. Post-hoc diagnostic: 24 panels give 1.0232, 48 give 1.02213 (0.007% from exact): the fixed default mesh under-resolves wide strips.' }, () => {
+test('golden stage 3: parallel-plate limit at w/b = 20', () => {
   const wide = parallelPlate(20)
   assert.ok(Math.abs(wide.solved / wide.exact - 1) <= .01, `tracks Cohn within 1%: ${wide.solved} vs ${wide.exact}`)
   assert.ok(wide.solved < parallelPlate(10).solved, 'decreases monotonically from w/b = 10')
@@ -284,7 +284,7 @@ test('golden stage 3: skin resistance equals Wheeler\'s rule recomputed independ
   assert.deepEqual(failures, [])
 })
 
-test('golden stage 3: wide stripline skin resistance approaches Rs/w', { todo: 'FAILS as declared. Measured r = R w/Rs at 12 panels/edge: r(20) = 1.0782, r(40) = 1.8528, Richardson 2.627; at 24 panels: r(20) = 1.0117, r(40) = 1.0814 (r40 > r20), Richardson 1.151. Post-hoc diagnostic: r(20) = 1.0328/1.0117/1.0087/1.0082 at 16/24/32/48 panels, so wide-strip loss is mesh-limited, worst at the default mesh.' }, () => {
+test('golden stage 3: wide stripline skin resistance approaches Rs/w', () => {
   // (c) Wide stripline limit R -> Rs/w (strip faces and both planes each carry half the current; Ramo, Whinnery &
   // Van Duzer, Fields and Waves, section 8.3). r = R w/Rs; Richardson 2 r(40) - r(20) within 2% of 1, r(20) > r(40) > 1,
   // at the default and at 24 panels/edge.

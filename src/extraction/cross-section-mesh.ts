@@ -41,6 +41,8 @@ export function sectionRegions(section: CrossSection): { region: SectionRegion; 
 
 /** Quartically graded surface panels, split at all material and conductor projection boundaries.
  * Only dielectric interfaces are truncated horizontally; fields and solid planes remain infinite.
+ * A conductor face longer than six plane distances gets proportionally more panels, so the middle panel
+ * (about 4/count of the face) stays within about two plane distances of the charge it averages.
  */
 export function sectionPanels(region: SectionRegion, count: number, extent: number, vacuum: boolean): SectionPanel[] {
   const result: SectionPanel[] = []
@@ -48,11 +50,11 @@ export function sectionPanels(region: SectionRegion, count: number, extent: numb
   const probe = Math.min(...region.conductors.flatMap(c => [c.widthMm, c.thicknessMm]), ...region.dielectrics.map(d => d.thicknessMm)) * 1e-7
   const layers = vacuum ? [] : region.dielectrics
   /** Add one straight segment, with its outward metal normal (dielectric normals point up). */
-  const edge = (x1: number, z1: number, x2: number, z2: number, group: number, er: number, tangent: number, contrast: number = 0, derivative: number = 0): void => {
+  const edge = (x1: number, z1: number, x2: number, z2: number, group: number, er: number, tangent: number, contrast: number = 0, derivative: number = 0, reach: number = Infinity): void => {
     const dx = x2 - x1
     const dz = z2 - z1
     const length = Math.hypot(dx, dz)
-    const steps = dz ? Math.max(4, Math.ceil(count / 3)) : count
+    const steps = dz ? Math.max(4, Math.ceil(count / 3)) : Math.max(count, Math.ceil(count * length / (6 * reach)))
     /** Quartic grading resolves the integrable corner charge singularity. */
     const grade = (i: number): number => i ** 4 / (i ** 4 + (steps - i) ** 4)
     for (let i = 0; i < steps; i++) {
@@ -67,8 +69,9 @@ export function sectionPanels(region: SectionRegion, count: number, extent: numb
     const top = c.zMm + c.thicknessMm
     const bottomMaterial = material(layers, c.zMm - probe)
     const topMaterial = material(layers, top + probe)
-    edge(left, c.zMm, right, c.zMm, group, bottomMaterial.er, bottomMaterial.lossTangent)
-    edge(right, top, left, top, group, topMaterial.er, topMaterial.lossTangent)
+    const reach = region.height ? Math.min(c.zMm, region.height - top) : c.zMm
+    edge(left, c.zMm, right, c.zMm, group, bottomMaterial.er, bottomMaterial.lossTangent, 0, 0, reach)
+    edge(right, top, left, top, group, topMaterial.er, topMaterial.lossTangent, 0, 0, reach)
     const cuts = coordinates([c.zMm, top, ...layers.flatMap(d => [d.zMm, d.zMm + d.thicknessMm]).filter(z => z > c.zMm + probe / 100 && z < top - probe / 100)], probe / 100)
     for (let k = 1; k < cuts.length; k++) {
       const adjacent = material(layers, (cuts[k - 1] + cuts[k]) / 2)
