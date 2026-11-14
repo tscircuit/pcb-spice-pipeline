@@ -1,0 +1,5 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "rootDir": "..", "noEmit": true, "types": ["node", "@tscircuit/core", "vite/client"] },
+  "include": ["**/*.ts", "**/*.tsx", "../pages/**/*.tsx", "../cosmos.decorator.tsx", "../vite.config.ts"]
+}

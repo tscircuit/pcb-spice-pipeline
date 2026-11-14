@@ -249,3 +249,32 @@ qualification.
 
 Async stepping uses solver-utils PR #62 at `127f17012c7c391005254993864b26801f418249`
 through an integrity-locked pkg.pr.new URL. Switch to a release after #62 ships.
+
+### Cosmos development backend
+
+`vite.config.ts` installs `createSolverMiddleware` in Cosmos's Vite renderer.
+The Cosmos UI listens on 127.0.0.1:5000; the renderer and API listen on
+127.0.0.1:5050. The plugin's config hook overrides Cosmos 6's inline wildcard
+host. The renderer URL is explicitly IPv4 loopback, matching the API's Host and
+Origin checks. `createHttpSolver` is a browser-safe adapter inside `adapters`;
+it adds no Node imports to the fixture graph.
+
+```mermaid
+stateDiagram-v2
+  [*] --> validate: POST /api/run-solver
+  validate --> rejected: invalid JSON / size / solver / paths / flags / origin
+  validate --> queued: accepted request
+  queued --> rejected: queue full
+  queued --> running: single slot available
+  running --> completed: result and output files
+  running --> failed: native error or 45 min timeout
+  completed --> [*]: release slot and clean temp directory
+  failed --> [*]: release slot and clean temp directory
+  rejected --> [*]
+```
+
+Version probes share the queue, and the existing native adapter enforces
+OMP_NUM_THREADS=1. The request cannot override tools or cwd. Local asset reads
+are limited to the four known example IBIS filenames under IBIS_MODEL_DIR and
+the board file selected by SI_DDR3_BOARD; URLs cannot select filesystem paths.
+These assets are loaded at runtime and never part of a published static bundle.

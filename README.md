@@ -49,6 +49,52 @@ a solve. Native processes are serialized and run with `OMP_NUM_THREADS=1`.
 Vendor IBIS files and board JSON remain local and ignored by git; see
 [the routed examples](examples/routed/README.md) for the local runners.
 
+### Local fixture site
+
+Run `bun install && bun dev` with **ngspice on PATH**. Cosmos opens
+[http://127.0.0.1:5000](http://127.0.0.1:5000); its Vite fixture renderer and local
+API use port 5050. Both bind only to `127.0.0.1`.
+
+The sidebar lists the two-trace TSX board, every signal level, the DDR3 addr/cmd
+scope, and a paste/upload Circuit JSON page. Each mounts `GenericSolverDebugger`
+with `RoutedPipelineSolver`. Step through admission, geometry, fields, buffers,
+network assembly, then the live local ngspice transient. Captures remain candidate
+results without independent convergence qualification. The DDR addr/cmd page
+runs the full 8 ns transient in about 25 minutes of local ngspice (1,503 s measured),
+after about 4 minutes of extraction. Times grow on a busy machine.
+
+Set `IBIS_MODEL_DIR` to the examples' local vendor directory (default `models`).
+Copy the real physical DDR3 board JSON to `models/ddr3-board.json` (gitignored),
+or set `SI_DDR3_BOARD` to its absolute path for the addr/cmd page. The supplied
+board is `../ddr3-route/source-pkg/am3352-ddr-track-a-local-dfm-wip-20261007/dist/index/circuit.json`.
+This is a local setup step:
+never add board JSON or vendor IBIS files to git.
+Missing files show `missing local asset: <path>`. Each fixture loads models from
+local paths. Vendor assets and board JSON are never bundled or committed.
+The site requires its local backend. With built sibling RFC dependencies and the supplied source package available:
+
+```sh
+mkdir -p models
+cp ../ddr3-route/source-pkg/am3352-ddr-track-a-local-dfm-wip-20261007/dist/index/circuit.json models/ddr3-board.json
+# Place sprm552c.ibs and W631GG6MB-12.ibs in models/ locally.
+IBIS_MODEL_DIR=models bun dev
+```
+
+```mermaid
+flowchart LR
+  fixture["Cosmos TSX / uploaded Circuit JSON"] --> debugger["GenericSolverDebugger · routed stages 1–6"]
+  assets["Fixed local model paths / SI_DDR3_BOARD"] --> debugger
+  debugger --> transient["RouteTransientSolver · stepAsync"]
+  transient <-->|"POST /api/run-solver · HTTP RunSolver"| queue["Vite middleware · single slot"]
+  queue <-->|"isolated temp dir · 45 min limit · OMP_NUM_THREADS=1"| native["Local ngspice on PATH"]
+  transient --> capture["Actual waveform samples"]
+```
+
+The backend accepts bounded JSON bodies (64 MiB), checks same-origin loopback
+requests, rejects other solvers and executable/cwd options, and serializes native
+runs and version probes. `GET http://127.0.0.1:5050/api/solvers` reports ngspice
+availability and version. A missing binary shows `ngspice not found on PATH`.
+
 ## General workflow
 
 ```mermaid
