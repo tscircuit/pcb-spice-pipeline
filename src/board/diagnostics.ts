@@ -1,11 +1,7 @@
 import { diagnostics, type DiagnosticInit } from '../kernel'
 
 const raise = diagnostics('board', [
-  'circuit_json', 'circuit_schema', 'modeling_input', 'reduction', 'lanes', 'pin_mapping', 'extraction', 'sections',
-  'stackup', 'route_selection', 'empty_route', 'route_type', 'route_geometry', 'varying_width',
-  'endpoint_position', 'endpoint_layer', 'stale_endpoint', 'via_geometry', 'via_stub', 'layer_transition',
-  'simulation_scope',
-  'ground_net', 'ground_geometry', 'ground_reference', 'ground_connection', 'ground_connectivity',
+  'circuit_schema', 'pin_mapping', 'route_type', 'stackup', 'via_geometry', 'simulation_scope',
 ] as const)
 export type BoardCode = Parameters<typeof raise>[0]
 /** Declared as a function so `never` narrows control flow at call sites. */

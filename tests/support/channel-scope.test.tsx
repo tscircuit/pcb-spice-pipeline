@@ -4,9 +4,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { Inverter, Reference } from './signal-parts'
-import { renderSignals } from './signal-render'
-import { prepareBlocks } from '../../src/pipeline/signals'
-import { geometryFromCircuitJson } from '../../src/board'
+import { prepareBlocks, renderSignals } from './signal-render'
 
 /** The unmodelled three-pad copper is physically far from DATA, on the same real board. */
 function Board({ unrelatedY = 20, neighbour = false }: { unrelatedY?: number; neighbour?: boolean }): React.JSX.Element {
@@ -33,15 +31,16 @@ function Board({ unrelatedY = 20, neighbour = false }: { unrelatedY?: number; ne
 test('TSX unrelated branched copper cannot reject a selected channel on the full board', { skip: !process.env.IBIS_MODEL_DIR }, async () => {
   const circuit = await renderSignals(<Board />)
   const sources = { 'models/sn74lvc1g04.ibs': await readFile(`${process.env.IBIS_MODEL_DIR}/sn74lvc1g04.ibs`) }
-  const [block] = prepareBlocks(circuit, sources)
+  const [block] = prepareBlocks(circuit, sources, 1)
   assert.equal(block.settings.lanes.length, 1)
-  assert.equal(geometryFromCircuitJson(block.circuit, block.settings).mappings.length, 1)
   assert.equal(block.settings.copperScope?.omitted.traces, 2)
-  const near = prepareBlocks(await renderSignals(<Board neighbour />), sources)[0]
-  assert.equal(near.settings.lanes.length, 2, 'nearby quiet conductor is retained')
+  const near = prepareBlocks(await renderSignals(<Board neighbour />), sources, 1)[0]
+  assert.equal(near.settings.lanes.length, 1, 'only the selected channel is a lane')
+  assert.ok(near.settings.copperScope.pcbTraceIds.length > near.settings.copperScope.selectedPcbTraceIds.length, 'the nearby quiet conductor stays in the copper scope')
   const quiet = [...near.pins.values()].find(pin => pin.buffer.type === 'output' && !near.signals.some(signal => 'source_port_id' in signal.driver && signal.driver.source_port_id === pin.port))!
   assert.ok(near.circuit.some(record => record.type === 'simulation_digital_stimulus' && record.source_port_id === quiet.port && record.transmission_pattern.bits === '0'))
-  assert.equal(geometryFromCircuitJson(near.circuit, near.settings).mappings.length, 2)
   const nearbyBranch = await renderSignals(<Board unrelatedY={.5} />)
-  assert.throws(() => prepareBlocks(nearbyBranch, sources), /branched routed graphs are not implemented yet/)
+  const branched = prepareBlocks(nearbyBranch, sources, 1)[0]
+  assert.equal(branched.settings.lanes.length, 1, 'nearby branched copper is a scoped neighbour, not a rejected lane')
+  assert.ok(branched.settings.copperScope.pcbTraceIds.length > branched.settings.copperScope.selectedPcbTraceIds.length)
 })

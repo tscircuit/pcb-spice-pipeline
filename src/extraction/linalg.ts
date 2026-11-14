@@ -1,9 +1,7 @@
-// Dense real matrices (was matrices.mjs sum/scale/transpose/multiply/symmetrize).
+// Dense real matrices.
 export type Matrix = number[][]
 /** Adds up a list of numbers (0 for an empty list). */
 export const sum = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0)
-/** Multiplies every entry of a matrix by one factor, e.g. to split a stage into equal sections. */
-export const scale = (a: Matrix, k: number): Matrix => a.map(r => r.map(v => v * k))
 /** Swaps rows and columns of a matrix. */
 export const transpose = (a: Matrix): Matrix => a[0].map((_, j) => a.map(r => r[j]))
 /** Ordinary matrix product a·b. */

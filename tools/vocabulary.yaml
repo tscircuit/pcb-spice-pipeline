@@ -57,7 +57,6 @@ domain:
   transition: a change of layer, reference or conductor geometry
   prepare: derive private experiment settings from the declared channel intent
   block: an independently declared group of signals in a channel experiment
-  idle: an experiment with no transitions used to determine settled voltages
   initial: the state or value at the beginning of a simulation
   power: an electrical supply net or reference plane
   nearby: inside the explicitly defined spatial coupling horizon
@@ -70,7 +69,6 @@ domain:
   normal: perpendicular to a surface or conductor direction
   correction: an explicit recorded change required by a documented numerical convention
   deviation: the measured difference between an approximation and its reference
-  conductance: electrical admittance that dissipates power, measured in siemens
   coupling: mutual electrical or magnetic interaction between conductors
   cache: reused solution keyed only by identical physical cross-section geometry
   diameter: the full width of a circular barrel, pad or aperture
@@ -80,13 +78,10 @@ domain:
   die: the semiconductor side of a vendor package model
   er: relative dielectric permittivity
   h: inductance measured in henries
-  l: inductance matrix or its entries
   c: capacitance matrix or its entries
   non: prefix identifying an explicitly excluded property
-  pre: prefix identifying a check before a stage
   general: shared across supported channel experiment shapes
   allow: an explicit caller-selected modelling permission
-  alternate: an additional candidate file or implementation
   join: connect physically continuous copper pieces into one path
   self: a matrix term belonging to one conductor rather than a mutual pair
   top: the outer copper layer on the upper face of the board
@@ -104,12 +99,12 @@ domain:
   skin: concentration of alternating conductor current near its surface
   tangent: dielectric dissipation factor or direction along a boundary panel
   vacuum: reference material with relative permittivity one
-  admit: the first stage, which reads the board's Circuit JSON and checks it before anything else uses it
-  artifact: a file the pipeline produces (solver deck, log, waveform, report data), recorded in the ledger
+  admit: the check that reads declared input (board records, IBIS bytes, signal-integrity blocks) before anything else uses it
+  artifact: a file the pipeline produces (solver deck, log, capture, evidence), recorded in the ledger
   assembly: the bundle of converted IBIS chip models used by one experiment
   asset: an IBIS model file that the board names (ibis_model_asset in Circuit JSON)
   barrel: the plated copper tube that lines a via hole
-  bind: the stage that attaches chip models and probes to the planned experiments
+  bind: attach chip models and probes to the planned experiment
   board: the circuit board being analysed, read from Circuit JSON
   bound: the pipeline state after binding; elsewhere, a lower or upper limit of a range
   brand: a TypeScript type tag that proves a value passed a check (for example an admitted id)
@@ -119,47 +114,40 @@ domain:
   capture: a finite recording of voltages over time
   channel: everything electrical between driver and receiver: lanes, their return paths and nearby copper
   circuit: an electrical network; also the Circuit JSON document that describes the board
-  coarse: the first, cheaper solver pass on a rough mesh, before refinement
   component: a part on the board, such as a chip, resistor or capacitor
   conductivity: how easily a material carries current, in siemens per metre
   conductor: one piece of copper the field solver treats as a single electrical body
-  convergence: the check that a finer mesh no longer changes the answer
   coefficient: a dimensionless multiplier on an IBIS pullup or pulldown current
   copper: the metal shapes on the board: traces, pours, pads and vias
-  deck: an input file for a solver (FastHenry, FasterCap or ngspice)
-  declare: the stage that plans experiments and probes before any solver runs
+  deck: an input file for a solver (the ngspice netlist)
+  declare: plan experiments and probes from the board's simulation records before any solver runs
   diagnostic: the library's one error type: a short code, the module that failed and the logs that explain it
   dielectric: the insulating material between copper layers
   differential: a signal carried as the voltage difference between two wires
   driver: the chip output that sends a signal
   evidence: data kept in the result that shows how a conclusion was reached
   experiment: one transient run with stimuli and probes
-  extract: the stage that measures each wire's R, L and C with the field solvers
-  extraction: measuring wire R, L and C from board geometry with field solvers (FastHenry, FasterCap)
+  extract: measure each wire's R, L, G and C from its board cross-sections
+  extraction: measuring wire R, L, G and C from board cross-sections with the 2D field solver
   fixture: a known resistive load used to capture an IBIS switching waveform
-  filament: a thin straight strip of copper that FastHenry splits a conductor into
   gate: the start of the interval compared during numerical convergence
   geometry: the board's copper shapes, layers and positions, in millimetres
   ground: the zero-volt reference copper that signal current returns through
-  henry: the unit of inductance; also the second half of FastHenry, the inductance solver
   impedance: a wire's opposition to changing current, in ohms
   lane: one signal path on the board
   layer: one copper or insulating sheet in the stackup
   ledger: the single record of every artifact path the pipeline writes; a second write to a path fails
-  loop: a current loop: out along a conductor and back through its return path
-  mesh: the grid of small pieces a field solver splits copper into
   model: a chip model (IBIS) or the electrical model of the channel built from extraction
   modeling: private numerical settings derived from Circuit JSON
   net: a set of pins and copper that are connected together
   node: a named connection point in the SPICE circuit
   observation: adaptive waveform parsing and numerical convergence
-  observe: the stage that records accepted waveforms and convergence evidence
   pad: the copper area a component pin is soldered to
-  panel: a small flat piece of copper surface that FasterCap solves the charge on
+  panel: a small flat boundary piece of a cross-section that the 2D field solver puts charge on
   passive: a component that does not amplify: resistor, capacitor or inductor
   permittivity: how strongly an insulator stores electric field (its dielectric constant)
   pin: a chip leg, named in the IBIS model
-  pipeline: the whole run from board to report, as a fixed chain of stages
+  pipeline: the whole routed run from board to transient capture, as a fixed chain of stages
   schedule: the actual logical transitions and their times in one stimulus
   settle: stay within a stated tolerance for the entire remaining measured waveform
   switching: the time-dependent activation of a buffer's pullup and pulldown currents
@@ -173,24 +161,21 @@ domain:
   probe: a point where we measure voltage
   receiver: the chip input that takes in a signal
   reciprocity: the check that a matrix is symmetric (the effect of A on B equals B on A)
-  refinement: rerunning a solver on a finer mesh until the answer stops changing
+  refinement: a finer spatial subdivision of a solve, used to check that the answer stops changing
   residual: how far a computed result is from passing an exact check (smaller is better)
   resistance: how much a wire resists steady current, in ohms (the R in RLGC)
   return: the path current takes back to its source, usually through ground copper
   ring: one closed loop of points that outlines a polygon or a hole in it
   route: the path a trace follows across the board, as points and vias
   scope: a named folder of artifacts that one module is allowed to write
-  seal: the final stage, which sorts and freezes the result's files
+  seal: sort and freeze a ledger's files into the published file map
   signal: a voltage that carries data along a lane
-  simulate: the stage that runs the SPICE circuit in ngspice
   simulation: running the SPICE circuit over time with ngspice
-  slab: a flat 3-D block of copper used while meshing
-  solid: a closed 3-D copper shape
-  solver: an external program that does the physics: FastHenry, FasterCap or ngspice
+  slab: a flat layer of laminate or mask in a cross-section
+  solver: an external program that does the physics (ngspice), or one stepped pipeline stage
   span: the range of layers a via crosses
-  spectrum: impedance measured across a range of frequencies
   stackup: the order and thickness of the board's copper and insulating layers
-  stage: one fixed step of the pipeline (admit, declare, bind, extract, simulate, observe, seal)
+  stage: one fixed step of the routed pipeline (admission, sections, fields, bindings, network, transient)
   stimulus: the bit pattern a driver sends during an experiment
   stub: the unused part of a via beyond the layer where the signal leaves it
   subcircuit: a nested group of components on the board; in SPICE, a reusable circuit block
@@ -215,19 +200,15 @@ domain:
 abbreviations:
   http: Hypertext Transfer Protocol used by the browser solver adapter
   wasm: WebAssembly, the portable binary format used to run ngspice in a browser
-  abstol: absolute current tolerance (ngspice option)
   ac: alternating current; in DDR thresholds, the level a signal must reach
   args: arguments
-  cap: capacitance, as in FasterCap
   config: configuration
-  csv: comma-separated values
   dc: direct current; in DDR thresholds, the level a signal must stay beyond
   ddr: double data rate memory
   dir: directory
   exec: execute a program
   f: farad, the unit of capacitance
   ftype: the function type of a source component (Circuit JSON field)
-  html: HyperText Markup Language
   hz: hertz, cycles per second
   ibis: I/O Buffer Information Specification, the chip model format
   ibs: an IBIS model file
@@ -241,9 +222,7 @@ abbreviations:
   pcb: printed circuit board
   ps: picosecond
   rect: rectangle
-  reltol: relative tolerance (ngspice option)
   rlgc: resistance, inductance, conductance, capacitance: the four wire measurements
-  rms: root mean square
   sha: Secure Hash Algorithm (as in sha256)
   sm: siemens per metre, the unit of conductivity
   spice: the standard circuit simulation netlist format (run by ngspice)
@@ -255,9 +234,7 @@ abbreviations:
   v: volt
   vih: input high voltage, the level a receiver reads as 1
   vil: input low voltage, the level a receiver reads as 0
-  vntol: voltage tolerance (ngspice option)
   vref: reference voltage, the receiver's decision level
-  xyz: x, y and z coordinates
 
 general:
   # actions

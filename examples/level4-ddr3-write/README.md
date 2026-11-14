@@ -1,10 +1,6 @@
-The historical PNG records a 3D run that stopped before native execution on the
-then-unsupported coupled package model. It is not routed transient evidence.
-
 ## Routed 2.5D execution
 
-The historical capture above describes the 3D path. The routed path now supports
-these package matrices and applies the documented vendor C-magnitude interpretation
+The routed path supports these package matrices and applies the documented vendor C-magnitude interpretation
 without changing vendor bytes. Both required files and their hashes are recorded in
 `../vendor-models.lock.json`.
 
@@ -35,4 +31,4 @@ switching, 1.5 V levels and flat-line/NaN sanity remain unverified. This is an
 open native convergence blocker, not an end-to-end success.
 
 The original lower-byte TSX separately passes compilation (86 cells, 8,423,175
-bytes); it has no new native capture. Its old example PNG remains historical.
+bytes); it has no native capture.

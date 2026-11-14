@@ -3,10 +3,10 @@ import assert from 'node:assert/strict'
 import * as root from '../../src'
 import * as node from '../../src/adapters'
 
-// Existing 3D exports plus the deliberate routed compiler/execution additions.
+// The routed compiler/execution entry points and the public board/stimulus helpers.
 // (Type-only exports are pinned by `pnpm typecheck` of the consumer tests, not here.)
-const ROOT = ['RouteTransientSolver', 'RoutedPipelineSolver', 'generateReport', 'runPipeline', 'stackupFromCircuitJson', 'transmittedBits']
-const NODE = ['createNativeSolver', 'loadIbisSources', 'writePipelineOutput']
+const ROOT = ['RouteTransientSolver', 'RoutedPipelineSolver', 'stackupFromCircuitJson', 'transmittedBits']
+const NODE = ['createNativeSolver', 'loadIbisSources']
 
 test('root entry exports exactly today\'s runtime names, all functions', () => {
   assert.deepEqual(Object.keys(root).sort(), ROOT)

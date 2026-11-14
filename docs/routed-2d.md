@@ -3,13 +3,12 @@
 This is an **experimental, unqualified path**, not an accepted DDR3 simulation.
 `RoutedPipelineSolver` compiles physical routed copper and the existing IBIS
 package/switching models into a candidate ngspice deck, using the
-[2D cross-section solver](2d-cross-section.md) for per-unit-length RLGC. The
-public RFC entry still uses the existing 3D stage chain. No vendor models, board
-JSON, generated netlists or plots are committed.
+[2D cross-section solver](2d-cross-section.md) for per-unit-length RLGC. No vendor
+models, board JSON, generated netlists or plots are committed.
 
 ## Geometry and scope
 
-`prepareBlocks(..., '2d')` admits whole candidate nets within a 32 mm geometry cap
+`prepareBlockById` admits whole candidate nets within a 32 mm geometry cap
 on the same/adjacent layers, including branched
 and unmodelled neighbours. Only the selected channel graph must have supported
 endpoint declarations. Quiet mapped IBIS pins retain their existing run states.
@@ -113,8 +112,7 @@ The caller supplies a hard process deadline; the site and DDR runner allow at mo
 45 minutes. Assembly now bounds stored sparse matrix entries rather than imposing
 the old 1,024-cell guard. The current declarative transient writes complete raw
 vectors; the earlier diagnostic runner's stop/resume checkpoints and projections
-are historical evidence, not its execution protocol. No FastHenry/FasterCap runs
-are needed for these 2.5D cross-sections.
+are historical evidence, not its execution protocol.
 
 Refinement is explicit and bounded: `SI_ROUTE_REFINEMENT=1,2,4` changes space;
 `SI_ROUTE_STEP_PS` changes time independently. Completed native output remains
@@ -184,8 +182,7 @@ coefficients actually integrated from shared physical slices. Emission visits
 these entries in the original dense column order, with the original absolute
 thresholds: no additional relative-coupling approximation is introduced. For a
 fixed number of conductors per slice, storage and emitted terms follow cell count
-rather than its square. Dense hybrid-return inputs still consume their actual
-coupling budget and can be rejected by the memory guard.
+rather than its square.
 
 The unmodified two-trace deck pins remain byte-identical. The small energy tests
 cover signed mutual L, Maxwell row sums and Foster terms; the TSX ladder test
