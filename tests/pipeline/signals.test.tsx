@@ -5,18 +5,17 @@ import Single from '../support/unit-single-ended'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { renderSignals } from '../support/signal-render'
-import { prepareBlocks, signalBits, endpointPorts } from '../../src/pipeline/signals'
-import { geometryFromCircuitJson } from '../../src/board'
+import { prepareBlocks, renderSignals } from '../support/signal-render'
+import { signalBits, endpointPorts, signalBlocks } from '../../src/pipeline/signals'
 import { Inverter, Reference } from '../support/signal-parts'
 
 const modelDir = process.env.IBIS_MODEL_DIR
 /** Real vendor bytes, never an invented model. */
 const sources = async (): Promise<Record<string, Uint8Array>> => ({ 'models/sn74lvc1g04.ibs': await readFile(`${modelDir}/sn74lvc1g04.ibs`) })
 /** Regression boards stay ordinary TSX, including the deliberately incomplete route after RS. */
-function Board({ missing = false, via = false, branch = false, sameEnd = false, unlisted = false, offset = 0, allowUnroutedTraces = false }: { missing?: boolean; via?: boolean; branch?: boolean; sameEnd?: boolean; unlisted?: boolean; offset?: number; allowUnroutedTraces?: boolean }): React.JSX.Element {
+function Board({ missing = false, via = false, branch = false, unlisted = false, offset = 0, allowUnroutedTraces = false }: { missing?: boolean; via?: boolean; branch?: boolean; unlisted?: boolean; offset?: number; allowUnroutedTraces?: boolean }): React.JSX.Element {
   return <board width={18} height={12} layers={4} thickness={1.6} fabricatorPreset="jlcpcb_standard" routeRemaining={false} schematicDisabled isViaInPadAllowed allowBlindAndBuriedVias>
-    <Inverter name="TX" x={-5} y={0} driver /><Inverter name="RX" x={5} y={0} driver={false} groundX={sameEnd ? -8 : 0} />
+    <Inverter name="TX" x={-5} y={0} driver /><Inverter name="RX" x={5} y={0} driver={false} />
     <Reference />
     {missing ? <>
       <resistor name="RS" resistance="33" pcbX={0} footprint={<footprint>
@@ -54,13 +53,7 @@ test('full unrouted check reaches the segment after a series passive', { skip: !
   assert.throws(() => prepareBlocks(geometryOnly, ibis), /is not routed between/)
   block.allow_unrouted_traces = true
   const [prepared] = prepareBlocks(circuit, ibis)
-  assert.ok(geometryFromCircuitJson(prepared.circuit, prepared.settings).cells[0].routedCopper)
-})
-
-test('same-end return contacts keep the original 3D routed copper', { skip: !modelDir }, async () => {
-  const circuit = await renderSignals(<Board sameEnd />)
-  const prepared = prepareBlocks(circuit, await sources())[0]
-  assert.ok(geometryFromCircuitJson(prepared.circuit, prepared.settings).cells[0].routedCopper)
+  assert.equal(prepared.settings.lanes.length, 1, 'only the routed segment before RS is a physical lane')
 })
 
 test('routed receiver arrays get the RFC not-implemented diagnostic', { skip: !modelDir }, async () => {
@@ -80,19 +73,17 @@ test('unlisted output-only models drive a steady physical low; D81 receives a le
   assert.equal(stimulus?.type === 'simulation_digital_stimulus' && stimulus.transmission_pattern.bits, '0')
 })
 
-test('TSX vias use core preset plating and respect an explicit stackup thickness', { skip: !modelDir }, async () => {
+test('TSX vias use core preset plating, and routed vias require an explicit stackup thickness', { skip: !modelDir }, async () => {
   const circuit = await renderSignals(<Board via />)
   const ibis = await sources()
   const stack = circuit.find(record => record.type === 'pcb_stackup')!
   if (stack.type !== 'pcb_stackup') throw new Error('Missing stackup')
   assert.equal(stack.plated_hole_copper_thickness, .018)
-  assert.equal(prepareBlocks(circuit, ibis)[0].settings.viaPlatingMm, .018)
+  assert.ok(prepareBlocks(circuit, ibis)[0].settings.copperScope.pcbViaIds.length >= 2)
   delete stack.plated_hole_copper_thickness
   assert.throws(() => prepareBlocks(circuit, ibis), /pcb_stackup must specify plated_hole_copper_thickness/)
   stack.plated_hole_copper_thickness = .025
-  const [prepared] = prepareBlocks(circuit, ibis)
-  assert.equal(prepared.settings.viaPlatingMm, .025)
-  assert.ok(geometryFromCircuitJson(prepared.circuit, prepared.settings).cells[0].routedCopper)
+  assert.doesNotThrow(() => prepareBlocks(circuit, ibis))
 })
 
 const signal: SimulationSignal = { type: 'simulation_signal', simulation_signal_id: 's', simulation_signal_integrity_id: 'b', name: 'D',
@@ -122,7 +113,7 @@ test('literal, clock and constant patterns and disabled drivers', () => {
 })
 
 test('the removed modeling API cannot supply a test or synthesize a block', () => {
-  assert.deepEqual(prepareBlocks([], {}), [])
+  assert.deepEqual(signalBlocks([]), [])
 })
 
 test('explicit duration stays exact even before startup ends; automatic duration remains absent in source', { skip: !modelDir }, async () => {

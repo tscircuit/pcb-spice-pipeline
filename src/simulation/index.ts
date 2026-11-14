@@ -1,24 +1,15 @@
 /**
- * simulation — experiments as declared on the board, and running them in ngspice.
+ * simulation — experiments as declared on the board, the routed deck, and running it in ngspice.
  * Owns: SimulationPlan declaration from simulation_* records (timing, probes, stimuli, pin
- * states), electrical node mapping + ideal sources/passives, the converter run
- * definition per model, probe-scope validation, the experiment netlist, ngspice diagnostics,
- * waveform coverage checks, and simulation_transient_voltage_graph result records.
- * Order (today's runPipeline): generalDeclarations -> electricalSources -> safeSimulationPlans
- * -> [buffers compile with modelRunDefinition] -> bindExperiments -> [extraction] -> runExperiment per plan.
- * Artifacts: electrical-node-map.json, experiments/<id>/{experiment.json, <model>.lib, simulation.cir,
- * ngspice.*, waveform.dat, waveform.csv, waveform.json}.
- * Imports: kernel, solver, board, extraction, observation, buffers (types).
- * (Was: declarations.ts, general-spice.ts, stimulus.ts, ngspice part of general-pipeline.ts.)
+ * states), electrical node mapping + ideal sources/passives, the converter run definition per
+ * model, the routed ladder/network deck (RouteBindingsSolver, RouteNetworkSolver) and the live
+ * transient (RouteTransientSolver).
+ * Artifacts: electrical-node-map.json, simulation.cir, evidence.json and the transient capture.
+ * Imports: kernel, solver, board, extraction, observation, buffers.
  */
-export type {
-  SimulationModeling, CircuitNodes, PipelineIbisModel, VoltageProbePlan, SimulationPlan, SafeSimulationPlan,
-  Declarations, ElectricalModel, CompiledModel, ExperimentModel, ElectricalSources, SimulationSpiceOptions,
-  Experiments, BoundExperiments, ExperimentRun, ExperimentResult,
-} from './types'
+export type { SimulationModeling, CircuitNodes, PipelineIbisModel, VoltageProbePlan, SimulationPlan, Declarations, ElectricalSources } from './types'
 export { circuitNodes, generalDeclarations, modelRunDefinition } from './declarations'
-export { namespaceSpice, electricalSources, simulationSpiceOptions, generalSimulationSpice, validateProbeScope } from './netlist'
-export { safeSimulationPlans, electricalNodeMap, bindExperiments, runIdle, runExperiment, experimentResult } from './run'
+export { namespaceSpice, electricalSources } from './netlist'
 export { transmittedBits } from './stimulus'
 export { routeLadder, type RouteLadder } from './route-ladder'
 export { routeTransitions, terminalInductance, barrelInductance, barrelCapacitance, type RouteTransitions } from './route-transitions'

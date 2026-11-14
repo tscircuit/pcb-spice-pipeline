@@ -1,47 +1,21 @@
 # Signal-integrity pipeline architecture
 
-The public entry consumes Circuit JSON source records from RFC #28. It rejects the
-removed modeling option. `pipeline/signals.ts` groups blocks and derives private
-settings and native declarations. `pipeline/prepared.ts` runs the existing typed
-stage chain after derivation. The lowered transient records are private and never
-appear in the new result Circuit JSON.
+`RoutedPipelineSolver` is the public entry. It consumes Circuit JSON source records
+from RFC #28. `pipeline/signals.ts` (`prepareBlockById`) groups blocks and derives
+private settings and native declarations, one block per admission step. The lowered
+transient records are private and never appear in the input Circuit JSON.
 
 ```mermaid
 flowchart LR
-  source["Circuit JSON SI records"] --> derive["pipeline: independent block derivation<br/>buffers: package admission, unlisted-pin hierarchy and passivity"]
-  derive --> board3d["board: 3D copper, layered dielectric and series receiver taps"]
-  board3d --> check{"straight parallel traces,<br/>one rectangular return<br/>with contacts at opposite ends?"}
-  check -->|"yes"| bars["board: extra 2D bar reduction for R/L<br/>C retains physical copper and dielectric"]
-  check -->|"no"| extract
-  bars --> extract["extraction: native R/L and layered C<br/>R/L convergence; signal-block C reciprocity before symmetrization"]
-  derive --> buffers["buffers: vendor models, scalar/coupled pin packages and ideal die rails"]
-  buffers --> simulate["simulation: undisturbed idle, then native transient<br/>independent section and timestep refinement"]
-  extract --> simulate
-  simulate --> observe["observation: adaptive waveform convergence"]
-  observe --> results["pipeline: RFC result records and artifact ledger"]
-  derive -->|"no SI blocks"| results
-```
-
-```mermaid
-stateDiagram-v2
-  [*] --> input
-  input --> admitted: schema, derived settings and valid package matrices
-  input --> sealed: no SI blocks
-  admitted --> declared: 3D copper model (2D bars if straight parallel) and declarations
-  declared --> bound: buffers and local probes
-  bound --> extracted: mesh copper, native R/L/C
-  extracted --> simulated: undisturbed idle, then converged transient
-  simulated --> observed: accepted waveforms
-  observed --> sealed: results and artifacts
-  input --> failed
-  admitted --> failed
-  declared --> failed
-  bound --> failed
-  extracted --> failed
-  simulated --> failed
-  observed --> failed
-  sealed --> [*]
-  failed --> [*]
+  source["Circuit JSON SI records"] --> admit["pipeline: independent block admission<br/>buffers: package admission, unlisted-pin hierarchy and passivity"]
+  admit --> sections["board: copper scope, straight sections and reference planes"]
+  sections --> fields["extraction: quasi-TEM cross-sections, pair screen and causal loss"]
+  admit --> bindings["buffers + simulation: vendor models, pin packages, ideal die rails, probes and sources"]
+  fields --> network["simulation: coupled ladders, via and oblique corrections, one deck"]
+  bindings --> network
+  network --> transient["simulation: one native ngspice transient per block"]
+  transient --> output["pipeline: captures and the sealed artifact ledger"]
+  admit -->|"no SI blocks"| output
 ```
 
 Module boundaries remain enforced by `check:modules`: modules import one another
@@ -50,41 +24,38 @@ Node facilities. Domain modules return owned artifacts. The pipeline ledger
 rejects path collisions and seals files in sorted order. Blocks have separate
 artifact prefixes.
 
-`board` owns physical admission and geometry; `buffers` owns vendor source bytes,
-pin/model selection and package assembly; `extraction` owns meshes, solver decks,
-parsing, passivity and convergence checks; `simulation` owns electrical sources,
-node identity and ngspice; `observation` owns interpolation and convergence.
-`report` reads sealed artifacts. `adapters` supplies explicit filesystem/process IO.
+`board` owns physical admission, the copper scope, route sections and board drawings;
+`buffers` owns vendor source bytes, pin/model selection and package assembly;
+`extraction` owns cross-section field solves, route lines, pair coupling and matrix
+checks; `simulation` owns declarations, electrical sources, node identity, the routed
+deck and ngspice; `observation` reads native ngspice vectors; `solver` validates
+native runs. `adapters` supplies explicit filesystem/process IO.
 
 `buffers/package-model.ts` parses local IBIS package definitions;
 `package-matrix.ts` validates the complete matrices and reduces unused floating
 pins; `coupled-package.ts` emits the coupled lumped pi circuit. Admission runs
-during signal derivation, before extraction. Assembly records selected matrices,
+during block admission, before extraction. Assembly records selected matrices,
 original self terms, unused pins, merged rail associations and the termination policy.
 Unlisted pins follow the IBIS scalar hierarchy or implicit merged rail bus rules.
 Core only checks declaration/model bindings, capabilities and routing. The converter still
 supplies die buffers with its package omitted; the pipeline must then realize
 the selected vendor package. See [the electrical contract](coupled-package-model.md).
 
-Tests use TSX for board reproductions. Numerical convergence oracles use analytic
-waveforms; those synthetic waveforms are never claimed as native solver evidence.
-Tests for the removed straightened-stage, legacy fold and DDR assessment paths were deleted. New shared schemas validate every public result. The RFC intentionally changes the public entry, records and artifact paths.
-
-R/L use the signal-minus-return loop transform. C and G use the ground-referenced primitive signal blocks, with all GND pours and GND-connected conductors held at 0 V. The raw C signal block must pass max|C−Cᵀ|/max|C| ≤ 2.5% before (C+Cᵀ)/2 is passed to the symmetric capacitor writer; records contain total matrices indexed by physical conductors, with P/N entries for differential signals. Dielectric loss is currently zero, so G is the signal block of a zero primitive matrix. The transient uses first-order Gear, tight IBIS tolerances, adaptive native samples, and independent time/section refinement. Each probe must pass both integrated RMS and signed peak tolerances (1% + 1 mV). A failure produces no accepted waveforms.
+Tests use TSX for board reproductions. Synthetic engine responses exercise parsing
+and drawing only; they are never claimed as native solver evidence.
 
 The runtime imports the shared circuit-json schemas. Local validation must build the sibling RFC branch until circuit-json#983 is released. No absolute local dependency links are committed. TSX tests and examples use the built core directly.
 
-Core#5286 emits JLC preset plating (0.018 mm), preserving explicit imported stackup plating. The native runner uses real core. RFC pours now request ground escape routing with `unbroken`; the differential example uses manual paths and retains its original autorouter reproduction. Degree-two copper paths are joined for native extraction, with intermediate receiver pins exposed at their physical arc-length fractions in the uniform pi model. Branches and cycles remain unsupported. The native capacitance deck models each declared dielectric slab and air outside; conductor/dielectric contacts are emitted once. Numerical acceptance, including reciprocity, remains mandatory. See `native-signal-levels.md` for accepted and rejected evidence.
+Core#5286 emits JLC preset plating (0.018 mm), preserving explicit imported stackup plating; routed vias require it. RFC pours request ground escape routing with `unbroken`; the differential example uses manual paths and retains its original autorouter reproduction. Branched routes and cycles remain unsupported.
 
-## 2D extraction and routed candidate
+## 2D extraction
 
 `extraction/cross-section.ts`, exported by `extraction/index.ts`, owns a separate
 quasi-TEM numerical interface. It consumes rectangles, infinite solid references,
 and dielectric/mask slabs and returns per-unit-length C/C0/L and frequency-dependent
-R/G. The staged `RoutedPipelineSolver` now consumes it; see
-[routed 2D candidate and execution blockers](routed-2d.md). It is not wired into
-the public stage chain above. The root API, 3D extraction,
-artifact paths and simulation behaviour remain unchanged. The routed root owns its own single ledger fold after all block stages complete. See
+R/G. `RouteFieldsSolver` consumes it; see
+[routed 2D candidate and execution blockers](routed-2d.md). The routed root owns its
+single ledger fold after all block stages complete. See
 [method, validation and the DDR3 slice demo](2d-cross-section.md).
 
 ```mermaid
@@ -99,21 +70,16 @@ flowchart LR
   dielectric --> result[Per-unit-length matrices and frequency sampler]
   skin --> result
   inductance --> result
-  result --> routed[Opt-in routed candidate: arc-cell energies and causal ladders]
+  result --> routed[Routed pipeline: arc-cell energies and causal ladders]
   routed --> pilot[Bounded native pilot and failure evidence]
 ```
 
-## Routed coupling and optional finite-return experiments
+## Routed coupling
 
-`board` admits candidate nets within 32 mm for routed 2D. `extraction/route-coupling.ts`
-solves parallel pairs before assembling final cross-sections; either normalized
-mutual C or L at least 0.5% retains the pair. The cap, 40-conductor guard and
-omissions are recorded. This does not alter the public 3D scope.
-`extraction/route-return.ts` optionally extracts two serial FastHenry R/L meshes
-from the existing two-contact 3D geometry, without native C. `simulation/route-ladder.ts`
-adds its passive shared-return closure or replaces series magnetics with full
-3D loop R/L. Both modes are explicit unqualified hybrids; they are not automatic
-fallbacks or substitutes for a multi-contact return.
+`board` admits candidate nets within 32 mm unless the problem narrows the scope.
+`extraction/route-coupling.ts` solves parallel pairs before assembling final
+cross-sections; either normalized mutual C or L at least 0.5% retains the pair.
+The cap, 40-conductor guard and omissions are recorded.
 
 ```mermaid
 flowchart LR
@@ -121,17 +87,14 @@ flowchart LR
   cap --> pair[Extraction solved parallel pair screen]
   pair --> field[Extraction retained 2D cross-sections]
   field --> ladder[Simulation route-arc energy assembly]
-  board -->|optional| magnetic[Extraction serial 3D R/L meshes and checks]
-  magnetic --> hybrid[Explicit closure or full magnetic hybrid]
-  hybrid --> ladder
   ladder --> native[Guarded serial native transient]
-  native --> compare[Full native-union comparisons and unqualified verdict]
+  native --> verdict[Candidate capture, unqualified]
 ```
 
 ## Inspectable routed compiler
 
 Stage classes live with their domain knowledge. Root admission calls
-`prepareBlockById`, also used by `prepareBlocks`, once per SI block. Each admitted
+`prepareBlockById` once per SI block. Each admitted
 block is passed through the same six static top-level stages. The entire
 `pipelineDef` exists before admission starts; no step creates stages at runtime.
 `RoutedStageSolver` steps each domain algorithm across all admitted blocks in
@@ -282,7 +245,7 @@ samples, start and final simulated time are checked before publishing a capture.
 Errors leave the stage failed without partial output. Native adapter instances
 share a process queue and set OMP_NUM_THREADS=1. Large DDR3 transients remain
 unverified. Completion is candidate evidence without independent convergence
-qualification. `runPipeline` and the 3D path are unchanged.
+qualification.
 
 Async stepping uses solver-utils PR #62 at `127f17012c7c391005254993864b26801f418249`
 through an integrity-locked pkg.pr.new URL. Switch to a release after #62 ships.

@@ -2,7 +2,7 @@ import React from 'react'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { renderCoreSignals } from '../../support/core-render'
-import { channelCopperScope, connectedSourceIds, copperScopeRejections, type CircuitJson } from '../../../src/board'
+import { channelCopperScope, connectedSourceIds, type CircuitJson } from '../../../src/board'
 
 /** World-mm paths; inner-layer access barrels sit 2 mm beyond the selected endpoints. */
 function Wire({ name, y, layer = 'top', extent = 8 }: { name: string; y: number; layer?: 'top' | 'inner1' | 'inner2'; extent?: number }): React.JSX.Element {
@@ -40,7 +40,8 @@ test('TSX coupling scope keeps adjacent layers, full via spans and return pours 
   assert.deepEqual(retained.sort(), ['ADJACENT', 'SAME', 'SELECTED'])
   assert.equal(scope.pcbViaIds.length, 2, 'adjacent-layer full physical barrels are retained')
   assert.equal(scope.pcbCopperPourIds.length, 2, 'return copper and nearby other-net plane remain visible')
-  assert.deepEqual(copperScopeRejections(scope), ['Channel scope requires multi-net plane extraction for 1 nearby non-reference pours', 'Channel scope requires pad-only neighbour extraction for 1 physical ports'])
+  assert.equal(scope.nearbyNonReferencePourIds.length, 1, 'the nearby other-net plane is recorded')
+  assert.equal(scope.padOnlySourcePortIds.length, 1, 'the pad-only neighbour port is recorded')
   assert.equal(scope.openPadIds.length, 1, 'unused disconnected leads retain their explicit open-pad approximation')
   assert.equal(scope.omitted.traces, 2)
 })

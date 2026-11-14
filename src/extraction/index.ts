@@ -1,24 +1,14 @@
 /**
  * extraction — what the channel is electrically.
- * Owns: meshing (ground mesh, copper surface triangulation, panel sizing), FastHenry/FasterCap
- * decks from board's Geometry, native-output parsing and log scans, coarse/refined convergence,
- * reciprocity/passivity/DC-R/capacitance-sign/energy checks, the linear algebra those need, and the
- * RLGC subcircuit text (channel.cir), and standalone quasi-TEM cross-section extraction.
- * Artifacts: today's stage-N/** (decks, solver logs/requests/outputs, extraction.json) and channel.cir.
- * Imports: kernel, solver, board. (Was: extraction.ts, matrices.mjs, deck halves of
- * geometry.ts/copper.ts, spice.ts channelSpice.)
+ * Owns: quasi-TEM 2D cross-section extraction (field solve, per-unit-length RLGC, causal loss),
+ * per-route section lines and coupling (RouteFieldsSolver), and the matrix checks they need.
+ * Imports: kernel, board.
  */
-export type { ExtractionSettings, ExtractionModeling, ExtractedChannel, ExtractedStage, ChannelMatrices, Matrix, ImpedanceSample, MatrixCheck, CapacitanceCheck, RefinementCheck } from './types'
-export { extractChannel } from './extract'
-export { channelSpice, type StageMatrices } from './rlgc'
-export { fastHenryDeck, fasterCapDeck, copperFastHenryDeck, copperFasterCapDeck, copperCapacitanceScaleToFarads } from './decks'
-export { groundMesh, meshPolygon, copperPanelSizing, panelAspectLimit, panelGrading, type PanelSizing } from './mesh'
-export { validateMatrix, loopImpedance, referenceCapacitance, referenceConductance } from './checks'
-export { parseFastHenry, parseFasterCap, type CapacitanceOutput } from './parse'
-export { sum, scale, transpose, multiply, symmetrize } from './linalg'
+export type { Matrix } from './linalg'
+export { validateMatrix, type MatrixCheck } from './checks'
+export { sum, transpose, multiply, symmetrize } from './linalg'
 export { solveCrossSection, solveSectionCapacitance, type CrossSection, type CrossSectionOptions, type CrossSectionResult, type SectionConductor, type SectionPlane, type SectionDielectric } from './cross-section'
 export { referenceSeries, routeCrossSection, closestRoutePoints, type ExtractedRoutes, type ExtractedRouteSlice, type RouteMaterials, type RouteCoefficients } from './route-lines'
-export { extractRouteReturn, type RouteReturn } from './route-return'
 export { causalLossPoles, causalLossResponse, type LossPole } from './causal-loss'
 
 export { RouteFieldsSolver, type RouteFieldsInput } from './route-fields-solver'

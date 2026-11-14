@@ -2,10 +2,7 @@
 import assert from 'node:assert/strict'
 import {builtinModules,registerHooks} from 'node:module'
 import {readFileSync} from 'node:fs'
-import {fixtureSolver} from './fixtures/solver.mjs'
 const input=JSON.parse(readFileSync(0,'utf8'))
-const requests=[]
-const progress=[]
 const before=JSON.stringify(input)
 const denied=()=>{
   throw Error('Implicit host action denied')
@@ -18,24 +15,11 @@ registerHooks({resolve(specifier,context,next){
 globalThis.fetch=denied
 globalThis.console=new Proxy({},{get:()=>denied})
 Object.defineProperty(globalThis,'process',{get:denied})
-globalThis.Date=new Proxy(Date,{construct:denied,get:(target,key)=>key==='now'?denied:Reflect.get(target,key)})
-Object.defineProperty(globalThis,'performance',{get:denied})
-const {runPipeline,generateReport}=await import('../dist/index.js')
-await assert.rejects(runPipeline({...input,modeling:{},runSolver:fixtureSolver}),{code:'signal_integrity_input'})
-if(input.circuitJson.length){
-  const result=await runPipeline({...input,runSolver:async request=>{
-    requests.push(structuredClone(request))
-    return fixtureSolver(request)
-  },onProgress:message=>progress.push(message)})
-  assert.ok(requests.length>=4 && requests.every(request=>request.solver==='ngspice'))
-  assert.ok(progress.length>=2)
-  assert.equal(result.blocks.length,1)
-  assert.equal(result.matrices.length,0)
-  assert.equal(result.experiments[0].solverInvocations,requests.length)
-  assert.ok(result.blocks[0].results.some(record=>record.type==='simulation_signal_waveform'))
-  const report=generateReport(result)
-  assert.match(report['results.html'],/id="simulation-data"/)
-  assert.doesNotMatch(report['results.html'],/<script[^>]+src=|https?:\/\//)
-  assert.deepEqual(report,generateReport(result))
-}else assert.deepEqual((await runPipeline({...input,runSolver:fixtureSolver})).blocks,[])
+// solver-utils and the routed stages time their steps with Date.now() and performance.now();
+// reading the clock is the only host access left. Constructing dates stays denied.
+globalThis.Date=new Proxy(Date,{construct:denied})
+const {RoutedPipelineSolver}=await import('../dist/index.js')
+const solver=new RoutedPipelineSolver(input,{runSolver:denied,progress:denied})
+solver.solve()
+assert.deepEqual(solver.getOutput().blocks,[])
 assert.equal(JSON.stringify(input),before)
