@@ -216,8 +216,8 @@ grounded unit Foster stage sequence gives `u = z(s) x`. The former per-pole mult
 and `K` layers stacked nine copies of the coupling graph, which caused 8.9M LU fill
 on the DDR3 deck. Those auxiliary rows have no diagonal, so routed decks set
 `pivrel=0.1`. `klu_refactor` reuses the pivots chosen on the first transient
-iteration, and the default `1e-3` lets the first time point fail. Measurements are in
-`docs/research/ngspice-step-profile.md`.
+iteration, and the default `1e-3` lets the first time point fail. The profiling that
+found this is in PR #84.
 
 Completed domain values are copied and frozen. Only the root folds the six stages'
 `Produced` artifacts into `ArtifactLedger`; runtime timings stay in `stats`.
