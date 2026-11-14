@@ -1,20 +1,21 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { RoutedAdmissionSolver } from '../../src/pipeline'
-import { prepareBlocks, prepareBlockById } from '../../src/pipeline/signals'
+import { prepareBlockById, signalBlocks } from '../../src/pipeline/signals'
 import { routedProblem } from '../support/routed-fixture'
 
 test('admission uses shared block lowering, retains warnings and rejects invalid scope', async (context) => {
   const input = await routedProblem(context)
   if (!input) return
-  const [block] = prepareBlocks(input.circuitJson, input.ibisSources, '2d', 1)
-  const single = prepareBlockById(input.circuitJson, input.ibisSources, block.block.simulation_signal_integrity_id, '2d', 1)
-  assert.deepEqual(single.settings, block.settings)
-  assert.deepEqual(single.circuit, block.circuit)
-  assert.deepEqual(single.warnings, block.warnings)
+  const [id] = signalBlocks(input.circuitJson).map(block => block.simulation_signal_integrity_id)
+  const block = prepareBlockById(input.circuitJson, input.ibisSources, id, input.scopeDistanceMm)
   const solver = new RoutedAdmissionSolver(input)
   solver.step()
   assert.equal(solver.solved, true)
+  const [plan] = solver.getOutput().value
+  assert.deepEqual(plan.sections.circuitJson, block.circuit)
+  assert.deepEqual(plan.sections.scope, block.settings.copperScope)
+  assert.deepEqual(plan.warnings, block.warnings)
   assert.equal(solver.getOutput().value[0].sections.scope.selectedPcbTraceIds.length, 2)
   const drawing = solver.visualize()
   const marks = drawing.polygons!.filter((polygon) => polygon.label && polygon.points.length > 4 && polygon.fill !== '#0b0f13')

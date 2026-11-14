@@ -2,9 +2,9 @@
 
 `src/extraction/cross-section.ts` exports `solveCrossSection` through
 `src/extraction/index.ts`. The standalone interface does not change root package
-exports or invoke native solvers. The opt-in [routed step-2 candidate](routed-2d.md)
-now consumes it; that experiment remains incomplete and is separate from the public
-3D pipeline stage chain. Numerical validation below concerns this standalone solver.
+exports or invoke native solvers. The [routed pipeline](routed-2d.md) consumes it;
+that path remains candidate-unqualified. Numerical validation below concerns this
+standalone solver.
 
 ## Contract
 

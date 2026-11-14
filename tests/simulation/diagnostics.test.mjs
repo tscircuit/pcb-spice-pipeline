@@ -25,14 +25,6 @@ const electrical=(mutate,m=base=>base)=>impl=>{
   const g=impl.geometry(cj,modeling)
   return impl.electricalSources(cj,modeling,impl.circuitNodes(cj,g,modeling))
 }
-const deck=(extraction,models=[{source:'.subckt BUFFER P R\nRTEST P R 1000\n.ends BUFFER\n',spicePinMapping:{P:'p0',R:'g0'},name:'test'}])=>impl=>{
-  const {cj,m}=fixture()
-  const g=impl.geometry(cj,m)
-  const d=impl.generalDeclarations(cj,g,m)
-  return impl.generalSimulationSpice(d.plans[0],g,m,extraction,models,d.nodes,impl.electricalSources(cj,m,d.nodes))
-}
-const identity=[[1,0],[0,1]]
-const matrices=[{R:identity,L:identity,C:identity}]
 const square=extra=>cj=>{
   cj.push({type:'simulation_voltage_source',simulation_voltage_source_id:'sq',is_dc_source:false,terminal1_source_port_id:'v0',terminal2_source_port_id:'g0',voltage:3.3,frequency:1e6,wave_shape:'square',...extra})
 }
@@ -65,10 +57,7 @@ const MESSAGES={
  "source_capability": "source_capability: Voltage waveform sinewave is unsupported by this PCB backend",
  "passive_reference": "passive_reference: Selected passive component is missing or ambiguous",
  "passive_capability": "passive_capability: TX: expected two physical ports",
- "matrix_dimension": "matrix_dimension: Extracted channels must match every selected signal",
- "ibis_contract": "ibis_contract: Converter did not emit a SPICE component wrapper",
- "spice_options": "spice_options: Unsupported integration method",
- "probe_observation": "probe_observation: single: signal/reference is outside the declared electrical model scope"
+ "ibis_contract": "ibis_contract: Converter did not emit a SPICE component wrapper"
 }
 
 test('simulation codes and messages equal the pre-module implementation', () => {
@@ -100,17 +89,7 @@ test('simulation codes and messages equal the pre-module implementation', () => 
   ['source_capability',electrical(square({wave_shape:'sinewave'}))],
   ['passive_reference',electrical(undefined,m=>({...m,passiveComponents:[{sourceComponentId:'missing'}]}))],
   ['passive_capability',electrical(undefined,m=>({...m,passiveComponents:[{sourceComponentId:'u0'}]}))],
-  ['matrix_dimension',deck([{R:[[1]],L:[[1]],C:[[1]]}])],
-  ['ibis_contract',deck(matrices,[{source:'* no wrapper\n',spicePinMapping:{},name:'bad'}])],
-  ['spice_options',impl=>impl.simulationSpiceOptions({method:'euler'})],
-  ['probe_observation',impl=>{
-    const {cj,m}=fixture()
-    cj.push({type:'source_port',source_port_id:'x0',source_component_id:'u0',name:'NC'})
-    one(cj,'simulation_voltage_probe',p=>p.simulation_voltage_probe_id==='single').signal_input_source_port_id='x0'
-    const g=impl.geometry(cj,m)
-    const d=impl.generalDeclarations(cj,g,m)
-    return impl.validateProbeScope(d.plans[0],g,[],d.nodes,impl.electricalSources(cj,m,d.nodes))
-  }],
+  ['ibis_contract',impl=>impl.namespaceSpice('* no wrapper\n','I0')],
   ]) {
     assert.ok(Object.hasOwn(MESSAGES, code), code)
     assert.throws(() => run(impls.current), e => {
@@ -123,7 +102,7 @@ test('simulation codes and messages equal the pre-module implementation', () => 
 })
 
 
-const {circuitNodes,generalDeclarations,electricalSources,validateProbeScope}=current
+const {circuitNodes,electricalSources}=current
 test('a channel net split into per-subcircuit records joined by net-only traces is cut like one shared net',()=>{
   // CPU pin -> DQ@cpu, RAM pin -> DQ@ram, both joined to DQ@board, as boards built from subcircuits save them.
   const split=cj=>{
@@ -143,14 +122,9 @@ test('a channel net split into per-subcircuit records joined by net-only traces 
   assert.throws(()=>circuitNodes(fanout.cj,fanout.g,fanout.m),/channel_fanout/)
 })
 
-test('orphan ideal sources and unsupplied IBIS reference rails fail preflight',()=>{
+test('orphan ideal sources fail preflight',()=>{
   const {cj,m,g}=fixture()
   cj.push({type:'source_component',source_component_id:'voltage',name:'ORPHAN'},{type:'source_port',source_port_id:'vspos',source_component_id:'voltage'},{type:'source_port',source_port_id:'vsneg',source_component_id:'voltage'},{type:'simulation_voltage_source',simulation_voltage_source_id:'voltage-source',terminal1_source_port_id:'vspos',terminal2_source_port_id:'vsneg',voltage:3.3,is_dc_source:false})
   const nodes=circuitNodes(cj,g,m)
   assert.throws(()=>electricalSources(cj,m,nodes),/floating_source.*ORPHAN/)
-  const clean=cj.filter(e=>e.type!=='simulation_voltage_source')
-  const declarations=generalDeclarations(clean,g,m)
-  const electrical=electricalSources(clean,m,declarations.nodes)
-  const models=[{name:'test',spicePinMapping:{PAD:'p0',REF:'vspos'},metadata:{pins:[{physicalPin:'1',references:{pullup:'vspos'}}]}}]
-  assert.throws(()=>validateProbeScope(declarations.plans[0],g,models,declarations.nodes,electrical),/floating_reference.*pullup/)
 })

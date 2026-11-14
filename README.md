@@ -1,8 +1,9 @@
 ## What is it?
 
 Native signal-integrity simulation for tscircuit boards. Describe each test with
-`<simulation.pcbtransientchannelsimulation>` and `<signal>`; the pipeline consumes the resulting Circuit JSON,
-extracts coupled copper with FastHenry/FasterCap, and runs IBIS buffers in ngspice.
+`<simulation.pcbtransientchannelsimulation>` and `<simulation.pcbchannel>`. `RoutedPipelineSolver` consumes the
+resulting Circuit JSON, solves quasi-TEM 2D cross-sections along the actual routed copper (2.5D), assembles
+coupled ladders with the IBIS buffers, and runs one transient per block in ngspice.
 This draft implements the pipeline entry of [RFC #28](https://github.com/tscircuit/rfc/pull/28).
 
 ## How to use it?
@@ -16,109 +17,61 @@ import { simulation } from "@tscircuit/core"
 ```
 
 ```ts
-import { runPipeline } from '@tscircuit/signal-integrity-pipeline'
-import { createNativeSolver, loadIbisSources, writePipelineOutput } from '@tscircuit/signal-integrity-pipeline/node'
+import { RoutedPipelineSolver } from '@tscircuit/signal-integrity-pipeline'
+import { createNativeSolver, loadIbisSources } from '@tscircuit/signal-integrity-pipeline/node'
 
-const result = await runPipeline({
-  circuitJson,
-  ibisSources: await loadIbisSources({ circuitJson, baseDir: '.' }),
-  runSolver: createNativeSolver(),
-})
-await writePipelineOutput({ result, outputDir: 'runs/si' })
+const solver = new RoutedPipelineSolver(
+  { circuitJson, ibisSources: await loadIbisSources({ circuitJson, baseDir: '.' }) },
+  { runSolver: createNativeSolver({ timeoutMs: 600_000 }), progress: console.log },
+)
+await solver.solveAsync()
+const { blocks, files } = solver.getOutput()
 ```
 
-Circuit JSON is the electrical input. `ibisSources`, `runSolver` and `onProgress`
-are IO ports. There is no `modeling` option or separate simulation configuration.
-Each `result.blocks` entry owns its matrices, results, numerical settings evidence
-and limitations. `simulationResultCircuitJson` retains the input and appends only
-the RFC's waveform and RLGC result record kinds. Re-running replaces prior SI results. A board with no SI blocks returns an empty block/result collection without invoking a solver. Automatic duration stays absent in source records and is reported on each result block.
+Circuit JSON is the electrical input. `ibisSources` and the `{ runSolver, progress }`
+context are IO ports; there is no separate simulation configuration. Each `blocks`
+entry holds its compiled ngspice deck with evidence and its completed probe capture.
+Captures are candidate evidence without independent convergence qualification.
+`files` maps every artifact path to its bytes; writing them is the caller's choice.
+A board with no SI blocks completes after admission without invoking a solver.
 
 Branched routes remain unsupported. Inline IBIS coupled package matrices are
-validated before extraction and lowered to a passive lumped package. Unlisted
+validated before the deck is built and lowered to a passive lumped package. Unlisted
 pins follow the IBIS [Pin]/[Package] hierarchy and merged rail bus rules;
 missing or invalid matrix definitions still fail. See the
 [package model contract and DDR3 blockers](docs/coupled-package-model.md).
 Die POWER/GND references always connect directly to perfect rails;
-vendor package R/L/C remains between every mapped pin and its die node. See the [model rationale](docs/native-signal-levels.md).
+vendor package R/L/C remains between every mapped pin and its die node.
 
-See [the TSX levels](examples) and [native evidence](docs/native-signal-levels.md).
-Local native verification uses the sibling core build through `SI_CORE_MODULE`;
-its real TSX rendering emits the source records without a rendering adapter.
-It never substitutes synthetic IBIS. Vendor files remain local and ignored by git.
-
-```sh
-pnpm install --frozen-lockfile
-# Until the RFC dependencies ship, use the built local circuit-json/props/core overlays
-# documented in docs/native-signal-levels.md.
-IBIS_MODEL_DIR=/path/to/vendor/models node --import tsx scripts/run-signal-levels.tsx
-```
-
-FastHenry, FasterCap and ngspice must already be installed. The evidence runner
-uses `/opt/homebrew/bin`; the Node adapter accepts executable paths for other hosts.
-No package install or solver download happens during `runPipeline`.
-
-For an oversized full-resolution result, `files` stores waveform records in separate
-`circuit-results/waveform-*.json` parts. `circuit-results.index.json` lists each
-part's original record positions; `circuit-results.json` then holds the other
-records. Reassembling those indexed parts preserves every sample and record.
-Ordinary-sized aggregate artifacts keep their existing format, and
-`simulationResultCircuitJson` always contains the complete in-memory result.
-Consumers should write the supplied `files` map and its index for oversized data.
-CLI #5736 still needs to guard its additional aggregate `JSON.stringify` so it can
-use these indexed parts rather than hitting the same V8 string limit.
+ngspice must already be installed; `createNativeSolver({ tools: { ngspice } })`
+accepts an executable path. No package install or solver download happens during
+a solve. Native processes are serialized and run with `OMP_NUM_THREADS=1`.
+Vendor IBIS files and board JSON remain local and ignored by git; see
+[the routed examples](examples/routed/README.md) for the local runners.
 
 ## General workflow
 
 ```mermaid
 flowchart TD
-  board[/"Your board<br/>(Circuit JSON with transient channel blocks)"/] --> s1["1. Read the board, group the blocks, derive drivers, receivers, pin states and patterns<br/><small>pipeline</small>"]
+  board[/"Your board<br/>(Circuit JSON with transient channel blocks)"/] --> s1["1. Admit each block: drivers, receivers, pin states, patterns and the copper scope<br/><small>pipeline</small>"]
   chips[/"Chip models<br/>(IBIS files; coupled package admission)"/] --> s1
+  s1 --> s2["2. Cut the scoped copper into straight sections over their reference planes<br/><small>board</small>"]
+  s2 --> s3["3. Solve each unique cross-section's coupled R, L, G and C<br/><small>extraction</small>"]
   chips --> s4
-  s1 --> s2["2. Build 3D copper and layered dielectric; join series paths and retain receiver taps<br/><small>board</small>"]
-  s2 --> q{"Straight parallel traces over<br/>one rectangular return<br/>with contacts at opposite ends?"}
-  q -->|"yes"| s2b["2b. Extra: use straight bars for R/L<br/>(C keeps the full copper and layered dielectric)<br/><small>board</small>"]
-  q -->|"no"| s3
-  s2b --> s3["3. Extract R/L and layered C; check mesh convergence, reciprocity and passivity<br/><small>extraction</small>"]
-  s3 <-->|"runSolver"| fs{{"FastHenry + FasterCap"}}
-  s3 --> s4["4. Build one circuit per block: wires + chip buffers + scalar/coupled pin packages + ideal die rails<br/><small>buffers, simulation</small>"]
-  s4 --> s5["5. Solve undisturbed idle, then signals; independently refine sections and timestep until RMS and signed peaks converge<br/><small>simulation</small>"]
-  s5 <-->|"runSolver"| ng{{"ngspice"}}
-  s5 --> s6["6. Emit receiver waveforms, quiet near/far idle levels and listed-leg RLGC<br/><small>observation</small>"]
-  s6 --> out[/"Result records + solver evidence"/]
+  s3 --> s4["4. Bind IBIS buffers, probes, sources and passives to physical ports<br/><small>buffers, simulation</small>"]
+  s4 --> s5["5. Assemble delay-bounded coupled ladders with via and oblique corrections into one deck<br/><small>simulation</small>"]
+  s5 --> s6["6. Run one transient per block and admit only complete probe vectors<br/><small>simulation</small>"]
+  s6 <-->|"RunSolver"| ng{{"ngspice"}}
+  s6 --> out[/"Captures + deck and evidence artifacts"/]
   s1 -->|"no SI blocks"| out
 ```
 
-```mermaid
-stateDiagram-v2
-  [*] --> validate
-  validate --> derive
-  validate --> sealed: no SI blocks
-  derive --> extract: 3D copper model (2D bars if straight parallel)
-  extract --> extract: refine mesh
-  extract --> simulate: converged
-  simulate --> simulate: refine sections and timestep
-  simulate --> record: RMS and signed peaks converged
-  record --> sealed
-  validate --> failed
-  derive --> failed: missing electrical facts or invalid package matrices
-  extract --> failed
-  simulate --> failed
-  record --> failed
-  sealed --> [*]
-  failed --> [*]
-```
-
-The browser-safe routed pipeline is inspectable with solver-utils. It is a
-candidate 2.5D path; `runPipeline` still runs the 3D workflow above in this PR.
-Construct `new RoutedPipelineSolver(problem, { runSolver, progress })` and await
-`solver.solveAsync()`. All six stage rows exist before the first step; each stage
-processes all admitted blocks in order, with no nested block pipelines. The site's
-`Step` input starts at 0 for the initial view. Enter 1–6 to inspect a retained stage
-by table row number; the next pipeline advance updates the input to the active
-stage. Unrun stages show a not-run note. Synchronous stages can still be stepped
-up to stage 6;
-`RouteTransientSolver` awaits one live ngspice run and admits complete probe vectors.
-Inject the local native adapter to run stage 6 with a bounded process timeout.
+The pipeline is inspectable with solver-utils. All six stage rows exist before the
+first step; each stage processes all admitted blocks in order, with no nested block
+pipelines. The site's `Step` input starts at 0 for the initial view. Enter 1–6 to
+inspect a retained stage by table row number; the next pipeline advance updates the
+input to the active stage. Unrun stages show a not-run note. Synchronous stages can
+be stepped up to stage 6; `RouteTransientSolver` awaits one live ngspice run.
 
 <!-- routed-stages:start -->
 | # | Stage solver |
@@ -165,21 +118,11 @@ stateDiagram-v2
 ```
 <!-- routed-stages:end -->
 
-See [the routed debugger](examples/routed/README.md) for the TSX demo and local
-DDR3 file loader. Follow-up PR 2 drops 3D and connects this path to `runPipeline`.
-
 Missing electrical facts fail explicitly. Numerical settings come from selected
-IBIS edge rates, bit rates, stackup and actual routes. Matrix order follows stable
-physical pin identities, and coupling follows copper positions. The 3D routed
-copper geometry is always built first. Only when the traces are verified straight,
-parallel and over one rectangular return with opposite-end contacts is it replaced by straight bars (step 2b);
-every other route is extracted from the 3D geometry. Capacitance retains the physical copper and finite dielectric slabs even when R/L uses the bar reduction. In that case `geometry.json`
-holds the bars, not the 3D copper.
-
-Every block produces an independent run. A differential endpoint drives opposite
-physical levels and measures P minus N. Quiet channels remain connected and return
-near/far waveforms with separately solved undisturbed idle levels. Single-ended
-probes always use their chip's local ground. Numeric offsets
-are seconds; automatic duration is startup plus 128 of the slowest UI (32 UI for
-quiet-only blocks). Explicit durations are never extended. IBIS values always use the typical corner. Public RLGC matrices select only listed legs; all coupled
-copper remains in the private model.
+IBIS edge rates, bit rates, stackup and actual routes. Every block produces an
+independent run. A differential endpoint drives opposite physical levels and
+measures P minus N. Quiet channels remain connected and are probed at the far
+receiver and at the near quiet driver. Single-ended probes always use their chip's
+local ground. Numeric offsets are seconds; automatic duration is startup plus 128
+of the slowest UI (32 UI for quiet-only blocks). Explicit durations are never
+extended. IBIS values always use the typical corner.

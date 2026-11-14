@@ -6,11 +6,6 @@ import { loadModelSource } from './source'
 import { convertPackaged } from './package'
 import type { AdmittedBuffers, AssemblyEntry, CompiledBuffer, IbisSources, LoadedModelSource, ModelRunDefinition, ModelSourceRequest } from './types'
 
-/** Require the pinned upstream general converter. */
-export function assertConverter(): void {
-  if (typeof converter.convertIbisModelToSpice !== 'function') throw new Error('Install the pinned upstream general IBIS converter')
-}
-
 /**
  * Load every used model before any solver work, in
  * declaration order. Artifacts (under `scope`, the output root): inputs/ibis/<pipelineId>.ibs and

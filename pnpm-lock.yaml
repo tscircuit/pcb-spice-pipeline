@@ -17,12 +17,6 @@ importers:
       '@tscircuit/solver-utils':
         specifier: https://pkg.pr.new/tscircuit/solver-utils/@tscircuit/solver-utils@127f17012c7c391005254993864b26801f418249
         version: https://pkg.pr.new/tscircuit/solver-utils/@tscircuit/solver-utils@127f17012c7c391005254993864b26801f418249(graphics-debug@0.0.101(@resvg/resvg-js@2.6.2)(@tscircuit/image-utils@0.0.10)(react-dom@19.1.0(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(react@19.2.4)(typescript@5.9.3)
-      clipper2-ts:
-        specifier: 2.0.1-18
-        version: 2.0.1-18
-      earcut:
-        specifier: 3.2.4
-        version: 3.2.4
       format-si-unit:
         specifier: 0.0.12
         version: 0.0.12(typescript@5.9.3)
@@ -910,10 +904,6 @@ packages:
       circuit-json: '*'
       circuit-json-to-connectivity-map: '*'
       schematic-symbols: '*'
-
-  clipper2-ts@2.0.1-18:
-    resolution: {integrity: sha512-WuRO1ZHzyYTVHY78r4wVWVydvQ+1lx9qZ+DeZa/8zhvrxIgCVzElJ6lwSMGtUUKFPefhvfJsHZ5C9RNkgisCOQ==}
-    engines: {node: '>=14.0.0'}
 
   color-convert@2.0.1:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
@@ -2525,8 +2515,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
       - typescript
-
-  clipper2-ts@2.0.1-18: {}
 
   color-convert@2.0.1:
     dependencies:

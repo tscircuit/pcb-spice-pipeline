@@ -1,6 +1,6 @@
 import type { CircuitJson, CopperScope, LaneMapping, SectionGeometry } from '../board'
 import type { CompiledBuffer, IbisSources } from '../buffers'
-import type { ExtractedRoutes, RouteMaterials, RouteReturn } from '../extraction'
+import type { ExtractedRoutes, RouteMaterials } from '../extraction'
 import type { SimulationModeling, SimulationPlan, VoltageProbePlan } from './types'
 
 export interface RoutedCompileOptions {
@@ -12,7 +12,6 @@ export interface RoutedCompileOptions {
   currentToleranceA?: number
   cellsPerRise?: number
   materials?: RouteMaterials
-  returnPath?: RouteReturn
 }
 export interface RouteBindingsInput {
   circuitJson: CircuitJson

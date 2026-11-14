@@ -1,9 +1,8 @@
-// Was src/general-spice.ts (electrical sources, experiment netlist, probe scope). Logic and messages unchanged.
-import type { CircuitJson, Geometry } from '../board'
+// Electrical sources and SPICE namespacing for the routed deck.
+import type { CircuitJson } from '../board'
 import { selectPort } from '../board'
-import { channelSpice, type StageMatrices } from '../extraction'
 import { fail } from './diagnostics'
-import type { CircuitNodes, CompiledModel, ElectricalModel, ElectricalSources, SimulationModeling, SimulationPlan, SimulationSpiceOptions } from './types'
+import type { CircuitNodes, ElectricalSources, SimulationModeling } from './types'
 
 /** Formats a number with 17 significant digits so SPICE decks round-trip doubles exactly. */
 const num = (value: number): string => Number(value.toPrecision(17)).toString()
@@ -14,8 +13,6 @@ const finite = (input: unknown, label: string, positive: boolean = false): numbe
 }
 /** Checks an electrical input and formats it for the deck in one step. */
 const value = (input: unknown, label: string, positive: boolean = false): string => num(finite(input, label, positive))
-/** Flattens a name onto one line so it cannot break out of a SPICE comment. */
-const safeComment = (text: string): string => text.replace(/[\r\n]/g, ' ')
 
 /**
  * Prefixes every subcircuit name in a converter library so several IBIS models can share one deck.
@@ -142,83 +139,3 @@ export function electricalSources(circuit: CircuitJson, modeling: SimulationMode
   return { lines: [...sources, ...passives], activeNodes, grounded, sourceBindings, scope: { voltageSources: sources.length, passiveComponents: passives.length, unselectedBoardComponents: 'Excluded from this explicitly selected channel experiment' } }
 }
 
-
-/** Merges an experiment's solver options over the defaults, accepting only the options and methods this backend supports. */
-export function simulationSpiceOptions(overrides: SimulationPlan['experiment']['spice_options'] | Record<string, unknown> = {}): SimulationSpiceOptions {
-  const options: SimulationSpiceOptions = { reltol: 1e-5, abstol: 1e-12, method: 'gear' }
-  for (const [key, input] of Object.entries<unknown>({ ...overrides })) {
-    if (key === 'method') {
-      if (input !== 'gear' && input !== 'trap') return fail('spice_options', 'Unsupported integration method')
-      options.method = input
-    } else {
-      if (key !== 'reltol' && key !== 'abstol' && key !== 'vntol') return fail('spice_options', `Unsupported solver option ${key}`)
-      if ((typeof input !== 'number' && typeof input !== 'string') || !Number.isFinite(Number(input)) || Number(input) <= 0) return fail('spice_options', `Invalid solver option ${key}`)
-      options[key] = Number(input)
-    }
-  }
-  return options
-}
-
-/**
- * Writes the complete ngspice deck for one experiment: rails, IBIS buffers, the extracted channel
- * and the control block that records every probe to waveform.dat.
- */
-export function generalSimulationSpice(plan: SimulationPlan, geometry: Pick<Geometry, 'mappings'>, modeling: { sections: number }, extracted: readonly StageMatrices[], models: readonly CompiledModel[], nodes: CircuitNodes, electrical: ElectricalSources): string {
-  const lines = ['Native transient: explicit physical source rails, IBIS run controls and extracted PCB channel']
-  const options = simulationSpiceOptions(plan.experiment.spice_options)
-  lines.push('.options ' + Object.entries(options).map(([key, input]) => `${key}=${input}`).join(' ') + ' maxord=1', ...electrical.lines)
-  for (const [i, model] of models.entries()) {
-    const renamed = namespaceSpice(model.source, `IBIS${i}`)
-    const wrapper = model.source.match(/^\.subckt\s+\S+\s+(.+)$/mi)
-    if (!wrapper) return fail('ibis_contract', 'Converter did not emit a component wrapper')
-    const terminals = wrapper[1].trim().split(/\s+/).map(terminal => {
-      const id = model.spicePinMapping[terminal]
-      if (!id) fail('ibis_contract', `Missing returned terminal ${terminal}`)
-      return nodes.node(id)
-    })
-    lines.push(`* ${safeComment(model.name)}`, renamed.source, `XIBIS${i} ${terminals.join(' ')} ${renamed.wrapper}`)
-  }
-  if (extracted.some(stage => stage.R.length !== geometry.mappings.length)) fail('matrix_dimension', 'Extracted channels must match every selected signal')
-  const channel = [...geometry.mappings.map(mapping => nodes.node(mapping.from)), ...geometry.mappings.map(mapping => nodes.node(mapping.to))]
-  if (channel.includes('0') || new Set(channel).size !== channel.length) fail('channel_short', 'Every selected signal must have distinct driver and receiver nodes separate from the reference')
-  const taps = geometry.mappings.flatMap((mapping, conductor) => (mapping.intermediatePorts ?? []).map((tap, i) => ({ ...tap, conductor, name: `TAP${conductor}_${i}` })))
-  if (channel.length) lines.push(channelSpice(extracted, modeling.sections, taps), `XCHAN ${[...channel, ...taps.map(tap => nodes.node(tap.sourcePortId)), '0'].join(' ')} CHANNEL`)
-  validateProbeScope(plan, geometry, models, nodes, electrical)
-  // IBIS behavioral sources reference internal voltage-source currents. Probe-only
-  // saves discard those branch vectors in upstream ngspice; preserve them all.
-  // Initialize channel charge from the declared logic levels. Constraints apply
-  // only during startup; every reported measurement excludes 16 UI settling.
-  const initialConditions: string[] = []
-  for (const mapping of geometry.mappings) {
-    const stimulus = plan.stimuli.find(s => [mapping.from, mapping.to].includes(s.source_port_id))
-    if (!stimulus) continue
-    const pin = models.flatMap(model => model.metadata?.pins ?? []).find(pin => pin.port === stimulus.source_port_id)
-    const high = Boolean(stimulus.initial_state) !== Boolean(stimulus.inverted) !== (pin?.polarity === 'inverting')
-    const rail = pin?.references.pullup
-    const supply = rail ? electrical.sourceBindings.find(source => source.positiveNode === nodes.node(rail)) : undefined
-    const voltage = supply ? electrical.lines.find(line => line.startsWith('V') && line.split(/\s+/)[1] === supply.positiveNode)?.split(/\s+/)[3] : undefined
-    if (!voltage || !Number.isFinite(Number(voltage))) continue
-    const initial = high ? Number(voltage) : 0
-    for (const id of [mapping.from, mapping.to]) initialConditions.push(`v(${nodes.node(id)})=${initial}`)
-  }
-  if (initialConditions.length) lines.push('.ic ' + initialConditions.join(' '))
-  lines.push('.control', 'set wr_singlescale', 'set wr_vecnames', 'set numdgt=17', 'save all', `tran ${num(plan.maxStepSeconds)} ${num(plan.durationSeconds)} ${num(plan.startTimeSeconds)} ${num(plan.maxStepSeconds)}`)
-  for (const [i, probe] of plan.probes.entries()) lines.push(`let probe${i} = ${probe.signalNode === '0' ? '0' : `v(${probe.signalNode})`}-${probe.referenceNode === '0' ? '0' : `v(${probe.referenceNode})`}`)
-  lines.push(`wrdata waveform.dat ${plan.probes.map((_, i) => `probe${i}`).join(' ')}`, 'quit', '.endc', '.end', '')
-  return lines.join('\n')
-}
-
-/**
- * Checks that every IBIS reference rail has a DC path to the channel reference and that every probe
- * observes a node inside the modeled circuit, so results never measure an unconnected node.
- */
-export function validateProbeScope(plan: SimulationPlan, geometry: Pick<Geometry, 'mappings'>, models: readonly ElectricalModel[], nodes: CircuitNodes, electrical: ElectricalSources): void {
-  const active = new Set(electrical.activeNodes)
-  for (const model of models) for (const id of Object.values(model.spicePinMapping)) active.add(nodes.node(id))
-  for (const model of models) for (const pin of model.metadata?.pins ?? []) for (const [role, id] of Object.entries(pin.references ?? {})) if (id !== undefined && !electrical.grounded.has(nodes.node(id))) fail('floating_reference', `${model.name} physical pin ${pin.physicalPin} ${role}: reference rail has no explicit source/passive DC path to channelReference`)
-  for (const mapping of geometry.mappings) {
-    active.add(nodes.node(mapping.from))
-    active.add(nodes.node(mapping.to))
-  }
-  for (const probe of plan.probes) if (!active.has(probe.signalNode) || !active.has(probe.referenceNode)) fail('probe_observation', `${probe.name}: signal/reference is outside the declared electrical model scope`)
-}

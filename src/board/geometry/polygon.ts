@@ -1,13 +1,5 @@
-// Planar polygon helpers shared by board (connectivity) and extraction (meshing), mm.
+// Planar polygon helpers for copper pours, mm.
 import type { CopperPoint as Point, CopperPolygon as Polygon } from './types'
-
-/** Signed shoelace area of a ring: positive when counter-clockwise, so callers can fix winding. */
-export const ringArea = (ring: Point[]): number => ring.reduce((s, p, i) => {
-  const q = ring[(i + 1) % ring.length]
-  return s + p[0] * q[1] - q[0] * p[1]
-}, 0) / 2
-/** Copy of the ring with its first point repeated at the end, for formats that want closed loops. */
-export const closeRing = (ring: Point[]): Point[] => [...ring, ring[0]]
 
 const ringBounds=new WeakMap<Point[],[number,number,number,number]>()
 /** Even-odd point-in-ring test, with a cached bounding box to reject far points quickly. */

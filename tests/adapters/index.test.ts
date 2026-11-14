@@ -8,10 +8,7 @@ import assert from 'node:assert/strict'
 import {mkdtemp,mkdir,writeFile,readFile,rm,symlink,stat} from 'node:fs/promises'
 import {join} from 'node:path'
 import {tmpdir} from 'node:os'
-import {createNativeSolver,loadIbisSources,writePipelineOutput} from '../../src/adapters'
-import {reportFixture as runPipeline} from '../support/report-fixture'
-import {generateReport} from '../../src/report'
-import type {RunSolver} from '../../src/solver'
+import {createNativeSolver,loadIbisSources} from '../../src/adapters'
 
 /** Makes a scratch directory that is deleted when the test finishes. */
 const temporary=async(t: {after:(fn:()=>Promise<void>)=>void}): Promise<string>=>{
@@ -59,13 +56,4 @@ test('local IBIS loading deduplicates declarations, rejects missing files and sy
   await writeFile(outside,bytes)
   await symlink(outside,join(baseDir,'models/sn74lvc1g04.ibs'))
   await assert.rejects(loadIbisSources({circuitJson:input.circuitJson.filter((r: {type: string})=>r.type==='simulation_ibis_model'),baseDir}),/file_path/)
-})
-test('explicit output writes supplied artifacts plus the in-memory report without invoking solvers',async t=>{
-  const outputDir=await temporary(t)
-  const result=await runPipeline({})
-  const report=generateReport(result)
-  await writePipelineOutput({result,outputDir})
-  for(const [path,body] of Object.entries({...result.files,...report})) assert.equal(await readFile(join(outputDir,path),'utf8'),body)
-  result.files['../escape']='bad'
-  await assert.rejects(writePipelineOutput({result,outputDir}),/file_path/)
 })

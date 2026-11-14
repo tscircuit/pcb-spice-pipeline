@@ -1,3 +1,0 @@
-TRAFFIC: 7.2 µs accepted; wall 1939 s (1907 s fresh native calls); convergence deltas RMS ≤ 0.001694 V, signed extrema ≤ 0.00633 V. XTALK_LOW: 7.2 µs accepted; wall 1451 s (1397 s fresh native calls); convergence deltas RMS ≤ 0.001395 V, signed extrema ≤ 0.002795 V. XTALK_HIGH: 7.2 µs accepted; wall 2178 s (2127 s fresh native calls); convergence deltas RMS ≤ 0.001476 V, signed extrema ≤ 0.002603 V. R/L mesh deltas 1.329%/0.1003%, C auto residual 0.5493%, signal-block reciprocity 0.01459%.
-
-CSV only is decimated by native min/max buckets (102302 rows; full CSV would be 3124304397 bytes). Full data: `runs/final-rfc` (local, ignored); hashes and convergence: `tests/evidence/signal-levels/`.

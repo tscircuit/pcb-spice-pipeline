@@ -1,14 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFile} from 'node:fs/promises'
-import {validateCircuitRecords,admitBoard} from '../../src/board/index.js'
+import {validateCircuitRecords} from '../../src/board/index.js'
 
 // Board admission is the registered validation the pipeline runs before output or solvers.
 test('malformed physical record fails registered validation before output or solvers',async()=>{
   const circuitJson=[{type:'pcb_plated_hole',pcb_plated_hole_id:'bad-hole'}]
-  await assert.rejects(async()=>admitBoard(circuitJson),
+  await assert.rejects(async()=>validateCircuitRecords(circuitJson),
     error=>error.code==='circuit_schema'&&/^circuit_schema: pcb_plated_hole bad-hole: /.test(error.message)&&error.message.length<300)
-  assert.throws(()=>admitBoard({}),{code:'circuit_schema',message:'circuit_schema: Expected a Circuit JSON record array'})
+  assert.throws(()=>validateCircuitRecords({}),{code:'circuit_schema',message:'circuit_schema: Expected a Circuit JSON record array'})
 })
 
 test('registered valid records are checked without rewriting source values',()=>{

@@ -69,14 +69,6 @@ export function recordSchema(record: { type: string; ftype?: string }): z.ZodTyp
   if (record.type === 'source_component') schemaName = `source_${record.ftype}`
   return physicalCompatibility[record.type] ?? Reflect.get(base, schemaName)
 }
-/** Parses one Circuit JSON record with its registered schema, throwing a plain Error for missing or unknown types. */
-export function parseRecord(record: unknown): CircuitJson[number] {
-  if (!record || typeof record !== 'object' || !('type' in record) || typeof record.type !== 'string') throw new Error('Circuit record requires a type')
-  const schema = recordSchema(record as { type: string })
-  if (!schema) throw new Error(`Unknown Circuit JSON record: ${record.type}`)
-  return schema.parse(record)
-}
-
 /** Select the registered record schema directly, avoiding a union diagnostic
  * containing hundreds of unrelated alternatives. Validation never edits input. */
 export function validateCircuitRecords(records: unknown): void {
